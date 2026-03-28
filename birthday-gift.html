@@ -1,0 +1,2702 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Grattis på 10-årsdagen!</title>
+    <!-- Byggd med ❤️ och magi! -->
+    
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@700&family=Montserrat:wght@400;700&family=Press+Start+2P&display=swap" rel="stylesheet">
+    
+    <!-- Epic Libraries -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/EffectComposer.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/RenderPass.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/ShaderPass.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/CopyShader.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/LuminosityHighPassShader.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/UnrealBloomPass.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    
+    <style>
+        :root {
+            --alva-size: 80px;
+            --alva-bottom-offset: 24px;
+            --alva-side-padding: 20px;
+            --luma-size: 64px;
+            --party-width: 220px;
+            --party-height: 150px;
+            --party-inset-left: 24px;
+            --party-inset-bottom: 18px;
+            --alva-idle-cycle-ms: 780ms;
+            --alva-run-cycle-ms: 340ms;
+            --luma-cycle-ms: 640ms;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body, html {
+            width: 100%;
+            height: 100%;
+            font-family: 'Montserrat', sans-serif;
+            overflow-x: hidden;
+            background: #050114; /* Mörk rymdbakgrund initialt */
+            color: white;
+            scroll-behavior: smooth;
+            transition: background 2s ease;
+        }
+
+        /* Three.js Container */
+        #webgl-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+            pointer-events: none; /* Så vi kan klicka genom och scrolla HTML på toppen */
+        }
+
+        /* Mario Bakgrund (Blend mode över WebGL när det avslöjas) */
+        #mario-bg {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 2;
+            opacity: 0;
+            pointer-events: none;
+            background-image: 
+                linear-gradient(45deg, rgba(255,255,255,0.15) 25%, transparent 25%, transparent 75%, rgba(255,255,255,0.15) 75%, rgba(255,255,255,0.15)), 
+                linear-gradient(45deg, rgba(255,255,255,0.15) 25%, transparent 25%, transparent 75%, rgba(255,255,255,0.15) 75%, rgba(255,255,255,0.15));
+            background-size: 60px 60px;
+            background-position: 0 0, 30px 30px;
+            transition: opacity 2s ease-in-out;
+            mix-blend-mode: overlay;
+        }
+
+        /* Berättelse Wrapper */
+        #content {
+            position: relative;
+            z-index: 10;
+        }
+
+        .story-section {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            padding: 2rem;
+            opacity: 0;
+            transform: translateY(80px) scale(0.92);
+            transition: opacity 1.5s cubic-bezier(0.2, 0.8, 0.2, 1), transform 1.5s cubic-bezier(0.2, 0.8, 0.2, 1);
+        }
+
+        .story-section.visible {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+        }
+
+        /* Floating text effect — elements gently bob and sway */
+        h1 {
+            font-family: 'Cinzel Decorative', cursive;
+            font-size: 3.2rem;
+            margin-bottom: 2rem;
+            color: #fff;
+            text-shadow: 
+                0 0 25px rgba(255, 215, 0, 0.7), 
+                0 0 50px rgba(170, 0, 255, 0.6),
+                0 0 80px rgba(255, 100, 0, 0.3);
+            letter-spacing: 2px;
+            animation: float-text 4s ease-in-out infinite;
+        }
+
+        @keyframes float-text {
+            0%, 100% { transform: translateY(0) rotate(-0.3deg); }
+            33% { transform: translateY(-8px) rotate(0.3deg); }
+            66% { transform: translateY(-3px) rotate(-0.2deg); }
+        }
+
+        p {
+            font-size: 1.45rem;
+            line-height: 2.1;
+            max-width: 700px;
+            color: #ffffff;
+            font-weight: 700;
+            text-shadow: 
+                0 4px 6px rgba(0,0,0,1), 
+                0 0 15px rgba(0,0,0,1),
+                0 0 30px rgba(0,0,0,1);
+            position: relative;
+            padding: 0 15px;
+            animation: float-paragraph 5s ease-in-out infinite;
+        }
+
+        @keyframes float-paragraph {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-6px); }
+        }
+
+        @keyframes alva-sprite-cycle {
+            from { background-position: 0 0; }
+            to { background-position: calc(var(--alva-size) * -4) 0; }
+        }
+
+        @keyframes luma-sprite-cycle {
+            from { background-position: 0 0; }
+            to { background-position: calc(var(--luma-size) * -4) 0; }
+        }
+
+        /* --- Shared 16-bit Companion Party --- */
+        #companion-party {
+            position: fixed;
+            left: var(--party-inset-left);
+            bottom: var(--party-inset-bottom);
+            width: var(--party-width);
+            height: var(--party-height);
+            z-index: 50;
+            pointer-events: none;
+            overflow: visible;
+            transition: opacity 0.8s ease;
+            isolation: isolate;
+        }
+
+        #companion-party::before,
+        #companion-party::after {
+            content: '';
+            position: absolute;
+            inset: auto 0 0 0;
+            pointer-events: none;
+        }
+
+        #companion-party::before {
+            height: 98px;
+            bottom: -16px;
+            border-radius: 110px 120px 46px 30px;
+            background:
+                radial-gradient(circle at 24% 76%, rgba(255, 215, 0, 0.18), transparent 40%),
+                radial-gradient(circle at 72% 52%, rgba(0, 212, 255, 0.14), transparent 46%),
+                linear-gradient(to top, rgba(0, 0, 0, 0.88), rgba(0, 0, 0, 0.12));
+            filter: blur(16px);
+            opacity: 0.98;
+            z-index: 0;
+        }
+
+        #companion-party::after {
+            left: 18px;
+            right: 22px;
+            height: 62px;
+            bottom: 18px;
+            border-radius: 999px 999px 48px 48px;
+            background:
+                radial-gradient(circle at 10% 72%, rgba(255, 225, 140, 0.24), transparent 18%),
+                radial-gradient(circle at 34% 38%, rgba(255, 255, 255, 0.18), transparent 14%),
+                radial-gradient(circle at 58% 54%, rgba(115, 236, 255, 0.18), transparent 14%),
+                radial-gradient(circle at 84% 36%, rgba(115, 236, 255, 0.15), transparent 12%);
+            filter: blur(12px);
+            opacity: 0.78;
+            z-index: 0;
+        }
+
+        #life-path-layer,
+        #luma-back-layer,
+        #alva-layer {
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+            overflow: visible;
+        }
+
+        #life-path-layer {
+            z-index: 1;
+        }
+
+        #luma-back-layer {
+            z-index: 2;
+        }
+
+        #alva-layer {
+            z-index: 4;
+        }
+
+        #life-path-svg {
+            width: 100%;
+            height: 100%;
+            overflow: visible;
+        }
+
+        #life-path-shadow,
+        #life-path-glow,
+        #life-path-highlight {
+            fill: none;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+        }
+
+        #life-path-shadow {
+            stroke: rgba(9, 5, 0, 0.88);
+            stroke-width: 22px;
+            filter: url(#life-path-shadow-blur);
+            opacity: 0.95;
+        }
+
+        #life-path-glow {
+            stroke: url(#life-path-gradient);
+            stroke-width: 13px;
+            filter: url(#life-path-glow-blur);
+            opacity: var(--life-path-glow-opacity, 0.84);
+        }
+
+        #life-path-highlight {
+            stroke: url(#life-path-highlight-gradient);
+            stroke-width: 3.4px;
+            opacity: var(--life-path-highlight-opacity, 0.86);
+        }
+
+        .life-milestone {
+            transform-origin: center center;
+        }
+
+        .life-milestone-aura {
+            filter: url(#life-milestone-blur);
+            opacity: 0.16;
+        }
+
+        .life-milestone-core {
+            opacity: 0.5;
+        }
+
+        .life-milestone-spark {
+            opacity: 0.88;
+        }
+
+        #companion-wrapper {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: var(--alva-size);
+            height: var(--alva-size);
+            transform-origin: bottom center;
+            will-change: transform;
+        }
+
+        #companion {
+            width: var(--alva-size);
+            height: var(--alva-size);
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            background: url('alva_sprite.png') 0 0 no-repeat;
+            background-size: calc(var(--alva-size) * 4) var(--alva-size);
+            filter: drop-shadow(0 0 10px rgba(255, 220, 100, 0.8));
+            image-rendering: pixelated;
+            image-rendering: crisp-edges;
+            transform-origin: bottom center;
+            will-change: transform;
+            animation: alva-sprite-cycle var(--alva-idle-cycle-ms) steps(4) infinite;
+            z-index: 2;
+        }
+
+        #companion.is-running {
+            animation-duration: var(--alva-run-cycle-ms);
+        }
+
+        #companion-shadow {
+            position: absolute;
+            bottom: calc(var(--alva-size) * -0.02);
+            left: 50%;
+            width: calc(var(--alva-size) * 0.62);
+            height: calc(var(--alva-size) * 0.14);
+            background: rgba(0,0,0,0.5);
+            border-radius: 50%;
+            filter: blur(4px);
+            z-index: 1;
+            transform: translateX(-50%) scale(0.78, 0.82);
+            transform-origin: center center;
+            will-change: transform, opacity;
+        }
+
+        .luma-instance {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: var(--luma-size);
+            height: var(--luma-size);
+            will-change: transform;
+        }
+
+        .luma-sprite {
+            width: var(--luma-size);
+            height: var(--luma-size);
+            position: absolute;
+            inset: 0;
+            background: url('luma_sprite.png') 0 0 no-repeat;
+            background-size: calc(var(--luma-size) * 4) var(--luma-size);
+            filter: drop-shadow(0 0 10px var(--luma-glow, rgba(0, 212, 255, 0.8)));
+            image-rendering: pixelated;
+            image-rendering: crisp-edges;
+            transform-origin: center center;
+            will-change: transform;
+            animation: luma-sprite-cycle var(--luma-cycle-ms) steps(4) infinite;
+            animation-delay: var(--luma-delay, 0s);
+            z-index: 2;
+        }
+
+        .luma-shadow {
+            position: absolute;
+            bottom: calc(var(--luma-size) * -0.05);
+            left: 50%;
+            width: calc(var(--luma-size) * 0.66);
+            height: calc(var(--luma-size) * 0.14);
+            background: rgba(0,0,0,0.35);
+            border-radius: 50%;
+            filter: blur(5px);
+            z-index: 1;
+            transform: translateX(-50%) scale(0.82, 0.82);
+            transform-origin: center center;
+            will-change: transform, opacity;
+        }
+
+        @media (max-width: 768px) {
+            :root {
+                --alva-size: 68px;
+                --alva-bottom-offset: 18px;
+                --alva-side-padding: 12px;
+                --luma-size: 54px;
+                --party-width: 184px;
+                --party-height: 126px;
+                --party-inset-left: 14px;
+                --party-inset-bottom: 14px;
+                --alva-idle-cycle-ms: 720ms;
+                --alva-run-cycle-ms: 320ms;
+                --luma-cycle-ms: 560ms;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .luma-instance[data-depth="far"] {
+                display: none;
+            }
+        }
+
+        /* Scroll indikator */
+        .scroll-indicator {
+            position: absolute;
+            bottom: 40px;
+            left: 50%;
+            transform: translateX(-50%);
+            animation: bounce 2s infinite cubic-bezier(0.4, 0, 0.2, 1);
+            opacity: 0.8;
+            filter: drop-shadow(0 0 10px rgba(255,215,0,0.6));
+        }
+
+        @keyframes bounce {
+            0%, 20%, 50%, 80%, 100% { transform: translateY(0) translateX(-50%); }
+            40% { transform: translateY(-20px) translateX(-50%); }
+            60% { transform: translateY(-10px) translateX(-50%); }
+        }
+
+        .arrow-down {
+            width: 35px;
+            height: 35px;
+            border-right: 4px solid #ffd700;
+            border-bottom: 4px solid #ffd700;
+            transform: rotate(45deg);
+            border-radius: 2px;
+        }
+
+        /* --- Story Memory Holograms --- */
+        .story-memory-beat {
+            width: min(1120px, 100%);
+            display: grid;
+            gap: clamp(1.8rem, 4vw, 4rem);
+            align-items: center;
+            justify-items: center;
+        }
+
+        .story-memory--center {
+            max-width: 820px;
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        .story-memory--left {
+            grid-template-columns: minmax(260px, 360px) minmax(0, 1fr);
+            text-align: left;
+        }
+
+        .story-memory--right {
+            grid-template-columns: minmax(0, 1fr) minmax(260px, 360px);
+            text-align: left;
+        }
+
+        .story-memory--right .memory-reveal-container {
+            grid-column: 2;
+        }
+
+        .story-memory--right .story-copy {
+            grid-column: 1;
+            grid-row: 1;
+        }
+
+        .story-copy {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 1.35rem;
+            text-align: left;
+            width: min(100%, 720px);
+        }
+
+        .story-copy h1,
+        .story-memory--center > h1 {
+            margin-bottom: 0;
+        }
+
+        .story-copy p,
+        .story-memory--center > p {
+            margin: 0;
+            padding: 0;
+        }
+
+        .story-memory--center > p {
+            max-width: 720px;
+            padding: 0 15px;
+        }
+
+        .memory-reveal-container,
+        .hero-reveal-container {
+            perspective: 1500px;
+            margin: 0;
+            opacity: 0;
+            transform: translateY(80px) scale(0.85);
+            transition: all 1.8s cubic-bezier(0.2, 0.8, 0.2, 1) 0.3s;
+        }
+
+        .story-memory--center .memory-reveal-container {
+            margin: 0.4rem auto 0.2rem;
+        }
+
+        .story-memory--left .memory-reveal-container {
+            justify-self: start;
+        }
+
+        .story-memory--right .memory-reveal-container {
+            justify-self: end;
+        }
+
+        .story-section.visible .memory-reveal-container,
+        .story-section.visible .hero-reveal-container {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+        }
+
+        .memory-tilt-wrapper,
+        .hero-tilt-wrapper {
+            width: min(var(--memory-size, 300px), 72vw);
+            height: min(var(--memory-size, 300px), 72vw);
+            border-radius: 50%;
+            position: relative;
+            transform-style: preserve-3d;
+            transition: transform 0.1s ease-out, box-shadow 0.3s ease;
+            box-shadow:
+                0 15px 40px rgba(0,0,0,0.7),
+                0 0 50px var(--memory-aura-primary, rgba(255, 215, 0, 0.4));
+            cursor: pointer;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: var(--memory-frame-gradient, linear-gradient(135deg, rgba(255,215,0,0.82), rgba(170,0,255,0.82)));
+            padding: 6px;
+        }
+
+        .memory-tilt-wrapper::before,
+        .hero-tilt-wrapper::before {
+            content: '';
+            position: absolute;
+            inset: -8px;
+            border-radius: 50%;
+            background: conic-gradient(
+                from 0deg,
+                var(--memory-aura-primary, rgba(255, 215, 0, 0.9)),
+                var(--memory-aura-secondary, rgba(255, 0, 255, 0.9)),
+                rgba(255,255,255,0.95),
+                var(--memory-aura-primary, rgba(255, 215, 0, 0.9))
+            );
+            animation: spin 3s linear infinite;
+            z-index: -1;
+            filter: blur(12px);
+            opacity: 0.9;
+        }
+
+        @keyframes spin {
+            100% { transform: rotate(360deg); }
+        }
+
+        .memory-image,
+        .hero-image {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            overflow: hidden;
+            position: relative;
+            background: #000;
+            transform: translateZ(25px); 
+            box-shadow: inset 0 0 20px rgba(0,0,0,0.8), 0 10px 20px rgba(0,0,0,0.5);
+        }
+
+        .memory-image img,
+        .hero-image img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            object-position: var(--memory-object-position, 50% 50%);
+            transition: transform 0.6s cubic-bezier(0.25, 1, 0.5, 1);
+        }
+
+        .memory-tilt-wrapper:hover .memory-image img,
+        .hero-tilt-wrapper:hover .hero-image img {
+            transform: scale(1.08);
+        }
+
+        .hologram-overlay {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            border-radius: 50%;
+            background: linear-gradient(105deg, 
+                transparent 10%, 
+                rgba(255,255,255,0.4) 20%, 
+                rgba(255,215,0,0.3) 25%, 
+                transparent 45%);
+            mix-blend-mode: color-dodge;
+            pointer-events: none;
+            opacity: 0.7;
+            background-size: 200% 200%;
+            background-position: var(--shimmer-x, 0%) calc(var(--shimmer-y, 0%) * -1);
+            transition: opacity 0.3s;
+        }
+
+        .story-memory--intro .memory-reveal-container {
+            margin-top: 0.4rem;
+        }
+
+        .story-memory--hero .memory-reveal-container {
+            margin: 0.8rem auto 0.3rem;
+        }
+
+        .story-memory--family .memory-reveal-container {
+            margin: 0.6rem auto 0.3rem;
+        }
+
+        .memory-cluster {
+            position: relative;
+            width: min(360px, 100%);
+            min-height: 332px;
+            display: grid;
+            place-items: center;
+            padding: 12px 18px 22px;
+        }
+
+        .memory-cluster .memory-reveal-container {
+            margin: 0;
+        }
+
+        .memory-cluster .memory-reveal-container.is-primary {
+            position: relative;
+            z-index: 1;
+        }
+
+        .memory-cluster .memory-reveal-container.is-secondary {
+            position: absolute;
+            right: 8px;
+            bottom: 4px;
+            z-index: 2;
+        }
+
+        .memory-cluster .memory-reveal-container.is-secondary .memory-tilt-wrapper {
+            box-shadow:
+                0 12px 28px rgba(0,0,0,0.62),
+                0 0 34px var(--memory-aura-primary, rgba(114, 244, 255, 0.45));
+        }
+
+        @media (max-width: 920px) {
+            .story-memory--left,
+            .story-memory--right {
+                grid-template-columns: 1fr;
+                text-align: center;
+            }
+
+            .story-memory--right .memory-reveal-container,
+            .story-memory--right .story-copy {
+                grid-column: auto;
+                grid-row: auto;
+            }
+
+            .story-memory--left .memory-reveal-container,
+            .story-memory--right .memory-reveal-container {
+                justify-self: center;
+            }
+
+            .story-copy {
+                align-items: center;
+                text-align: center;
+            }
+
+            .story-copy p {
+                max-width: 700px;
+                padding: 0 15px;
+            }
+
+            .memory-cluster {
+                width: min(100%, 340px);
+                min-height: 320px;
+                padding-inline: 0;
+            }
+
+            .memory-cluster .memory-reveal-container.is-secondary {
+                right: 6px;
+                bottom: 8px;
+            }
+        }
+
+        @media (hover: none), (pointer: coarse) {
+            .memory-tilt-wrapper,
+            .hero-tilt-wrapper {
+                cursor: default;
+            }
+        }
+
+        /* Magiska Knappen */
+        .reveal-container {
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            perspective: 1000px;
+        }
+
+        .magic-button {
+            background: linear-gradient(45deg, #ffd700, #ff8c00, #ff0f7b);
+            background-size: 200% 200%;
+            animation: gradient-shift 3s ease infinite;
+            border: 2px solid rgba(255, 255, 255, 0.8);
+            padding: 22px 55px;
+            font-size: 1.6rem;
+            font-family: 'Cinzel Decorative', cursive;
+            color: #fff;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+            border-radius: 60px;
+            cursor: pointer;
+            box-shadow: 0 10px 30px rgba(255, 215, 0, 0.4), inset 0 0 20px rgba(255,255,255,0.4);
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            position: relative;
+            overflow: hidden;
+        }
+
+        @keyframes gradient-shift {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        /* Sweep shine for the button */
+        .magic-button::after {
+            content: '';
+            position: absolute;
+            top: 0; left: -100%; width: 50%; height: 100%;
+            background: linear-gradient(to right, transparent, rgba(255,255,255,0.8), transparent);
+            transform: skewX(-20deg);
+            transition: all 0.5s;
+        }
+
+        .magic-button:hover {
+            transform: scale(1.15) translateY(-5px);
+            box-shadow: 0 20px 60px rgba(255, 215, 0, 0.8), inset 0 0 30px rgba(255,255,255,1);
+            color: #fff;
+            border-color: #fff;
+        }
+
+        .magic-button:hover::after {
+            left: 200%;
+            transition: 0.7s ease-in-out;
+        }
+
+        @keyframes pulse {
+            0% { box-shadow: 0 0 20px rgba(255,215,0,0.5); }
+            50% { box-shadow: 0 0 40px rgba(255,215,0,0.9); }
+            100% { box-shadow: 0 0 20px rgba(255,215,0,0.5); }
+        }
+
+        /* Mario Epic Reveal Mål! */
+        #mario-content {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 20;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            padding: 1rem;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 1.5s ease-in-out;
+            visibility: hidden;
+        }
+
+        #mario-content.revealed {
+            opacity: 1;
+            pointer-events: auto;
+            visibility: visible;
+        }
+
+        #mario-content h1 {
+            font-family: 'Press Start 2P', cursive;
+            color: #E52521; /* Mario Red */
+            text-shadow: 4px 4px 0px #fff, 8px 8px 0px #000;
+            font-size: 2.2rem;
+            margin-bottom: 2rem;
+            line-height: 1.5;
+            transform: scale(0) rotate(-10deg);
+            transition: transform 1.2s cubic-bezier(0.34, 1.56, 0.64, 1) 1.5s;
+        }
+        
+        #mario-content.revealed h1 {
+            transform: scale(1) rotate(0deg);
+        }
+
+        #mario-content p {
+            font-family: 'Press Start 2P', cursive;
+            font-size: 0.8rem;
+            line-height: 1.8;
+            color: #fff;
+            text-shadow: 2px 2px 0px #000;
+            max-width: 600px;
+            background: rgba(0,0,0,0.8);
+            padding: 25px;
+            border-radius: 15px;
+            border: 4px solid #FBD000;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        }
+
+        .ticket {
+            margin-top: 2rem;
+            background: linear-gradient(135deg, #FBD000, #ff9900);
+            border: 6px dashed #E52521;
+            padding: 30px;
+            border-radius: 15px;
+            color: #333;
+            font-family: 'Press Start 2P', cursive;
+            display: inline-block;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.8), inset 0 0 20px rgba(255,255,255,0.7);
+            transform: translateY(150px) rotate(-15deg) scale(0.1);
+            opacity: 0;
+            transition: all 1.5s cubic-bezier(0.34, 1.56, 0.64, 1) 2.2s;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        /* Premium foil sweep on ticket */
+        .ticket::before {
+            content: '';
+            position: absolute;
+            top: 0; left: -100%; width: 50%; height: 100%;
+            background: linear-gradient(to right, transparent, rgba(255,255,255,0.8), transparent);
+            transform: skewX(-20deg);
+            animation: foil-sweep 4s infinite 3s;
+            z-index: 1;
+            pointer-events: none;
+        }
+
+        @keyframes foil-sweep {
+            0%, 50% { left: -100%; }
+            100% { left: 200%; }
+        }
+
+        #mario-content.revealed .ticket {
+            transform: translateY(0) rotate(-3deg) scale(1);
+            opacity: 1;
+            /* Svajar mjukt när den väl kommit in på skärmen */
+            animation: sway 6s ease-in-out infinite alternate 3.7s;
+        }
+
+        @keyframes sway {
+            0% { transform: translateY(0) rotate(-3deg) scale(1); }
+            33% { transform: translateY(-8px) rotate(2deg) scale(1.02); }
+            66% { transform: translateY(4px) rotate(-1deg) scale(0.98); }
+            100% { transform: translateY(0) rotate(-4deg) scale(1); }
+        }
+
+        .ticket h2 {
+            color: #E52521;
+            margin-bottom: 25px;
+            font-size: 1.3rem;
+            text-shadow: 2px 2px 0 #fff;
+            font-family: 'Press Start 2P', cursive;
+            letter-spacing: 2px;
+        }
+
+        .ticket .gift {
+            font-size: 0.9rem;
+            line-height: 2.2;
+        }
+
+        .ticket .mario-title {
+            font-size: 1.4rem;
+            color: #E52521;
+            text-shadow: 2px 2px 0 #fff, 4px 4px 0 #000;
+            display: block;
+            margin: 20px 0;
+            animation: bounce-title 2s ease-in-out infinite alternate;
+        }
+
+        @keyframes bounce-title {
+            0% { transform: scale(1); color: #E52521; }
+            50% { transform: scale(1.05); color: #43B047; }
+            100% { transform: scale(1); color: #0000FF; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- WebGL Magisk Skog -> Mario Rymd -->
+    <div id="webgl-container"></div>
+    <div id="mario-bg"></div>
+
+    <div id="content">
+        <!-- Berättelse -->
+        <section class="story-section">
+            <div class="story-memory-beat story-memory--center story-memory--intro">
+                <h1 style="color: #ffd700;">För exakt 10 år sedan...</h1>
+                <div class="memory-reveal-container">
+                    <div
+                        class="memory-tilt-wrapper"
+                        data-tilt-hologram
+                        style="--memory-size: 224px; --memory-frame-gradient: linear-gradient(135deg, rgba(255,215,120,0.82), rgba(255,128,170,0.84)); --memory-aura-primary: rgba(255,215,120,0.82); --memory-aura-secondary: rgba(255,128,170,0.88); --memory-object-position: 50% 38%;"
+                    >
+                        <div class="memory-image">
+                            <img src="alva_1_year.jpg" alt="Alva som ettåring" loading="eager" fetchpriority="high" decoding="async" />
+                            <div class="hologram-overlay"></div>
+                        </div>
+                    </div>
+                </div>
+                <p>Tändes en liten gnista av ren magi i världen. Den gnistan var du, Alva.</p>
+            </div>
+            <div class="scroll-indicator"><div class="arrow-down"></div></div>
+        </section>
+
+        <section class="story-section">
+            <div class="story-memory-beat story-memory--left">
+                <div class="memory-reveal-container">
+                    <div
+                        class="memory-tilt-wrapper"
+                        data-tilt-hologram
+                        style="--memory-size: 274px; --memory-frame-gradient: linear-gradient(135deg, rgba(255,180,92,0.84), rgba(96,232,255,0.76)); --memory-aura-primary: rgba(255,180,92,0.84); --memory-aura-secondary: rgba(96,232,255,0.8); --memory-object-position: 50% 46%;"
+                    >
+                        <div class="memory-image">
+                            <img src="alva_olov_hiking.jpg" alt="Alva och Olov på vandring" loading="lazy" decoding="async" />
+                            <div class="hologram-overlay"></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="story-copy">
+                    <h1 style="color: #ffaa00;">Din helt egna galax</h1>
+                    <p>För varje år som gått har du fyllt vår värld med glädje och skratt. Precis som små Lumas som samlar stjärnstoft, har du spridit värme och pirrig nyfikenhet till alla runt omkring dig.</p>
+                </div>
+            </div>
+        </section>
+
+        <section class="story-section">
+            <div class="story-memory-beat story-memory--right">
+                <div class="memory-cluster">
+                    <div class="memory-reveal-container is-primary">
+                        <div
+                            class="memory-tilt-wrapper"
+                            data-tilt-hologram
+                            style="--memory-size: 278px; --memory-frame-gradient: linear-gradient(135deg, rgba(255,82,198,0.84), rgba(72,238,255,0.78)); --memory-aura-primary: rgba(255,82,198,0.84); --memory-aura-secondary: rgba(72,238,255,0.82); --memory-object-position: 50% 42%;"
+                        >
+                            <div class="memory-image">
+                                <img src="alva_mira_fishing.jpg" alt="Alva och Mira på fisketur" loading="lazy" decoding="async" />
+                                <div class="hologram-overlay"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="memory-reveal-container is-secondary">
+                        <div
+                            class="memory-tilt-wrapper"
+                            data-tilt-hologram
+                            style="--memory-size: 168px; --memory-frame-gradient: linear-gradient(135deg, rgba(110,225,255,0.84), rgba(168,255,120,0.8)); --memory-aura-primary: rgba(110,225,255,0.86); --memory-aura-secondary: rgba(168,255,120,0.82); --memory-object-position: 50% 34%;"
+                        >
+                            <div class="memory-image">
+                                <img src="alva_hockey.png" alt="Alva spelar hockey" loading="lazy" decoding="async" />
+                                <div class="hologram-overlay"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="story-copy">
+                    <h1 style="color: #ff00ff;">En riktig superstjärna</h1>
+                    <p>I stället för att kämpa mot läskiga monster, har du med din trygga fantasi och ditt snälla hjärta visat oss alla att den absolut starkaste superkraften är omtanke.</p>
+                </div>
+            </div>
+        </section>
+
+        <section class="story-section">
+            <div class="story-memory-beat story-memory--left">
+                <div class="memory-reveal-container">
+                    <div
+                        class="memory-tilt-wrapper"
+                        data-tilt-hologram
+                        style="--memory-size: 286px; --memory-frame-gradient: linear-gradient(135deg, rgba(140,255,112,0.82), rgba(255,220,108,0.78)); --memory-aura-primary: rgba(140,255,112,0.82); --memory-aura-secondary: rgba(255,220,108,0.82); --memory-object-position: 50% 40%;"
+                    >
+                        <div class="memory-image">
+                            <img src="alva_rollercoaster.jpg" alt="Alva på berg- och dalbana" loading="lazy" decoding="async" />
+                            <div class="hologram-overlay"></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="story-copy">
+                    <h1 style="color: #43B047;">Level 10 Upplåst</h1>
+                    <p>Ett helt decennium av lek, mysiga tv-spelskvällar och bubblande drömmar har gått. Den lilla gnistan lyser nu starkast av alla på vår himmel.</p>
+                </div>
+            </div>
+        </section>
+
+        <section class="story-section">
+            <div class="story-memory-beat story-memory--center story-memory--hero">
+                <h1 style="color: #00ffff;">Vår egen Hjälte</h1>
+                <div class="memory-reveal-container hero-reveal-container">
+                    <div
+                        class="memory-tilt-wrapper hero-tilt-wrapper"
+                        data-tilt-hologram
+                        style="--memory-size: 300px; --memory-frame-gradient: linear-gradient(135deg, rgba(114,244,255,0.84), rgba(255,214,94,0.78)); --memory-aura-primary: rgba(114,244,255,0.84); --memory-aura-secondary: rgba(255,214,94,0.82); --memory-object-position: 50% 50%;"
+                    >
+                        <div class="memory-image hero-image">
+                            <img src="alva_mario.png" alt="Alva i Super Mario Galaxy" loading="lazy" decoding="async" />
+                            <div class="hologram-overlay"></div>
+                        </div>
+                    </div>
+                </div>
+                <p>Idag fyller du 10 hela år, Alva! Du kliver nu in i ett underbart nytt kapitel, maxat med värme, roliga vänner och gränslösa vardagsäventyr!</p>
+            </div>
+        </section>
+
+        <section class="story-section">
+            <div class="story-memory-beat story-memory--center story-memory--family">
+                <h1 style="color: #ffaa00;">Stjärnorna viskar</h1>
+                <div class="memory-reveal-container">
+                    <div
+                        class="memory-tilt-wrapper"
+                        data-tilt-hologram
+                        style="--memory-size: 250px; --memory-frame-gradient: linear-gradient(135deg, rgba(255,214,122,0.82), rgba(206,166,255,0.76)); --memory-aura-primary: rgba(255,214,122,0.84); --memory-aura-secondary: rgba(206,166,255,0.82); --memory-object-position: 50% 36%;"
+                    >
+                        <div class="memory-image">
+                            <img src="alva_family.jpg" alt="Alva med familjen" loading="lazy" decoding="async" />
+                            <div class="hologram-overlay"></div>
+                        </div>
+                    </div>
+                </div>
+                <p>När du drömt har stjärnorna och de små Lumas lyssnat. Idag har dom samlat ihop all sin rymdmagi till en oslagbar överraskning, endast för dig...</p>
+            </div>
+        </section>
+
+        <section class="reveal-container story-section">
+            <button class="magic-button" id="reveal-btn">✨ AVSLÖJA HEMLIGHETEN ✨</button>
+        </section>
+    </div>
+
+    <!-- Shared 16-bit companion party -->
+    <div id="companion-party">
+        <div id="life-path-layer" aria-hidden="true">
+            <svg id="life-path-svg" viewBox="0 0 220 150" preserveAspectRatio="none">
+                <defs>
+                    <filter id="life-path-shadow-blur" x="-40%" y="-120%" width="220%" height="320%">
+                        <feGaussianBlur stdDeviation="7"></feGaussianBlur>
+                    </filter>
+                    <filter id="life-path-glow-blur" x="-40%" y="-120%" width="220%" height="320%">
+                        <feGaussianBlur stdDeviation="4.4"></feGaussianBlur>
+                    </filter>
+                    <filter id="life-milestone-blur" x="-200%" y="-200%" width="400%" height="400%">
+                        <feGaussianBlur stdDeviation="2.4"></feGaussianBlur>
+                    </filter>
+                    <linearGradient id="life-path-gradient" x1="16" y1="126" x2="206" y2="78" gradientUnits="userSpaceOnUse">
+                        <stop id="life-path-stop-start" offset="0%" stop-color="#ffd76d" stop-opacity="0.16"></stop>
+                        <stop id="life-path-stop-mid" offset="52%" stop-color="#ffd76d" stop-opacity="0.92"></stop>
+                        <stop id="life-path-stop-end" offset="100%" stop-color="#71e8ff" stop-opacity="0.78"></stop>
+                    </linearGradient>
+                    <linearGradient id="life-path-highlight-gradient" x1="20" y1="120" x2="198" y2="82" gradientUnits="userSpaceOnUse">
+                        <stop id="life-path-highlight-start" offset="0%" stop-color="#fff0ba" stop-opacity="0.08"></stop>
+                        <stop id="life-path-highlight-mid" offset="50%" stop-color="#fffdf0" stop-opacity="0.88"></stop>
+                        <stop id="life-path-highlight-end" offset="100%" stop-color="#c9fbff" stop-opacity="0.24"></stop>
+                    </linearGradient>
+                </defs>
+                <path id="life-path-shadow"></path>
+                <path id="life-path-glow"></path>
+                <path id="life-path-highlight"></path>
+                <g id="life-path-milestones"></g>
+            </svg>
+        </div>
+        <div id="luma-back-layer"></div>
+        <div id="alva-layer">
+            <div id="companion-wrapper">
+                <div id="companion-shadow"></div>
+                <div id="companion"></div>
+            </div>
+        </div>
+    </div>
+
+    <div id="mario-content">
+        <h1>MAMMA MIA! 🍄</h1>
+        <p>Gör dig redo att hoppa in i ett magiskt rör som tar dig direkt till Svampriket!</p>
+        <div class="ticket">
+            <h2>⭐ GULD BILJETT ⭐</h2>
+            <div class="gift">
+                Du, Alva, ska få gå på bio tillsammans med pappa och Mira och se:
+                <span class="mario-title">Super Mario Galaxy: Filmen</span>
+                Ditt alldeles egna bioäventyr! <br><br>
+                Grattis på 10-årsdagen! 🎉
+            </div>
+        </div>
+    </div>
+
+    <div id="flash-overlay" style="position:fixed;top:0;left:0;width:100%;height:100%;background:#ffffff;z-index:9999;opacity:0;pointer-events:none;mix-blend-mode:screen;"></div>
+
+    <!-- MAIN LOGIC (Three.js & Animations) -->
+    <script>
+        // --- 0. AUDIO SYSTEM (Synthesizer Masterpiece) ---
+        let audioCtx;
+        let isAudioPlaying = false;
+
+        function initAudio() {
+            if(audioCtx) return;
+            const AudioContext = window.AudioContext || window.webkitAudioContext;
+            audioCtx = new AudioContext();
+            
+            // Dreamy Ambient Pad Synth for Space Background
+            function playChord() {
+                if(!isAudioPlaying || isRevealed) return;
+                const baseFreq = 220; // A3
+                const freqs = [baseFreq, baseFreq * 1.5, baseFreq * 1.25, baseFreq * 2]; 
+                const root = freqs[Math.floor(Math.random() * freqs.length)];
+                
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                const filter = audioCtx.createBiquadFilter();
+                
+                osc.type = 'sine';
+                osc.frequency.value = root * (Math.random() > 0.5 ? 0.5 : 1);
+                
+                filter.type = 'lowpass';
+                filter.frequency.value = 600;
+                
+                osc.connect(filter);
+                filter.connect(gain);
+                gain.connect(audioCtx.destination);
+                
+                const now = audioCtx.currentTime;
+                gain.gain.setValueAtTime(0, now);
+                gain.gain.linearRampToValueAtTime(0.06, now + 3); // Soft slow attack
+                gain.gain.linearRampToValueAtTime(0, now + 8); // Long slow fade
+                
+                osc.start(now);
+                osc.stop(now + 8);
+                
+                setTimeout(playChord, 2000 + Math.random() * 3000); // Layer next chord
+            }
+            isAudioPlaying = true;
+            playChord();
+            setTimeout(playChord, 1500); // Layer 2
+        }
+
+        function playRevealSound() {
+            if(!audioCtx) return;
+            // Epic Level Up Arpeggio
+            const now = audioCtx.currentTime;
+            const freqs = [440, 554.37, 659.25, 880, 1108.73, 1318.51, 1760]; // A Major Arp
+            
+            freqs.forEach((freq, index) => {
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = 'square';
+                osc.frequency.value = freq;
+                
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                
+                const t = now + index * 0.08;
+                gain.gain.setValueAtTime(0, t);
+                gain.gain.linearRampToValueAtTime(0.08, t + 0.02);
+                gain.gain.linearRampToValueAtTime(0, t + 0.25);
+                
+                osc.start(t);
+                osc.stop(t + 0.25);
+            });
+            
+            // Magic Explosion Sound (Filtered Noise)
+            const bufferSize = audioCtx.sampleRate * 2; 
+            const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+            const data = buffer.getChannelData(0);
+            for (let i = 0; i < bufferSize; i++) {
+                data[i] = Math.random() * 2 - 1; // White noise
+            }
+            const noise = audioCtx.createBufferSource();
+            noise.buffer = buffer;
+            const noiseFilter = audioCtx.createBiquadFilter();
+            noiseFilter.type = 'lowpass';
+            noiseFilter.frequency.setValueAtTime(1500, now);
+            noiseFilter.frequency.exponentialRampToValueAtTime(10, now + 2);
+            
+            const noiseGain = audioCtx.createGain();
+            noiseGain.gain.setValueAtTime(0.3, now);
+            noiseGain.gain.exponentialRampToValueAtTime(0.01, now + 2);
+            
+            noise.connect(noiseFilter);
+            noiseFilter.connect(noiseGain);
+            noiseGain.connect(audioCtx.destination);
+            noise.start(now);
+        }
+
+        // Initialize audio on first physical interaction
+        window.addEventListener('scroll', initAudio, {once: true});
+        window.addEventListener('click', initAudio, {once: true});
+        window.addEventListener('mousemove', initAudio, {once: true});
+
+        // --- 1. THREE.JS SETUP ---
+        const container = document.getElementById('webgl-container');
+        const scene = new THREE.Scene();
+        scene.fog = new THREE.FogExp2(0x050114, 0.0008); // Smalare dimma = djupare sikt
+
+        // Kamera & Renderer
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 15000);
+        camera.position.z = 0;
+
+        const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: "high-performance" });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        container.appendChild(renderer.domElement);
+
+        // --- Post-Processing Bloom ---
+        const renderScene = new THREE.RenderPass(scene, camera);
+        const bloomPass = new THREE.UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 1.6, 0.5, 0.85);
+        bloomPass.threshold = 0.15;
+        bloomPass.strength = 1.1;
+        bloomPass.radius = 0.7;
+
+        const composer = new THREE.EffectComposer(renderer);
+        composer.addPass(renderScene);
+        composer.addPass(bloomPass);
+
+        const SKY_LAYER_CONFIG = {
+            farParticles: {
+                count: 2200,
+                spread: 1450,
+                centerGap: 190,
+                depth: 10400
+            },
+            haze: {
+                count: 6,
+                spreadX: 430,
+                spreadY: 320,
+                depthStep: 1350
+            },
+            rings: {
+                count: 7,
+                opacityMin: 0.035,
+                opacityMax: 0.09
+            },
+            crystals: {
+                count: 140,
+                spread: 1180,
+                centerGap: 165,
+                depth: 9500
+            }
+        };
+
+        function createGlowTexture(stops, size = 64) {
+            const canvas = document.createElement('canvas');
+            canvas.width = size;
+            canvas.height = size;
+            const ctx = canvas.getContext('2d');
+            const gradient = ctx.createRadialGradient(size / 2, size / 2, 0, size / 2, size / 2, size / 2);
+            stops.forEach(([stop, color]) => gradient.addColorStop(stop, color));
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, size, size);
+            return new THREE.CanvasTexture(canvas);
+        }
+
+        // --- 2. STAR FIELD (Layered galaxy field with cleaner center corridor) ---
+        const particleCount = SKY_LAYER_CONFIG.farParticles.count;
+        const particleGeo = new THREE.BufferGeometry();
+        const particlePos = new Float32Array(particleCount * 3);
+        const particleColors = new Float32Array(particleCount * 3);
+        const particleSize = new Float32Array(particleCount);
+
+        const color1 = new THREE.Color(0xaa00ff);
+        const color2 = new THREE.Color(0x00d4ff);
+        const color3 = new THREE.Color(0xffd700);
+
+        for(let i = 0; i < particleCount; i++) {
+            let px, py;
+            do {
+                px = (Math.random() - 0.5) * SKY_LAYER_CONFIG.farParticles.spread;
+                py = (Math.random() - 0.5) * SKY_LAYER_CONFIG.farParticles.spread;
+            } while (Math.abs(px) < SKY_LAYER_CONFIG.farParticles.centerGap && Math.abs(py) < SKY_LAYER_CONFIG.farParticles.centerGap);
+
+            particlePos[i * 3] = px;
+            particlePos[i * 3 + 1] = py;
+            particlePos[i * 3 + 2] = -Math.random() * SKY_LAYER_CONFIG.farParticles.depth;
+
+            const rnd = Math.random();
+            const mixedColor = rnd < 0.38 ? color1 : (rnd < 0.78 ? color2 : color3);
+            particleColors[i * 3] = mixedColor.r;
+            particleColors[i * 3 + 1] = mixedColor.g;
+            particleColors[i * 3 + 2] = mixedColor.b;
+            particleSize[i] = Math.random() * 2.4 + 0.8;
+        }
+
+        particleGeo.setAttribute('position', new THREE.BufferAttribute(particlePos, 3));
+        particleGeo.setAttribute('color', new THREE.BufferAttribute(particleColors, 3));
+        particleGeo.setAttribute('size', new THREE.BufferAttribute(particleSize, 1));
+
+        const particleTexture = createGlowTexture([
+            [0, 'rgba(255,255,255,1)'],
+            [0.28, 'rgba(255,255,255,0.92)'],
+            [1, 'rgba(255,255,255,0)']
+        ], 32);
+
+        const hazeTexture = createGlowTexture([
+            [0, 'rgba(255,255,255,0.95)'],
+            [0.22, 'rgba(160,220,255,0.4)'],
+            [0.6, 'rgba(120,90,255,0.12)'],
+            [1, 'rgba(0,0,0,0)']
+        ], 128);
+
+        const shaderMaterial = new THREE.ShaderMaterial({
+            uniforms: {
+                pointTexture: { value: particleTexture },
+                globalSize: { value: 1.0 },
+                alphaMult: { value: 0.82 },
+                colorMult: { value: new THREE.Vector3(1, 1, 1) }
+            },
+            vertexShader: `
+                attribute float size;
+                attribute vec3 color;
+                varying vec3 vColor;
+                uniform float globalSize;
+                void main() {
+                    vColor = color;
+                    vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
+                    gl_PointSize = size * globalSize * (300.0 / -mvPosition.z);
+                    gl_Position = projectionMatrix * mvPosition;
+                }
+            `,
+            fragmentShader: `
+                uniform sampler2D pointTexture;
+                uniform vec3 colorMult;
+                uniform float alphaMult;
+                varying vec3 vColor;
+                void main() {
+                    vec4 tex = texture2D(pointTexture, gl_PointCoord);
+                    gl_FragColor = vec4(vColor * colorMult, alphaMult) * tex;
+                }
+            `,
+            blending: THREE.AdditiveBlending,
+            depthWrite: false,
+            transparent: true
+        });
+
+        const particles = new THREE.Points(particleGeo, shaderMaterial);
+        scene.add(particles);
+
+        const hazeGroup = new THREE.Group();
+        scene.add(hazeGroup);
+
+        for (let i = 0; i < SKY_LAYER_CONFIG.haze.count; i++) {
+            const sprite = new THREE.Sprite(new THREE.SpriteMaterial({
+                map: hazeTexture,
+                color: i % 2 === 0 ? 0x2e7bff : 0xffc55f,
+                transparent: true,
+                opacity: 0.08,
+                depthWrite: false,
+                blending: THREE.AdditiveBlending
+            }));
+            sprite.position.set(
+                (Math.random() - 0.5) * SKY_LAYER_CONFIG.haze.spreadX,
+                (Math.random() - 0.5) * SKY_LAYER_CONFIG.haze.spreadY,
+                -(i + 1) * SKY_LAYER_CONFIG.haze.depthStep - Math.random() * 600
+            );
+            const spriteScale = 280 + Math.random() * 220;
+            sprite.scale.set(spriteScale, spriteScale * (0.64 + Math.random() * 0.18), 1);
+            sprite.userData = {
+                baseX: sprite.position.x,
+                baseY: sprite.position.y,
+                baseZ: sprite.position.z,
+                baseScale: spriteScale,
+                phase: Math.random() * Math.PI * 2,
+                drift: 14 + Math.random() * 18,
+                pulse: 0.02 + Math.random() * 0.025,
+                baseOpacity: 0.05 + Math.random() * 0.04
+            };
+            hazeGroup.add(sprite);
+        }
+
+        const nebulaGroup = new THREE.Group();
+        scene.add(nebulaGroup);
+
+        for(let i = 0; i < SKY_LAYER_CONFIG.rings.count; i++) {
+            const ringGeo = new THREE.TorusGeometry(110 + Math.random() * 150, 1.4, 10, 72);
+            const ringColor = [0xaa00ff, 0x00d4ff, 0xff0088, 0xffd700, 0x43b047][Math.floor(Math.random() * 5)];
+            const ringOpacity = SKY_LAYER_CONFIG.rings.opacityMin + Math.random() * (SKY_LAYER_CONFIG.rings.opacityMax - SKY_LAYER_CONFIG.rings.opacityMin);
+            const ringMat = new THREE.MeshBasicMaterial({
+                color: ringColor,
+                transparent: true,
+                opacity: ringOpacity,
+                side: THREE.DoubleSide,
+                blending: THREE.AdditiveBlending
+            });
+            const ring = new THREE.Mesh(ringGeo, ringMat);
+            const edgeSign = Math.random() > 0.5 ? 1 : -1;
+            ring.position.set(
+                edgeSign * (280 + Math.random() * 340),
+                (Math.random() - 0.5) * 620,
+                -Math.random() * 8800 - 500
+            );
+            ring.rotation.set(Math.random() * Math.PI, Math.random() * Math.PI, Math.random() * Math.PI);
+            ring.userData = {
+                rotSpeed: (Math.random() - 0.5) * 0.0018,
+                baseOpacity: ringOpacity,
+                pulse: 0.35 + Math.random() * 0.35,
+                phase: Math.random() * Math.PI * 2
+            };
+            nebulaGroup.add(ring);
+        }
+
+        const accentLightColors = [0xaa00ff, 0x0088ff, 0xff0088, 0x00ffaa, 0xffd700, 0xff6600];
+        for(let i = 0; i < accentLightColors.length; i++) {
+            const pLight = new THREE.PointLight(accentLightColors[i], 1.65, 560);
+            const side = (i % 2 === 0) ? -1 : 1;
+            pLight.position.set(
+                side * (260 + Math.random() * 180),
+                (Math.random() - 0.5) * 340,
+                -1350 * (i + 1)
+            );
+            scene.add(pLight);
+        }
+
+        const crystals = new THREE.Group();
+        scene.add(crystals);
+        const crystalGeo = new THREE.OctahedronGeometry(6, 0);
+        const starColors = [0xff0055, 0x00ffaa, 0xffaa00, 0x0088ff, 0xaa00ff];
+
+        for(let i = 0; i < SKY_LAYER_CONFIG.crystals.count; i++) {
+            const randomColor = starColors[Math.floor(Math.random() * starColors.length)];
+            const crystalMat = new THREE.MeshStandardMaterial({
+                color: randomColor,
+                metalness: 0.18,
+                roughness: 0.18,
+                emissive: randomColor,
+                emissiveIntensity: 0.56
+            });
+
+            const mesh = new THREE.Mesh(crystalGeo, crystalMat);
+            let cx, cy;
+            do {
+                cx = (Math.random() - 0.5) * SKY_LAYER_CONFIG.crystals.spread;
+                cy = (Math.random() - 0.5) * SKY_LAYER_CONFIG.crystals.spread;
+            } while (Math.abs(cx) < SKY_LAYER_CONFIG.crystals.centerGap && Math.abs(cy) < SKY_LAYER_CONFIG.crystals.centerGap);
+
+            mesh.position.set(cx, cy, -Math.random() * SKY_LAYER_CONFIG.crystals.depth - 100);
+
+            const crScale = Math.random() * 0.75 + 0.4;
+            mesh.scale.set(crScale, crScale, crScale);
+            mesh.userData = {
+                rotSpeedX: (Math.random() - 0.5) * 0.032,
+                rotSpeedY: (Math.random() - 0.5) * 0.032,
+                rotSpeedZ: (Math.random() - 0.5) * 0.032,
+                floatSpeed: 0.012 + Math.random() * 0.02,
+                baseY: mesh.position.y,
+                baseX: mesh.position.x,
+                baseScale: crScale
+            };
+            crystals.add(mesh);
+        }
+
+        function buildSpiralPoints(turns, radius, stretchY = 0.7) {
+            const points = [];
+            for (let i = 0; i <= 90; i++) {
+                const t = i / 90;
+                const angle = t * Math.PI * 2 * turns;
+                const r = radius * t;
+                points.push(new THREE.Vector3(
+                    Math.cos(angle) * r,
+                    Math.sin(angle) * r * stretchY,
+                    (t - 0.5) * 60
+                ));
+            }
+            return points;
+        }
+
+        function buildWhisperPoints(seed) {
+            const curve = new THREE.CatmullRomCurve3([
+                new THREE.Vector3(-180, -30 + seed * 8, -50),
+                new THREE.Vector3(-80, 28 + seed * 14, -20),
+                new THREE.Vector3(40, -12 + seed * 10, 18),
+                new THREE.Vector3(150, 34 - seed * 16, 55)
+            ]);
+            return curve.getPoints(56);
+        }
+
+        const accentLayer = new THREE.Group();
+        scene.add(accentLayer);
+
+        const accentGlow = new THREE.Sprite(new THREE.SpriteMaterial({
+            map: hazeTexture,
+            color: 0xffd36b,
+            transparent: true,
+            opacity: 0,
+            depthWrite: false,
+            blending: THREE.AdditiveBlending
+        }));
+        accentGlow.scale.set(320, 320, 1);
+        accentLayer.add(accentGlow);
+
+        const accentHalo = new THREE.Mesh(
+            new THREE.RingGeometry(110, 150, 72),
+            new THREE.MeshBasicMaterial({
+                color: 0xffffff,
+                transparent: true,
+                opacity: 0,
+                side: THREE.DoubleSide,
+                depthWrite: false,
+                blending: THREE.AdditiveBlending
+            })
+        );
+        accentLayer.add(accentHalo);
+
+        const accentGate = new THREE.Mesh(
+            new THREE.TorusGeometry(170, 2.5, 12, 128),
+            new THREE.MeshBasicMaterial({
+                color: 0x9cff7a,
+                transparent: true,
+                opacity: 0,
+                side: THREE.DoubleSide,
+                depthWrite: false,
+                blending: THREE.AdditiveBlending
+            })
+        );
+        accentLayer.add(accentGate);
+
+        const spiralLineA = new THREE.Line(
+            new THREE.BufferGeometry().setFromPoints(buildSpiralPoints(2.5, 170, 0.68)),
+            new THREE.LineBasicMaterial({
+                color: 0x7df6ff,
+                transparent: true,
+                opacity: 0,
+                depthWrite: false,
+                blending: THREE.AdditiveBlending
+            })
+        );
+        const spiralLineB = new THREE.Line(
+            new THREE.BufferGeometry().setFromPoints(buildSpiralPoints(2.2, 130, 0.56)),
+            new THREE.LineBasicMaterial({
+                color: 0xffd66f,
+                transparent: true,
+                opacity: 0,
+                depthWrite: false,
+                blending: THREE.AdditiveBlending
+            })
+        );
+        accentLayer.add(spiralLineA);
+        accentLayer.add(spiralLineB);
+
+        const whisperTrails = [0, 1, 2].map((seed) => {
+            const line = new THREE.Line(
+                new THREE.BufferGeometry().setFromPoints(buildWhisperPoints(seed)),
+                new THREE.LineBasicMaterial({
+                    color: seed === 1 ? 0xffd773 : 0x7df6ff,
+                    transparent: true,
+                    opacity: 0,
+                    depthWrite: false,
+                    blending: THREE.AdditiveBlending
+                })
+            );
+            line.position.x = seed * 16 - 10;
+            accentLayer.add(line);
+            return line;
+        });
+
+        const cometGroup = new THREE.Group();
+        const cometCore = new THREE.Mesh(
+            new THREE.SphereGeometry(11, 14, 14),
+            new THREE.MeshBasicMaterial({
+                color: 0xffffff,
+                transparent: true,
+                opacity: 0,
+                depthWrite: false,
+                blending: THREE.AdditiveBlending
+            })
+        );
+        cometGroup.add(cometCore);
+        const cometTail = [];
+        for (let i = 0; i < 7; i++) {
+            const tail = new THREE.Mesh(
+                new THREE.SphereGeometry(Math.max(2.8, 8 - i * 0.8), 10, 10),
+                new THREE.MeshBasicMaterial({
+                    color: i % 2 === 0 ? 0xff7ad5 : 0x7df6ff,
+                    transparent: true,
+                    opacity: 0,
+                    depthWrite: false,
+                    blending: THREE.AdditiveBlending
+                })
+            );
+            tail.position.set(-18 - i * 14, -6 + i * 1.5, 0);
+            cometGroup.add(tail);
+            cometTail.push(tail);
+        }
+        accentLayer.add(cometGroup);
+
+        // --- 3. THE MARIO REVEAL SETUP (3D Coins) ---
+        const coinsGroup = new THREE.Group();
+        coinsGroup.visible = false;
+        scene.add(coinsGroup);
+
+        // Skapa 3D Guldmynt (Cylinders)
+        const coinGeo = new THREE.CylinderGeometry(6, 6, 1.5, 24);
+        coinGeo.rotateX(Math.PI / 2); // Ställ dem upp
+
+        // Ljus för mynten
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.4);
+        scene.add(ambientLight);
+        const dirLight = new THREE.DirectionalLight(0xffffff, 1.5);
+        dirLight.position.set(20, 50, 20);
+        scene.add(dirLight);
+        
+        const coinMat = new THREE.MeshStandardMaterial({ 
+            color: 0xFFD700, 
+            metalness: 0.8, 
+            roughness: 0.3, 
+            emissive: 0xaa7700,
+            emissiveIntensity: 0.4
+        });
+
+        const coins = [];
+        for(let i=0; i<60; i++) {
+            const coin = new THREE.Mesh(coinGeo, coinMat);
+            coinsGroup.add(coin);
+            coins.push(coin);
+        }
+
+
+        // --- 4. ANIMATION LOOP ---
+        const clock = new THREE.Clock();
+        let scrollPercent = 0;
+        let smoothScroll = 0; // Smoothing for smooth movement
+        let isRevealed = false;
+        let warpActive = false;
+        let warpSpeed = 0;
+
+        const sections = Array.from(document.querySelectorAll('.story-section'));
+
+        // --- Shared story + companion state ---
+        const COMPANION_CONFIG = {
+            laneEase: 0.16,
+            runThreshold: 0.24,
+            directionThreshold: 0.03,
+            runBob: 11,
+            patrolBob: 3.8,
+            shadowBaseOpacity: 0.36,
+            shadowBoostOpacity: 0.66,
+            shadowStretch: 0.24,
+            shadowSquash: 0.28,
+            lumaShadowBaseOpacity: 0.12,
+            lumaShadowBoostOpacity: 0.26,
+            milestoneRamp: 0.18
+        };
+
+        const COMPANION_LAYOUT = {
+            partyBox: {
+                width: 220,
+                height: 150
+            },
+            depth: {
+                path: 1,
+                lumas: 2,
+                alva: 4
+            },
+            path: {
+                start: { x: 16, y: 126 },
+                cp1: { x: 62, y: 132 },
+                cp2: { x: 154, y: 92 },
+                end: { x: 206, y: 78 },
+                baseT: 0.18,
+                travelT: 0.16
+            },
+            milestones: [0.08, 0.24, 0.43, 0.63, 0.83],
+            alva: {
+                footOffsetX: 0.5,
+                groundInset: 4,
+                pathTiltInfluence: 0.24,
+                leanMax: 5.5
+            },
+            lumas: [
+                { trailT: 0.046, hoverY: 14, side: -6, swayX: 3.8, bob: 5.6, lag: 0.16, phase: 0.2, scale: 0.94, depth: 'near', glow: 'rgba(255, 220, 100, 0.82)' },
+                { trailT: 0.108, hoverY: 30, side: -2, swayX: 4.8, bob: 7.8, lag: 0.18, phase: 1.25, scale: 0.84, depth: 'mid', glow: 'rgba(84, 216, 255, 0.84)' },
+                { trailT: 0.178, hoverY: 46, side: 6, swayX: 5.5, bob: 9.2, lag: 0.2, phase: 2.25, scale: 0.74, depth: 'far', glow: 'rgba(255, 130, 220, 0.82)' }
+            ]
+        };
+
+        const SECTION_BEATS = [
+            {
+                camera: { x: -36, y: 30, z: 40 },
+                lookAt: { x: 0, y: 0, z: -860 },
+                roll: 0.004,
+                fogColor: 0x050114,
+                fogDensity: 0.00104,
+                bloomStrength: 0.72,
+                bloomRadius: 0.56,
+                particleSize: 0.76,
+                particleAlpha: 0.48,
+                particleSpin: 0.012,
+                particleTint: 0xffdfa0,
+                hazeOpacity: 0.34,
+                hazeColor: 0xffcc73,
+                ringOpacity: 0.24,
+                crystalDrift: 0.2,
+                crystalIntensity: 0.4,
+                accent: {
+                    preset: 'ember',
+                    color: 0xffcc73,
+                    position: { x: -160, y: 92, z: -960 },
+                    scale: 0.88,
+                    intensity: 0.58
+                }
+            },
+            {
+                camera: { x: 96, y: 74, z: -1500 },
+                lookAt: { x: 92, y: 28, z: -2320 },
+                roll: -0.008,
+                fogColor: 0x07152b,
+                fogDensity: 0.00095,
+                bloomStrength: 0.92,
+                bloomRadius: 0.72,
+                particleSize: 0.92,
+                particleAlpha: 0.62,
+                particleSpin: 0.022,
+                particleTint: 0xa6ffff,
+                hazeOpacity: 0.78,
+                hazeColor: 0x63d9ff,
+                ringOpacity: 0.5,
+                crystalDrift: 0.5,
+                crystalIntensity: 0.62,
+                accent: {
+                    preset: 'swirl',
+                    color: 0x7df6ff,
+                    position: { x: 230, y: 118, z: -2540 },
+                    scale: 1.08,
+                    intensity: 0.82
+                }
+            },
+            {
+                camera: { x: -118, y: 32, z: -3050 },
+                lookAt: { x: -18, y: 4, z: -3850 },
+                roll: 0.012,
+                fogColor: 0x14081e,
+                fogDensity: 0.0009,
+                bloomStrength: 1.05,
+                bloomRadius: 0.84,
+                particleSize: 1.05,
+                particleAlpha: 0.76,
+                particleSpin: 0.028,
+                particleTint: 0xff8ee2,
+                hazeOpacity: 0.58,
+                hazeColor: 0xff7ad5,
+                ringOpacity: 0.38,
+                crystalDrift: 0.8,
+                crystalIntensity: 0.84,
+                accent: {
+                    preset: 'comet',
+                    color: 0xff7ad5,
+                    position: { x: 150, y: 108, z: -3950 },
+                    scale: 1,
+                    intensity: 0.86
+                }
+            },
+            {
+                camera: { x: 150, y: -18, z: -4650 },
+                lookAt: { x: 40, y: -44, z: -5420 },
+                roll: -0.01,
+                fogColor: 0x07190b,
+                fogDensity: 0.00088,
+                bloomStrength: 0.98,
+                bloomRadius: 0.76,
+                particleSize: 0.96,
+                particleAlpha: 0.68,
+                particleSpin: 0.02,
+                particleTint: 0xc7ff8f,
+                hazeOpacity: 0.5,
+                hazeColor: 0xb9ff80,
+                ringOpacity: 0.72,
+                crystalDrift: 0.6,
+                crystalIntensity: 0.72,
+                accent: {
+                    preset: 'gate',
+                    color: 0xb9ff80,
+                    position: { x: 310, y: -84, z: -5200 },
+                    scale: 0.94,
+                    intensity: 0.74
+                }
+            },
+            {
+                camera: { x: 0, y: -20, z: -6350 },
+                lookAt: { x: 0, y: -66, z: -7120 },
+                roll: 0.006,
+                fogColor: 0x051622,
+                fogDensity: 0.0008,
+                bloomStrength: 1.16,
+                bloomRadius: 0.96,
+                particleSize: 1.1,
+                particleAlpha: 0.82,
+                particleSpin: 0.016,
+                particleTint: 0x7df6ff,
+                hazeOpacity: 0.86,
+                hazeColor: 0x7df6ff,
+                ringOpacity: 0.42,
+                crystalDrift: 0.48,
+                crystalIntensity: 0.78,
+                accent: {
+                    preset: 'hero-halo',
+                    color: 0x7df6ff,
+                    position: { x: 0, y: -70, z: -7060 },
+                    scale: 1.25,
+                    intensity: 1
+                }
+            },
+            {
+                camera: { x: 84, y: 40, z: -8030 },
+                lookAt: { x: 62, y: -6, z: -8820 },
+                roll: 0.003,
+                fogColor: 0x09081b,
+                fogDensity: 0.00094,
+                bloomStrength: 0.88,
+                bloomRadius: 0.7,
+                particleSize: 0.84,
+                particleAlpha: 0.56,
+                particleSpin: 0.014,
+                particleTint: 0xe2d2ff,
+                hazeOpacity: 0.42,
+                hazeColor: 0xe2d2ff,
+                ringOpacity: 0.3,
+                crystalDrift: 0.28,
+                crystalIntensity: 0.45,
+                accent: {
+                    preset: 'whispers',
+                    color: 0xffd773,
+                    position: { x: 160, y: 18, z: -8720 },
+                    scale: 0.98,
+                    intensity: 0.68
+                }
+            },
+            {
+                camera: { x: 0, y: 10, z: -9550 },
+                lookAt: { x: 0, y: -10, z: -10340 },
+                roll: 0,
+                fogColor: 0x04070f,
+                fogDensity: 0.0009,
+                bloomStrength: 0.82,
+                bloomRadius: 0.66,
+                particleSize: 0.8,
+                particleAlpha: 0.52,
+                particleSpin: 0.012,
+                particleTint: 0xf2ddb4,
+                hazeOpacity: 0.35,
+                hazeColor: 0xf2ddb4,
+                ringOpacity: 0.24,
+                crystalDrift: 0.18,
+                crystalIntensity: 0.34,
+                accent: {
+                    preset: 'calm-halo',
+                    color: 0xf2ddb4,
+                    position: { x: 26, y: -16, z: -10380 },
+                    scale: 0.88,
+                    intensity: 0.56
+                }
+            }
+        ];
+
+        const SCROLL_STATE = {
+            progress: 0,
+            smoothProgress: 0,
+            lastProgress: 0,
+            velocity: 0,
+            energy: 0,
+            sectionMetrics: [],
+            activeSectionIndex: 0,
+            localSectionProgress: 0
+        };
+
+        const companionState = {
+            alvaSize: 80,
+            lumaSize: 64,
+            partyWidth: COMPANION_LAYOUT.partyBox.width,
+            partyHeight: COMPANION_LAYOUT.partyBox.height,
+            pathScaleX: 1,
+            pathScaleY: 1,
+            x: 0,
+            y: 0,
+            direction: 1,
+            mode: 'patrol',
+            bob: 0,
+            pathT: COMPANION_LAYOUT.path.baseT,
+            targetPathT: COMPANION_LAYOUT.path.baseT,
+            pathAngle: 0
+        };
+
+        const companionParty = document.getElementById('companion-party');
+        const lifePathSvg = document.getElementById('life-path-svg');
+        const lifePathShadow = document.getElementById('life-path-shadow');
+        const lifePathGlow = document.getElementById('life-path-glow');
+        const lifePathHighlight = document.getElementById('life-path-highlight');
+        const lifePathMilestones = document.getElementById('life-path-milestones');
+        const lifePathStopStart = document.getElementById('life-path-stop-start');
+        const lifePathStopMid = document.getElementById('life-path-stop-mid');
+        const lifePathStopEnd = document.getElementById('life-path-stop-end');
+        const lifePathHighlightStart = document.getElementById('life-path-highlight-start');
+        const lifePathHighlightMid = document.getElementById('life-path-highlight-mid');
+        const lifePathHighlightEnd = document.getElementById('life-path-highlight-end');
+        const companionWrapper = document.getElementById('companion-wrapper');
+        const companionEntity = document.getElementById('companion');
+        const companionShadow = document.getElementById('companion-shadow');
+        const lumaBackLayer = document.getElementById('luma-back-layer');
+        const lumaFollowers = [];
+        const lifePathMilestoneNodes = [];
+        const cameraTarget = new THREE.Vector3();
+        const lookTarget = new THREE.Vector3();
+        const currentLookTarget = new THREE.Vector3(0, 0, -860);
+        const fogColorTarget = new THREE.Color();
+        const particleTintTarget = new THREE.Color();
+        const hazeTintTarget = new THREE.Color();
+        const accentTintTarget = new THREE.Color();
+        const tempColor = new THREE.Color();
+        const pathBeatColor = new THREE.Color();
+        const pathGlowColor = new THREE.Color(0xffd76d);
+        const pathHighlightColor = new THREE.Color(0x71e8ff);
+
+        function clamp(value, min, max) {
+            return Math.min(Math.max(value, min), max);
+        }
+
+        function lerp(start, end, amount) {
+            return start + (end - start) * amount;
+        }
+
+        function easeInOutCubic(value) {
+            return value < 0.5
+                ? 4 * value * value * value
+                : 1 - Math.pow(-2 * value + 2, 3) / 2;
+        }
+
+        function readRootPx(variableName, fallback) {
+            const value = parseFloat(getComputedStyle(document.documentElement).getPropertyValue(variableName));
+            return Number.isFinite(value) ? value : fallback;
+        }
+
+        function roundPixel(value) {
+            return Math.round(value);
+        }
+
+        function colorToRgba(color, alpha) {
+            return `rgba(${Math.round(color.r * 255)}, ${Math.round(color.g * 255)}, ${Math.round(color.b * 255)}, ${alpha.toFixed(3)})`;
+        }
+
+        function setGradientStop(stop, color, opacity) {
+            if (!stop) return;
+            stop.setAttribute('stop-color', color.getStyle());
+            stop.setAttribute('stop-opacity', opacity.toFixed(3));
+        }
+
+        function getScrollProgress() {
+            const maxScroll = Math.max(document.documentElement.scrollHeight - window.innerHeight, 1);
+            return clamp(window.scrollY / maxScroll, 0, 1);
+        }
+
+        function rebuildSectionMetrics() {
+            const maxScroll = Math.max(document.documentElement.scrollHeight - window.innerHeight, 1);
+            SCROLL_STATE.sectionMetrics = sections.map((section) => {
+                const start = section.offsetTop / maxScroll;
+                const end = (section.offsetTop + section.offsetHeight) / maxScroll;
+                return {
+                    start,
+                    end: Math.max(end, start + 0.0001)
+                };
+            });
+        }
+
+        function getLifePathD() {
+            const { start, cp1, cp2, end } = COMPANION_LAYOUT.path;
+            return `M ${start.x} ${start.y} C ${cp1.x} ${cp1.y} ${cp2.x} ${cp2.y} ${end.x} ${end.y}`;
+        }
+
+        function sampleLifePathPoint(t) {
+            const { start, cp1, cp2, end } = COMPANION_LAYOUT.path;
+            const mt = 1 - t;
+            return {
+                x: (mt ** 3) * start.x + 3 * (mt ** 2) * t * cp1.x + 3 * mt * (t ** 2) * cp2.x + (t ** 3) * end.x,
+                y: (mt ** 3) * start.y + 3 * (mt ** 2) * t * cp1.y + 3 * mt * (t ** 2) * cp2.y + (t ** 3) * end.y
+            };
+        }
+
+        function sampleLifePathDerivative(t) {
+            const { start, cp1, cp2, end } = COMPANION_LAYOUT.path;
+            const mt = 1 - t;
+            return {
+                x: 3 * (mt ** 2) * (cp1.x - start.x) + 6 * mt * t * (cp2.x - cp1.x) + 3 * (t ** 2) * (end.x - cp2.x),
+                y: 3 * (mt ** 2) * (cp1.y - start.y) + 6 * mt * t * (cp2.y - cp1.y) + 3 * (t ** 2) * (end.y - cp2.y)
+            };
+        }
+
+        function getPathSample(t) {
+            const clampedT = clamp(t, 0, 1);
+            const point = sampleLifePathPoint(clampedT);
+            const derivative = sampleLifePathDerivative(clampedT);
+            const dx = derivative.x * companionState.pathScaleX;
+            const dy = derivative.y * companionState.pathScaleY;
+            const length = Math.hypot(dx, dy) || 1;
+
+            return {
+                x: point.x * companionState.pathScaleX,
+                y: point.y * companionState.pathScaleY,
+                tangentX: dx / length,
+                tangentY: dy / length,
+                angle: Math.atan2(dy, dx)
+            };
+        }
+
+        function getPathTForProgress(progress) {
+            return clamp(COMPANION_LAYOUT.path.baseT + progress * COMPANION_LAYOUT.path.travelT, 0.04, 0.96);
+        }
+
+        function getAlvaFrameFromSample(sample) {
+            const groundInset = COMPANION_LAYOUT.alva.groundInset * companionState.pathScaleY;
+            return {
+                x: sample.x - companionState.alvaSize * COMPANION_LAYOUT.alva.footOffsetX,
+                y: sample.y - companionState.alvaSize + groundInset
+            };
+        }
+
+        function getLumaTarget(follower, time, paceRatio) {
+            const compressedTrail = follower.trailT * (1 - paceRatio * 0.14);
+            const sample = getPathSample(companionState.pathT - compressedTrail);
+            const orbitX = Math.sin(time * (2.1 + follower.phase * 0.2) + follower.phase) * follower.swayX * companionState.pathScaleX;
+            const hoverWave = Math.sin(time * (2.6 + follower.phase * 0.18) + follower.phase) * follower.bob * companionState.pathScaleY;
+            const groundInset = COMPANION_LAYOUT.alva.groundInset * companionState.pathScaleY;
+            const scale = follower.scale || 1;
+
+            return {
+                x: sample.x - companionState.lumaSize * 0.5 + follower.side * companionState.pathScaleX + orbitX,
+                y: sample.y - companionState.lumaSize + groundInset - follower.hoverY * companionState.pathScaleY + hoverWave - companionState.bob * 0.14,
+                hoverHeight: follower.hoverY * companionState.pathScaleY - hoverWave,
+                scale
+            };
+        }
+
+        function setCompanionMode(mode) {
+            companionState.mode = mode;
+            if (companionEntity) {
+                companionEntity.classList.toggle('is-running', mode === 'run');
+            }
+        }
+
+        function buildLifePath() {
+            if (!lifePathSvg || !lifePathShadow || !lifePathGlow || !lifePathHighlight || !lifePathMilestones) return;
+
+            const d = getLifePathD();
+            lifePathSvg.setAttribute('viewBox', `0 0 ${COMPANION_LAYOUT.partyBox.width} ${COMPANION_LAYOUT.partyBox.height}`);
+            lifePathShadow.setAttribute('d', d);
+            lifePathGlow.setAttribute('d', d);
+            lifePathHighlight.setAttribute('d', d);
+
+            lifePathMilestones.replaceChildren();
+            lifePathMilestoneNodes.length = 0;
+
+            const svgNs = 'http://www.w3.org/2000/svg';
+            COMPANION_LAYOUT.milestones.forEach((milestoneT, index) => {
+                const point = sampleLifePathPoint(milestoneT);
+                const group = document.createElementNS(svgNs, 'g');
+                group.setAttribute('class', 'life-milestone');
+                group.setAttribute('data-index', String(index));
+
+                const aura = document.createElementNS(svgNs, 'circle');
+                aura.setAttribute('class', 'life-milestone-aura');
+                aura.setAttribute('cx', point.x.toFixed(2));
+                aura.setAttribute('cy', point.y.toFixed(2));
+                aura.setAttribute('r', '7.2');
+
+                const core = document.createElementNS(svgNs, 'circle');
+                core.setAttribute('class', 'life-milestone-core');
+                core.setAttribute('cx', point.x.toFixed(2));
+                core.setAttribute('cy', point.y.toFixed(2));
+                core.setAttribute('r', '3.5');
+
+                const spark = document.createElementNS(svgNs, 'circle');
+                spark.setAttribute('class', 'life-milestone-spark');
+                spark.setAttribute('cx', point.x.toFixed(2));
+                spark.setAttribute('cy', (point.y - 0.6).toFixed(2));
+                spark.setAttribute('r', '1.4');
+
+                group.appendChild(aura);
+                group.appendChild(core);
+                group.appendChild(spark);
+                lifePathMilestones.appendChild(group);
+
+                lifePathMilestoneNodes.push({ group, aura, core, spark });
+            });
+        }
+
+        function buildLumaEscort() {
+            if (!lumaBackLayer) return;
+
+            lumaBackLayer.replaceChildren();
+            lumaFollowers.length = 0;
+
+            COMPANION_LAYOUT.lumas.forEach((layout, index) => {
+                const root = document.createElement('div');
+                root.className = 'luma-instance';
+                root.dataset.depth = layout.depth;
+                root.style.zIndex = String(18 - index);
+
+                const shadow = document.createElement('div');
+                shadow.className = 'luma-shadow';
+
+                const sprite = document.createElement('div');
+                sprite.className = 'luma-sprite';
+                sprite.style.setProperty('--luma-glow', layout.glow);
+                sprite.style.animationDelay = `${(-0.14 * (index + 1)).toFixed(2)}s`;
+
+                root.appendChild(shadow);
+                root.appendChild(sprite);
+                lumaBackLayer.appendChild(root);
+
+                lumaFollowers.push({
+                    ...layout,
+                    root,
+                    shadow,
+                    sprite,
+                    x: 0,
+                    y: 0
+                });
+            });
+        }
+
+        function syncCompanionMetrics({ snapToTarget = false } = {}) {
+            companionState.alvaSize = readRootPx('--alva-size', 80);
+            companionState.lumaSize = readRootPx('--luma-size', 64);
+            companionState.partyWidth = companionParty?.clientWidth || COMPANION_LAYOUT.partyBox.width;
+            companionState.partyHeight = companionParty?.clientHeight || COMPANION_LAYOUT.partyBox.height;
+            companionState.pathScaleX = companionState.partyWidth / COMPANION_LAYOUT.partyBox.width;
+            companionState.pathScaleY = companionState.partyHeight / COMPANION_LAYOUT.partyBox.height;
+            companionState.targetPathT = getPathTForProgress(SCROLL_STATE.progress);
+
+            if (snapToTarget) companionState.pathT = companionState.targetPathT;
+
+            const sample = getPathSample(companionState.pathT);
+            const frame = getAlvaFrameFromSample(sample);
+            companionState.x = frame.x;
+            companionState.y = frame.y;
+            companionState.pathAngle = sample.angle;
+
+            lumaFollowers.forEach((follower) => {
+                const target = getLumaTarget(follower, 0, SCROLL_STATE.energy);
+                follower.x = target.x;
+                follower.y = target.y;
+            });
+        }
+
+        function updateScrollState() {
+            scrollPercent = getScrollProgress();
+            SCROLL_STATE.progress = scrollPercent;
+            companionState.targetPathT = getPathTForProgress(scrollPercent);
+        }
+
+        function getInterpolatedBeat(progress) {
+            if (!SCROLL_STATE.sectionMetrics.length) {
+                return {
+                    from: SECTION_BEATS[0],
+                    to: SECTION_BEATS[0],
+                    index: 0,
+                    nextIndex: 0,
+                    local: 0,
+                    blend: 0
+                };
+            }
+
+            let index = SCROLL_STATE.sectionMetrics.length - 1;
+            for (let i = 0; i < SCROLL_STATE.sectionMetrics.length; i++) {
+                if (progress <= SCROLL_STATE.sectionMetrics[i].end || i === SCROLL_STATE.sectionMetrics.length - 1) {
+                    index = i;
+                    break;
+                }
+            }
+
+            const nextIndex = Math.min(index + 1, SECTION_BEATS.length - 1);
+            const metric = SCROLL_STATE.sectionMetrics[index];
+            const local = clamp((progress - metric.start) / Math.max(metric.end - metric.start, 0.0001), 0, 1);
+            const blend = easeInOutCubic(local);
+
+            SCROLL_STATE.activeSectionIndex = index;
+            SCROLL_STATE.localSectionProgress = local;
+
+            return {
+                from: SECTION_BEATS[index],
+                to: SECTION_BEATS[nextIndex],
+                index,
+                nextIndex,
+                local,
+                blend
+            };
+        }
+
+        function resetAccentVisuals() {
+            accentGlow.material.opacity = 0;
+            accentHalo.material.opacity = 0;
+            accentGate.material.opacity = 0;
+            spiralLineA.material.opacity = 0;
+            spiralLineB.material.opacity = 0;
+            whisperTrails.forEach((line) => { line.material.opacity = 0; });
+            cometCore.material.opacity = 0;
+            cometTail.forEach((tail) => { tail.material.opacity = 0; });
+        }
+
+        function applyAccentPreset(beat, weight, time, paceRatio) {
+            if (!beat || !beat.accent || weight <= 0.001) return;
+
+            const accent = beat.accent;
+            accentTintTarget.setHex(accent.color);
+            const pulse = 0.86 + Math.sin(time * 1.8 + accent.scale) * 0.14;
+            const px = accent.position.x;
+            const py = accent.position.y;
+            const pz = accent.position.z;
+
+            switch (accent.preset) {
+                case 'ember':
+                    accentGlow.position.set(px + Math.sin(time * 0.7) * 10, py + Math.cos(time * 0.9) * 7, pz);
+                    accentGlow.scale.setScalar(250 * accent.scale * pulse);
+                    accentGlow.material.color.copy(accentTintTarget);
+                    accentGlow.material.opacity = 0.24 * weight;
+                    break;
+                case 'swirl':
+                    accentGlow.position.set(px, py, pz);
+                    accentGlow.scale.setScalar(290 * accent.scale);
+                    accentGlow.material.color.copy(tempColor.setHex(0x7df6ff));
+                    accentGlow.material.opacity = 0.12 * weight;
+                    spiralLineA.position.set(px, py, pz);
+                    spiralLineB.position.set(px + 12, py - 6, pz + 10);
+                    spiralLineA.rotation.z = time * 0.14;
+                    spiralLineB.rotation.z = -time * 0.11;
+                    spiralLineA.material.opacity = 0.46 * weight;
+                    spiralLineB.material.opacity = 0.3 * weight;
+                    break;
+                case 'comet':
+                    cometGroup.position.set(px + Math.sin(time * 0.45) * 42, py + Math.cos(time * 0.65) * 18, pz);
+                    cometGroup.rotation.z = -0.35 + Math.sin(time * 0.3) * 0.08;
+                    cometCore.material.color.copy(accentTintTarget);
+                    cometCore.material.opacity = 0.76 * weight;
+                    cometTail.forEach((tail, index) => {
+                        tail.material.opacity = (0.34 - index * 0.035) * weight;
+                    });
+                    break;
+                case 'gate':
+                    accentGate.position.set(px, py, pz);
+                    accentGate.rotation.x = Math.PI * 0.32;
+                    accentGate.rotation.y = time * 0.18;
+                    accentGate.material.color.copy(accentTintTarget);
+                    accentGate.scale.setScalar(accent.scale * (0.95 + Math.sin(time * 2.2) * 0.04));
+                    accentGate.material.opacity = 0.44 * weight;
+                    accentGlow.position.set(px, py, pz);
+                    accentGlow.scale.setScalar(220 * accent.scale);
+                    accentGlow.material.color.copy(accentTintTarget);
+                    accentGlow.material.opacity = 0.12 * weight;
+                    break;
+                case 'hero-halo':
+                    accentGlow.position.set(px, py, pz);
+                    accentGlow.scale.setScalar(360 * accent.scale * (1 + paceRatio * 0.08));
+                    accentGlow.material.color.copy(accentTintTarget);
+                    accentGlow.material.opacity = 0.22 * weight;
+                    accentHalo.position.set(px, py, pz);
+                    accentHalo.rotation.x = Math.PI * 0.26;
+                    accentHalo.rotation.z = time * 0.1;
+                    accentHalo.material.color.copy(accentTintTarget);
+                    accentHalo.scale.setScalar(accent.scale * pulse);
+                    accentHalo.material.opacity = 0.58 * weight;
+                    break;
+                case 'whispers':
+                    whisperTrails.forEach((line, index) => {
+                        line.position.set(px + index * 18 - 12, py + Math.sin(time * 0.6 + index) * 8, pz + index * 12);
+                        line.rotation.z = Math.sin(time * 0.4 + index * 0.6) * 0.12;
+                        line.material.opacity = (0.24 + index * 0.05) * weight;
+                    });
+                    accentGlow.position.set(px, py, pz);
+                    accentGlow.scale.setScalar(230 * accent.scale);
+                    accentGlow.material.color.copy(accentTintTarget);
+                    accentGlow.material.opacity = 0.08 * weight;
+                    break;
+                case 'calm-halo':
+                    accentGlow.position.set(px, py, pz);
+                    accentGlow.scale.setScalar(240 * accent.scale);
+                    accentGlow.material.color.copy(accentTintTarget);
+                    accentGlow.material.opacity = 0.14 * weight;
+                    accentHalo.position.set(px, py, pz);
+                    accentHalo.rotation.x = Math.PI * 0.22;
+                    accentHalo.rotation.z = time * 0.06;
+                    accentHalo.material.color.copy(accentTintTarget);
+                    accentHalo.scale.setScalar(accent.scale);
+                    accentHalo.material.opacity = 0.22 * weight;
+                    break;
+            }
+        }
+
+        function updateSceneFromBeat(beatState, time) {
+            const { from, to, blend } = beatState;
+            const paceRatio = clamp(SCROLL_STATE.energy, 0, 1);
+
+            cameraTarget.set(
+                lerp(from.camera.x, to.camera.x, blend),
+                lerp(from.camera.y, to.camera.y, blend),
+                lerp(from.camera.z, to.camera.z, blend)
+            );
+            camera.position.lerp(cameraTarget, 0.09);
+
+            lookTarget.set(
+                lerp(from.lookAt.x, to.lookAt.x, blend),
+                lerp(from.lookAt.y, to.lookAt.y, blend),
+                lerp(from.lookAt.z, to.lookAt.z, blend)
+            );
+            currentLookTarget.lerp(lookTarget, 0.11);
+            camera.lookAt(currentLookTarget);
+
+            const targetRoll = lerp(from.roll, to.roll, blend) + (SCROLL_STATE.velocity * 0.02);
+            camera.rotation.z += (targetRoll - camera.rotation.z) * 0.08;
+
+            fogColorTarget.setHex(from.fogColor).lerp(tempColor.setHex(to.fogColor), blend);
+            scene.fog.color.lerp(fogColorTarget, 0.08);
+            scene.fog.density += (lerp(from.fogDensity, to.fogDensity, blend) - scene.fog.density) * 0.08;
+
+            bloomPass.strength += ((lerp(from.bloomStrength, to.bloomStrength, blend) + paceRatio * 0.12) - bloomPass.strength) * 0.08;
+            bloomPass.radius += (lerp(from.bloomRadius, to.bloomRadius, blend) - bloomPass.radius) * 0.08;
+
+            shaderMaterial.uniforms.globalSize.value += ((lerp(from.particleSize, to.particleSize, blend) + paceRatio * 0.12) - shaderMaterial.uniforms.globalSize.value) * 0.08;
+            shaderMaterial.uniforms.alphaMult.value += (lerp(from.particleAlpha, to.particleAlpha, blend) - shaderMaterial.uniforms.alphaMult.value) * 0.08;
+
+            particleTintTarget.setHex(from.particleTint).lerp(tempColor.setHex(to.particleTint), blend);
+            shaderMaterial.uniforms.colorMult.value.lerp(new THREE.Vector3(particleTintTarget.r, particleTintTarget.g, particleTintTarget.b), 0.08);
+
+            const targetParticleRotation = time * lerp(from.particleSpin, to.particleSpin, blend);
+            particles.rotation.z += (targetParticleRotation - particles.rotation.z) * 0.04;
+
+            const hazeOpacity = lerp(from.hazeOpacity, to.hazeOpacity, blend);
+            const ringOpacity = lerp(from.ringOpacity, to.ringOpacity, blend);
+            const crystalDrift = lerp(from.crystalDrift, to.crystalDrift, blend);
+            const crystalIntensity = lerp(from.crystalIntensity, to.crystalIntensity, blend);
+
+            hazeTintTarget.setHex(from.hazeColor).lerp(tempColor.setHex(to.hazeColor), blend);
+            hazeGroup.children.forEach((sprite, index) => {
+                const drift = sprite.userData.drift * (0.4 + hazeOpacity);
+                sprite.position.x = sprite.userData.baseX + Math.sin(time * sprite.userData.pulse + sprite.userData.phase) * drift;
+                sprite.position.y = sprite.userData.baseY + Math.cos(time * sprite.userData.pulse * 0.8 + sprite.userData.phase) * drift * 0.4;
+                sprite.scale.setScalar(sprite.userData.baseScale * (0.92 + hazeOpacity * 0.18));
+                sprite.material.color.lerp(hazeTintTarget, 0.06);
+                sprite.material.opacity = sprite.userData.baseOpacity * hazeOpacity * (0.84 + Math.sin(time * sprite.userData.pulse + index) * 0.08);
+            });
+
+            nebulaGroup.children.forEach((ring) => {
+                ring.rotation.z += ring.userData.rotSpeed * (0.7 + ringOpacity);
+                ring.rotation.x += ring.userData.rotSpeed * 0.35;
+                ring.material.opacity = ring.userData.baseOpacity * ringOpacity * (0.82 + Math.sin(time * ring.userData.pulse + ring.userData.phase) * 0.08);
+            });
+
+            crystals.children.forEach((crystal, index) => {
+                crystal.rotation.x += crystal.userData.rotSpeedX;
+                crystal.rotation.y += crystal.userData.rotSpeedY;
+                crystal.rotation.z += crystal.userData.rotSpeedZ;
+
+                const offset = time * crystal.userData.floatSpeed * 42;
+                crystal.position.y = crystal.userData.baseY + Math.sin(offset + index * 0.3) * (14 + crystalDrift * 18);
+                crystal.position.x = crystal.userData.baseX + Math.cos(offset + index * 0.25) * (10 + crystalDrift * 14);
+                crystal.material.emissiveIntensity = 0.34 + crystalIntensity * 0.52;
+                const targetScale = crystal.userData.baseScale * (0.9 + crystalIntensity * 0.2);
+                crystal.scale.setScalar(targetScale);
+            });
+
+            resetAccentVisuals();
+            const accentBeat = beatState.blend < 0.55 ? from : to;
+            const accentWeight = beatState.blend < 0.55 ? (1 - beatState.blend * 0.55) : (0.4 + beatState.blend * 0.6);
+            applyAccentPreset(accentBeat, accentWeight * (0.74 + paceRatio * 0.22), time, paceRatio);
+        }
+
+        function renderLifePath(time, paceRatio, beatState) {
+            if (!companionParty || !lifePathGlow || !lifePathHighlight || !lifePathMilestoneNodes.length) return;
+
+            const fromAccentHex = beatState.from?.accent?.color ?? beatState.from?.particleTint ?? 0xffd76d;
+            const toAccentHex = beatState.to?.accent?.color ?? beatState.to?.particleTint ?? 0x71e8ff;
+            const storyBeatProgress = (SCROLL_STATE.activeSectionIndex + SCROLL_STATE.localSectionProgress) / Math.max(sections.length - 1, 1);
+            const pulsePosition = storyBeatProgress * (lifePathMilestoneNodes.length - 1);
+            const sectionBoost = [2, 3, 4].includes(SCROLL_STATE.activeSectionIndex) ? 0.14 : 0.02;
+
+            pathBeatColor.setHex(fromAccentHex).lerp(tempColor.setHex(toAccentHex), beatState.blend);
+            pathGlowColor.setHex(0xffd76d).lerp(pathBeatColor, 0.22);
+            pathHighlightColor.setHex(0x71e8ff).lerp(pathBeatColor, 0.16);
+
+            tempColor.setHex(0xfff0ba).lerp(pathBeatColor, 0.08);
+            setGradientStop(lifePathStopStart, tempColor, 0.14 + sectionBoost * 0.5);
+            setGradientStop(lifePathStopMid, pathGlowColor, 0.9);
+            setGradientStop(lifePathStopEnd, pathHighlightColor, 0.78 + sectionBoost * 0.4);
+
+            tempColor.setHex(0xfffbef).lerp(pathGlowColor, 0.16);
+            setGradientStop(lifePathHighlightStart, tempColor, 0.08 + sectionBoost * 0.2);
+            setGradientStop(lifePathHighlightMid, tempColor, 0.84);
+            setGradientStop(lifePathHighlightEnd, pathHighlightColor, 0.22 + sectionBoost * 0.28);
+
+            const glowOpacity = clamp(0.62 + paceRatio * 0.22 + sectionBoost, 0.54, 0.98);
+            const highlightOpacity = clamp(0.72 + paceRatio * 0.1 + sectionBoost * 0.6, 0.66, 1);
+            companionParty.style.setProperty('--life-path-glow-opacity', glowOpacity.toFixed(3));
+            companionParty.style.setProperty('--life-path-highlight-opacity', highlightOpacity.toFixed(3));
+
+            lifePathMilestoneNodes.forEach((node, index) => {
+                const unlockThreshold = index / Math.max(lifePathMilestoneNodes.length - 1, 1);
+                const unlocked = clamp(
+                    (SCROLL_STATE.smoothProgress - unlockThreshold + COMPANION_CONFIG.milestoneRamp) / COMPANION_CONFIG.milestoneRamp,
+                    0,
+                    1
+                );
+                const pulseDistance = Math.max(0, 1 - Math.abs(index - pulsePosition));
+                const pulse = pulseDistance * (0.68 + Math.sin(time * 4.6 + index * 0.7 + SCROLL_STATE.localSectionProgress * Math.PI * 2) * 0.32);
+                const glow = clamp(unlocked * 0.84 + pulse * 0.34, 0.08, 1);
+                const auraOpacity = 0.08 + glow * (0.24 + sectionBoost * 0.9);
+                const coreOpacity = 0.22 + glow * 0.74;
+                const sparkOpacity = 0.38 + glow * 0.6;
+
+                node.aura.setAttribute('fill', colorToRgba(pathHighlightColor, auraOpacity));
+                node.aura.setAttribute('r', (7.2 + pulse * 1.8).toFixed(2));
+                node.core.setAttribute('fill', colorToRgba(pathGlowColor, coreOpacity));
+                node.core.setAttribute('r', (3.5 + pulse * 0.65).toFixed(2));
+                node.spark.setAttribute('fill', colorToRgba(tempColor.setHex(0xfffdf3), sparkOpacity));
+                node.spark.setAttribute('r', (1.4 + pulse * 0.28).toFixed(2));
+                node.group.setAttribute('opacity', clamp(0.24 + glow * 0.84, 0.24, 1).toFixed(3));
+            });
+        }
+
+        function renderLumaEscort(time, paceRatio) {
+            lumaFollowers.forEach((follower) => {
+                const target = getLumaTarget(follower, time, paceRatio);
+                const hoverRatio = clamp(target.hoverHeight / Math.max(companionState.lumaSize, 1), 0, 1);
+                const spriteBob = Math.sin(time * 5.1 + follower.phase) * (1.1 + paceRatio * 1.8);
+
+                follower.x += (target.x - follower.x) * follower.lag;
+                follower.y += (target.y - follower.y) * follower.lag;
+
+                follower.root.style.transform = `translate3d(${roundPixel(follower.x)}px, ${roundPixel(follower.y)}px, 0)`;
+                follower.root.style.opacity = (0.7 + target.scale * 0.26).toFixed(3);
+                follower.sprite.style.transform = `translateY(${roundPixel(spriteBob)}px) scale(${target.scale.toFixed(3)}) scaleX(${companionState.direction})`;
+
+                const shadowScaleX = 0.7 + paceRatio * 0.08 + target.scale * 0.05;
+                const shadowScaleY = 0.8 - hoverRatio * 0.2;
+                follower.shadow.style.transform = `translateX(-50%) scale(${shadowScaleX.toFixed(3)}, ${Math.max(0.46, shadowScaleY).toFixed(3)})`;
+                follower.shadow.style.opacity = (
+                    COMPANION_CONFIG.lumaShadowBaseOpacity +
+                    (1 - hoverRatio) * (COMPANION_CONFIG.lumaShadowBoostOpacity - COMPANION_CONFIG.lumaShadowBaseOpacity)
+                ).toFixed(3);
+            });
+        }
+
+        function renderCompanionParty(time, beatState) {
+            if (!companionWrapper || !companionEntity) return;
+
+            const paceRatio = clamp(SCROLL_STATE.energy, 0, 1);
+            companionState.pathT += (companionState.targetPathT - companionState.pathT) * COMPANION_CONFIG.laneEase;
+
+            if (Math.abs(SCROLL_STATE.velocity) > COMPANION_CONFIG.directionThreshold) {
+                companionState.direction = SCROLL_STATE.velocity < 0 ? -1 : 1;
+            }
+
+            setCompanionMode(paceRatio > COMPANION_CONFIG.runThreshold ? 'run' : 'patrol');
+
+            if (companionState.mode === 'run') {
+                companionState.bob = Math.max(0, Math.sin(time * 17.5)) * COMPANION_CONFIG.runBob * clamp(0.55 + paceRatio * 0.6, 0.55, 1.1);
+            } else {
+                const patrolStride = Math.max(0, Math.sin(time * 7.4)) * COMPANION_CONFIG.patrolBob;
+                const idleBreath = Math.sin(time * 2.7) * 1.4;
+                companionState.bob = patrolStride + idleBreath;
+            }
+
+            const sample = getPathSample(companionState.pathT);
+            const frame = getAlvaFrameFromSample(sample);
+            const pathTilt = clamp((sample.angle * 180 / Math.PI), -18, 18) * COMPANION_LAYOUT.alva.pathTiltInfluence;
+            const lean = companionState.direction * (companionState.mode === 'run'
+                ? -COMPANION_LAYOUT.alva.leanMax * clamp(paceRatio, 0.4, 1)
+                : -1.2);
+
+            companionState.x = frame.x;
+            companionState.y = frame.y;
+            companionState.pathAngle = sample.angle;
+
+            companionWrapper.style.transform = `translate3d(${roundPixel(companionState.x)}px, ${roundPixel(companionState.y)}px, 0) rotateZ(${pathTilt.toFixed(2)}deg)`;
+            companionEntity.style.transform = `translateY(${-roundPixel(companionState.bob)}px) rotateZ(${lean.toFixed(2)}deg) scaleX(${companionState.direction})`;
+
+            const groundedBobRatio = clamp(companionState.bob / COMPANION_CONFIG.runBob, 0, 1);
+            const shadowStretch = 0.78 + paceRatio * COMPANION_CONFIG.shadowStretch;
+            const shadowSquash = 0.84 - groundedBobRatio * COMPANION_CONFIG.shadowSquash;
+            const shadowOpacity = COMPANION_CONFIG.shadowBaseOpacity +
+                paceRatio * (COMPANION_CONFIG.shadowBoostOpacity - COMPANION_CONFIG.shadowBaseOpacity);
+
+            if (companionShadow) {
+                companionShadow.style.transform = `translateX(-50%) translateY(${roundPixel(companionState.bob * 0.18)}px) scale(${shadowStretch.toFixed(3)}, ${Math.max(0.56, shadowSquash).toFixed(3)})`;
+                companionShadow.style.opacity = shadowOpacity.toFixed(3);
+            }
+
+            if (beatState) {
+                renderLifePath(time, paceRatio, beatState);
+            }
+            renderLumaEscort(time, paceRatio);
+        }
+
+        buildLifePath();
+        buildLumaEscort();
+        rebuildSectionMetrics();
+        updateScrollState();
+        SCROLL_STATE.smoothProgress = SCROLL_STATE.progress;
+        SCROLL_STATE.lastProgress = SCROLL_STATE.progress;
+        syncCompanionMetrics({ snapToTarget: true });
+        smoothScroll = SCROLL_STATE.smoothProgress;
+        renderCompanionParty(0, getInterpolatedBeat(SCROLL_STATE.progress));
+
+        function animate() {
+            requestAnimationFrame(animate);
+            const delta = Math.min(clock.getDelta(), 0.05);
+            const time = clock.elapsedTime;
+
+            const rawVelocity = delta > 0 ? (SCROLL_STATE.progress - SCROLL_STATE.lastProgress) / delta : 0;
+            SCROLL_STATE.lastProgress = SCROLL_STATE.progress;
+            SCROLL_STATE.velocity += (rawVelocity - SCROLL_STATE.velocity) * 0.16;
+            SCROLL_STATE.energy += (clamp(Math.abs(SCROLL_STATE.velocity) * 1.75, 0, 1) - SCROLL_STATE.energy) * 0.12;
+            SCROLL_STATE.smoothProgress += (SCROLL_STATE.progress - SCROLL_STATE.smoothProgress) * 0.09;
+            smoothScroll = SCROLL_STATE.smoothProgress;
+
+            if (!isRevealed) {
+                const beatState = getInterpolatedBeat(SCROLL_STATE.smoothProgress);
+                updateSceneFromBeat(beatState, time);
+                renderCompanionParty(time, beatState);
+            } else {
+                // WARP DRIVE!
+                if (warpActive) {
+                    warpSpeed += (30 - warpSpeed) * 0.02; // Accelerera
+                } else {
+                    warpSpeed += (1.5 - warpSpeed) * 0.03; // Bromsa in till en lugn, låg hastighet
+                }
+
+                resetAccentVisuals();
+                hazeGroup.children.forEach((sprite) => {
+                    sprite.material.opacity *= 0.92;
+                });
+                nebulaGroup.children.forEach((ring) => {
+                    ring.material.opacity *= 0.94;
+                });
+                
+                camera.rotation.set(0,0,0); // Nollställ rotation i slutet
+                
+                const positions = particles.geometry.attributes.position.array;
+                for(let i=0; i<particleCount; i++) {
+                    positions[i*3+2] += warpSpeed; // Flytta Z snabbt mot skärmen
+                    // Återställ bakom kameran om de flyger förbi
+                    if (positions[i*3+2] > camera.position.z + 100) {
+                        positions[i*3+2] = camera.position.z - 2000;
+                        positions[i*3] = (Math.random() - 0.5) * 800;
+                        positions[i*3+1] = (Math.random() - 0.5) * 800;
+                    }
+                }
+                particles.geometry.attributes.position.needsUpdate = true;
+                
+                // Få mynten att sprängas ut från mitten och rotera guld-aktigt
+                coins.forEach(coin => {
+                    coin.position.add(coin.userData.velocity);
+                    coin.userData.velocity.y -= 0.15; // Kraftigare gravitation
+                    coin.rotation.z += coin.userData.rotZ;
+                    coin.rotation.y += coin.userData.rotY;
+                });
+            }
+
+            composer.render(); // Använd Bloom composer!
+        }
+        animate();
+
+
+        // --- 5. EVENT LISTENERS ---
+        // Scroll interaction for story fade-in
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if(entry.isIntersecting) {
+                    entry.target.classList.add('visible');
+                }
+            });
+        }, { threshold: 0.5 });
+        sections.forEach(sec => observer.observe(sec));
+        if (sections[0]) sections[0].classList.add('visible'); // Första alltid synlig
+
+        // Scroll beräkning för Three.js kamera - movement handled in animate() loop
+        document.addEventListener('scroll', () => {
+            updateScrollState();
+        }, { passive: true });
+
+        // Resize
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            composer.setSize(window.innerWidth, window.innerHeight);
+
+            rebuildSectionMetrics();
+            SCROLL_STATE.progress = getScrollProgress();
+            SCROLL_STATE.smoothProgress = SCROLL_STATE.progress;
+            SCROLL_STATE.lastProgress = SCROLL_STATE.progress;
+            syncCompanionMetrics({ snapToTarget: true });
+            updateScrollState();
+        });
+
+        window.addEventListener('load', () => {
+            rebuildSectionMetrics();
+            updateScrollState();
+            syncCompanionMetrics({ snapToTarget: true });
+        }, { once: true });
+
+        // --- 6. STORY HOLOGRAM 3D TILT ---
+        const hologramWrappers = Array.from(document.querySelectorAll('[data-tilt-hologram]'));
+        const canHoverHolograms = window.matchMedia('(hover: hover) and (pointer: fine)').matches;
+
+        function resetHologramTilt(wrapper) {
+            wrapper.style.transform = 'perspective(1000px) rotateX(0deg) rotateY(0deg) scale3d(1, 1, 1)';
+            wrapper.style.setProperty('--shimmer-x', '50%');
+            wrapper.style.setProperty('--shimmer-y', '50%');
+        }
+
+        function initTiltHologram(wrapper) {
+            if (!wrapper) return;
+
+            resetHologramTilt(wrapper);
+            if (!canHoverHolograms) return;
+
+            wrapper.addEventListener('pointermove', (e) => {
+                const rect = wrapper.getBoundingClientRect();
+                const x = e.clientX - rect.left;
+                const y = e.clientY - rect.top;
+                const centerX = rect.width / 2;
+                const centerY = rect.height / 2;
+                const rotateX = ((y - centerY) / centerY) * -15;
+                const rotateY = ((x - centerX) / centerX) * 15;
+
+                wrapper.style.transform = `perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) scale3d(1.05, 1.05, 1.05)`;
+                wrapper.style.setProperty('--shimmer-x', `${(x / rect.width) * 100}%`);
+                wrapper.style.setProperty('--shimmer-y', `${(y / rect.height) * 100}%`);
+            });
+
+            wrapper.addEventListener('pointerleave', () => {
+                resetHologramTilt(wrapper);
+            });
+        }
+
+        hologramWrappers.forEach(initTiltHologram);
+
+        // THE EPIC REVEAL ACTION
+        document.getElementById('reveal-btn').addEventListener('click', () => {
+            if(isRevealed) return;
+            isRevealed = true;
+            warpActive = true;
+            
+            // Stanna warp-driven efter 3 sekunder
+            setTimeout(() => { warpActive = false; }, 3000);
+
+            // 1. Dölj den gamla Sagan och Companion
+            const contentDiv = document.getElementById('content');
+            contentDiv.style.opacity = '0';
+            if(companionParty) companionParty.style.opacity = '0';
+            setTimeout(() => {
+                contentDiv.style.display = 'none';
+                if(companionParty) companionParty.style.display = 'none';
+            }, 1000);
+            
+            // Ljud & Visuell Explosion!
+            isAudioPlaying = false; // Stäng av ambient rymd-pad
+            playRevealSound();
+            
+            // Screen Flash Effect (Vit magisk blixt)
+            gsap.to('#flash-overlay', {opacity: 1, duration: 0.1, yoyo: true, repeat: 1, repeatDelay: 0.2, ease: "power4.inOut"});
+            
+            // 2. The Great GSAP WebGL Transition (Warp!)
+            // Sträck ut partiklarna för star-warp-effekt (ändra storleken i shader)
+            gsap.to(shaderMaterial.uniforms.globalSize, { value: 6.0, duration: 2, ease: "power2.in" });
+            
+            // Ändra färgen i dimman till ljus Mario-Himmel och ändra botten på body
+            gsap.to(scene.fog, { density: 0.0005, duration: 2 });
+            gsap.to(scene.fog.color, { r: 92/255, g: 148/255, b: 252/255, duration: 2 }); // #5C94FC
+            document.body.style.background = '#5C94FC';
+            
+            // Krymp ihop kristallerna bort från scenen
+            crystals.children.forEach(c => {
+                gsap.to(c.scale, { x: 0, y: 0, z: 0, duration: Math.random() + 0.5, ease: "back.in(2)" });
+            });
+
+            // 3. Visa HTML Mario Bakgrund (Ryggraden av designen)
+            document.getElementById('mario-bg').style.opacity = '1';
+
+            // 4. Skicka ut Guldmynten
+            coinsGroup.position.z = camera.position.z - 150; // Placera mynten framför kameran
+            coins.forEach(coin => {
+                // Återställ mynten i mitten
+                coin.position.set(0, 0, 0);
+                coin.scale.set(0.1, 0.1, 0.1);
+                gsap.to(coin.scale, { x: 1, y: 1, z: 1, duration: 0.5, ease: "back.out(1.5)" });
+
+                // Fysik-egenskaper: slumpmässig explosion utåt och uppåt
+                coin.userData = {
+                    velocity: new THREE.Vector3(
+                        (Math.random() - 0.5) * 4,
+                        Math.random() * 8 + 4,
+                        (Math.random() - 0.5) * 4
+                    ),
+                    rotY: Math.random() * 0.4 + 0.1,
+                    rotZ: Math.random() * 0.4 + 0.1
+                };
+            });
+            coinsGroup.visible = true;
+
+            // 5. Episk DOM Konfetti (Eldar igång efter Warp)
+            setTimeout(() => {
+                const duration = 6000;
+                const end = Date.now() + duration;
+
+                (function frame() {
+                    confetti({ particleCount: 6, angle: 60, spread: 55, origin: { x: 0 }, colors: ['#E52521', '#43B047', '#FBD000', '#ffffff'] });
+                    confetti({ particleCount: 6, angle: 120, spread: 55, origin: { x: 1 }, colors: ['#E52521', '#43B047', '#FBD000', '#ffffff'] });
+                    if (Date.now() < end) requestAnimationFrame(frame);
+                }());
+            }, 500);
+
+            // 6. Visa Super Mario Avslöjandet!
+            setTimeout(() => {
+                document.getElementById('mario-content').classList.add('revealed');
+            }, 1000);
+        });
+
+    </script>
+</body>
+</html>
