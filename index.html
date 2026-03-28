@@ -2,7 +2,7 @@
 <html lang="sv">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>Grattis på 10-årsdagen!</title>
     <!-- Byggd med ❤️ och magi! -->
     
@@ -33,6 +33,7 @@
             --alva-idle-cycle-ms: 780ms;
             --alva-run-cycle-ms: 340ms;
             --luma-cycle-ms: 640ms;
+            --content-max-width: 1120px;
         }
 
         * {
@@ -89,13 +90,17 @@
         }
 
         .story-section {
-            min-height: 100vh;
+            min-height: 100svh;
             display: flex;
             flex-direction: column;
             justify-content: center;
             align-items: center;
             text-align: center;
-            padding: 2rem;
+            padding:
+                max(1.25rem, env(safe-area-inset-top))
+                max(1rem, env(safe-area-inset-right))
+                max(1.25rem, env(safe-area-inset-bottom))
+                max(1rem, env(safe-area-inset-left));
             opacity: 0;
             transform: translateY(80px) scale(0.92);
             transition: opacity 1.5s cubic-bezier(0.2, 0.8, 0.2, 1), transform 1.5s cubic-bezier(0.2, 0.8, 0.2, 1);
@@ -109,7 +114,7 @@
         /* Floating text effect — elements gently bob and sway */
         h1 {
             font-family: 'Cinzel Decorative', cursive;
-            font-size: 3.2rem;
+            font-size: clamp(1.75rem, 6vw, 3.2rem);
             margin-bottom: 2rem;
             color: #fff;
             text-shadow: 
@@ -118,6 +123,8 @@
                 0 0 80px rgba(255, 100, 0, 0.3);
             letter-spacing: 2px;
             animation: float-text 4s ease-in-out infinite;
+            text-wrap: balance;
+            max-width: min(var(--content-max-width), 100%);
         }
 
         @keyframes float-text {
@@ -127,8 +134,8 @@
         }
 
         p {
-            font-size: 1.45rem;
-            line-height: 2.1;
+            font-size: clamp(1rem, 3.6vw, 1.45rem);
+            line-height: 1.7;
             max-width: 700px;
             color: #ffffff;
             font-weight: 700;
@@ -139,6 +146,7 @@
             position: relative;
             padding: 0 15px;
             animation: float-paragraph 5s ease-in-out infinite;
+            overflow-wrap: anywhere;
         }
 
         @keyframes float-paragraph {
@@ -380,11 +388,90 @@
                 --alva-run-cycle-ms: 320ms;
                 --luma-cycle-ms: 560ms;
             }
+
+            .story-section {
+                min-height: auto;
+                padding-top: max(3rem, env(safe-area-inset-top));
+                padding-bottom: max(4rem, env(safe-area-inset-bottom));
+            }
+
+            .story-memory-beat {
+                gap: clamp(1.2rem, 4vw, 2rem);
+            }
+
+            .scroll-indicator {
+                bottom: 14px;
+            }
         }
 
         @media (max-width: 480px) {
+            h1 {
+                letter-spacing: 1px;
+                margin-bottom: 1.2rem;
+            }
+
+            p {
+                line-height: 1.55;
+                padding-inline: 0.35rem;
+            }
+
+            .magic-button {
+                width: min(92vw, 420px);
+                padding: 16px 20px;
+                font-size: clamp(1rem, 4.4vw, 1.35rem);
+                line-height: 1.35;
+            }
+
+            #mario-content h1 {
+                font-size: clamp(1rem, 6.3vw, 1.5rem);
+                line-height: 1.35;
+                text-shadow: 2px 2px 0px #fff, 5px 5px 0px #000;
+                margin-bottom: 1.2rem;
+            }
+
+            #mario-content p {
+                font-size: clamp(0.58rem, 2.8vw, 0.72rem);
+                line-height: 1.7;
+                padding: 14px;
+                border-width: 3px;
+            }
+
+            .ticket {
+                width: min(92vw, 420px);
+                padding: 16px;
+                border-width: 4px;
+                margin-top: 1.2rem;
+            }
+
+            .ticket h2 {
+                font-size: clamp(0.82rem, 4vw, 1rem);
+                margin-bottom: 14px;
+            }
+
+            .ticket .gift {
+                font-size: clamp(0.58rem, 2.9vw, 0.74rem);
+                line-height: 1.9;
+            }
+
+            .ticket .mario-title {
+                font-size: clamp(0.8rem, 4.4vw, 1rem);
+            }
+
             .luma-instance[data-depth="far"] {
                 display: none;
+            }
+        }
+
+        @media (max-width: 768px) and (orientation: portrait) {
+            #companion-party {
+                transform: scale(0.85);
+                transform-origin: bottom left;
+            }
+
+            .memory-tilt-wrapper,
+            .hero-tilt-wrapper {
+                width: min(var(--memory-size, 280px), 76vw);
+                height: min(var(--memory-size, 280px), 76vw);
             }
         }
 
