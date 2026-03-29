@@ -1114,11 +1114,21 @@
             cursor: pointer;
             font-size: 0.75rem;
             box-shadow: 0 4px 10px rgba(0,0,0,0.5);
-            transition: transform 0.1s, background 0.2s;
             display: inline-block;
+            opacity: 0;
+            transform: scale(0);
+            transition: background 0.2s, transform 0.1s;
+        }
+        #mario-content.revealed #play-minigame-btn {
+            opacity: 1;
+            transform: scale(1);
+            transition: opacity 1.5s cubic-bezier(0.34, 1.56, 0.64, 1) 2.2s, 
+                        transform 1.5s cubic-bezier(0.34, 1.56, 0.64, 1) 2.2s,
+                        background 0.2s;
         }
         #play-minigame-btn:active {
             transform: scale(0.95);
+            transition: transform 0.1s;
         }
         #play-minigame-btn:hover {
             background: #4cc751;
@@ -1321,7 +1331,7 @@
                         style="--memory-size: 286px; --memory-frame-gradient: linear-gradient(135deg, rgba(140,255,112,0.82), rgba(255,220,108,0.78)); --memory-aura-primary: rgba(140,255,112,0.82); --memory-aura-secondary: rgba(255,220,108,0.82); --memory-object-position: 50% 40%;"
                     >
                         <div class="memory-image">
-                            <img src="alva_rollercoaster.jpg" alt="Alva på berg- och dalbana" loading="lazy" decoding="async" />
+                            <img src="alva_rollercoaster.png" alt="Alva på berg- och dalbana" loading="lazy" decoding="async" />
                             <div class="hologram-overlay"></div>
                         </div>
                     </div>
