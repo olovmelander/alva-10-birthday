@@ -419,11 +419,12 @@
 
             .ticket .gift {
                 font-size: clamp(0.58rem, 2.9vw, 0.74rem);
-                line-height: 1.9;
+                line-height: 1.55;
             }
 
             .ticket .mario-title {
-                font-size: clamp(0.8rem, 4.4vw, 1rem);
+                font-size: clamp(0.72rem, 4.2vw, 0.92rem);
+                margin: 8px 0;
             }
 
             .luma-instance[data-depth="far"] {
@@ -474,17 +475,20 @@
             }
 
             .ticket .gift {
+                font-size: clamp(0.44rem, 2.35vw, 0.58rem);
+                line-height: 1.38;
                 font-size: clamp(0.5rem, 2.6vw, 0.68rem);
                 line-height: 1.45;
             }
 
-            .ticket .gift br {
-                line-height: 1.25;
+            .ticket .gift p + p {
+                margin-top: 0.5rem;
             }
 
             .ticket .mario-title {
-                font-size: clamp(0.7rem, 3.8vw, 0.9rem);
-                margin: 12px 0;
+                font-size: clamp(0.56rem, 3.2vw, 0.72rem);
+                margin: 6px 0;
+                animation: none;
             }
         }
 
@@ -960,6 +964,14 @@
             line-height: 2.2;
         }
 
+        .ticket .gift p {
+            margin: 0;
+        }
+
+        .ticket .gift p + p {
+            margin-top: 0.9rem;
+        }
+
         .ticket .mario-title {
             font-size: 1.4rem;
             color: #E52521;
@@ -967,6 +979,8 @@
             display: block;
             margin: 20px 0;
             animation: bounce-title 2s ease-in-out infinite alternate;
+            line-height: 1.35;
+            overflow-wrap: anywhere;
         }
 
         @keyframes bounce-title {
@@ -1270,10 +1284,10 @@
         <div class="ticket">
             <h2>⭐ GULDBILJETT ⭐</h2>
             <div class="gift">
-                Du, Alva, ska få gå på bio tillsammans med pappa och Mira och se:
-                <span class="mario-title">Super Mario Galaxy: Filmen</span>
-                Ditt alldeles egna bioäventyr! <br><br>
-                Grattis på 10-årsdagen! 🎉
+                <p>Du, Alva, ska få gå på bio tillsammans med pappa och Mira och se:</p>
+                <p class="mario-title">Super Mario Galaxy: Filmen</p>
+                <p>Ditt alldeles egna bioäventyr!</p>
+                <p>Grattis på 10-årsdagen! 🎉</p>
             </div>
         </div>
     </div>
