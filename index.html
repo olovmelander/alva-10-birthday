@@ -3982,6 +3982,27 @@
             }
         };
 
+        const MG_PACE_PROFILES = {
+            desktop: {
+                startSpeed: 700,
+                speedRamp: 8,
+                initialSpawnDelay: 1.0,
+                minSpawnInterval: 0.3,
+                baseSpawnInterval: 0.5,
+                spawnVariance: 0.8,
+                scoreRamp: 0.005
+            },
+            mobile: {
+                startSpeed: 470,
+                speedRamp: 5.5,
+                initialSpawnDelay: 1.15,
+                minSpawnInterval: 0.42,
+                baseSpawnInterval: 0.62,
+                spawnVariance: 0.85,
+                scoreRamp: 0.004
+            }
+        };
+
         // --- MINIGAME LOGIC: ALVA'S SPACE JUMP ---
         const mgController = {
             active: false,
@@ -3998,6 +4019,7 @@
             reqId: null,
             groundY: 0,
             stompBounceForce: -500,
+            paceProfile: MG_PACE_PROFILES.desktop,
 
             init() {
                 document.getElementById('play-minigame-btn').addEventListener('click', () => this.showStartScreen());
@@ -4015,6 +4037,14 @@
                 const ui = document.getElementById('minigame-ui');
                 ui.addEventListener('touchstart', handleJump, { passive: false });
                 ui.addEventListener('mousedown', handleJump);
+            },
+
+            getPaceProfile() {
+                const coarsePointer = window.matchMedia('(pointer: coarse)').matches;
+                const phoneSizedViewport = Math.min(window.innerWidth, window.innerHeight) < 700;
+                return coarsePointer && phoneSizedViewport
+                    ? MG_PACE_PROFILES.mobile
+                    : MG_PACE_PROFILES.desktop;
             },
 
             showStartScreen() {
@@ -4055,8 +4085,9 @@
                 this.goombasStomped = 0;
                 this.velocityY = 0;
                 mgAlvaOffsetY = 0;
-                this.speed = window.innerWidth < 600 ? 550 : 700;
-                this.spawnTimer = 1.0;
+                this.paceProfile = this.getPaceProfile();
+                this.speed = this.paceProfile.startSpeed;
+                this.spawnTimer = this.paceProfile.initialSpawnDelay;
                 resetGoombaPaletteRotation();
 
                 // Ground Y for fullscreen mode: Alva near bottom, above ground strip
@@ -4219,12 +4250,16 @@
                 this.spawnTimer -= dt;
                 if (this.spawnTimer <= 0) {
                     this.spawnEntity();
-                    const minInterval = Math.max(0.3, 0.5 - (this.score * 0.005));
-                    this.spawnTimer = minInterval + Math.random() * 0.8;
+                    const pace = this.getPaceProfile();
+                    const minInterval = Math.max(
+                        pace.minSpawnInterval,
+                        pace.baseSpawnInterval - (this.score * pace.scoreRamp)
+                    );
+                    this.spawnTimer = minInterval + Math.random() * pace.spawnVariance;
                 }
 
                 // Gradual speed increase
-                this.speed += 8 * dt;
+                this.speed += this.paceProfile.speedRamp * dt;
 
                 // Process entities
                 for (let i = this.entities.length - 1; i >= 0; i--) {
