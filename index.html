@@ -463,12 +463,9 @@
 
             .ticket {
                 width: min(94vw, 420px);
-                max-height: 58svh;
                 padding: 12px;
                 border-width: 4px;
                 margin-top: 0.8rem;
-                overflow-y: auto;
-                -webkit-overflow-scrolling: touch;
             }
 
             .ticket h2 {
@@ -478,7 +475,7 @@
 
             .ticket .gift {
                 font-size: clamp(0.5rem, 2.6vw, 0.68rem);
-                line-height: 1.55;
+                line-height: 1.45;
             }
 
             .ticket .gift br {
@@ -912,13 +909,18 @@
             position: relative;
             overflow: hidden;
         }
+
+        .ticket > * {
+            position: relative;
+            z-index: 2;
+        }
         
         /* Premium foil sweep on ticket */
         .ticket::before {
             content: '';
             position: absolute;
             top: 0; left: -100%; width: 50%; height: 100%;
-            background: linear-gradient(to right, transparent, rgba(255,255,255,0.8), transparent);
+            background: linear-gradient(to right, transparent, rgba(255,255,255,0.38), transparent);
             transform: skewX(-20deg);
             animation: foil-sweep 4s infinite 3s;
             z-index: 1;
