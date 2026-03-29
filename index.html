@@ -392,10 +392,11 @@
             }
 
             #mario-content h1 {
-                font-size: clamp(1rem, 6.3vw, 1.5rem);
+                font-size: clamp(0.9rem, 5.5vw, 1.3rem);
                 line-height: 1.35;
                 text-shadow: 2px 2px 0px #fff, 5px 5px 0px #000;
                 margin-bottom: 1.2rem;
+                white-space: nowrap;
             }
 
             #mario-content > p {
@@ -408,7 +409,7 @@
 
             .ticket {
                 width: min(92vw, 420px);
-                padding: 16px;
+                padding: 16px 16px 28px 16px;
                 border-width: 4px;
                 margin-top: 1.2rem;
             }
@@ -451,9 +452,10 @@
             }
 
             #mario-content h1 {
-                font-size: clamp(1rem, 5.5vw, 1.4rem);
+                font-size: clamp(0.9rem, 5vw, 1.25rem);
                 margin-bottom: 0.8rem;
                 text-shadow: 2px 2px 0px #fff, 4px 4px 0px #000;
+                white-space: nowrap;
             }
 
             #mario-content > p {
@@ -466,7 +468,7 @@
 
             .ticket {
                 width: min(94vw, 420px);
-                padding: 12px;
+                padding: 12px 12px 24px 12px;
                 border-width: 4px;
                 margin-top: 0.8rem;
             }
@@ -850,7 +852,7 @@
             left: 0;
             width: 100%;
             height: 100%;
-            z-index: 20;
+            z-index: 1000;
             display: flex;
             flex-direction: column;
             justify-content: center;
@@ -879,6 +881,7 @@
             line-height: 1.5;
             transform: scale(0) rotate(-10deg);
             transition: transform 1.2s cubic-bezier(0.34, 1.56, 0.64, 1) 1.5s;
+            white-space: nowrap;
         }
         
         #mario-content.revealed h1 {
@@ -904,7 +907,7 @@
             margin-top: 2rem;
             background: linear-gradient(135deg, #FBD000, #ff9900);
             border: 6px dashed #E52521;
-            padding: 30px;
+            padding: 30px 30px 42px 30px;
             border-radius: 15px;
             color: #333;
             font-family: 'Press Start 2P', cursive;
