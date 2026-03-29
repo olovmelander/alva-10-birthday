@@ -26,9 +26,9 @@
             --alva-bottom-offset: 24px;
             --alva-side-padding: 20px;
             --luma-size: 64px;
-            --party-width: 220px;
+            --party-width: 100vw;
             --party-height: 150px;
-            --party-inset-left: 24px;
+            --party-inset-left: 0px;
             --party-inset-bottom: 18px;
             --alva-idle-cycle-ms: 780ms;
             --alva-run-cycle-ms: 340ms;
@@ -180,39 +180,7 @@
 
         #companion-party::before,
         #companion-party::after {
-            content: '';
-            position: absolute;
-            inset: auto 0 0 0;
-            pointer-events: none;
-        }
-
-        #companion-party::before {
-            height: 98px;
-            bottom: -16px;
-            border-radius: 110px 120px 46px 30px;
-            background:
-                radial-gradient(circle at 24% 76%, rgba(255, 215, 0, 0.18), transparent 40%),
-                radial-gradient(circle at 72% 52%, rgba(0, 212, 255, 0.14), transparent 46%),
-                linear-gradient(to top, rgba(0, 0, 0, 0.88), rgba(0, 0, 0, 0.12));
-            filter: blur(16px);
-            opacity: 0.98;
-            z-index: 0;
-        }
-
-        #companion-party::after {
-            left: 18px;
-            right: 22px;
-            height: 62px;
-            bottom: 18px;
-            border-radius: 999px 999px 48px 48px;
-            background:
-                radial-gradient(circle at 10% 72%, rgba(255, 225, 140, 0.24), transparent 18%),
-                radial-gradient(circle at 34% 38%, rgba(255, 255, 255, 0.18), transparent 14%),
-                radial-gradient(circle at 58% 54%, rgba(115, 236, 255, 0.18), transparent 14%),
-                radial-gradient(circle at 84% 36%, rgba(115, 236, 255, 0.15), transparent 12%);
-            filter: blur(12px);
-            opacity: 0.78;
-            z-index: 0;
+            display: none;
         }
 
         #life-path-layer,
@@ -226,6 +194,7 @@
 
         #life-path-layer {
             z-index: 1;
+            display: none;
         }
 
         #luma-back-layer {
@@ -1925,6 +1894,15 @@
             milestoneRamp: 0.18
         };
 
+        const WALK_CONFIG = {
+            speed: 70,
+            bobFreq: 8.5,
+            bobAmp: 7,
+            lean: -3,
+            margin: 100,
+            _lastTime: 0
+        };
+
         const COMPANION_LAYOUT = {
             partyBox: {
                 width: 220,
@@ -2160,7 +2138,8 @@
             bob: 0,
             pathT: COMPANION_LAYOUT.path.baseT,
             targetPathT: COMPANION_LAYOUT.path.baseT,
-            pathAngle: 0
+            pathAngle: 0,
+            walkX: -80
         };
 
         const companionParty = document.getElementById('companion-party');
@@ -2296,17 +2275,18 @@
         }
 
         function getLumaTarget(follower, time, paceRatio) {
-            const compressedTrail = follower.trailT * (1 - paceRatio * 0.14);
-            const sample = getPathSample(companionState.pathT - compressedTrail);
-            const orbitX = Math.sin(time * (2.1 + follower.phase * 0.2) + follower.phase) * follower.swayX * companionState.pathScaleX;
-            const hoverWave = Math.sin(time * (2.6 + follower.phase * 0.18) + follower.phase) * follower.bob * companionState.pathScaleY;
-            const groundInset = COMPANION_LAYOUT.alva.groundInset * companionState.pathScaleY;
+            const trailDistance = follower.trailT * 1200;
+            const baseX = companionState.walkX - trailDistance;
+            const groundY = companionState.partyHeight - companionState.lumaSize + COMPANION_LAYOUT.alva.groundInset;
+
+            const orbitX = Math.sin(time * (2.1 + follower.phase * 0.2) + follower.phase) * follower.swayX * 2;
+            const hoverWave = Math.sin(time * (2.6 + follower.phase * 0.18) + follower.phase) * follower.bob;
             const scale = follower.scale || 1;
 
             return {
-                x: sample.x - companionState.lumaSize * 0.5 + follower.side * companionState.pathScaleX + orbitX,
-                y: sample.y - companionState.lumaSize + groundInset - follower.hoverY * companionState.pathScaleY + hoverWave - companionState.bob * 0.14,
-                hoverHeight: follower.hoverY * companionState.pathScaleY - hoverWave,
+                x: baseX - companionState.lumaSize * 0.5 + follower.side + orbitX,
+                y: groundY - follower.hoverY + hoverWave - companionState.bob * 0.14,
+                hoverHeight: follower.hoverY - hoverWave,
                 scale
             };
         }
@@ -2402,22 +2382,15 @@
         function syncCompanionMetrics({ snapToTarget = false } = {}) {
             companionState.alvaSize = readRootPx('--alva-size', 80);
             companionState.lumaSize = readRootPx('--luma-size', 64);
-            companionState.partyWidth = companionParty?.clientWidth || COMPANION_LAYOUT.partyBox.width;
+            companionState.partyWidth = window.innerWidth;
             companionState.partyHeight = companionParty?.clientHeight || COMPANION_LAYOUT.partyBox.height;
-            companionState.pathScaleX = companionState.partyWidth / COMPANION_LAYOUT.partyBox.width;
-            companionState.pathScaleY = companionState.partyHeight / COMPANION_LAYOUT.partyBox.height;
-            companionState.targetPathT = getPathTForProgress(SCROLL_STATE.progress);
 
-            if (snapToTarget) companionState.pathT = companionState.targetPathT;
-
-            const sample = getPathSample(companionState.pathT);
-            const frame = getAlvaFrameFromSample(sample);
-            companionState.x = frame.x;
-            companionState.y = frame.y;
-            companionState.pathAngle = sample.angle;
+            const groundY = companionState.partyHeight - companionState.alvaSize + COMPANION_LAYOUT.alva.groundInset;
+            companionState.x = companionState.walkX;
+            companionState.y = groundY;
 
             lumaFollowers.forEach((follower) => {
-                const target = getLumaTarget(follower, 0, SCROLL_STATE.energy);
+                const target = getLumaTarget(follower, 0, 0.7);
                 follower.x = target.x;
                 follower.y = target.y;
             });
@@ -2625,41 +2598,43 @@
             });
         }
 
-        function renderCompanionParty(time, beatState) {
+        function renderCompanionParty(time, delta) {
             if (!companionWrapper || !companionEntity) return;
 
-            const paceRatio = clamp(SCROLL_STATE.energy, 0, 1);
-            companionState.pathT += (companionState.targetPathT - companionState.pathT) * COMPANION_CONFIG.laneEase;
+            const now = performance.now() / 1000;
+            const walkDelta = WALK_CONFIG._lastTime ? Math.min(now - WALK_CONFIG._lastTime, 0.05) : 0;
+            WALK_CONFIG._lastTime = now;
 
-            if (Math.abs(SCROLL_STATE.velocity) > COMPANION_CONFIG.directionThreshold) {
-                companionState.direction = SCROLL_STATE.velocity < 0 ? -1 : 1;
+            const viewportWidth = window.innerWidth;
+            companionState.walkX += WALK_CONFIG.speed * walkDelta;
+
+            // Wrap around: exit right, re-enter left
+            if (companionState.walkX > viewportWidth + WALK_CONFIG.margin) {
+                companionState.walkX = -companionState.alvaSize - WALK_CONFIG.margin;
+                // Snap lumas to avoid them trailing across the whole screen
+                lumaFollowers.forEach(f => {
+                    const target = getLumaTarget(f, time, 0.7);
+                    f.x = target.x;
+                    f.y = target.y;
+                });
             }
 
-            setCompanionMode(paceRatio > COMPANION_CONFIG.runThreshold ? 'run' : 'patrol');
+            companionState.direction = 1;
+            setCompanionMode('run');
 
-            if (companionState.mode === 'run') {
-                companionState.bob = Math.max(0, Math.sin(time * 17.5)) * COMPANION_CONFIG.runBob * clamp(0.55 + paceRatio * 0.6, 0.55, 1.1);
-            } else {
-                const patrolStride = Math.max(0, Math.sin(time * 7.4)) * COMPANION_CONFIG.patrolBob;
-                const idleBreath = Math.sin(time * 2.7) * 1.4;
-                companionState.bob = patrolStride + idleBreath;
-            }
+            companionState.bob = Math.max(0, Math.sin(time * WALK_CONFIG.bobFreq)) * WALK_CONFIG.bobAmp;
 
-            const sample = getPathSample(companionState.pathT);
-            const frame = getAlvaFrameFromSample(sample);
-            const pathTilt = clamp((sample.angle * 180 / Math.PI), -18, 18) * COMPANION_LAYOUT.alva.pathTiltInfluence;
-            const lean = companionState.direction * (companionState.mode === 'run'
-                ? -COMPANION_LAYOUT.alva.leanMax * clamp(paceRatio, 0.4, 1)
-                : -1.2);
+            const groundY = companionState.partyHeight - companionState.alvaSize + COMPANION_LAYOUT.alva.groundInset;
+            companionState.x = companionState.walkX;
+            companionState.y = groundY;
 
-            companionState.x = frame.x;
-            companionState.y = frame.y;
-            companionState.pathAngle = sample.angle;
+            const lean = WALK_CONFIG.lean;
 
-            companionWrapper.style.transform = `translate3d(${roundPixel(companionState.x)}px, ${roundPixel(companionState.y)}px, 0) rotateZ(${pathTilt.toFixed(2)}deg)`;
-            companionEntity.style.transform = `translateY(${-roundPixel(companionState.bob)}px) rotateZ(${lean.toFixed(2)}deg) scaleX(${companionState.direction})`;
+            companionWrapper.style.transform = `translate3d(${roundPixel(companionState.x)}px, ${roundPixel(companionState.y)}px, 0)`;
+            companionEntity.style.transform = `translateY(${-roundPixel(companionState.bob)}px) rotateZ(${lean}deg) scaleX(${companionState.direction})`;
 
-            const groundedBobRatio = clamp(companionState.bob / COMPANION_CONFIG.runBob, 0, 1);
+            const paceRatio = 0.7;
+            const groundedBobRatio = clamp(companionState.bob / WALK_CONFIG.bobAmp, 0, 1);
             const shadowStretch = 0.78 + paceRatio * COMPANION_CONFIG.shadowStretch;
             const shadowSquash = 0.84 - groundedBobRatio * COMPANION_CONFIG.shadowSquash;
             const shadowOpacity = COMPANION_CONFIG.shadowBaseOpacity +
@@ -2670,9 +2645,6 @@
                 companionShadow.style.opacity = shadowOpacity.toFixed(3);
             }
 
-            if (beatState) {
-                renderLifePath(time, paceRatio, beatState);
-            }
             renderLumaEscort(time, paceRatio);
         }
 
@@ -2684,7 +2656,7 @@
         SCROLL_STATE.lastProgress = SCROLL_STATE.progress;
         syncCompanionMetrics({ snapToTarget: true });
         smoothScroll = SCROLL_STATE.smoothProgress;
-        renderCompanionParty(0, getInterpolatedBeat(SCROLL_STATE.progress));
+        renderCompanionParty(0, 0);
 
         function animate() {
             requestAnimationFrame(animate);
@@ -2703,7 +2675,7 @@
             if (!isRevealed) {
                 const beatState = getInterpolatedBeat(SCROLL_STATE.smoothProgress);
                 updateSceneFromBeat(beatState, time);
-                renderCompanionParty(time, beatState);
+                renderCompanionParty(time, delta);
             } else {
                 // WARP DRIVE!
                 if (warpActive) {
@@ -2741,6 +2713,7 @@
                     coin.rotation.z += coin.userData.rotZ;
                     coin.rotation.y += coin.userData.rotY;
                 });
+                renderCompanionParty(time, delta);
             }
 
             composer.render(); // Använd Bloom composer!
