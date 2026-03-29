@@ -1102,6 +1102,120 @@
             0%, 100% { box-shadow: 0 0 20px rgba(170, 0, 255, 0.3), 0 0 40px rgba(255, 100, 0, 0.15); }
             50% { box-shadow: 0 0 30px rgba(170, 0, 255, 0.5), 0 0 60px rgba(255, 215, 0, 0.3); }
         }
+        /* --- MINIGAME CSS --- */
+        #play-minigame-btn {
+            margin-top: 25px;
+            background: #43B047;
+            border: 3px solid #fff;
+            color: white;
+            font-family: 'Press Start 2P', cursive;
+            padding: 14px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.75rem;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+            transition: transform 0.1s, background 0.2s;
+            display: inline-block;
+        }
+        #play-minigame-btn:active {
+            transform: scale(0.95);
+        }
+        #play-minigame-btn:hover {
+            background: #4cc751;
+        }
+        
+        #minigame-ui {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            z-index: 3000;
+            display: none;
+            flex-direction: column;
+            pointer-events: auto;
+            touch-action: none; /* Prevent scroll while playing */
+        }
+        #mg-hud {
+            position: absolute;
+            top: 30px; right: 20px;
+            font-family: 'Press Start 2P', cursive;
+            color: #FBD000;
+            font-size: 1.4rem;
+            text-shadow: 3px 3px 0px #000;
+            z-index: 3010;
+        }
+        #mg-entities {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            overflow: hidden;
+            pointer-events: none;
+        }
+        .mg-rock {
+            position: absolute;
+            font-size: 3.5rem;
+            line-height: 1;
+            filter: drop-shadow(2px 2px 5px rgba(0,0,0,0.8));
+            transform-origin: center;
+        }
+        .mg-starbit {
+            position: absolute;
+            font-size: 2.5rem;
+            line-height: 1;
+            animation: mg-star-spin 1s linear infinite;
+        }
+        @keyframes mg-star-spin {
+            0% { filter: hue-rotate(0deg) drop-shadow(0 0 12px yellow); }
+            100% { filter: hue-rotate(360deg) drop-shadow(0 0 12px yellow); }
+        }
+        
+        #mg-screens {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.6);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 3020;
+        }
+        .mg-panel {
+            background: rgba(10, 5, 25, 0.95);
+            border: 4px solid #E52521;
+            border-radius: 12px;
+            padding: 30px 20px;
+            text-align: center;
+            font-family: 'Press Start 2P', cursive;
+            color: white;
+            width: 90%;
+            max-width: 400px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.8);
+            display: none;
+        }
+        .mg-panel h2 {
+            color: #FBD000;
+            margin-bottom: 25px;
+            line-height: 1.4;
+            font-size: 1.2rem;
+            text-shadow: 2px 2px 0px #000;
+        }
+        .mg-panel p {
+            font-size: 0.7rem;
+            line-height: 1.6;
+            margin-bottom: 20px;
+            color: #ccc;
+        }
+        .mg-btn {
+            background: #E52521;
+            color: white;
+            font-family: 'Press Start 2P', cursive;
+            border: 3px solid #fff;
+            padding: 16px;
+            font-size: 0.9rem;
+            border-radius: 8px;
+            cursor: pointer;
+            width: 100%;
+            transition: transform 0.1s;
+        }
+        .mg-btn:active { transform: scale(0.95); }
     </style>
 </head>
 <body>
@@ -1294,6 +1408,7 @@
             </svg>
         </div>
         <div id="luma-back-layer"></div>
+        <div id="mg-entities"></div>
         <div id="alva-layer">
             <div id="companion-wrapper">
                 <div id="companion-shadow"></div>
@@ -1315,11 +1430,36 @@
                     <p>Grattis på 10-årsdagen! 🎉</p>
                     <p>Önskar Olov ❤️</p>
                 </div>
+                </div>
+                <button id="play-minigame-btn">🎮 Spela Minispel</button>
             </div>
         </div>
     </div>
 
     <div id="flash-overlay" style="position:fixed;top:0;left:0;width:100%;height:100%;background:#ffffff;z-index:9999;opacity:0;pointer-events:none;mix-blend-mode:screen;"></div>
+
+    <!-- MINIGAME UI -->
+    <div id="minigame-ui">
+        <div id="mg-hud">0 🌟</div>
+        <div id="mg-screens">
+            <!-- Start Screen -->
+            <div id="mg-start-screen" class="mg-panel">
+                <h2>ALVA'S SPACE JUMP</h2>
+                <p>Tryck på skärmen för att hoppa.<br><br>Fånga Star Bits 🌟 och undvik Rymdstenarna ☄️!</p>
+                <button class="mg-btn" id="mg-start-btn">Kör!</button>
+                <button class="mg-btn" id="mg-quit-btn" style="margin-top: 10px; background: #555;">Avsluta</button>
+            </div>
+            <!-- Game Over Screen -->
+            <div id="mg-game-over" class="mg-panel">
+                <h2>KROCK! 💥</h2>
+                <p>Du samlade <span id="mg-final-score" style="color:#FBD000;">0</span> Star Bits!</p>
+                <button class="mg-btn" id="mg-restart-btn">Spela Igen</button>
+                <button class="mg-btn" id="mg-exit-btn" style="margin-top: 10px; background: #555;">Avsluta</button>
+            </div>
+        </div>
+    </div>
+
+    </div>
 
     <!-- MAIN LOGIC (Three.js & Animations) -->
     <script>
@@ -1343,6 +1483,63 @@
                 const AudioContext = window.AudioContext || window.webkitAudioContext;
                 audioCtx = new AudioContext();
             }
+        }
+
+        function playCoinSound() {
+            if(!audioCtx) return;
+            const now = audioCtx.currentTime;
+            
+            const osc = audioCtx.createOscillator();
+            const gainNode = audioCtx.createGain();
+            
+            osc.type = 'sine';
+            osc.connect(gainNode);
+            gainNode.connect(audioCtx.destination);
+            
+            // Frequency glissando (B5 to E6)
+            osc.frequency.setValueAtTime(987.77, now);
+            osc.frequency.exponentialRampToValueAtTime(1318.51, now + 0.1);
+            
+            // Volume envelope
+            gainNode.gain.setValueAtTime(0, now);
+            gainNode.gain.linearRampToValueAtTime(0.15, now + 0.02);
+            gainNode.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
+            
+            osc.start(now);
+            osc.stop(now + 0.4);
+        }
+
+        function playDieSound() {
+            if(!audioCtx) return;
+            const now = audioCtx.currentTime;
+            
+            const osc1 = audioCtx.createOscillator();
+            const osc2 = audioCtx.createOscillator();
+            const gainNode = audioCtx.createGain();
+            
+            osc1.type = 'sawtooth';
+            osc2.type = 'square';
+            
+            osc1.connect(gainNode);
+            osc2.connect(gainNode);
+            gainNode.connect(audioCtx.destination);
+            
+            // Descending pitch
+            osc1.frequency.setValueAtTime(150, now);
+            osc1.frequency.exponentialRampToValueAtTime(40, now + 0.4);
+            
+            osc2.frequency.setValueAtTime(100, now);
+            osc2.frequency.exponentialRampToValueAtTime(30, now + 0.4);
+            
+            // Tremolo / Volume envelope
+            gainNode.gain.setValueAtTime(0, now);
+            gainNode.gain.linearRampToValueAtTime(0.2, now + 0.02);
+            gainNode.gain.exponentialRampToValueAtTime(0.001, now + 0.5);
+            
+            osc1.start(now);
+            osc2.start(now);
+            osc1.stop(now + 0.5);
+            osc2.stop(now + 0.5);
         }
 
         function playRevealSound() {
@@ -2649,6 +2846,11 @@
             });
         }
 
+        // --- MINIGAME STATE HOOKS ---
+        let isMinigameActive = false;
+        let mgAlvaOffsetY = 0;
+        let mgAlvaHitbox = { x: 0, y: 0, w: 50, h: 50 }; // Filled in render
+
         function renderCompanionParty(time, delta) {
             if (!companionWrapper || !companionEntity) return;
 
@@ -2657,32 +2859,54 @@
             WALK_CONFIG._lastTime = now;
 
             const viewportWidth = window.innerWidth;
-            companionState.walkX += WALK_CONFIG.speed * walkDelta;
+            
+            if (!isMinigameActive) {
+                companionState.walkX += WALK_CONFIG.speed * walkDelta;
 
-            // Calculate how far behind the last luma trails
-            const maxTrailOffset = Math.max(...COMPANION_LAYOUT.lumas.map(l => l.trailT)) * 1200 + companionState.lumaSize;
+                // Calculate how far behind the last luma trails
+                const maxTrailOffset = Math.max(...COMPANION_LAYOUT.lumas.map(l => l.trailT)) * 1200 + companionState.lumaSize;
 
-            // Wrap around: exit right only after last luma clears the edge
-            if (companionState.walkX > viewportWidth + WALK_CONFIG.margin + maxTrailOffset) {
-                companionState.walkX = -companionState.alvaSize - WALK_CONFIG.margin;
-                // Snap lumas to avoid them trailing across the whole screen
-                lumaFollowers.forEach(f => {
-                    const target = getLumaTarget(f, time, 0.7);
-                    f.x = target.x;
-                    f.y = target.y;
-                });
+                // Wrap around: exit right only after last luma clears the edge
+                if (companionState.walkX > viewportWidth + WALK_CONFIG.margin + maxTrailOffset) {
+                    companionState.walkX = -companionState.alvaSize - WALK_CONFIG.margin;
+                    // Snap lumas to avoid them trailing across the whole screen
+                    lumaFollowers.forEach(f => {
+                        const target = getLumaTarget(f, time, 0.7);
+                        f.x = target.x;
+                        f.y = target.y;
+                    });
+                }
+            } else {
+                // Lock Alva to 20% of the screen width smoothly (Space Jump)
+                const targetX = viewportWidth * 0.2;
+                companionState.walkX += (targetX - companionState.walkX) * Math.min(10 * walkDelta, 1);
             }
 
             companionState.direction = 1;
-            setCompanionMode('run');
 
-            companionState.bob = Math.max(0, Math.sin(time * WALK_CONFIG.bobFreq)) * WALK_CONFIG.bobAmp;
+            // Freeze idle bobbing when minigame jumping
+            if (isMinigameActive && mgAlvaOffsetY < 0) {
+                setCompanionMode('idle'); // Stop leg animation while in air
+                companionState.bob = 0;
+            } else {
+                setCompanionMode('run');
+                companionState.bob = Math.max(0, Math.sin(time * WALK_CONFIG.bobFreq)) * WALK_CONFIG.bobAmp;
+            }
 
             const groundY = companionState.partyHeight - companionState.alvaSize + COMPANION_LAYOUT.alva.groundInset;
             companionState.x = companionState.walkX;
-            companionState.y = groundY;
+            companionState.y = groundY + mgAlvaOffsetY;
+            
+            if (isMinigameActive) {
+                mgAlvaHitbox = {
+                    x: companionState.x + 15,
+                    y: companionState.y + 10,
+                    w: companionState.alvaSize - 30,
+                    h: companionState.alvaSize - 10
+                };
+            }
 
-            const lean = WALK_CONFIG.lean;
+            const lean = isMinigameActive && mgAlvaOffsetY < 0 ? 0 : WALK_CONFIG.lean;
 
             companionWrapper.style.transform = `translate3d(${roundPixel(companionState.x)}px, ${roundPixel(companionState.y)}px, 0)`;
             companionEntity.style.transform = `translateY(${-roundPixel(companionState.bob)}px) rotateZ(${lean}deg) scaleX(${companionState.direction})`;
@@ -2929,7 +3153,242 @@
                 document.getElementById('mario-content').classList.add('revealed');
             }, 1000);
         });
+        // --- MINIGAME LOGIC: ALVA'S SPACE JUMP ---
+        const mgController = {
+            active: false,
+            score: 0,
+            velocityY: 0,
+            gravity: 2200,
+            jumpForce: -780,
+            speed: 280,
+            lastTime: 0,
+            spawnTimer: 0,
+            entities: [],
+            reqId: null,
+            groundY: 0, // Will be calculated to match Alva's ground
+
+            init() {
+                document.getElementById('play-minigame-btn').addEventListener('click', () => this.showStartScreen());
+                document.getElementById('mg-start-btn').addEventListener('click', () => this.startGame());
+                document.getElementById('mg-restart-btn').addEventListener('click', () => this.startGame());
+                document.getElementById('mg-quit-btn').addEventListener('click', () => this.quitGame());
+                document.getElementById('mg-exit-btn').addEventListener('click', () => this.quitGame());
+
+                const handleJump = (e) => {
+                    if (e.target.tagName !== 'BUTTON' && this.active) {
+                        e.preventDefault();
+                        this.jump();
+                    }
+                };
+                const ui = document.getElementById('minigame-ui');
+                ui.addEventListener('touchstart', handleJump, { passive: false });
+                ui.addEventListener('mousedown', handleJump);
+            },
+
+            showStartScreen() {
+                isMinigameActive = true;
+                
+                // Unhide the companion party (it gets hidden by the mario reveal normally)
+                if (companionParty) {
+                    companionParty.style.display = 'block';
+                    companionParty.style.opacity = '1';
+                    companionParty.style.zIndex = '3000'; // above mario bg
+                }
+                
+                document.getElementById('mario-content').style.display = 'none';
+                
+                const mgUI = document.getElementById('minigame-ui');
+                mgUI.style.display = 'flex';
+                document.getElementById('mg-screens').style.display = 'flex';
+                document.getElementById('mg-start-screen').style.display = 'block';
+                document.getElementById('mg-game-over').style.display = 'none';
+                document.getElementById('mg-hud').innerText = '0 🌟';
+            },
+
+            startGame() {
+                if (!audioCtx) {
+                    const AudioContext = window.AudioContext || window.webkitAudioContext;
+                    audioCtx = new AudioContext();
+                }
+                if (audioCtx.state === 'suspended') {
+                    audioCtx.resume();
+                }
+                
+                this.active = true;
+                this.score = 0;
+                this.velocityY = 0;
+                mgAlvaOffsetY = 0;
+                this.speed = window.innerWidth < 600 ? 550 : 700;
+                this.spawnTimer = 1.0; // Give a moment before first spawn
+                
+                // Base ground level for Alva's feet in local Y
+                this.groundY = companionState.partyHeight - companionState.alvaSize + COMPANION_LAYOUT.alva.groundInset;
+
+                document.getElementById('mg-screens').style.display = 'none';
+                document.getElementById('mg-start-screen').style.display = 'none';
+                document.getElementById('mg-game-over').style.display = 'none';
+                document.getElementById('mg-hud').innerText = '0 🌟';
+
+                // Clear entities
+                const ents = document.getElementById('mg-entities');
+                ents.innerHTML = '';
+                this.entities = [];
+
+                this.lastTime = performance.now() / 1000;
+                this.loop();
+            },
+
+            quitGame() {
+                this.active = false;
+                isMinigameActive = false;
+                cancelAnimationFrame(this.reqId);
+                mgAlvaOffsetY = 0;
+                
+                // Hide companion party again since they return to reading the Mario text
+                if (companionParty) {
+                    companionParty.style.display = 'none';
+                    companionParty.style.zIndex = '50';
+                }
+                
+                // Clean up entities
+                document.getElementById('mg-entities').innerHTML = '';
+                this.entities = [];
+                document.getElementById('minigame-ui').style.display = 'none';
+                
+                // Restore mario content 
+                const mc = document.getElementById('mario-content');
+                mc.style.display = '';
+            },
+
+            jump() {
+                if (mgAlvaOffsetY > -10) {
+                    this.velocityY = this.jumpForce;
+                }
+            },
+
+            endGame() {
+                this.active = false;
+                document.getElementById('mg-screens').style.display = 'flex';
+                document.getElementById('mg-game-over').style.display = 'block';
+                document.getElementById('mg-final-score').innerText = this.score;
+            },
+
+            spawnEntity() {
+                const ents = document.getElementById('mg-entities');
+                const isObstacle = Math.random() > 0.4;
+                const el = document.createElement('div');
+
+                // local coordinate system! Alva stands at this.groundY
+                // Place obstacles exactly on local ground
+                let entityTop;
+
+                if (isObstacle) {
+                    el.className = 'mg-rock';
+                    el.innerText = '☄️';
+                    entityTop = this.groundY + 20; // 20px adjust to perfectly align visually at her feet
+                } else {
+                    el.className = 'mg-starbit';
+                    el.innerText = '🌟';
+                    const isHigh = Math.random() > 0.4;
+                    // high star or low star
+                    entityTop = isHigh ? this.groundY - 120 : this.groundY;
+                }
+
+                el.style.position = 'absolute';
+                el.style.top = entityTop + 'px';
+                el.style.left = '0px';
+                ents.appendChild(el);
+
+                this.entities.push({
+                    el,
+                    x: companionState.partyWidth + 50, // start outside the right edge of the SVG companion box
+                    y: entityTop,
+                    w: isObstacle ? 40 : 35,
+                    h: isObstacle ? 40 : 35,
+                    isObstacle
+                });
+            },
+
+            loop() {
+                if (!this.active) return;
+
+                const now = performance.now() / 1000;
+                // Add extremely high cap to dt to prevent tunneling bugs when lag kicks in
+                const dt = Math.min(now - this.lastTime, 0.05);
+                this.lastTime = now;
+
+                // Alva Y physics
+                this.velocityY += this.gravity * dt;
+                mgAlvaOffsetY += this.velocityY * dt;
+                
+                if (mgAlvaOffsetY > 0) {
+                    mgAlvaOffsetY = 0;
+                    this.velocityY = 0;
+                }
+
+                // Spawn
+                this.spawnTimer -= dt;
+                if (this.spawnTimer <= 0) {
+                    this.spawnEntity();
+                    this.spawnTimer = 0.5 + Math.random() * 1.0; // Faster spawns
+                }
+
+                // Gradual speed increase
+                this.speed += 8 * dt;
+
+                // Process entities
+                for (let i = this.entities.length - 1; i >= 0; i--) {
+                    const obj = this.entities[i];
+                    obj.x -= this.speed * dt;
+                    obj.el.style.transform = `translate3d(${Math.round(obj.x)}px, 0, 0)`;
+
+                    // Remove if completely passed the left side
+                    if (obj.x < -100) {
+                        obj.el.remove();
+                        this.entities.splice(i, 1);
+                        continue;
+                    }
+
+                    // Strict AABB bounds relative to the exact same top-left system
+                    const ax = mgAlvaHitbox.x;
+                    const ay = mgAlvaHitbox.y;
+                    const aw = mgAlvaHitbox.w;
+                    const ah = mgAlvaHitbox.h;
+                    
+                    const ex = obj.x;
+                    const ey = obj.y;
+                    const ew = obj.w;
+                    const eh = obj.h;
+
+                    // Relax hitboxes slightly for a more forgiving and satisfying mobile game
+                    if (
+                        ax + 10 < ex + ew && 
+                        ax + aw - 10 > ex && 
+                        ay + 10 < ey + eh && 
+                        ay + ah - 10 > ey
+                    ) {
+                        if (obj.isObstacle) {
+                            playDieSound();
+                            this.endGame();
+                            return;
+                        } else {
+                            playCoinSound();
+                            this.score += 1;
+                            document.getElementById('mg-hud').innerText = this.score + ' 🌟';
+                            obj.el.remove();
+                            this.entities.splice(i, 1);
+                        }
+                    }
+                }
+
+                if (this.active) {
+                    this.reqId = requestAnimationFrame(() => this.loop());
+                }
+            }
+        };
+        mgController.init();
 
     </script>
 </body>
+</html>
 </html>
