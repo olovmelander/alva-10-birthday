@@ -1,0 +1,10 @@
+{
+  "scripts": {
+    "build:goomba-atlas": "node scripts/build-goomba-atlas.mjs"
+  },
+  "dependencies": {
+    "@napi-rs/canvas": "^0.1.97",
+    "pngjs": "^7.0.0",
+    "sharp": "^0.34.5"
+  }
+}

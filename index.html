@@ -33,6 +33,9 @@
             --alva-idle-cycle-ms: 780ms;
             --alva-run-cycle-ms: 450ms;
             --luma-cycle-ms: 640ms;
+            --mg-goomba-width: 68px;
+            --mg-goomba-height: 74px;
+            --mg-goomba-cycle-ms: 620ms;
             --content-max-width: 1120px;
         }
 
@@ -1146,12 +1149,57 @@
         }
         #mg-hud {
             position: absolute;
-            top: 30px; right: 20px;
+            top: 30px; left: 50%;
+            transform: translateX(-50%);
             font-family: 'Press Start 2P', cursive;
             color: #FBD000;
-            font-size: 1.4rem;
-            text-shadow: 3px 3px 0px #000;
             z-index: 3010;
+            background: rgba(0, 0, 0, 0.4);
+            padding: 8px 14px;
+            border-radius: 8px;
+            border: 2px solid rgba(251, 208, 0, 0.3);
+            white-space: nowrap;
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.38);
+        }
+        .mg-hud-stat {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            min-width: 54px;
+            justify-content: center;
+        }
+        .mg-hud-number {
+            font-size: 1.05rem;
+            line-height: 1;
+            text-shadow: 3px 3px 0px #000;
+        }
+        .mg-hud-icon {
+            display: inline-block;
+            width: 20px;
+            height: 22px;
+            flex: 0 0 auto;
+        }
+        .mg-hud-icon--star {
+            font-size: 1rem;
+            line-height: 1;
+            filter: drop-shadow(0 0 8px rgba(251, 208, 0, 0.7));
+        }
+        .mg-hud-icon--goomba {
+            background: url('goomba_sprite_atlas.png') 0 0 no-repeat;
+            background-size: 80px 88px;
+            background-position: 0 0;
+            image-rendering: pixelated;
+            image-rendering: crisp-edges;
+            filter: drop-shadow(0 0 8px rgba(255, 220, 100, 0.68));
+        }
+        .mg-hud-divider {
+            width: 2px;
+            height: 20px;
+            background: linear-gradient(180deg, rgba(251, 208, 0, 0.05), rgba(251, 208, 0, 0.45), rgba(251, 208, 0, 0.05));
+            border-radius: 999px;
         }
         #mg-entities {
             position: absolute;
@@ -1213,6 +1261,117 @@
             margin-bottom: 20px;
             color: #ccc;
         }
+        
+        /* Orientation Hint Animation */
+        .mg-orientation-hint {
+            margin-bottom: 30px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 18px;
+        }
+
+        @media (orientation: landscape) {
+            .mg-orientation-hint {
+                display: none;
+            }
+        }
+
+        .mg-tilt-scene {
+            width: 90px;
+            height: 90px;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .mg-device-icon {
+            width: 34px;
+            height: 58px;
+            border: 3px solid #FBD000;
+            border-radius: 8px;
+            position: relative;
+            animation: rotate-device 3s ease-in-out infinite;
+            background: rgba(251, 208, 0, 0.06);
+            box-shadow: 0 0 18px rgba(251, 208, 0, 0.25), inset 0 0 12px rgba(251, 208, 0, 0.05);
+        }
+
+        /* Screen content area */
+        .mg-device-icon::before {
+            content: '';
+            position: absolute;
+            top: 8px;
+            left: 4px;
+            right: 4px;
+            bottom: 16px;
+            border-radius: 2px;
+            background: rgba(251, 208, 0, 0.12);
+            animation: device-screen-pulse 3s ease-in-out infinite;
+        }
+
+        /* Home button */
+        .mg-device-icon::after {
+            content: '';
+            position: absolute;
+            bottom: 4px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            border: 1.5px solid rgba(251, 208, 0, 0.6);
+            background: transparent;
+        }
+
+        @keyframes device-screen-pulse {
+            0%, 15% { background: rgba(251, 208, 0, 0.08); }
+            35%, 65% { background: rgba(251, 208, 0, 0.22); }
+            85%, 100% { background: rgba(251, 208, 0, 0.08); }
+        }
+
+        /* Curved arrow around the phone */
+        .mg-tilt-arrow {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            animation: tilt-arrow-fade 3s ease-in-out infinite;
+            pointer-events: none;
+        }
+
+        .mg-tilt-arrow svg {
+            width: 100%;
+            height: 100%;
+            overflow: visible;
+        }
+
+        @keyframes tilt-arrow-fade {
+            0%, 10% { opacity: 0.3; }
+            20%, 50% { opacity: 1; }
+            70%, 100% { opacity: 0.3; }
+        }
+
+        @keyframes rotate-device {
+            0%, 15% { transform: rotate(0deg); }
+            35%, 65% { transform: rotate(90deg); }
+            85%, 100% { transform: rotate(0deg); }
+        }
+
+        .mg-orientation-text {
+            font-size: 0.6rem;
+            color: #FBD000;
+            line-height: 1.5;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+            animation: orientation-text-pulse 3s ease-in-out infinite;
+        }
+
+        @keyframes orientation-text-pulse {
+            0%, 15% { opacity: 0.7; }
+            35%, 65% { opacity: 1; text-shadow: 0 0 8px rgba(251, 208, 0, 0.4); }
+            85%, 100% { opacity: 0.7; }
+        }
+
         .mg-btn {
             background: #E52521;
             color: white;
@@ -1226,6 +1385,303 @@
             transition: transform 0.1s;
         }
         .mg-btn:active { transform: scale(0.95); }
+
+        /* --- Fullscreen companion party during minigame --- */
+        #companion-party.mg-active {
+            bottom: 0 !important;
+            height: 100vh !important;
+            width: 100vw !important;
+            left: 0 !important;
+            transform: none !important;
+            z-index: 3000 !important;
+        }
+        #companion-party.mg-active #life-path-layer {
+            display: none !important;
+        }
+
+        /* --- Scrolling ground strip --- */
+        #mg-ground {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 60px;
+            background:
+                repeating-linear-gradient(
+                    90deg,
+                    rgba(100, 60, 180, 0.4) 0px,
+                    rgba(100, 60, 180, 0.4) 2px,
+                    transparent 2px,
+                    transparent 40px
+                ),
+                linear-gradient(180deg, rgba(80, 40, 160, 0.6) 0%, rgba(30, 10, 60, 0.9) 100%);
+            border-top: 2px solid rgba(180, 120, 255, 0.5);
+            z-index: 1;
+            overflow: hidden;
+            display: none;
+        }
+        #mg-ground-scroll {
+            position: absolute;
+            top: 0; left: 0;
+            width: 200%;
+            height: 100%;
+            background: repeating-linear-gradient(
+                90deg,
+                transparent 0px,
+                transparent 38px,
+                rgba(150, 100, 255, 0.15) 38px,
+                rgba(150, 100, 255, 0.15) 40px
+            );
+            will-change: transform;
+        }
+        #mg-ground::after {
+            content: '';
+            position: absolute;
+            top: -8px;
+            left: 0;
+            width: 100%;
+            height: 8px;
+            background: linear-gradient(180deg, transparent, rgba(180, 120, 255, 0.2));
+        }
+
+        /* --- Parallax background layers --- */
+        #mg-bg-far, #mg-bg-mid {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            z-index: 0;
+            pointer-events: none;
+            overflow: hidden;
+            display: none;
+        }
+        .mg-bg-planet {
+            position: absolute;
+            border-radius: 50%;
+            will-change: transform;
+            opacity: 0.3;
+        }
+        .mg-bg-star {
+            position: absolute;
+            width: 2px;
+            height: 2px;
+            background: white;
+            border-radius: 50%;
+            will-change: transform;
+        }
+        .mg-bg-star.large {
+            width: 3px;
+            height: 3px;
+            box-shadow: 0 0 6px 1px rgba(255, 255, 255, 0.6);
+        }
+        .mg-bg-nebula {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(40px);
+            will-change: transform;
+            opacity: 0.15;
+        }
+
+        @keyframes mg-goomba-sprite-cycle {
+            from { background-position: 0 var(--mg-goomba-row-offset, 0px); }
+            to { background-position: calc(var(--mg-goomba-width) * -4) var(--mg-goomba-row-offset, 0px); }
+        }
+
+        @keyframes mg-goomba-hover {
+            0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
+            50% { transform: translate3d(0, -2px, 0) scale(1.02, 0.985); }
+        }
+
+        @keyframes mg-goomba-shadow-cycle {
+            0%, 100% { transform: translateX(-50%) scale(0.88, 0.78); opacity: 0.32; }
+            50% { transform: translateX(-50%) scale(1.02, 0.62); opacity: 0.23; }
+        }
+
+        @keyframes mg-goomba-aura-pulse {
+            0%, 100% { opacity: 0.24; transform: translate(-50%, -50%) scale(0.9); }
+            50% { opacity: 0.46; transform: translate(-50%, -50%) scale(1.08); }
+        }
+
+        @keyframes mg-goomba-spawn {
+            from { opacity: 0; transform: translate3d(0, 8px, 0) scale(0.64); }
+            to { opacity: 1; transform: translate3d(0, 0, 0) scale(1); }
+        }
+
+        @keyframes mg-goomba-spawn-aura {
+            from { opacity: 0.8; transform: translate(-50%, -50%) scale(0.18); }
+            to { opacity: 0.34; transform: translate(-50%, -50%) scale(1.14); }
+        }
+
+        @keyframes mg-goomba-stomp-squash {
+            0% { opacity: 1; transform: translate3d(0, 0, 0) scale(1); }
+            36% { opacity: 1; transform: translate3d(0, 10px, 0) scale(1.22, 0.34); }
+            100% { opacity: 0; transform: translate3d(0, 14px, 0) scale(1.48, 0.08); }
+        }
+
+        @keyframes mg-goomba-shadow-stomp {
+            0% { opacity: 0.32; transform: translateX(-50%) scale(0.88, 0.78); }
+            100% { opacity: 0; transform: translateX(-50%) scale(1.45, 0.32); }
+        }
+
+        @keyframes mg-goomba-stomp-flash {
+            0% { opacity: 0.95; transform: translate(-50%, -50%) scale(0.6); }
+            100% { opacity: 0; transform: translate(-50%, -50%) scale(1.4); }
+        }
+
+        /* --- Goomba (cosmic sprite enemy) --- */
+        .mg-goomba {
+            position: absolute;
+            width: var(--mg-goomba-width);
+            height: var(--mg-goomba-height);
+            pointer-events: none;
+            transform-origin: center bottom;
+            will-change: transform;
+        }
+
+        .mg-goomba-shadow {
+            position: absolute;
+            left: 50%;
+            bottom: -6px;
+            width: 72%;
+            height: 16%;
+            background: var(--mg-goomba-shadow, rgba(0, 0, 0, 0.34));
+            border-radius: 50%;
+            filter: blur(6px);
+            transform-origin: center center;
+            animation: mg-goomba-shadow-cycle var(--mg-goomba-cycle-ms) steps(1, end) infinite;
+        }
+
+        .mg-goomba-aura {
+            position: absolute;
+            left: 50%;
+            top: 42%;
+            width: 122%;
+            height: 122%;
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            background: radial-gradient(circle, var(--mg-goomba-aura, rgba(255, 220, 100, 0.28)) 0%, rgba(0, 0, 0, 0) 70%);
+            filter: blur(11px);
+            mix-blend-mode: screen;
+            animation: mg-goomba-aura-pulse 2.6s ease-in-out infinite;
+        }
+
+        .mg-goomba-shell,
+        .mg-goomba-visual,
+        .mg-goomba-sprite {
+            position: absolute;
+            inset: 0;
+            transform-origin: center bottom;
+        }
+
+        .mg-goomba-visual {
+            animation: mg-goomba-hover var(--mg-goomba-cycle-ms) steps(1, end) infinite;
+        }
+
+        .mg-goomba-sprite {
+            background: url('goomba_sprite_atlas.png') 0 0 no-repeat;
+            background-size: calc(var(--mg-goomba-width) * 4) calc(var(--mg-goomba-height) * 4);
+            background-position: 0 var(--mg-goomba-row-offset, 0px);
+            filter: drop-shadow(0 0 12px var(--mg-goomba-glow, rgba(255, 220, 100, 0.84))) saturate(1.08);
+            image-rendering: pixelated;
+            image-rendering: crisp-edges;
+            will-change: background-position, transform, filter;
+            animation: mg-goomba-sprite-cycle var(--mg-goomba-cycle-ms) steps(4) infinite;
+        }
+
+        .mg-goomba.is-spawning .mg-goomba-shell {
+            animation: mg-goomba-spawn 140ms cubic-bezier(0.2, 0.9, 0.2, 1.15) both;
+        }
+
+        .mg-goomba.is-spawning .mg-goomba-aura {
+            animation:
+                mg-goomba-spawn-aura 140ms ease-out both,
+                mg-goomba-aura-pulse 2.6s 140ms ease-in-out infinite;
+        }
+
+        .mg-goomba.stomped .mg-goomba-shell {
+            animation: mg-goomba-stomp-squash 300ms cubic-bezier(0.2, 0.92, 0.28, 1) forwards;
+        }
+
+        .mg-goomba.stomped .mg-goomba-visual {
+            animation: none;
+        }
+
+        .mg-goomba.stomped .mg-goomba-shadow {
+            animation: mg-goomba-shadow-stomp 300ms ease-out forwards;
+        }
+
+        .mg-goomba.stomped .mg-goomba-aura {
+            animation: mg-goomba-stomp-flash 240ms ease-out forwards;
+        }
+
+        .mg-goomba.stomped .mg-goomba-sprite {
+            animation: none;
+            background-position: calc(var(--mg-goomba-width) * -3) var(--mg-goomba-row-offset, 0px);
+            filter: drop-shadow(0 0 18px var(--mg-goomba-flash, rgba(255, 245, 180, 0.92))) saturate(1.22);
+        }
+
+        .mg-goomba-burst {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 0;
+            height: 0;
+            pointer-events: none;
+            z-index: 3016;
+            mix-blend-mode: screen;
+        }
+
+        .mg-goomba-ring {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            border: 2px solid var(--mg-burst-color, rgba(255, 255, 255, 0.9));
+            box-shadow: 0 0 16px var(--mg-burst-glow, rgba(255, 255, 255, 0.5));
+            transform: translate(-50%, -50%) scale(0.25);
+            animation: mg-goomba-ring 380ms ease-out forwards;
+        }
+
+        .mg-goomba-spark {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 14px;
+            height: 4px;
+            border-radius: 999px;
+            background: linear-gradient(90deg, var(--mg-burst-core, rgba(255, 255, 255, 1)), rgba(255, 255, 255, 0));
+            transform: translate(-50%, -50%) rotate(var(--mg-spark-angle, 0deg)) translateX(4px);
+            transform-origin: left center;
+            box-shadow: 0 0 12px var(--mg-burst-glow, rgba(255, 255, 255, 0.5));
+            animation: mg-goomba-spark 420ms cubic-bezier(0.2, 0.92, 0.28, 1) forwards;
+        }
+
+        @keyframes mg-goomba-ring {
+            0% { opacity: 0.9; transform: translate(-50%, -50%) scale(0.2); }
+            100% { opacity: 0; transform: translate(-50%, -50%) scale(2.6); }
+        }
+
+        @keyframes mg-goomba-spark {
+            0% { opacity: 1; transform: translate(-50%, -50%) rotate(var(--mg-spark-angle, 0deg)) translateX(4px) scale(1); }
+            100% { opacity: 0; transform: translate(-50%, -50%) rotate(var(--mg-spark-angle, 0deg)) translateX(var(--mg-spark-distance, 32px)) scale(0.72); }
+        }
+
+        /* --- Score pop effect --- */
+        .mg-score-pop {
+            position: absolute;
+            font-family: 'Press Start 2P', cursive;
+            font-size: 0.8rem;
+            color: #FBD000;
+            text-shadow: 1px 1px 0px #000;
+            pointer-events: none;
+            animation: mg-pop-up 0.6s ease-out forwards;
+            z-index: 3015;
+        }
+        @keyframes mg-pop-up {
+            0% { transform: translateY(0); opacity: 1; }
+            100% { transform: translateY(-40px); opacity: 0; }
+        }
     </style>
 </head>
 <body>
@@ -1450,19 +1906,58 @@
 
     <!-- MINIGAME UI -->
     <div id="minigame-ui">
-        <div id="mg-hud">0 🌟</div>
+        <!-- Parallax background layers -->
+        <div id="mg-bg-far"></div>
+        <div id="mg-bg-mid"></div>
+        <!-- Visible ground strip -->
+        <div id="mg-ground"><div id="mg-ground-scroll"></div></div>
+
+        <div id="mg-hud">
+            <div class="mg-hud-stat">
+                <span id="mg-stars-count" class="mg-hud-number">0</span>
+                <span class="mg-hud-icon mg-hud-icon--star">🌟</span>
+            </div>
+            <div class="mg-hud-divider"></div>
+            <div class="mg-hud-stat">
+                <span id="mg-goombas-count" class="mg-hud-number">0</span>
+                <span class="mg-hud-icon mg-hud-icon--goomba" aria-hidden="true"></span>
+            </div>
+        </div>
         <div id="mg-screens">
             <!-- Start Screen -->
             <div id="mg-start-screen" class="mg-panel">
                 <h2>ALVA'S SPACE JUMP</h2>
-                <p>Tryck på skärmen för att hoppa.<br><br>Fånga Star Bits 🌟 och undvik Rymdstenarna ☄️!</p>
+                
+                <div class="mg-orientation-hint">
+                    <div class="mg-tilt-scene">
+                        <div class="mg-device-icon"></div>
+                        <div class="mg-tilt-arrow">
+                            <svg viewBox="0 0 90 90">
+                                <defs>
+                                    <marker id="tilt-arrowhead" markerWidth="7" markerHeight="5" refX="6" refY="2.5" orient="auto">
+                                        <polygon points="0 0, 7 2.5, 0 5" fill="#FBD000"/>
+                                    </marker>
+                                </defs>
+                                <path d="M 68 18 A 36 36 0 0 1 72 68" fill="none" stroke="#FBD000" stroke-width="2.5" stroke-linecap="round" marker-end="url(#tilt-arrowhead)" opacity="0.85"/>
+                            </svg>
+                        </div>
+                    </div>
+                    <div class="mg-orientation-text">Rotera telefonen<br>för bäst upplevelse</div>
+                </div>
+
+                <p>Tryck på skärmen för att hoppa.<br><br>Fånga Star Bits 🌟, stompa Goombas<br>och undvik Rymdstenarna ☄️!</p>
                 <button class="mg-btn" id="mg-start-btn">Kör!</button>
                 <button class="mg-btn" id="mg-quit-btn" style="margin-top: 10px; background: #555;">Avsluta</button>
             </div>
             <!-- Game Over Screen -->
             <div id="mg-game-over" class="mg-panel">
                 <h2>KROCK! 💥</h2>
-                <p>Du samlade <span id="mg-final-score" style="color:#FBD000;">0</span> Star Bits!</p>
+                <p>Du fick <span id="mg-final-score" style="color:#FBD000;">0</span> poäng!</p>
+                <p>
+                    <span id="mg-final-stars" style="color:#FBD000;">0</span> Star Bits
+                    &nbsp;•&nbsp;
+                    <span id="mg-final-goombas" style="color:#FBD000;">0</span> Goombas
+                </p>
                 <button class="mg-btn" id="mg-restart-btn">Spela Igen</button>
                 <button class="mg-btn" id="mg-exit-btn" style="margin-top: 10px; background: #555;">Avsluta</button>
             </div>
@@ -1550,6 +2045,45 @@
             osc2.start(now);
             osc1.stop(now + 0.5);
             osc2.stop(now + 0.5);
+        }
+
+        function playStompSound() {
+            if(!audioCtx) return;
+            const now = audioCtx.currentTime;
+
+            // Percussive "bop" - short punchy hit
+            const osc = audioCtx.createOscillator();
+            const gainNode = audioCtx.createGain();
+            osc.type = 'square';
+            osc.connect(gainNode);
+            gainNode.connect(audioCtx.destination);
+
+            osc.frequency.setValueAtTime(400, now);
+            osc.frequency.exponentialRampToValueAtTime(120, now + 0.1);
+
+            gainNode.gain.setValueAtTime(0, now);
+            gainNode.gain.linearRampToValueAtTime(0.18, now + 0.01);
+            gainNode.gain.exponentialRampToValueAtTime(0.001, now + 0.2);
+
+            osc.start(now);
+            osc.stop(now + 0.2);
+
+            // "Boing" overtone
+            const osc2 = audioCtx.createOscillator();
+            const gain2 = audioCtx.createGain();
+            osc2.type = 'sine';
+            osc2.connect(gain2);
+            gain2.connect(audioCtx.destination);
+
+            osc2.frequency.setValueAtTime(800, now + 0.03);
+            osc2.frequency.exponentialRampToValueAtTime(1200, now + 0.12);
+
+            gain2.gain.setValueAtTime(0, now + 0.03);
+            gain2.gain.linearRampToValueAtTime(0.1, now + 0.05);
+            gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
+
+            osc2.start(now + 0.03);
+            osc2.stop(now + 0.25);
         }
 
         function playRevealSound() {
@@ -2193,6 +2727,59 @@
             ]
         };
 
+        const GOOMBA_VISUAL = {
+            width: 68,
+            height: 74,
+            cycleMs: 620,
+            hitbox: {
+                offsetX: 13,
+                offsetY: 17,
+                w: 42,
+                h: 40
+            }
+        };
+
+        const GOOMBA_PALETTES = [
+            {
+                name: 'gold',
+                row: 0,
+                glow: 'rgba(255, 220, 100, 0.84)',
+                aura: 'rgba(255, 220, 100, 0.28)',
+                shadow: 'rgba(68, 40, 0, 0.38)',
+                flash: 'rgba(255, 245, 180, 0.96)',
+                burstGlow: 'rgba(255, 214, 96, 0.68)'
+            },
+            {
+                name: 'cyan',
+                row: 1,
+                glow: 'rgba(84, 216, 255, 0.86)',
+                aura: 'rgba(84, 216, 255, 0.28)',
+                shadow: 'rgba(12, 62, 84, 0.38)',
+                flash: 'rgba(210, 250, 255, 0.96)',
+                burstGlow: 'rgba(88, 220, 255, 0.68)'
+            },
+            {
+                name: 'pink',
+                row: 2,
+                glow: 'rgba(255, 130, 220, 0.84)',
+                aura: 'rgba(255, 130, 220, 0.28)',
+                shadow: 'rgba(88, 26, 86, 0.38)',
+                flash: 'rgba(255, 226, 246, 0.96)',
+                burstGlow: 'rgba(255, 110, 220, 0.68)'
+            },
+            {
+                name: 'green',
+                row: 3,
+                glow: 'rgba(150, 255, 120, 0.88)',
+                aura: 'rgba(150, 255, 120, 0.28)',
+                shadow: 'rgba(28, 72, 12, 0.38)',
+                flash: 'rgba(233, 255, 206, 0.96)',
+                burstGlow: 'rgba(150, 255, 120, 0.68)'
+            }
+        ];
+
+        let goombaPaletteCursor = 0;
+
         const SECTION_BEATS = [
             {
                 camera: { x: -36, y: 30, z: 40 },
@@ -2453,6 +3040,112 @@
             return Math.round(value);
         }
 
+        function resetGoombaPaletteRotation() {
+            goombaPaletteCursor = Math.floor(Math.random() * GOOMBA_PALETTES.length);
+        }
+
+        function getNextGoombaPalette() {
+            const palette = GOOMBA_PALETTES[goombaPaletteCursor % GOOMBA_PALETTES.length];
+            goombaPaletteCursor = (goombaPaletteCursor + 1) % GOOMBA_PALETTES.length;
+            return palette;
+        }
+
+        function getGoombaGroundTop(groundY) {
+            return groundY + companionState.alvaSize - GOOMBA_VISUAL.height;
+        }
+
+        function getEntityBounds(entity) {
+            if (entity.hitbox) {
+                return {
+                    x: entity.x + entity.hitbox.offsetX,
+                    y: entity.y + entity.hitbox.offsetY,
+                    w: entity.hitbox.w,
+                    h: entity.hitbox.h
+                };
+            }
+
+            return {
+                x: entity.x,
+                y: entity.y,
+                w: entity.w,
+                h: entity.h
+            };
+        }
+
+        function buildGoombaNode(palette) {
+            const root = document.createElement('div');
+            root.className = 'mg-goomba is-spawning';
+            root.dataset.palette = palette.name;
+            root.style.setProperty('--mg-goomba-width', `${GOOMBA_VISUAL.width}px`);
+            root.style.setProperty('--mg-goomba-height', `${GOOMBA_VISUAL.height}px`);
+            root.style.setProperty('--mg-goomba-cycle-ms', `${GOOMBA_VISUAL.cycleMs}ms`);
+            root.style.setProperty('--mg-goomba-row-offset', `${-palette.row * GOOMBA_VISUAL.height}px`);
+            root.style.setProperty('--mg-goomba-glow', palette.glow);
+            root.style.setProperty('--mg-goomba-aura', palette.aura);
+            root.style.setProperty('--mg-goomba-shadow', palette.shadow);
+            root.style.setProperty('--mg-goomba-flash', palette.flash);
+
+            const shadow = document.createElement('div');
+            shadow.className = 'mg-goomba-shadow';
+
+            const aura = document.createElement('div');
+            aura.className = 'mg-goomba-aura';
+
+            const shell = document.createElement('div');
+            shell.className = 'mg-goomba-shell';
+
+            const visual = document.createElement('div');
+            visual.className = 'mg-goomba-visual';
+
+            const sprite = document.createElement('div');
+            sprite.className = 'mg-goomba-sprite';
+
+            visual.appendChild(sprite);
+            shell.appendChild(visual);
+            root.appendChild(shadow);
+            root.appendChild(aura);
+            root.appendChild(shell);
+
+            setTimeout(() => root.classList.remove('is-spawning'), 180);
+
+            return root;
+        }
+
+        function showGoombaBurst(x, y, palette) {
+            const ents = document.getElementById('mg-entities');
+            if (!ents || !palette) return;
+
+            const burst = document.createElement('div');
+            burst.className = 'mg-goomba-burst';
+            burst.style.left = `${roundPixel(x)}px`;
+            burst.style.top = `${roundPixel(y)}px`;
+            burst.style.setProperty('--mg-burst-color', palette.flash);
+            burst.style.setProperty('--mg-burst-core', palette.flash);
+            burst.style.setProperty('--mg-burst-glow', palette.burstGlow);
+
+            const ring = document.createElement('div');
+            ring.className = 'mg-goomba-ring';
+            burst.appendChild(ring);
+
+            for (let index = 0; index < 8; index += 1) {
+                const spark = document.createElement('div');
+                spark.className = 'mg-goomba-spark';
+                spark.style.setProperty('--mg-spark-angle', `${index * 45}deg`);
+                spark.style.setProperty('--mg-spark-distance', `${24 + (index % 2) * 8}px`);
+                burst.appendChild(spark);
+            }
+
+            ents.appendChild(burst);
+            setTimeout(() => burst.remove(), 450);
+        }
+
+        function updateMinigameHud(stars, goombas) {
+            const starsNode = document.getElementById('mg-stars-count');
+            const goombasNode = document.getElementById('mg-goombas-count');
+            if (starsNode) starsNode.innerText = String(stars);
+            if (goombasNode) goombasNode.innerText = String(goombas);
+        }
+
         function colorToRgba(color, alpha) {
             return `rgba(${Math.round(color.r * 255)}, ${Math.round(color.g * 255)}, ${Math.round(color.b * 255)}, ${alpha.toFixed(3)})`;
         }
@@ -2533,13 +3226,39 @@
         }
 
         function getLumaTarget(follower, time, paceRatio) {
+            const scale = follower.scale || 1;
+
+            if (isMinigameActive) {
+                // Cheering mode: cluster above Alva, bouncing excitedly
+                const alvaX = companionState.walkX;
+                const gameGroundY = window.innerHeight - companionState.alvaSize - 60;
+                const alvaY = companionState.y || (gameGroundY + mgAlvaOffsetY);
+
+                // Spread lumas in a small arc above and behind Alva
+                const spreadX = (follower.phase - 1.5) * 28; // horizontal spread based on phase
+                const baseX = alvaX - 20 + spreadX;
+
+                // Float above Alva, staggered heights
+                const floatHeight = 90 + follower.hoverY * 2.5;
+
+                // Excited bouncing — faster and bigger amplitude during game
+                const cheerBob = Math.sin(time * (5.5 + follower.phase * 0.4) + follower.phase) * 12;
+                const cheerSway = Math.sin(time * (3.2 + follower.phase * 0.3) + follower.phase) * 8;
+
+                return {
+                    x: baseX - companionState.lumaSize * 0.5 + cheerSway,
+                    y: alvaY - floatHeight + cheerBob,
+                    hoverHeight: floatHeight - cheerBob,
+                    scale
+                };
+            }
+
             const trailDistance = follower.trailT * 1200;
             const baseX = companionState.walkX - trailDistance;
             const groundY = companionState.partyHeight - companionState.lumaSize + COMPANION_LAYOUT.alva.groundInset;
 
             const orbitX = Math.sin(time * (2.1 + follower.phase * 0.2) + follower.phase) * follower.swayX * 2;
             const hoverWave = Math.sin(time * (2.6 + follower.phase * 0.18) + follower.phase) * follower.bob;
-            const scale = follower.scale || 1;
 
             return {
                 x: baseX - companionState.lumaSize * 0.5 + follower.side + orbitX,
@@ -2838,9 +3557,11 @@
                 const target = getLumaTarget(follower, time, paceRatio);
                 const hoverRatio = clamp(target.hoverHeight / Math.max(companionState.lumaSize, 1), 0, 1);
                 const spriteBob = Math.sin(time * 5.1 + follower.phase) * (1.1 + paceRatio * 1.8);
+                const followLag = isMinigameActive ? Math.max(follower.lag, 0.34) : follower.lag;
+                const verticalFollowLag = isMinigameActive ? Math.max(follower.lag, 0.42) : follower.lag;
 
-                follower.x += (target.x - follower.x) * follower.lag;
-                follower.y += (target.y - follower.y) * follower.lag;
+                follower.x += (target.x - follower.x) * followLag;
+                follower.y += (target.y - follower.y) * verticalFollowLag;
 
                 follower.root.style.transform = `translate3d(${roundPixel(follower.x)}px, ${roundPixel(follower.y)}px, 0)`;
                 follower.root.style.opacity = (0.7 + target.scale * 0.26).toFixed(3);
@@ -2903,10 +3624,16 @@
                 companionState.bob = Math.max(0, Math.sin(time * WALK_CONFIG.bobFreq)) * WALK_CONFIG.bobAmp;
             }
 
-            const groundY = companionState.partyHeight - companionState.alvaSize + COMPANION_LAYOUT.alva.groundInset;
+            let groundY;
+            if (isMinigameActive) {
+                // In minigame, companion party is fullscreen; ground near bottom above ground strip
+                groundY = window.innerHeight - companionState.alvaSize - 60;
+            } else {
+                groundY = companionState.partyHeight - companionState.alvaSize + COMPANION_LAYOUT.alva.groundInset;
+            }
             companionState.x = companionState.walkX;
             companionState.y = groundY + mgAlvaOffsetY;
-            
+
             if (isMinigameActive) {
                 mgAlvaHitbox = {
                     x: companionState.x + 15,
@@ -3163,10 +3890,104 @@
                 document.getElementById('mario-content').classList.add('revealed');
             }, 1000);
         });
+        // --- MINIGAME BACKGROUND SYSTEM ---
+        const mgBackground = {
+            farStars: [],
+            midElements: [],
+            groundScrollX: 0,
+
+            init() {
+                const farLayer = document.getElementById('mg-bg-far');
+                for (let i = 0; i < 30; i++) {
+                    const star = document.createElement('div');
+                    star.className = 'mg-bg-star' + (Math.random() > 0.7 ? ' large' : '');
+                    star.style.top = (Math.random() * 80) + '%';
+                    star.style.left = (Math.random() * 120) + '%';
+                    farLayer.appendChild(star);
+                    this.farStars.push({ el: star, x: parseFloat(star.style.left), speed: 0.05 + Math.random() * 0.05 });
+                }
+
+                const midLayer = document.getElementById('mg-bg-mid');
+                const planetColors = [
+                    'radial-gradient(circle, rgba(180,80,60,0.6), rgba(120,40,30,0.3))',
+                    'radial-gradient(circle, rgba(60,80,180,0.5), rgba(30,40,120,0.2))',
+                    'radial-gradient(circle, rgba(180,160,60,0.4), rgba(120,100,30,0.2))',
+                ];
+                for (let i = 0; i < 3; i++) {
+                    const planet = document.createElement('div');
+                    planet.className = 'mg-bg-planet';
+                    const size = 30 + Math.random() * 60;
+                    planet.style.width = size + 'px';
+                    planet.style.height = size + 'px';
+                    planet.style.background = planetColors[i];
+                    planet.style.top = (10 + Math.random() * 50) + '%';
+                    planet.style.left = (110 + i * 40) + '%';
+                    midLayer.appendChild(planet);
+                    this.midElements.push({ el: planet, x: 110 + i * 40, speed: 0.1 + Math.random() * 0.1, respawnX: 110 + Math.random() * 30 });
+                }
+
+                const nebula = document.createElement('div');
+                nebula.className = 'mg-bg-nebula';
+                nebula.style.width = '200px';
+                nebula.style.height = '120px';
+                nebula.style.background = 'radial-gradient(ellipse, rgba(100, 50, 200, 0.5), transparent)';
+                nebula.style.top = '20%';
+                nebula.style.left = '130%';
+                midLayer.appendChild(nebula);
+                this.midElements.push({ el: nebula, x: 130, speed: 0.03, respawnX: 120 + Math.random() * 20 });
+            },
+
+            show() {
+                document.getElementById('mg-bg-far').style.display = 'block';
+                document.getElementById('mg-bg-mid').style.display = 'block';
+                document.getElementById('mg-ground').style.display = 'block';
+            },
+
+            hide() {
+                document.getElementById('mg-bg-far').style.display = 'none';
+                document.getElementById('mg-bg-mid').style.display = 'none';
+                document.getElementById('mg-ground').style.display = 'none';
+            },
+
+            reset() {
+                this.groundScrollX = 0;
+                this.farStars.forEach(s => { s.x = Math.random() * 120; });
+                this.midElements.forEach(e => { e.x = 110 + Math.random() * 40; });
+            },
+
+            update(speed, dt) {
+                // Scroll ground strip
+                this.groundScrollX -= speed * dt * 0.5;
+                const groundScroll = document.getElementById('mg-ground-scroll');
+                if (groundScroll) {
+                    const w = window.innerWidth;
+                    if (this.groundScrollX < -w) this.groundScrollX += w;
+                    groundScroll.style.transform = `translate3d(${Math.round(this.groundScrollX)}px, 0, 0)`;
+                }
+
+                // Scroll far stars (very slow)
+                const vw = window.innerWidth;
+                this.farStars.forEach(s => {
+                    s.x -= s.speed * speed * dt / vw * 100;
+                    if (s.x < -5) s.x = 105 + Math.random() * 15;
+                    s.el.style.left = s.x + '%';
+                });
+
+                // Scroll mid elements (medium speed)
+                this.midElements.forEach(e => {
+                    e.x -= e.speed * speed * dt / vw * 100;
+                    if (e.x < -30) e.x = e.respawnX + Math.random() * 20;
+                    e.el.style.left = e.x + '%';
+                });
+            }
+        };
+
         // --- MINIGAME LOGIC: ALVA'S SPACE JUMP ---
         const mgController = {
             active: false,
             score: 0,
+            starCount: 0,
+            goombasStomped: 0,
             velocityY: 0,
             gravity: 2200,
             jumpForce: -780,
@@ -3175,7 +3996,8 @@
             spawnTimer: 0,
             entities: [],
             reqId: null,
-            groundY: 0, // Will be calculated to match Alva's ground
+            groundY: 0,
+            stompBounceForce: -500,
 
             init() {
                 document.getElementById('play-minigame-btn').addEventListener('click', () => this.showStartScreen());
@@ -3202,9 +4024,12 @@
                 if (companionParty) {
                     companionParty.style.display = 'block';
                     companionParty.style.opacity = '1';
-                    companionParty.style.zIndex = '3000'; // above mario bg
+                    companionParty.style.zIndex = '3000';
+                    companionParty.classList.add('mg-active');
+                    // Update metrics now that companion party is fullscreen
+                    syncCompanionMetrics({ snapToTarget: true });
                 }
-                
+
                 document.getElementById('mario-content').style.display = 'none';
                 
                 const mgUI = document.getElementById('minigame-ui');
@@ -3212,7 +4037,7 @@
                 document.getElementById('mg-screens').style.display = 'flex';
                 document.getElementById('mg-start-screen').style.display = 'block';
                 document.getElementById('mg-game-over').style.display = 'none';
-                document.getElementById('mg-hud').innerText = '0 🌟';
+                updateMinigameHud(0, 0);
             },
 
             startGame() {
@@ -3226,18 +4051,25 @@
                 
                 this.active = true;
                 this.score = 0;
+                this.starCount = 0;
+                this.goombasStomped = 0;
                 this.velocityY = 0;
                 mgAlvaOffsetY = 0;
                 this.speed = window.innerWidth < 600 ? 550 : 700;
-                this.spawnTimer = 1.0; // Give a moment before first spawn
-                
-                // Base ground level for Alva's feet in local Y
-                this.groundY = companionState.partyHeight - companionState.alvaSize + COMPANION_LAYOUT.alva.groundInset;
+                this.spawnTimer = 1.0;
+                resetGoombaPaletteRotation();
+
+                // Ground Y for fullscreen mode: Alva near bottom, above ground strip
+                this.groundY = window.innerHeight - companionState.alvaSize - 60;
 
                 document.getElementById('mg-screens').style.display = 'none';
                 document.getElementById('mg-start-screen').style.display = 'none';
                 document.getElementById('mg-game-over').style.display = 'none';
-                document.getElementById('mg-hud').innerText = '0 🌟';
+                updateMinigameHud(this.starCount, this.goombasStomped);
+
+                // Show background layers
+                mgBackground.show();
+                mgBackground.reset();
 
                 // Clear entities
                 const ents = document.getElementById('mg-entities');
@@ -3256,10 +4088,14 @@
                 
                 // Hide companion party again since they return to reading the Mario text
                 if (companionParty) {
+                    companionParty.classList.remove('mg-active');
                     companionParty.style.display = 'none';
                     companionParty.style.zIndex = '50';
+                    syncCompanionMetrics({ snapToTarget: true });
                 }
-                
+
+                mgBackground.hide();
+
                 // Clean up entities
                 document.getElementById('mg-entities').innerHTML = '';
                 this.entities = [];
@@ -3281,66 +4117,110 @@
                 document.getElementById('mg-screens').style.display = 'flex';
                 document.getElementById('mg-game-over').style.display = 'block';
                 document.getElementById('mg-final-score').innerText = this.score;
+                document.getElementById('mg-final-stars').innerText = this.starCount;
+                document.getElementById('mg-final-goombas').innerText = this.goombasStomped;
+            },
+
+            showScorePop(x, y, text) {
+                const pop = document.createElement('div');
+                pop.className = 'mg-score-pop';
+                pop.innerText = text;
+                pop.style.left = x + 'px';
+                pop.style.top = (y - 20) + 'px';
+                document.getElementById('mg-entities').appendChild(pop);
+                setTimeout(() => pop.remove(), 600);
             },
 
             spawnEntity() {
                 const ents = document.getElementById('mg-entities');
-                const isObstacle = Math.random() > 0.4;
-                const el = document.createElement('div');
+                const roll = Math.random();
+                let entityType;
+                if (roll < 0.35) entityType = 'rock';
+                else if (roll < 0.65) entityType = 'starbit';
+                else entityType = 'goomba';
 
-                // local coordinate system! Alva stands at this.groundY
-                // Place obstacles exactly on local ground
-                let entityTop;
+                let el;
+                let entityTop, entityW, entityH;
+                let palette = null;
 
-                if (isObstacle) {
+                if (entityType === 'rock') {
+                    el = document.createElement('div');
                     el.className = 'mg-rock';
                     el.innerText = '☄️';
-                    entityTop = this.groundY + 20; // 20px adjust to perfectly align visually at her feet
-                } else {
+                    entityTop = this.groundY + 20;
+                    entityW = 40;
+                    entityH = 40;
+                } else if (entityType === 'starbit') {
+                    el = document.createElement('div');
                     el.className = 'mg-starbit';
                     el.innerText = '🌟';
                     const isHigh = Math.random() > 0.4;
-                    // high star or low star
                     entityTop = isHigh ? this.groundY - 120 : this.groundY;
+                    entityW = 35;
+                    entityH = 35;
+                } else {
+                    palette = getNextGoombaPalette();
+                    el = buildGoombaNode(palette);
+                    entityTop = getGoombaGroundTop(this.groundY);
+                    entityW = GOOMBA_VISUAL.width;
+                    entityH = GOOMBA_VISUAL.height;
                 }
 
                 el.style.position = 'absolute';
-                el.style.top = entityTop + 'px';
+                el.style.top = `${roundPixel(entityTop)}px`;
                 el.style.left = '0px';
                 ents.appendChild(el);
 
-                this.entities.push({
+                const entity = {
                     el,
-                    x: companionState.partyWidth + 50, // start outside the right edge of the SVG companion box
+                    x: window.innerWidth + 50,
                     y: entityTop,
-                    w: isObstacle ? 40 : 35,
-                    h: isObstacle ? 40 : 35,
-                    isObstacle
-                });
+                    w: entityW,
+                    h: entityH,
+                    type: entityType,
+                    alive: true
+                };
+
+                if (entityType === 'goomba') {
+                    entity.visual = {
+                        w: entityW,
+                        h: entityH
+                    };
+                    entity.hitbox = {
+                        ...GOOMBA_VISUAL.hitbox
+                    };
+                    entity.palette = palette;
+                    entity.state = 'walk';
+                }
+
+                this.entities.push(entity);
             },
 
             loop() {
                 if (!this.active) return;
 
                 const now = performance.now() / 1000;
-                // Add extremely high cap to dt to prevent tunneling bugs when lag kicks in
                 const dt = Math.min(now - this.lastTime, 0.05);
                 this.lastTime = now;
+
+                // Recalculate groundY each frame (handles resize)
+                this.groundY = window.innerHeight - companionState.alvaSize - 60;
 
                 // Alva Y physics
                 this.velocityY += this.gravity * dt;
                 mgAlvaOffsetY += this.velocityY * dt;
-                
+
                 if (mgAlvaOffsetY > 0) {
                     mgAlvaOffsetY = 0;
                     this.velocityY = 0;
                 }
 
-                // Spawn
+                // Spawn with difficulty ramp
                 this.spawnTimer -= dt;
                 if (this.spawnTimer <= 0) {
                     this.spawnEntity();
-                    this.spawnTimer = 0.5 + Math.random() * 1.0; // Faster spawns
+                    const minInterval = Math.max(0.3, 0.5 - (this.score * 0.005));
+                    this.spawnTimer = minInterval + Math.random() * 0.8;
                 }
 
                 // Gradual speed increase
@@ -3350,46 +4230,91 @@
                 for (let i = this.entities.length - 1; i >= 0; i--) {
                     const obj = this.entities[i];
                     obj.x -= this.speed * dt;
-                    obj.el.style.transform = `translate3d(${Math.round(obj.x)}px, 0, 0)`;
+                    obj.el.style.transform = `translate3d(${roundPixel(obj.x)}px, 0, 0)`;
 
-                    // Remove if completely passed the left side
-                    if (obj.x < -100) {
+                    const entityWidth = obj.visual?.w || obj.w;
+                    if (obj.x < -entityWidth - 40) {
                         obj.el.remove();
                         this.entities.splice(i, 1);
                         continue;
                     }
 
-                    // Strict AABB bounds relative to the exact same top-left system
+                    // Skip dead goombas (playing squish animation)
+                    if (!obj.alive) continue;
+
+                    // AABB collision detection
                     const ax = mgAlvaHitbox.x;
                     const ay = mgAlvaHitbox.y;
                     const aw = mgAlvaHitbox.w;
                     const ah = mgAlvaHitbox.h;
-                    
-                    const ex = obj.x;
-                    const ey = obj.y;
-                    const ew = obj.w;
-                    const eh = obj.h;
 
-                    // Relax hitboxes slightly for a more forgiving and satisfying mobile game
+                    const entityBounds = getEntityBounds(obj);
+                    const ex = entityBounds.x;
+                    const ey = entityBounds.y;
+                    const ew = entityBounds.w;
+                    const eh = entityBounds.h;
+
+                    // Relaxed hitbox check
                     if (
-                        ax + 10 < ex + ew && 
-                        ax + aw - 10 > ex && 
-                        ay + 10 < ey + eh && 
+                        ax + 10 < ex + ew &&
+                        ax + aw - 10 > ex &&
+                        ay + 10 < ey + eh &&
                         ay + ah - 10 > ey
                     ) {
-                        if (obj.isObstacle) {
+                        if (obj.type === 'starbit') {
+                            playCoinSound();
+                            this.starCount += 1;
+                            this.score += 1;
+                            updateMinigameHud(this.starCount, this.goombasStomped);
+                            obj.el.remove();
+                            this.entities.splice(i, 1);
+
+                        } else if (obj.type === 'goomba') {
+                            // STOMP CHECK: Alva must be falling and hitting the top half
+                            const alvaBottom = ay + ah;
+                            const goombaMidY = ey + eh * 0.5;
+
+                            if (this.velocityY > 0 && alvaBottom < goombaMidY + 10) {
+                                // STOMP!
+                                playStompSound();
+                                obj.alive = false;
+                                obj.state = 'stomped';
+                                obj.el.classList.add('stomped');
+                                this.goombasStomped += 1;
+                                this.score += 3;
+                                updateMinigameHud(this.starCount, this.goombasStomped);
+
+                                // Bounce Alva up
+                                this.velocityY = this.stompBounceForce;
+
+                                this.showScorePop(obj.x + obj.visual.w * 0.5, obj.y + 8, '+3');
+                                showGoombaBurst(obj.x + obj.visual.w * 0.5, obj.y + obj.visual.h * 0.38, obj.palette);
+
+                                // Remove after squish animation
+                                const deadObj = obj;
+                                setTimeout(() => {
+                                    deadObj.el.remove();
+                                    const idx = this.entities.indexOf(deadObj);
+                                    if (idx >= 0) this.entities.splice(idx, 1);
+                                }, 300);
+                            } else {
+                                // Side collision = death
+                                playDieSound();
+                                this.endGame();
+                                return;
+                            }
+
+                        } else {
+                            // Rock = always death
                             playDieSound();
                             this.endGame();
                             return;
-                        } else {
-                            playCoinSound();
-                            this.score += 1;
-                            document.getElementById('mg-hud').innerText = this.score + ' 🌟';
-                            obj.el.remove();
-                            this.entities.splice(i, 1);
                         }
                     }
                 }
+
+                // Update parallax background
+                mgBackground.update(this.speed, dt);
 
                 if (this.active) {
                     this.reqId = requestAnimationFrame(() => this.loop());
@@ -3397,6 +4322,7 @@
             }
         };
         mgController.init();
+        mgBackground.init();
 
     </script>
 </body>
