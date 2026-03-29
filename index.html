@@ -2659,8 +2659,11 @@
             const viewportWidth = window.innerWidth;
             companionState.walkX += WALK_CONFIG.speed * walkDelta;
 
-            // Wrap around: exit right, re-enter left
-            if (companionState.walkX > viewportWidth + WALK_CONFIG.margin) {
+            // Calculate how far behind the last luma trails
+            const maxTrailOffset = Math.max(...COMPANION_LAYOUT.lumas.map(l => l.trailT)) * 1200 + companionState.lumaSize;
+
+            // Wrap around: exit right only after last luma clears the edge
+            if (companionState.walkX > viewportWidth + WALK_CONFIG.margin + maxTrailOffset) {
                 companionState.walkX = -companionState.alvaSize - WALK_CONFIG.margin;
                 // Snap lumas to avoid them trailing across the whole screen
                 lumaFollowers.forEach(f => {
