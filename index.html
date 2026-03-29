@@ -1163,49 +1163,23 @@
 
     <!-- MAIN LOGIC (Three.js & Animations) -->
     <script>
-        // --- 0. AUDIO SYSTEM (Synthesizer Masterpiece) ---
+        // --- 0. AUDIO SYSTEM ---
         let audioCtx;
+        let bgMusic;
         let isAudioPlaying = false;
 
         function initAudio() {
-            if(audioCtx) return;
+            if(isAudioPlaying) return;
+            isAudioPlaying = true;
+
+            bgMusic = new Audio('pale_orbit.mp3');
+            bgMusic.loop = true;
+            bgMusic.volume = 0.6;
+            bgMusic.play().catch(() => {});
+
+            // Also create an AudioContext for the reveal sound effect
             const AudioContext = window.AudioContext || window.webkitAudioContext;
             audioCtx = new AudioContext();
-            
-            // Dreamy Ambient Pad Synth for Space Background
-            function playChord() {
-                if(!isAudioPlaying || isRevealed) return;
-                const baseFreq = 220; // A3
-                const freqs = [baseFreq, baseFreq * 1.5, baseFreq * 1.25, baseFreq * 2]; 
-                const root = freqs[Math.floor(Math.random() * freqs.length)];
-                
-                const osc = audioCtx.createOscillator();
-                const gain = audioCtx.createGain();
-                const filter = audioCtx.createBiquadFilter();
-                
-                osc.type = 'sine';
-                osc.frequency.value = root * (Math.random() > 0.5 ? 0.5 : 1);
-                
-                filter.type = 'lowpass';
-                filter.frequency.value = 600;
-                
-                osc.connect(filter);
-                filter.connect(gain);
-                gain.connect(audioCtx.destination);
-                
-                const now = audioCtx.currentTime;
-                gain.gain.setValueAtTime(0, now);
-                gain.gain.linearRampToValueAtTime(0.06, now + 3); // Soft slow attack
-                gain.gain.linearRampToValueAtTime(0, now + 8); // Long slow fade
-                
-                osc.start(now);
-                osc.stop(now + 8);
-                
-                setTimeout(playChord, 2000 + Math.random() * 3000); // Layer next chord
-            }
-            isAudioPlaying = true;
-            playChord();
-            setTimeout(playChord, 1500); // Layer 2
         }
 
         function playRevealSound() {
@@ -1305,10 +1279,10 @@
                 opacityMax: 0.09
             },
             crystals: {
-                count: 140,
-                spread: 1180,
+                count: 380,
+                spread: 1400,
                 centerGap: 165,
-                depth: 9500
+                depth: 11000
             }
         };
 
@@ -2722,7 +2696,19 @@
             }, 1000);
             
             // Ljud & Visuell Explosion!
-            isAudioPlaying = false; // Stäng av ambient rymd-pad
+            // Fade out background music on reveal
+            if(bgMusic) {
+                const fadeOut = setInterval(() => {
+                    if(bgMusic.volume > 0.05) {
+                        bgMusic.volume -= 0.05;
+                    } else {
+                        bgMusic.pause();
+                        bgMusic.volume = 0;
+                        clearInterval(fadeOut);
+                    }
+                }, 80);
+            }
+            isAudioPlaying = false;
             playRevealSound();
             
             // Screen Flash Effect (Vit magisk blixt)
