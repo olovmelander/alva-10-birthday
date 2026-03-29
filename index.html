@@ -463,19 +463,26 @@
 
             .ticket {
                 width: min(94vw, 420px);
-                padding: 14px;
+                max-height: 58svh;
+                padding: 12px;
                 border-width: 4px;
                 margin-top: 0.8rem;
+                overflow-y: auto;
+                -webkit-overflow-scrolling: touch;
             }
 
             .ticket h2 {
                 font-size: clamp(0.7rem, 3.5vw, 0.95rem);
-                margin-bottom: 10px;
+                margin-bottom: 8px;
             }
 
             .ticket .gift {
                 font-size: clamp(0.5rem, 2.6vw, 0.68rem);
-                line-height: 1.8;
+                line-height: 1.55;
+            }
+
+            .ticket .gift br {
+                line-height: 1.25;
             }
 
             .ticket .mario-title {
