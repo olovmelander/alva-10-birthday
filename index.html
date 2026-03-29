@@ -31,7 +31,7 @@
             --party-inset-left: 0px;
             --party-inset-bottom: 18px;
             --alva-idle-cycle-ms: 780ms;
-            --alva-run-cycle-ms: 340ms;
+            --alva-run-cycle-ms: 450ms;
             --luma-cycle-ms: 640ms;
             --content-max-width: 1120px;
         }
@@ -354,7 +354,7 @@
                 --party-inset-left: 14px;
                 --party-inset-bottom: 14px;
                 --alva-idle-cycle-ms: 720ms;
-                --alva-run-cycle-ms: 320ms;
+                --alva-run-cycle-ms: 430ms;
                 --luma-cycle-ms: 560ms;
             }
 
@@ -398,11 +398,12 @@
                 margin-bottom: 1.2rem;
             }
 
-            #mario-content p {
+            #mario-content > p {
                 font-size: clamp(0.58rem, 2.8vw, 0.72rem);
                 line-height: 1.7;
                 padding: 14px;
                 border-width: 3px;
+                width: 90%;
             }
 
             .ticket {
@@ -455,11 +456,12 @@
                 text-shadow: 2px 2px 0px #fff, 4px 4px 0px #000;
             }
 
-            #mario-content p {
+            #mario-content > p {
                 font-size: clamp(0.5rem, 2.5vw, 0.7rem);
                 padding: 12px;
                 border-width: 3px;
                 line-height: 1.6;
+                width: 90%;
             }
 
             .ticket {
@@ -883,13 +885,14 @@
             transform: scale(1) rotate(0deg);
         }
 
-        #mario-content p {
+        #mario-content > p {
             font-family: 'Press Start 2P', cursive;
             font-size: 0.8rem;
             line-height: 1.8;
             color: #fff;
             text-shadow: 2px 2px 0px #000;
             max-width: 600px;
+            width: 90%;
             background: rgba(0,0,0,0.8);
             padding: 25px;
             border-radius: 15px;
@@ -957,6 +960,20 @@
             text-shadow: 2px 2px 0 #fff;
             font-family: 'Press Start 2P', cursive;
             letter-spacing: 2px;
+        }
+
+        .ticket p {
+            font-family: 'Press Start 2P', cursive;
+            color: #222;
+            text-shadow: none;
+            padding: 0;
+            background: transparent;
+            border: none;
+            box-shadow: none;
+            animation: none;
+            max-width: 100%;
+            overflow-wrap: break-word;
+            word-wrap: break-word;
         }
 
         .ticket .gift {
@@ -1954,7 +1971,8 @@
             lumas: [
                 { trailT: 0.046, hoverY: 14, side: -6, swayX: 3.8, bob: 5.6, lag: 0.16, phase: 0.2, scale: 0.94, depth: 'near', glow: 'rgba(255, 220, 100, 0.82)' },
                 { trailT: 0.108, hoverY: 30, side: -2, swayX: 4.8, bob: 7.8, lag: 0.18, phase: 1.25, scale: 0.84, depth: 'mid', glow: 'rgba(84, 216, 255, 0.84)' },
-                { trailT: 0.178, hoverY: 46, side: 6, swayX: 5.5, bob: 9.2, lag: 0.2, phase: 2.25, scale: 0.74, depth: 'far', glow: 'rgba(255, 130, 220, 0.82)' }
+                { trailT: 0.178, hoverY: 46, side: 6, swayX: 5.5, bob: 9.2, lag: 0.2, phase: 2.25, scale: 0.74, depth: 'far', glow: 'rgba(255, 130, 220, 0.82)' },
+                { trailT: 0.240, hoverY: 8, side: 4, swayX: 4.0, bob: 5.2, lag: 0.24, phase: 3.1, scale: 0.68, depth: 'near', glow: 'rgba(150, 255, 120, 0.85)' }
             ]
         };
 
