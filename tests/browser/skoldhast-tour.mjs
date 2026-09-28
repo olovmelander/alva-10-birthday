@@ -2,10 +2,10 @@
 /*
  * Contact sheets: visit every place in the game and take a screenshot (plan §7.5).
  *
- *   node tests/browser/skoldhast-tour.mjs --out docs/skoldhast/shots/k3 [--viewport 844x390] [--only land]
+ *   node tests/browser/skoldhast-tour.mjs --out docs/skoldhast/shots/k3 [--viewport 844x390] [--only land] [--sheet]
  *
  * Starts from word code 2 (everything up to Kapitel 3 open) and teleports with the ?debug hooks.
- * Writes PNGs; add --webp to convert them with sharp.
+ * Writes PNGs; --webp converts them with sharp; --sheet composes one contact sheet per viewport.
  */
 import fs from 'node:fs';
 import path from 'node:path';
@@ -55,8 +55,26 @@ for (const [scene, name, x, y, mode] of STOPS) {
         if (view.sceneId !== scene) view.setScene(scene); else view.cam.snap = true;
     }, [scene, x, y, mode]);
     await pg.waitForTimeout(900);
+    // tap away anything a teleport set off (e.g. Klo's depth measurement)
+    for (let i = 0; i < 12; i++) {
+        const open = await pg.evaluate(() => { const d = window.__skoldhast.debug; if (d.ui.dialogueOpen()) { d.ui.advance(); return true; } return !!d.G.busy; });
+        if (!open) break;
+        await pg.waitForTimeout(350);
+    }
     const file = path.join(out, `${String(++n).padStart(2, '0')}-${scene}-${name}-${W}x${H}.png`);
     await pg.screenshot({ path: file });
+}
+if (args.sheet) {
+    // one contact sheet per viewport: every place as a half-size thumbnail, labelled by its file name order
+    const sharp = (await import('sharp')).default;
+    const files = fs.readdirSync(out).filter((q) => q.endsWith(`-${W}x${H}.png`)).sort();
+    const cols = W > H ? 3 : 6, scale = W >= 1200 ? 0.34 : 0.5;
+    const tw = Math.round(W * scale), th = Math.round(H * scale);
+    const comps = await Promise.all(files.map(async (f, i) => ({ input: await sharp(path.join(out, f)).resize(tw, th).png().toBuffer(), left: (i % cols) * tw, top: Math.floor(i / cols) * th })));
+    const rows = Math.ceil(files.length / cols);
+    await sharp({ create: { width: cols * tw, height: rows * th, channels: 3, background: '#fbf8f1' } }).composite(comps).webp({ quality: 72 }).toFile(path.join(out, `sheet-${W}x${H}.webp`));
+    for (const f of files) fs.unlinkSync(path.join(out, f));
+    console.log(`contact sheet: ${path.join(out, `sheet-${W}x${H}.webp`)}`);
 }
 if (args.webp) {
     const sharp = (await import('sharp')).default;
