@@ -1682,6 +1682,910 @@
             0% { transform: translateY(0); opacity: 1; }
             100% { transform: translateY(-40px); opacity: 0; }
         }
+
+        /* --- Game select (reveal screen) --- */
+        .game-select {
+            margin-top: 25px;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 14px 16px;
+        }
+
+        .game-select #play-minigame-btn {
+            margin-top: 0;
+        }
+
+        #play-galaxy-btn {
+            position: relative;
+            background: linear-gradient(135deg, #7b2cff, #ff4fb8 55%, #ffb000);
+            border: 3px solid #fff;
+            color: white;
+            font-family: 'Press Start 2P', cursive;
+            padding: 14px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.75rem;
+            text-shadow: 2px 2px 0 rgba(0, 0, 0, 0.35);
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5), 0 0 16px rgba(170, 0, 255, 0.5);
+            opacity: 0;
+            transform: scale(0);
+            transition: filter 0.2s, transform 0.1s;
+        }
+
+        #mario-content.revealed #play-galaxy-btn {
+            opacity: 1;
+            transform: scale(1);
+            transition: opacity 1.5s cubic-bezier(0.34, 1.56, 0.64, 1) 2.4s,
+                        transform 1.5s cubic-bezier(0.34, 1.56, 0.64, 1) 2.4s,
+                        filter 0.2s;
+            animation: galaxy-btn-glow 2.4s ease-in-out 4s infinite;
+        }
+
+        #mario-content.revealed #play-galaxy-btn:hover {
+            filter: brightness(1.12);
+        }
+
+        #mario-content.revealed #play-galaxy-btn:active {
+            transform: scale(0.95);
+            transition: transform 0.1s;
+        }
+
+        .game-select-badge {
+            position: absolute;
+            top: -11px;
+            right: -12px;
+            padding: 4px 6px;
+            font-size: 0.5rem;
+            background: #FBD000;
+            color: #E52521;
+            text-shadow: none;
+            border: 2px solid #fff;
+            border-radius: 6px;
+            transform: rotate(8deg);
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.45);
+        }
+
+        @keyframes galaxy-btn-glow {
+            0%, 100% { box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5), 0 0 14px rgba(170, 0, 255, 0.45); }
+            50% { box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5), 0 0 30px rgba(255, 120, 220, 0.85); }
+        }
+
+        @media (max-width: 480px) {
+            .game-select {
+                gap: 14px 10px;
+            }
+
+            #play-minigame-btn,
+            #play-galaxy-btn {
+                font-size: 0.62rem;
+                padding: 12px 14px;
+            }
+        }
+
+        /* --- SUPER ALVA GALAXY --- */
+        #sag-ui {
+            --sag-accent: #FBD000;
+            position: fixed;
+            inset: 0;
+            z-index: 3000;
+            display: none;
+            overflow: hidden;
+            background: #05010f;
+            font-family: 'Press Start 2P', cursive;
+            touch-action: none;
+            user-select: none;
+            -webkit-user-select: none;
+            -webkit-touch-callout: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        #sag-ui.is-open {
+            display: block;
+        }
+
+        #sag-canvas,
+        .sag-confetti {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+
+        .sag-confetti {
+            z-index: 1;
+            pointer-events: none;
+        }
+
+        .sag-hud {
+            position: absolute;
+            top: max(10px, env(safe-area-inset-top));
+            left: max(10px, env(safe-area-inset-left));
+            right: max(10px, env(safe-area-inset-right));
+            display: flex;
+            flex-wrap: wrap;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 8px;
+            pointer-events: none;
+            opacity: 0;
+            transform: translateY(-12px);
+            transition: opacity 0.4s ease, transform 0.4s ease;
+            z-index: 2;
+        }
+
+        .sag-hud.is-visible {
+            opacity: 1;
+            transform: none;
+        }
+
+        .sag-pill {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 7px 10px;
+            color: #FBD000;
+            background: rgba(0, 0, 0, 0.42);
+            border: 2px solid rgba(251, 208, 0, 0.3);
+            border-radius: 8px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.38);
+        }
+
+        .sag-pill--lives {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 6px;
+        }
+
+        .sag-hearts {
+            display: flex;
+            gap: 4px;
+        }
+
+        .sag-heart {
+            width: 23px;
+            height: 20px;
+            background: var(--sag-heart-full) center / contain no-repeat;
+            image-rendering: pixelated;
+            filter: drop-shadow(0 0 5px rgba(255, 77, 109, 0.7));
+        }
+
+        .sag-heart.is-empty {
+            background-image: var(--sag-heart-empty);
+            filter: none;
+        }
+
+        .sag-hearts.is-hit {
+            animation: sag-hearts-hit 0.45s ease;
+        }
+
+        .sag-hearts.is-heal {
+            animation: sag-hearts-heal 0.55s ease;
+        }
+
+        @keyframes sag-hearts-hit {
+            0%, 100% { transform: translateX(0); }
+            20% { transform: translateX(-5px); }
+            40% { transform: translateX(5px); }
+            60% { transform: translateX(-3px); }
+            80% { transform: translateX(3px); }
+        }
+
+        @keyframes sag-hearts-heal {
+            0%, 100% { transform: scale(1); }
+            40% { transform: scale(1.25); }
+        }
+
+        .sag-power {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .sag-power[hidden] {
+            display: none;
+        }
+
+        .sag-power-icon {
+            width: 18px;
+            height: 18px;
+            background: var(--sag-rainbow-icon) center / contain no-repeat;
+        }
+
+        .sag-power[data-kind="magnet"] .sag-power-icon {
+            background: url('luma_sprite.png') -18px 0 / 72px 18px no-repeat;
+            image-rendering: pixelated;
+        }
+
+        .sag-power-track {
+            width: 56px;
+            height: 8px;
+            border-radius: 4px;
+            overflow: hidden;
+            background: rgba(255, 255, 255, 0.15);
+        }
+
+        .sag-power-fill {
+            display: block;
+            width: 100%;
+            height: 100%;
+            transform-origin: left center;
+            background: linear-gradient(90deg, #ff5a5a, #ffb347, #fff04d, #6bff8a, #4dc3ff, #c38bff);
+        }
+
+        .sag-power[data-kind="magnet"] .sag-power-fill {
+            background: linear-gradient(90deg, #6ee8ff, #b98cff);
+        }
+
+        .sag-pill--journey {
+            flex: 0 1 280px;
+            min-width: 170px;
+            flex-direction: column;
+            align-items: stretch;
+            gap: 9px;
+            padding-bottom: 10px;
+        }
+
+        .sag-galaxy-label {
+            font-size: 0.55rem;
+            letter-spacing: 1px;
+            text-align: center;
+            color: var(--sag-accent);
+            text-shadow: 2px 2px 0 #000;
+        }
+
+        .sag-progress {
+            position: relative;
+            height: 8px;
+            margin: 0 10px 0 4px;
+            border-radius: 4px;
+            background: rgba(255, 255, 255, 0.14);
+        }
+
+        .sag-progress-fill {
+            position: absolute;
+            inset: 0;
+            border-radius: 4px;
+            transform: scaleX(0);
+            transform-origin: left center;
+            background: linear-gradient(90deg, rgba(255, 255, 255, 0.45), var(--sag-accent));
+            box-shadow: 0 0 10px var(--sag-accent);
+        }
+
+        .sag-progress-goal {
+            position: absolute;
+            right: -11px;
+            top: 50%;
+            width: 18px;
+            height: 18px;
+            transform: translateY(-50%);
+            background: var(--sag-rainbow-icon) center / contain no-repeat;
+            animation: spin 4s linear infinite;
+        }
+
+        .sag-progress-alva {
+            position: absolute;
+            top: 50%;
+            left: 0;
+            width: 24px;
+            height: 24px;
+            transform: translate(-50%, -66%);
+            background: url('alva_sprite.png') 0 0 / 96px 24px no-repeat;
+            image-rendering: pixelated;
+            filter: drop-shadow(0 0 4px rgba(255, 220, 100, 0.9));
+            animation: sag-mini-run 0.45s steps(4) infinite;
+        }
+
+        @keyframes sag-mini-run {
+            to { background-position: -96px 0; }
+        }
+
+        .sag-hud-right {
+            display: flex;
+            align-items: flex-start;
+            gap: 8px;
+        }
+
+        .sag-pill--score {
+            flex-direction: column;
+            align-items: flex-end;
+            gap: 6px;
+            min-width: 92px;
+        }
+
+        .sag-number {
+            font-size: 0.85rem;
+            line-height: 1;
+            text-shadow: 3px 3px 0 #000;
+        }
+
+        .sag-bits {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 0.6rem;
+            color: #fff;
+            text-shadow: 2px 2px 0 #000;
+        }
+
+        .sag-bit-icon {
+            width: 14px;
+            height: 14px;
+            background: var(--sag-bit-icon) center / contain no-repeat;
+        }
+
+        .sag-icon-btn {
+            pointer-events: auto;
+            width: 42px;
+            height: 42px;
+            border-radius: 8px;
+            border: 2px solid rgba(251, 208, 0, 0.5);
+            background: rgba(0, 0, 0, 0.5);
+            color: #FBD000;
+            font-family: 'Press Start 2P', cursive;
+            font-size: 0.7rem;
+            cursor: pointer;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.38);
+        }
+
+        .sag-icon-btn:active {
+            transform: scale(0.94);
+        }
+
+        .sag-toast {
+            position: absolute;
+            left: 50%;
+            top: calc(max(10px, env(safe-area-inset-top)) + 70px);
+            z-index: 3;
+            max-width: min(92vw, 560px);
+            padding: 10px 14px;
+            color: #fff;
+            font-size: clamp(0.5rem, 1.8vw, 0.7rem);
+            line-height: 1.6;
+            text-align: center;
+            text-shadow: 2px 2px 0 #000;
+            background: rgba(10, 5, 25, 0.85);
+            border: 2px solid var(--sag-accent);
+            border-radius: 10px;
+            box-shadow: 0 8px 28px rgba(0, 0, 0, 0.5);
+            opacity: 0;
+            transform: translate(-50%, -10px);
+            pointer-events: none;
+        }
+
+        .sag-toast.is-showing {
+            animation: sag-toast 2.9s ease both;
+        }
+
+        @keyframes sag-toast {
+            0% { opacity: 0; transform: translate(-50%, -10px) scale(0.92); }
+            10%, 84% { opacity: 1; transform: translate(-50%, 0) scale(1); }
+            100% { opacity: 0; transform: translate(-50%, -6px) scale(1); }
+        }
+
+        .sag-banner {
+            position: absolute;
+            left: 50%;
+            top: 34%;
+            z-index: 3;
+            width: min(92vw, 760px);
+            text-align: center;
+            opacity: 0;
+            transform: translate(-50%, -50%);
+            pointer-events: none;
+        }
+
+        .sag-banner.is-showing {
+            animation: sag-banner 3.1s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+        }
+
+        .sag-banner-kicker {
+            margin-bottom: 12px;
+            font-size: clamp(0.55rem, 2vw, 0.8rem);
+            letter-spacing: 3px;
+            color: #fff;
+            text-shadow: 2px 2px 0 #000;
+        }
+
+        .sag-banner-title {
+            font-family: 'Cinzel Decorative', cursive;
+            font-size: clamp(1.5rem, 5.5vw, 3rem);
+            color: var(--sag-accent);
+            text-shadow: 0 0 25px rgba(255, 215, 0, 0.55), 0 0 50px rgba(170, 0, 255, 0.5), 3px 3px 0 #000;
+        }
+
+        .sag-banner-tagline {
+            margin-top: 10px;
+            font-family: 'Montserrat', sans-serif;
+            font-weight: 700;
+            font-size: clamp(0.8rem, 2.4vw, 1.1rem);
+            color: #fff;
+            text-shadow: 0 2px 8px #000, 0 0 16px #000;
+        }
+
+        @keyframes sag-banner {
+            0% { opacity: 0; transform: translate(-50%, -40%) scale(0.85); }
+            12%, 78% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+            100% { opacity: 0; transform: translate(-50%, -58%) scale(1.04); }
+        }
+
+        .sag-screens {
+            position: absolute;
+            inset: 0;
+            z-index: 4;
+            display: none;
+            overflow-y: auto;
+            padding: max(12px, env(safe-area-inset-top)) max(12px, env(safe-area-inset-right)) max(12px, env(safe-area-inset-bottom)) max(12px, env(safe-area-inset-left));
+            background: rgba(5, 1, 20, 0.55);
+            touch-action: pan-y;
+        }
+
+        .sag-screens.is-open {
+            display: flex;
+        }
+
+        .sag-panel {
+            position: relative;
+            width: min(94vw, 470px);
+            margin: auto;
+            padding: 24px 20px;
+            color: #fff;
+            text-align: center;
+            background: rgba(10, 5, 25, 0.94);
+            border: 4px solid #FBD000;
+            border-radius: 14px;
+            box-shadow: 0 0 0 3px rgba(170, 0, 255, 0.55), 0 12px 48px rgba(0, 0, 0, 0.75), 0 0 40px rgba(170, 0, 255, 0.35);
+            animation: sag-panel-in 0.45s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+        }
+
+        .sag-panel[hidden] {
+            display: none;
+        }
+
+        @keyframes sag-panel-in {
+            from { opacity: 0; transform: translateY(24px) scale(0.92); }
+            to { opacity: 1; transform: none; }
+        }
+
+        .sag-kicker {
+            margin-bottom: 10px;
+            font-size: 0.55rem;
+            letter-spacing: 2px;
+            color: var(--sag-accent);
+            text-shadow: 2px 2px 0 #000;
+        }
+
+        .sag-kicker-alva {
+            display: inline-block;
+            width: 36px;
+            height: 36px;
+            margin: -12px 8px -10px 0;
+            vertical-align: middle;
+            background: url('alva_sprite.png') 0 0 / 144px 36px no-repeat;
+            image-rendering: pixelated;
+            filter: drop-shadow(0 0 6px rgba(255, 220, 100, 0.9));
+            animation: sag-kicker-run 0.45s steps(4) infinite;
+        }
+
+        @keyframes sag-kicker-run {
+            to { background-position: -144px 0; }
+        }
+
+        .sag-title {
+            margin-bottom: 12px;
+            font-size: clamp(0.95rem, 4.2vw, 1.4rem);
+            line-height: 1.45;
+            color: #FBD000;
+            text-shadow: 3px 3px 0 #E52521, 5px 5px 0 #000;
+        }
+
+        .sag-subtitle,
+        .sag-text {
+            margin-bottom: 14px;
+            font-family: 'Montserrat', sans-serif;
+            font-weight: 700;
+            font-size: clamp(0.8rem, 2.6vw, 0.95rem);
+            line-height: 1.5;
+            color: #f3eaff;
+            text-shadow: 0 2px 6px #000;
+        }
+
+        .sag-highlight {
+            color: var(--sag-accent);
+        }
+
+        .sag-howto {
+            list-style: none;
+            display: grid;
+            gap: 9px;
+            margin: 0 auto 6px;
+            text-align: left;
+            max-width: 380px;
+        }
+
+        .sag-howto li {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 0.55rem;
+            line-height: 1.6;
+            color: #ddd3f5;
+        }
+
+        .sag-howto-key,
+        .sag-howto-icon {
+            flex: 0 0 auto;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 50px;
+            height: 26px;
+        }
+
+        .sag-howto-key {
+            padding: 0 6px;
+            font-size: 0.5rem;
+            color: #140a26;
+            background: #FBD000;
+            border-radius: 6px;
+            box-shadow: 0 3px 0 #b88a00;
+        }
+
+        .sag-howto-icon--goomba {
+            background: url('goomba_sprite_atlas.png') -24px -26px / 96px 104px no-repeat;
+            background-origin: content-box;
+            width: 24px;
+            min-width: 24px;
+            height: 26px;
+            margin: 0 13px;
+            image-rendering: pixelated;
+            filter: drop-shadow(0 0 5px rgba(84, 216, 255, 0.8));
+        }
+
+        .sag-howto-icon--star {
+            width: 26px;
+            min-width: 26px;
+            margin: 0 12px;
+            background: var(--sag-rainbow-icon) center / contain no-repeat;
+        }
+
+        .sag-record {
+            margin-bottom: 4px;
+            font-size: 0.55rem;
+            line-height: 1.6;
+            color: #FBD000;
+            text-shadow: 2px 2px 0 #000;
+        }
+
+        .sag-btn {
+            display: block;
+            width: 100%;
+            margin-top: 10px;
+            padding: 14px 12px;
+            font-family: 'Press Start 2P', cursive;
+            font-size: clamp(0.6rem, 2.3vw, 0.8rem);
+            line-height: 1.4;
+            color: #fff;
+            text-shadow: 2px 2px 0 rgba(0, 0, 0, 0.4);
+            background: linear-gradient(45deg, #ffd700, #ff8c00, #ff0f7b);
+            background-size: 200% 200%;
+            border: 3px solid #fff;
+            border-radius: 10px;
+            box-shadow: 0 6px 0 rgba(0, 0, 0, 0.35), 0 0 18px rgba(255, 180, 0, 0.35);
+            cursor: pointer;
+            animation: gradient-shift 3s ease infinite;
+            transition: transform 0.1s, filter 0.2s;
+        }
+
+        .sag-btn:hover {
+            filter: brightness(1.12);
+        }
+
+        .sag-btn:active {
+            transform: translateY(3px) scale(0.98);
+            box-shadow: 0 3px 0 rgba(0, 0, 0, 0.35);
+        }
+
+        .sag-btn:focus-visible,
+        .sag-icon-btn:focus-visible {
+            outline: 3px solid #7df6ff;
+            outline-offset: 3px;
+        }
+
+        .sag-btn--alt {
+            background: linear-gradient(135deg, rgba(170, 0, 255, 0.85), rgba(255, 100, 0, 0.75));
+            border-color: rgba(255, 215, 0, 0.75);
+            animation: none;
+        }
+
+        .sag-btn--ghost {
+            background: #555;
+            animation: none;
+            box-shadow: 0 6px 0 rgba(0, 0, 0, 0.35);
+        }
+
+        .sag-btn[hidden] {
+            display: none;
+        }
+
+        .sag-toggle-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+
+        .sag-memory {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+            margin: 6px auto 10px;
+        }
+
+        .sag-memory[hidden] {
+            display: none;
+        }
+
+        .sag-memory-frame,
+        .sag-hero {
+            position: relative;
+            width: 128px;
+            height: 128px;
+            padding: 5px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, rgba(255, 215, 120, 0.9), rgba(170, 0, 255, 0.85));
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6), 0 0 36px var(--sag-accent);
+        }
+
+        .sag-memory-frame::before,
+        .sag-hero::before {
+            content: '';
+            position: absolute;
+            inset: -7px;
+            z-index: -1;
+            border-radius: 50%;
+            background: conic-gradient(from 0deg, var(--sag-accent), rgba(255, 0, 255, 0.9), rgba(255, 255, 255, 0.95), var(--sag-accent));
+            filter: blur(10px);
+            opacity: 0.85;
+            animation: spin 3s linear infinite;
+        }
+
+        .sag-memory-frame img,
+        .sag-hero img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            border-radius: 50%;
+            background: #000;
+        }
+
+        .sag-trophy {
+            display: block;
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(40, 20, 70, 0.9), rgba(10, 5, 25, 1)) center / cover no-repeat;
+        }
+
+        .sag-trophy[hidden],
+        .sag-memory-frame img[hidden] {
+            display: none;
+        }
+
+        .sag-trophy[data-icon="luma"] {
+            background: url('luma_sprite.png') 0 50% / 400% auto no-repeat, radial-gradient(circle, rgba(40, 20, 70, 0.9), rgba(10, 5, 25, 1));
+            image-rendering: pixelated;
+        }
+
+        .sag-trophy[data-icon="rainbow"] {
+            background: var(--sag-rainbow-icon) center / 70% no-repeat, radial-gradient(circle, rgba(60, 20, 70, 0.9), rgba(10, 5, 25, 1));
+        }
+
+        .sag-trophy[data-icon="meteor"] {
+            background: var(--sag-meteor-icon) center / 80% no-repeat, radial-gradient(circle, rgba(80, 20, 20, 0.9), rgba(10, 5, 25, 1));
+        }
+
+        .sag-trophy[data-icon="blackhole"] {
+            background: var(--sag-blackhole-icon) center / 90% no-repeat, radial-gradient(circle, rgba(40, 10, 60, 0.9), rgba(0, 0, 0, 1));
+        }
+
+        .sag-memory-caption {
+            font-size: 0.55rem;
+            line-height: 1.7;
+            color: var(--sag-accent);
+            text-shadow: 2px 2px 0 #000;
+        }
+
+        .sag-hero {
+            width: 150px;
+            height: 150px;
+            margin: 4px auto 10px;
+        }
+
+        .sag-tally {
+            display: grid;
+            gap: 8px;
+            margin: 4px 0 6px;
+            font-size: 0.6rem;
+        }
+
+        .sag-tally > div {
+            display: flex;
+            justify-content: space-between;
+            gap: 12px;
+            padding: 6px 10px;
+            background: rgba(255, 255, 255, 0.06);
+            border-radius: 6px;
+        }
+
+        .sag-tally > div[hidden] {
+            display: none;
+        }
+
+        .sag-tally dt {
+            color: #ddd3f5;
+        }
+
+        .sag-tally dd {
+            color: #FBD000;
+            text-shadow: 2px 2px 0 #000;
+        }
+
+        .sag-tally-total {
+            border: 2px solid rgba(251, 208, 0, 0.45);
+        }
+
+        .sag-tally--inline {
+            grid-template-columns: repeat(3, 1fr);
+        }
+
+        .sag-tally--inline > div {
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.5rem;
+        }
+
+        .sag-tally--inline dd {
+            font-size: 0.7rem;
+        }
+
+        .sag-record-badge {
+            display: inline-block;
+            margin: 6px 0 2px;
+            padding: 8px 12px;
+            font-size: 0.6rem;
+            color: #140a26;
+            background: #FBD000;
+            border-radius: 8px;
+            box-shadow: 0 0 20px rgba(251, 208, 0, 0.7);
+            animation: sag-record 0.9s ease-in-out infinite alternate;
+        }
+
+        .sag-record-badge[hidden] {
+            display: none;
+        }
+
+        @keyframes sag-record {
+            from { transform: scale(1) rotate(-2deg); }
+            to { transform: scale(1.08) rotate(2deg); }
+        }
+
+        .sag-tally dd {
+            white-space: nowrap;
+        }
+
+        @media (max-width: 560px) {
+            .sag-pill--journey {
+                order: 3;
+                flex-basis: 100%;
+                max-width: none;
+            }
+
+            /* The progress bar moves to a second HUD row here */
+            .sag-toast {
+                top: calc(max(10px, env(safe-area-inset-top)) + 122px);
+            }
+        }
+
+        /* Short landscape phones: panels go side by side so everything fits */
+        @media (max-height: 520px) and (min-width: 600px) {
+            .sag-panel {
+                width: min(94vw, 760px);
+                padding: 16px 18px;
+            }
+
+            .sag-panel--split {
+                display: grid;
+                grid-template-columns: 1.1fr 1fr;
+                gap: 18px;
+                align-items: center;
+            }
+
+            .sag-panel--split .sag-panel-actions .sag-btn:first-of-type {
+                margin-top: 0;
+            }
+
+            .sag-title {
+                margin-bottom: 8px;
+            }
+
+            .sag-subtitle {
+                margin-bottom: 10px;
+            }
+
+            .sag-btn {
+                padding: 11px 10px;
+            }
+
+            .sag-memory-frame {
+                width: 104px;
+                height: 104px;
+            }
+
+            .sag-hero {
+                width: 120px;
+                height: 120px;
+            }
+
+            .sag-toast {
+                top: calc(max(10px, env(safe-area-inset-top)) + 62px);
+            }
+        }
+
+        /* Small older phones in landscape (e.g. 667×375) */
+        @media (max-height: 400px) and (min-width: 600px) {
+            .sag-panel {
+                padding: 12px 14px;
+            }
+
+            .sag-title {
+                font-size: 0.85rem;
+            }
+
+            .sag-text,
+            .sag-subtitle {
+                margin-bottom: 8px;
+                font-size: 0.72rem;
+            }
+
+            .sag-btn {
+                margin-top: 7px;
+                padding: 9px 10px;
+            }
+
+            .sag-hero {
+                width: 96px;
+                height: 96px;
+            }
+
+            .sag-memory-frame {
+                width: 88px;
+                height: 88px;
+            }
+
+            .sag-tally {
+                gap: 5px;
+            }
+
+            .sag-tally > div {
+                padding: 4px 8px;
+            }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            .sag-btn,
+            .sag-record-badge,
+            .sag-progress-goal,
+            .sag-memory-frame::before,
+            .sag-hero::before,
+            .sag-kicker-alva,
+            .sag-progress-alva,
+            #mario-content.revealed #play-galaxy-btn {
+                animation: none;
+            }
+        }
     </style>
 </head>
 <body>
@@ -1897,7 +2801,10 @@
                     <p>Önskar Olov ❤️</p>
                 </div>
                 </div>
-                <button id="play-minigame-btn">🎮 Spela Minispel</button>
+                <div class="game-select">
+                    <button id="play-minigame-btn">🎮 Alva's Space Jump</button>
+                    <button id="play-galaxy-btn" type="button">🌌 Super Alva Galaxy<span class="game-select-badge">NYTT!</span></button>
+                </div>
             </div>
         </div>
     </div>
@@ -1964,6 +2871,159 @@
         </div>
     </div>
 
+    </div>
+
+    <!-- SUPER ALVA GALAXY (the second game, see super-alva-galaxy.js) -->
+    <div id="sag-ui" aria-hidden="true">
+        <canvas id="sag-canvas" aria-label="Super Alva Galaxy"></canvas>
+        <canvas id="sag-confetti" class="sag-confetti" aria-hidden="true"></canvas>
+
+        <div id="sag-hud" class="sag-hud">
+            <div class="sag-pill sag-pill--lives">
+                <div id="sag-hearts" class="sag-hearts" aria-label="Hjärtan"></div>
+                <div id="sag-power" class="sag-power" hidden>
+                    <span id="sag-power-icon" class="sag-power-icon"></span>
+                    <span class="sag-power-track"><span id="sag-power-fill" class="sag-power-fill"></span></span>
+                </div>
+            </div>
+            <div class="sag-pill sag-pill--journey">
+                <div id="sag-galaxy-label" class="sag-galaxy-label">GALAX 1/10</div>
+                <div class="sag-progress">
+                    <div id="sag-progress-fill" class="sag-progress-fill"></div>
+                    <div class="sag-progress-goal"></div>
+                    <div id="sag-progress-alva" class="sag-progress-alva"></div>
+                </div>
+            </div>
+            <div class="sag-hud-right">
+                <div class="sag-pill sag-pill--score">
+                    <span id="sag-score" class="sag-number">0</span>
+                    <span class="sag-bits"><span class="sag-bit-icon"></span><span id="sag-bits">0</span></span>
+                </div>
+                <button id="sag-pause-btn" class="sag-icon-btn" type="button" aria-label="Pausa">❚❚</button>
+            </div>
+        </div>
+
+        <div id="sag-toast" class="sag-toast" role="status" aria-live="polite"></div>
+
+        <div id="sag-banner" class="sag-banner" aria-hidden="true">
+            <div id="sag-banner-kicker" class="sag-banner-kicker"></div>
+            <div id="sag-banner-title" class="sag-banner-title"></div>
+            <div id="sag-banner-tagline" class="sag-banner-tagline"></div>
+        </div>
+
+        <div id="sag-screens" class="sag-screens">
+            <!-- Start -->
+            <div class="sag-panel sag-panel--split" data-panel="start" hidden>
+                <div class="sag-panel-main">
+                    <div class="sag-kicker"><span class="sag-kicker-alva" aria-hidden="true"></span>Alvas nya äventyr</div>
+                    <h2 class="sag-title">SUPER ALVA GALAXY</h2>
+                    <p class="sag-subtitle">10 galaxer – en för varje år!</p>
+                    <div class="mg-orientation-hint">
+                        <div class="mg-tilt-scene">
+                            <div class="mg-device-icon"></div>
+                            <div class="mg-tilt-arrow">
+                                <svg viewBox="0 0 90 90">
+                                    <defs>
+                                        <marker id="sag-tilt-arrowhead" markerWidth="7" markerHeight="5" refX="6" refY="2.5" orient="auto">
+                                            <polygon points="0 0, 7 2.5, 0 5" fill="#FBD000"/>
+                                        </marker>
+                                    </defs>
+                                    <path d="M 68 18 A 36 36 0 0 1 72 68" fill="none" stroke="#FBD000" stroke-width="2.5" stroke-linecap="round" marker-end="url(#sag-tilt-arrowhead)" opacity="0.85"/>
+                                </svg>
+                            </div>
+                        </div>
+                        <div class="mg-orientation-text">Rotera telefonen<br>för bäst upplevelse</div>
+                    </div>
+                    <ul class="sag-howto">
+                        <li><span class="sag-howto-key" data-touch="TRYCK" data-keys="SPACE">TRYCK</span><span>Hoppa – håll inne för högre hopp</span></li>
+                        <li><span class="sag-howto-key">✦</span><span>Tryck igen i luften: Stjärnsnurr</span></li>
+                        <li><span class="sag-howto-icon sag-howto-icon--goomba"></span><span>Studsa på Goombas, undvik stenar</span></li>
+                        <li><span class="sag-howto-icon sag-howto-icon--star"></span><span>Nå Startstjärnan i varje galax</span></li>
+                    </ul>
+                </div>
+                <div class="sag-panel-actions">
+                    <p class="sag-record" id="sag-start-record" hidden></p>
+                    <button class="sag-btn" id="sag-start-btn" type="button">Starta äventyret!</button>
+                    <button class="sag-btn sag-btn--alt" id="sag-continue-btn" type="button" hidden>Fortsätt</button>
+                    <button class="sag-btn sag-btn--alt" id="sag-endless-start-btn" type="button" hidden>∞ Oändliga galaxen</button>
+                    <button class="sag-btn sag-btn--ghost" id="sag-quit-btn" type="button">Avsluta</button>
+                </div>
+            </div>
+
+            <!-- Pause -->
+            <div class="sag-panel" data-panel="pause" hidden>
+                <h2 class="sag-title">PAUS</h2>
+                <p class="sag-text" id="sag-pause-status"></p>
+                <button class="sag-btn" id="sag-resume-btn" type="button">Fortsätt ▶</button>
+                <div class="sag-toggle-row">
+                    <button class="sag-btn sag-btn--alt" id="sag-sfx-btn" type="button" aria-pressed="true">Ljud: på</button>
+                    <button class="sag-btn sag-btn--alt" id="sag-music-btn" type="button" aria-pressed="true">Musik: på</button>
+                </div>
+                <button class="sag-btn sag-btn--ghost" id="sag-pause-quit-btn" type="button">Avsluta</button>
+            </div>
+
+            <!-- Galaxy cleared -->
+            <div class="sag-panel sag-panel--split" data-panel="clear" hidden>
+                <div class="sag-panel-main">
+                    <div class="sag-kicker" id="sag-clear-kicker"></div>
+                    <h2 class="sag-title">KLAR! ⭐</h2>
+                    <div class="sag-memory" id="sag-clear-memory">
+                        <div class="sag-memory-frame">
+                            <img id="sag-clear-photo" alt="" hidden>
+                            <span class="sag-trophy" id="sag-clear-trophy" hidden></span>
+                        </div>
+                        <p class="sag-memory-caption" id="sag-clear-caption"></p>
+                    </div>
+                </div>
+                <div class="sag-panel-actions">
+                    <dl class="sag-tally">
+                        <div><dt>Stjärnbitar</dt><dd id="sag-clear-bits">0</dd></div>
+                        <div><dt>Goombas</dt><dd id="sag-clear-goombas">0</dd></div>
+                        <div><dt>Galaxbonus</dt><dd id="sag-clear-bonus">+0</dd></div>
+                        <div id="sag-clear-perfect-row"><dt>Oskadd!</dt><dd id="sag-clear-perfect">+0</dd></div>
+                        <div class="sag-tally-total"><dt>Poäng</dt><dd id="sag-clear-score">0</dd></div>
+                    </dl>
+                    <button class="sag-btn" id="sag-next-btn" type="button">Nästa galax ▶</button>
+                    <button class="sag-btn sag-btn--ghost" id="sag-clear-quit-btn" type="button">Avsluta</button>
+                </div>
+            </div>
+
+            <!-- Game over -->
+            <div class="sag-panel" data-panel="over" hidden>
+                <h2 class="sag-title">GAME OVER</h2>
+                <p class="sag-text">Du kom till <span class="sag-highlight" id="sag-over-galaxy"></span></p>
+                <dl class="sag-tally sag-tally--inline">
+                    <div><dt>Poäng</dt><dd id="sag-over-score">0</dd></div>
+                    <div><dt>Stjärnbitar</dt><dd id="sag-over-bits">0</dd></div>
+                    <div><dt>Goombas</dt><dd id="sag-over-goombas">0</dd></div>
+                </dl>
+                <div class="sag-record-badge" id="sag-over-record" hidden>NYTT REKORD! 🏆</div>
+                <button class="sag-btn" id="sag-retry-btn" type="button">Försök igen</button>
+                <button class="sag-btn sag-btn--alt" id="sag-restart-btn" type="button">Spela från början</button>
+                <button class="sag-btn sag-btn--ghost" id="sag-over-quit-btn" type="button">Avsluta</button>
+            </div>
+
+            <!-- The Grand Star -->
+            <div class="sag-panel sag-panel--split sag-panel--finale" data-panel="finale" hidden>
+                <div class="sag-panel-main">
+                    <div class="sag-kicker">⭐ GRAND STAR ⭐</div>
+                    <h2 class="sag-title">Grattis på<br>10-årsdagen, Alva!</h2>
+                    <div class="sag-hero"><img src="alva_mario.png" alt="Alva i Super Mario Galaxy" loading="lazy" decoding="async"></div>
+                </div>
+                <div class="sag-panel-actions">
+                    <p class="sag-text">Du har klarat alla 10 galaxer – en för varje fantastiskt år! Nu är du redo för Super Mario Galaxy: Filmen. 🍿</p>
+                    <dl class="sag-tally sag-tally--inline">
+                        <div><dt>Poäng</dt><dd id="sag-finale-score">0</dd></div>
+                        <div><dt>Stjärnbitar</dt><dd id="sag-finale-bits">0</dd></div>
+                        <div><dt>Goombas</dt><dd id="sag-finale-goombas">0</dd></div>
+                    </dl>
+                    <div class="sag-record-badge" id="sag-finale-record" hidden>NYTT REKORD! 🏆</div>
+                    <button class="sag-btn" id="sag-endless-btn" type="button">∞ Oändliga galaxen</button>
+                    <button class="sag-btn sag-btn--alt" id="sag-finale-restart-btn" type="button">Spela igen</button>
+                    <button class="sag-btn sag-btn--ghost" id="sag-finale-quit-btn" type="button">Avsluta</button>
+                </div>
+            </div>
+        </div>
     </div>
 
     <!-- MAIN LOGIC (Three.js & Animations) -->
@@ -3673,8 +4733,15 @@
         smoothScroll = SCROLL_STATE.smoothProgress;
         renderCompanionParty(0, 0);
 
+        // Super Alva Galaxy covers the whole screen, so the story scene can rest meanwhile.
+        let isSceneRenderPaused = false;
+        function setSceneRenderPaused(paused) {
+            isSceneRenderPaused = paused;
+        }
+
         function animate() {
             requestAnimationFrame(animate);
+            if (isSceneRenderPaused) return;
             const delta = Math.min(clock.getDelta(), 0.05);
             const time = clock.elapsedTime;
 
@@ -4360,6 +5427,7 @@
         mgBackground.init();
 
     </script>
+    <script src="super-alva-galaxy.js"></script>
 </body>
 </html>
 </html>
