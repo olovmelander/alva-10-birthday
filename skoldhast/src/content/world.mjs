@@ -55,7 +55,7 @@ SCENES.land = {
         { id: 'floor2', pts: L([67.52, -0.8], [70, -0.78], [72, -0.76], [74, -0.77], [75.98, -0.75]), mat: 'grass' },
         { id: 'rock-61', thin: true, pts: L([60.75, -1.22], [61.25, -1.24]), mat: 'rock', prop: 'rock-flat' },
         // Streckbron: the gully and the arch (solid once inked)
-        { id: 'gully', pts: L([75.98, 1.0], [80.02, 1.0]), mat: 'earth', hidden: true },
+        { id: 'gully', pts: L([75.98, 0.25], [80.02, 0.25]), mat: 'earth', hidden: true }, // the dry tide gully's floor (visible under the arch)
         { id: 'arch', thin: true, pts: L([75.98, -0.75], [76.6, -0.98], [77.3, -1.15], [78, -1.2], [78.7, -1.15], [79.4, -0.98], [80.02, -0.66]), mat: 'wood', when: 'p1_inked', bridge: true },
         // Stranden: runway, Spången (hollow planks), dunes, the pool, her beach, the jetty
         { id: 'runway', pts: L([80.02, -0.66], [82, -0.63], [83.9, -0.62]), mat: 'wetsand' },

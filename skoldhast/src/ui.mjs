@@ -345,8 +345,9 @@ export function createUI(host, { assetBase, handlers }) {
         const logo = el('img', 'sk-title-logo');
         logo.alt = UI.title + ' ' + UI.subtitle;
         logo.src = img('ui-title');
-        logo.onerror = () => { logo.replaceWith(el('h1', 'sk-title-text', UI.title)); };
         const sub = el('p', 'sk-title-sub', UI.subtitle);
+        sub.hidden = true; // the traced lettering already says it
+        logo.onerror = () => { logo.replaceWith(el('h1', 'sk-title-text', UI.title)); sub.hidden = false; };
         const bb = el('div', 'sk-title-btns');
         if (hasSave) bb.append(btn(UI.cont, () => { t.remove(); onContinue(); }, 'primary big'));
         bb.append(btn(hasSave ? UI.startOver : UI.begin, () => {

@@ -145,7 +145,7 @@ html.skoldhast-lock, html.skoldhast-lock body { overflow: hidden !important; ove
 /* title */
 .sk-title { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px;
     background: var(--sk-paper) #fbf8f1; background-size: 320px; pointer-events: auto; padding: 20px; box-sizing: border-box; text-align: center; }
-.sk-title-logo { width: min(560px, 86vw); max-height: 36vh; object-fit: contain; }
+.sk-title-logo { width: min(560px, 86vw); max-height: 30vh; object-fit: contain; flex-shrink: 1; min-height: 0; }
 .sk-title-text { font-size: 44px; margin: 0; }
 .sk-title-sub { font-size: 18px; font-style: italic; margin: 0 0 8px; }
 .sk-title-btns { display: flex; flex-direction: column; gap: 10px; width: min(320px, 90vw); }
@@ -188,3 +188,7 @@ html.skoldhast-lock, html.skoldhast-lock body { overflow: hidden !important; ove
 .sk-toasts { z-index: 7; }
 .sk-panel { z-index: 8; }
 .sk-message { z-index: 10; }
+
+/* the title never clips on a short landscape phone */
+.sk-title { overflow-y: auto; justify-content: safe center; padding: 10px 12px; box-sizing: border-box; }
+@media (max-height: 460px) { .sk-title { gap: 6px; } .sk-title-btns { gap: 7px; } .sk-title-btns .sk-pbtn { min-height: 44px; } .sk-title-credit { margin-top: 6px; } }

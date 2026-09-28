@@ -99,6 +99,35 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
         return g;
     }
     function refreshRope(r) { if (r._redraw) r._redraw(); }
+    /** A vertical texture (e.g. a kelp frond) bent along a spine of n+1 points, top first. */
+    function strip(texName, n, width) {
+        const t = T(texName);
+        if (!t) return null;
+        const positions = new Float32Array((n + 1) * 4);
+        const uvs = new Float32Array((n + 1) * 4);
+        const indices = new Uint32Array(n * 6);
+        for (let i = 0; i <= n; i++) {
+            const v = i / n;
+            uvs.set([0, v, 1, v], i * 4);
+            if (i < n) indices.set([i * 2, i * 2 + 1, i * 2 + 2, i * 2 + 1, i * 2 + 3, i * 2 + 2], i * 6);
+        }
+        const geometry = new PIXI.MeshGeometry({ positions, uvs, indices });
+        const mesh = new PIXI.Mesh({ geometry, texture: t });
+        mesh._strip = { n, width, positions };
+        return mesh;
+    }
+    function updateStrip(mesh, pts) {
+        const { n, width, positions } = mesh._strip;
+        for (let i = 0; i <= n; i++) {
+            const [x, y] = pts[i];
+            const a = pts[Math.max(0, i - 1)], b = pts[Math.min(n, i + 1)];
+            let tx = b[0] - a[0], ty = b[1] - a[1];
+            const l = Math.hypot(tx, ty) || 1; tx /= l; ty /= l;
+            const nx = -ty * width / 2, ny = tx * width / 2;
+            positions[i * 4] = x + nx; positions[i * 4 + 1] = y + ny; positions[i * 4 + 2] = x - nx; positions[i * 4 + 3] = y - ny;
+        }
+        mesh.geometry.getBuffer('aPosition').update();
+    }
     function resamplePts(pts, step = 60) {
         const out = [];
         for (let i = 1; i < pts.length; i++) {
@@ -172,7 +201,6 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
         const groundTop = new PIXI.Graphics();
         const bottom = def.bounds.y1 + h(4);
         for (const s of def.surfaces) {
-            if (s.hidden) continue;
             const pts = s.pts;
             const x0 = pts[0][0], x1 = pts[pts.length - 1][0];
             if (s.thin) {
@@ -193,7 +221,7 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
         d.ground = ground; d.groundTop = groundTop;
         // outlines along the tops of solid surfaces
         for (const s of def.surfaces) {
-            if (s.hidden || s.thin || s.ramp) continue;
+            if (s.thin || s.ramp) continue;
             const r = rope('stroke-graphite', resamplePts(s.pts, 50), { width: 5 });
             L.terrainBack.addChild(r);
             d.ropes.push(r);
@@ -271,12 +299,12 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
                     if (fy === null) continue;
                     const H = h(2.2 + Math.random() * 2.6);
                     const n = 10;
-                    const pts = []; for (let k = 0; k <= n; k++) pts.push([x, fy - H * (k / n)]);
-                    const r = rope('kelp-strip', pts.slice().reverse(), { color: 0x3e7a34, width: 22 });
-                    // ropes run top → bottom so the strip's base sits at the seabed
-                    const layer = it.layer === 'fore' ? L.fore : L.mid;
-                    layer.addChild(r);
-                    d.kelp.push({ r, x, fy, H, n, phase: Math.random() * 6, chapter: it.chapter });
+                    const pts = []; for (let k = 0; k <= n; k++) pts.push([x, fy - H * (1 - k / n)]); // top first
+                    const r = strip('kelp-strip', n, 58 + Math.random() * 30) || rope('kelp-strip', pts, { color: 0x3e7a34, width: 22 });
+                    const fore = it.layer === 'fore';
+                    if (fore) r.alpha = 0.6; // the sköldhäst stays visible through the front fronds
+                    (fore ? L.fore : L.mid).addChild(r);
+                    d.kelp.push({ r, pts, x, fy, H, n, phase: Math.random() * 6, chapter: it.chapter });
                 }
                 continue;
             }
@@ -561,14 +589,16 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
         // kelp sway
         for (const k of S.kelp) {
             k.r.visible = !(k.chapter && !F.has('ch2_open'));
-            const pts = k.r._pts;
+            if (!k.r.visible) continue;
+            const pts = k.pts;
             const sway = (G.player.hidden && Math.abs(G.player.x - k.x) < h(1.5)) ? 0.4 : 1;
-            for (let i = 0; i < pts.length; i++) {
-                const u = 1 - i / (pts.length - 1); // 1 at the top
-                pts[i].x = k.x + Math.sin(time * 0.9 + k.phase + u * 2.2) * 38 * u * u * sway + Math.sin(time * 0.37 + k.phase) * 12 * u;
-                pts[i].y = k.fy - k.H * u;
+            for (let i = 0; i <= k.n; i++) {
+                const u = 1 - i / k.n; // 1 at the top
+                pts[i][0] = k.x + Math.sin(time * 0.9 + k.phase + u * 2.2) * 38 * u * u * sway + Math.sin(time * 0.37 + k.phase) * 12 * u;
+                pts[i][1] = k.fy - k.H * u;
             }
-            refreshRope(k.r);
+            if (k.r._strip) updateStrip(k.r, pts);
+            else { updateRopePoints(k.r, pts); }
         }
         // water surfaces and reflections
         for (const wb of S.waters) {
@@ -780,12 +810,12 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
         const restPx = portrait ? 105 : Math.min(160, Math.max(120, H * 0.36));
         const galPx = portrait ? 78 : restPx * 0.86;
         let zoom = lerp(restPx, galPx, cam.gal) / HL;
-        if (S.def.underwater) zoom *= 0.92;
+        if (S.def.underwater) zoom *= 0.8;
         const viewW = W / zoom;
         const lead = snap.mode === 'swim' ? viewW * 0.12 : viewW * lerp(0.08, 0.27, cam.gal);
         let tx = snap.x + (snap.facing || 1) * lead;
         let ty = snap.y - (H / zoom) * (portrait ? 0.08 : 0.12);
-        if (snap.mode === 'swim') ty = snap.y - h(0.4);
+        if (snap.mode === 'swim') ty = snap.y + (S.def.underwater ? h(0.3) : -h(0.2));
         // the big leap: pan to the landing
         const L0 = G.player.leap;
         if (L0 && L0.pan) { tx = lerp(L0.from.x, L0.to.x, 0.75); ty = Math.min(L0.from.y, L0.to.y) - h(1.2); zoom *= 0.85; }
