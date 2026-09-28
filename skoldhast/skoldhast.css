@@ -192,3 +192,6 @@ html.skoldhast-lock, html.skoldhast-lock body { overflow: hidden !important; ove
 /* the title never clips on a short landscape phone */
 .sk-title { overflow-y: auto; justify-content: safe center; padding: 10px 12px; box-sizing: border-box; }
 @media (max-height: 460px) { .sk-title { gap: 6px; } .sk-title-btns { gap: 7px; } .sk-title-btns .sk-pbtn { min-height: 44px; } .sk-title-credit { margin-top: 6px; } }
+
+/* at Alva's table the speech sits at the bottom, so her picture stays in view */
+.sk-root .table-mode .sk-dialogue, .sk-ui.table-mode .sk-dialogue { top: auto; bottom: max(14px, env(safe-area-inset-bottom)); }

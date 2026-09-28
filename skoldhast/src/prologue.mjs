@@ -63,7 +63,8 @@ export function createTable({ PIXI, app, view, G, ui, audio, assets, makeHero })
     function pictureCam() {
         const st = G.scenes.land.spots.start;
         const zoom = PIC.w / h(5.3);
-        return { x: st.x + h(0.35), y: st.y - h(2.25), zoom };
+        // her composition: the sköldhäst stands on the sand in the lower third, sky and sun above
+        return { x: st.x + h(0.35), y: st.y - h(1.0), zoom };
     }
     function worldToPaper(wx, wy) {
         const c = pictureCam();
@@ -73,7 +74,7 @@ export function createTable({ PIXI, app, view, G, ui, audio, assets, makeHero })
     function takePicture({ withSplash = false } = {}) {
         const c = pictureCam();
         G.hideHero = true; G.snapNoSplash = !withSplash; G.hideActors = true;
-        const rt = view.snapshot({ x: c.x, y: c.y, zoom: c.zoom, width: PIC.w, height: PIC.h });
+        const rt = view.snapshot({ x: c.x, y: c.y, zoom: c.zoom, width: PIC.w, height: PIC.h, skyFactor: 0.33 });
         G.hideHero = false; G.snapNoSplash = false; G.hideActors = false;
         pic.texture = rt; pic.x = PIC.x; pic.y = PIC.y;
         return rt;
@@ -90,6 +91,7 @@ export function createTable({ PIXI, app, view, G, ui, audio, assets, makeHero })
 
     function start(evening = false) {
         table.visible = true;
+        ui.root.classList.add('table-mode');
         layout();
         extras.removeChildren();
         if (evening) {
@@ -102,6 +104,7 @@ export function createTable({ PIXI, app, view, G, ui, audio, assets, makeHero })
     }
     function stop() {
         table.visible = false;
+        ui.root.classList.remove('table-mode');
         onPaper.removeChildren();
         picHero?.destroy?.(); picHero = null; picKlo = null; splash = null; sun = null;
         drops.length = 0; falling.length = 0;

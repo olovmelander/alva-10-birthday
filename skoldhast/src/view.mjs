@@ -1066,7 +1066,7 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
         replaceHero(newHero) { L.hero.removeChild(hero.view); hero.destroy?.(); hero = newHero; L.hero.addChild(hero.view); },
         world, root, layers: L,
         /** Render the current scene into a texture with a given camera (the prologue picture). */
-        snapshot({ x, y, zoom, width, height }) {
+        snapshot({ x, y, zoom, width, height, skyFactor }) {
             const rt = PIXI.RenderTexture.create({ width, height, resolution: 1 });
             const save = { x: cam.x, y: cam.y, zoom: cam.zoom };
             const sw = app.screen.width, sh = app.screen.height;
@@ -1074,7 +1074,7 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
             world.scale.set(zoom);
             world.position.set(width / 2 - x * zoom, height / 2 - y * zoom);
             for (const b of S.bg) { const tw = b.texture.width, th = b.texture.height; const sc = Math.max(width / tw, height / th); b.scale.set(sc); b.x = (width - tw * sc) / 2; b.y = (height - th * sc) / 2; }
-            for (const it of S.sky) { it.s.x = width / 2 + (it.x - x) * zoom * it.par; it.s.y = height / 2 + (it.y - y) * zoom * Math.max(0.5, it.par * 2.5); it.s.scale.set(zoom); }
+            for (const it of S.sky) { it.s.x = width / 2 + (it.x - x) * zoom * it.par; it.s.y = height / 2 + (it.y - y) * zoom * (skyFactor ?? Math.max(0.5, it.par * 2.5)); it.s.scale.set(zoom * (it.s._baseScale || 1)); }
             const vis = { root: root.visible, hero: hero.view.visible, actors: L.actors.visible, hints: L.hints.visible, fx: L.fx.visible };
             root.visible = true;
             hero.view.visible = !G.hideHero;
