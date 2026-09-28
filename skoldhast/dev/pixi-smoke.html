@@ -1,0 +1,36 @@
+<!doctype html><html><head><meta charset="utf-8"><style>html,body{margin:0;background:#fff}</style></head><body>
+<script type="module">
+import * as PIXI from '../vendor/pixi-8.21.0.min.mjs';
+const log = (...a) => console.log(...a);
+const app = new PIXI.Application();
+await app.init({ preference: ['webgl'], width: 800, height: 400, background: '#f4efe4', antialias: false, autoStart: false });
+document.body.appendChild(app.canvas);
+log('renderer', app.renderer.name, app.renderer.type);
+// canvas pattern texture
+const c = document.createElement('canvas'); c.width = c.height = 64;
+const g2 = c.getContext('2d'); g2.fillStyle = '#e8c890'; g2.fillRect(0,0,64,64); g2.strokeStyle = '#a07040';
+for (let i=0;i<8;i++){ g2.beginPath(); g2.moveTo(i*8,0); g2.lineTo(i*8+20,64); g2.stroke(); }
+const tex = PIXI.Texture.from(c);
+tex.source.style.addressMode = 'repeat'; tex.source.style.update?.();
+const g = new PIXI.Graphics();
+g.poly([0,300, 200,260, 400,280, 800,240, 800,400, 0,400]).fill({ texture: tex, textureSpace: 'global' });
+app.stage.addChild(g);
+// mesh rope
+const rc = document.createElement('canvas'); rc.width = 128; rc.height = 16;
+const r2 = rc.getContext('2d'); const grd = r2.createLinearGradient(0,0,0,16); grd.addColorStop(0,'rgba(0,0,0,0)'); grd.addColorStop(0.5,'#c05020'); grd.addColorStop(1,'rgba(0,0,0,0)'); r2.fillStyle = grd; r2.fillRect(0,0,128,16);
+const pts = []; for (let i=0;i<20;i++) pts.push(new PIXI.Point(100+i*15, 100+Math.sin(i/3)*30));
+const rope = new PIXI.MeshRope({ texture: PIXI.Texture.from(rc), points: pts });
+app.stage.addChild(rope);
+// tiling multiply
+const pc = document.createElement('canvas'); pc.width = pc.height = 64; const p2 = pc.getContext('2d');
+p2.fillStyle = '#fff'; p2.fillRect(0,0,64,64); for (let i=0;i<300;i++){ p2.fillStyle = `rgba(0,0,0,${Math.random()*0.15})`; p2.fillRect(Math.random()*64,Math.random()*64,1,1);} 
+const ts = new PIXI.TilingSprite({ texture: PIXI.Texture.from(pc), width: 800, height: 400 });
+ts.blendMode = 'multiply'; app.stage.addChild(ts);
+// render texture
+const rt = PIXI.RenderTexture.create({ width: 200, height: 100 });
+const gg = new PIXI.Graphics().circle(50,50,40).fill('#3060c0');
+app.renderer.render({ container: gg, target: rt });
+const sp = new PIXI.Sprite(rt); sp.x = 550; sp.y = 50; app.stage.addChild(sp);
+app.render();
+window.__ok = true; log('done');
+</script></body></html>
