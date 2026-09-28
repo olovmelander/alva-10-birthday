@@ -620,6 +620,8 @@
             ['alva', 'Mira! Där är du ju! Var har du varit?'],
             ['mira', 'Jag har hjälpt en tigerunge att hitta sin mamma och pappa! Titta, jag har tagit kort!'],
             ['pappa', 'Oj! Det måste du berätta allt om.'],
+            ['alva', 'Får jag följa med nästa gång?'],
+            ['pappa', 'Nästa gång åker vi allihop tillsammans!'],
             { caption: 'De tittar upp mot himlen. Där blinkar tre nya stjärnor, alldeles bredvid varandra: en mamma, en pappa och en liten unge.', action: 'constellation' },
             { caption: 'Och varje gång Mira tittar upp mot stjärnorna, blinkar tre tigrar tillbaka. ⭐' },
             { action: 'theEnd' }

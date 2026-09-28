@@ -153,8 +153,9 @@
                 this.actors.mira = { sprite: `mira-${store.data.outfit}`, anim: id === 'prologue' ? 'sit' : 'idle', x: 150, y: 0, dir: 1, frame: 0 };
                 this.actors.nova = { sprite: 'nova', anim: 'sit', x: 235, y: 0, dir: -1, hidden: id === 'prologue', frame: 0 };
                 if (id === 'epilogue') {
-                    this.actors.alva = { sprite: 'alva', anim: 'idle', x: -40, y: 0, dir: 1, frame: 0, hidden: true };
-                    this.actors.pappa = { sprite: 'pappa', anim: 'idle', x: -70, y: 0, dir: 1, frame: 0, hidden: true };
+                    // Alva runs to her little sister; Pappa hurries after
+                    this.actors.alva = { sprite: 'alva', anim: 'idle', x: -40, y: 0, dir: 1, frame: 0, hidden: true, speed: 56 };
+                    this.actors.pappa = { sprite: 'pappa', anim: 'idle', x: -70, y: 0, dir: 1, frame: 0, hidden: true, speed: 40 };
                     this.actors.nova.hidden = true;
                     this.gondola = { x: 560, y: -400, miraAnim: 'wave', miraFrame: 0, novaAnim: 'sit', novaFrame: 0, novaVisible: false, outfit: store.data.outfit, lamp: true, visible: false };
                     this.actors.mira.hidden = true;
@@ -299,7 +300,15 @@
                         A.alva.anim = 'walk';
                         A.pappa.anim = 'walk';
                     });
-                    later(5, then);
+                    {
+                        // Alva speaks first, so wait until she is by Mira's side
+                        const start = this.time;
+                        const ready = () => {
+                            if (this.time - start > 3.6 && (A.alva.walkTo === undefined || this.time - start > 10)) then();
+                            else later(0.2, ready);
+                        };
+                        later(3.8, ready);
+                    }
                     break;
                 case 'constellation':
                     this.constellation = 0;
@@ -341,7 +350,7 @@
                         a.anim = a === this.actors.mira ? 'idle' : 'idle';
                     } else {
                         a.dir = Math.sign(d);
-                        a.x += Math.sign(d) * Math.min(Math.abs(d), 28 * dt);
+                        a.x += Math.sign(d) * Math.min(Math.abs(d), (a.speed || 28) * dt);
                     }
                 }
                 a.talk = Math.max(0, (a.talk || 0) - dt);
