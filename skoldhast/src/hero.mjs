@@ -2,7 +2,9 @@
  * The sköldhäst on screen: Pixi sprites and strip meshes driven by rig.mjs.
  *
  *   const hero = createHero(PIXI, { textures, rig, mini });
- *   hero.view            // Container; origin = ground under the middle of the body; faces right
+ *   hero.view            // Container; origin = ground under the middle of the body; faces right.
+ *                        // The caller positions and scales it (normally at s.x, s.y); facing
+ *                        // is mirrored inside, so never flip view.scale.x yourself.
  *   hero.update(dt, s)   // s: state snapshot (skoldhast/dev/SPEC.md §2)
  *   hero.destroy()
  *
@@ -57,6 +59,8 @@ export function createHero(PIXI, { textures, rig, mini = false } = {}) {
     const eyeTex = EYE.map(tex);
     mk('eye', EYE[0]);
     mk('mouth', rig.parts.mouth.texture).visible = false;
+    const mouthTex = [tex(rig.parts.mouth.talk || rig.parts.mouth.texture), tex(rig.parts.mouth.texture)];
+    let lastMouth = -1;
     for (const leg of an.legs) {
         const L = rig.legs[leg.name];
         mk(`${leg.name}.upper`, L.upper);
@@ -105,7 +109,8 @@ export function createHero(PIXI, { textures, rig, mini = false } = {}) {
     let lastTint = -1;
     function update(dt, s) {
         const pose = an.update(dt, s);
-        view.position.set(s.x || 0, s.y || 0);
+        // the caller places view at (s.x, s.y) (or anywhere else: a parallax layer, the prologue's
+        // picture); the pose is local to that point, so update() never moves the view itself
         flip.scale.x = s.facing === -1 ? -1 : 1;
         for (let i = 0; i < pairs.length; i++) {
             const sp = pairs[i][0], p = pairs[i][1];
@@ -113,6 +118,8 @@ export function createHero(PIXI, { textures, rig, mini = false } = {}) {
             sp.rotation = p.rot;
         }
         sprites.mouth.visible = pose.parts.mouth.visible;
+        const mo = pose.mouthOpen ? 1 : 0;
+        if (mo !== lastMouth) { sprites.mouth.texture = mouthTex[mo]; lastMouth = mo; }
         if (pose.eye !== lastEye) { sprites.eye.texture = eyeTex[pose.eye]; lastEye = pose.eye; }
         // shadows
         const sh = pose.shadow;
