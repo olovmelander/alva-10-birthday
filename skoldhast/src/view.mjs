@@ -310,7 +310,8 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
                 continue;
             }
             const s = spr(it.sprite);
-            if (it.flip) s.scale.x = -1;
+            if (it.scale) s.scale.set(it.scale);
+            if (it.flip) s.scale.x = -Math.abs(s.scale.x);
             if (it.layer === 'sky') {
                 skyLayer.addChild(s);
                 d.sky.push({ kind: 'sky', s, x: it.x, y: it.y, par: it.par ?? 0.15, anim: it.anim, it });
@@ -414,7 +415,7 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
             // backsippa clumps and tussocks
             O.clumps = (def.clumps || []).map((c) => { const s = spr('backsippa'); s.x = c.x; s.y = c.y; L.mid.addChild(s); const b = spr('backsippa-bare'); b.x = c.x; b.y = c.y; b.visible = false; L.mid.addChild(b); return { c, s, b }; });
             O.tussocks = (def.tussocks || []).map((t) => { const s = spr('tussock-dotted'); s.x = t.x; s.y = t.y; L.objects.addChild(s); return { t, s }; });
-            O.pinwheels = (def.pinwheels || []).map((pw) => { const s = spr('pinwheel'); s.x = pw.x; s.y = pw.y; L.mid.addChild(s); const hd = spr('pinwheel-head'); hd.anchor?.set?.(0.5); hd.x = pw.x; hd.y = pw.y - 100; L.mid.addChild(hd); return { pw, s, hd, a: 0 }; });
+            O.pinwheels = (def.pinwheels || []).map((pw) => { const s = spr('pinwheel'); s.x = pw.x; s.y = pw.y; L.mid.addChild(s); const hd = spr('pinwheel-head'); hd.anchor?.set?.(0.5); hd.x = pw.x; hd.y = pw.y - 110; L.mid.addChild(hd); return { pw, s, hd, a: 0 }; });
             O.shells = (def.shells || []).map((sh, i) => { const s = spr('shell-' + (1 + (i % 6))); s.x = sh.x; s.y = heightOn(def.surfaces.find((q) => q.id === 'beach').pts, sh.x) ?? -80; L.mid.addChild(s); return { sh, s, glow: 0 }; });
             O.flagpole = spr('flagpole'); O.flagpole.x = def.spots.flagpole.x; O.flagpole.y = def.spots.flagpole.y; L.mid.addChild(O.flagpole);
             O.flag = spr('flag'); O.flag.x = def.spots.flagpole.x + 4; L.mid.addChild(O.flag);
@@ -475,7 +476,8 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
             c._fish = fish;
         }
         if (def.id === 'viken') {
-            const lh = spr('lighthouse'); lh.x = def.spots.lighthouse.x; lh.y = w.top + (w.top - def.spots.lighthouse.y); lh.scale.y = -1; inner.addChild(lh);
+            const k = def.lighthouseScale || 1;
+            const lh = spr('lighthouse'); lh.x = def.spots.lighthouse.x; lh.y = w.top + (w.top - def.spots.lighthouse.y); lh.scale.set(k, -k); inner.addChild(lh);
             for (const sh of def.shutters) { const s = spr('shutter-open'); s.anchor?.set?.(0.5); s.x = sh.x; s.y = w.top + (w.top - sh.y); s.scale.y = -1; inner.addChild(s); }
             const lamp = spr('lamp-lit'); lamp.anchor?.set?.(0.5); lamp.x = def.lamp.x; lamp.y = w.top + (w.top - def.lamp.y); inner.addChild(lamp);
             mask.clear().rect(w.x0, w.top, w.x1 - w.x0, h(9)).fill({ color: 0xffffff });

@@ -633,7 +633,7 @@ export function createGame({ host = document.body, assetBase = './skoldhast/', r
     function dispose() { return close(); }
 
     // for automated tests and the ?debug overlay
-    const api = { open, close, pause, resume, dispose, get state() { return state; }, get debug() { return { G, view, ui, app, assets, story, input }; } };
+    const api = { open, close, pause, resume, dispose, get state() { return state; }, get debug() { return { G, view, ui, app, assets, story, input, heroHit, heroScreen }; } };
     window.__skoldhast = api;
     return api;
 }

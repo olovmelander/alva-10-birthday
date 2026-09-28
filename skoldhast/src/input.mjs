@@ -14,6 +14,8 @@ export function createInput(root, ui, opts) {
     let hopHeld = false;
     let enabled = true;
     const R = 58; // stick radius, CSS px
+    let stickTap = null;
+    let lastTap = null; // for tests
 
     // --- the stick --------------------------------------------------------------
     const zone = ui.stickZone;
@@ -21,6 +23,8 @@ export function createInput(root, ui, opts) {
         if (!enabled || stick.id !== null) return;
         if (opts.settings().followFinger) return;
         stick.id = e.pointerId;
+        // the sköldhäst often stands inside the stick band: a quick tap on it is still a Gnägg
+        stickTap = { x: e.clientX, y: e.clientY, t: e.timeStamp, moved: false };
         const r = zone.getBoundingClientRect();
         stick.ox = e.clientX - r.left; stick.oy = e.clientY - r.top;
         stick.x = stick.y = 0; stick.latched = 0;
@@ -32,6 +36,7 @@ export function createInput(root, ui, opts) {
     }, sig);
     zone.addEventListener('pointermove', (e) => {
         if (e.pointerId !== stick.id) return;
+        if (stickTap && Math.hypot(e.clientX - stickTap.x, e.clientY - stickTap.y) > 14) stickTap.moved = true;
         const r = zone.getBoundingClientRect();
         let dx = (e.clientX - r.left - stick.ox) / R, dy = (e.clientY - r.top - stick.oy) / R;
         const m = Math.hypot(dx, dy);
@@ -42,6 +47,8 @@ export function createInput(root, ui, opts) {
     }, sig);
     const endStick = (e) => {
         if (e && e.pointerId !== stick.id) return;
+        if (e && e.type === 'pointerup' && stickTap && !stickTap.moved && e.timeStamp - stickTap.t < 350 && opts.heroHit(stickTap.x, stickTap.y)) edges.tapHero = true;
+        stickTap = null;
         // Håll kvar galoppen: letting go at full gallop keeps galloping
         if (opts.settings().holdGallop && opts.isGalloping() && Math.abs(stick.x) > 0.7) stick.latched = Math.sign(stick.x);
         stick.id = null; stick.x = stick.y = 0;
@@ -58,14 +65,16 @@ export function createInput(root, ui, opts) {
     let tapStart = null;
     canvasArea.addEventListener('pointerdown', (e) => {
         if (!enabled) return;
-        tapStart = { x: e.clientX, y: e.clientY, t: performance.now(), id: e.pointerId };
+        tapStart = { x: e.clientX, y: e.clientY, t: e.timeStamp, id: e.pointerId }; // event times: robust to a slow frame
         if (opts.settings().followFinger) { finger.id = e.pointerId; finger.x = e.clientX; finger.y = e.clientY; canvasArea.setPointerCapture?.(e.pointerId); }
     }, sig);
     canvasArea.addEventListener('pointermove', (e) => { if (e.pointerId === finger.id) { finger.x = e.clientX; finger.y = e.clientY; } }, sig);
     const endFinger = (e) => {
         if (tapStart && e.pointerId === tapStart.id) {
-            const quick = performance.now() - tapStart.t < 300 && Math.hypot(e.clientX - tapStart.x, e.clientY - tapStart.y) < 14;
-            if (quick && !opts.settings().followFinger && opts.heroHit(e.clientX, e.clientY)) edges.tapHero = true;
+            const quick = e.timeStamp - tapStart.t < 350 && Math.hypot(e.clientX - tapStart.x, e.clientY - tapStart.y) < 14;
+            const hit = quick && !opts.settings().followFinger && opts.heroHit(e.clientX, e.clientY);
+            if (hit) edges.tapHero = true;
+            lastTap = { dt: Math.round(e.timeStamp - tapStart.t), quick, hit };
             if (quick && opts.onTap) opts.onTap(e.clientX, e.clientY);
             tapStart = null;
         }
@@ -152,6 +161,7 @@ export function createInput(root, ui, opts) {
             return out;
         },
         release: releaseAll,
+        get lastTap() { return lastTap; },
         setEnabled(on) { enabled = on; if (!on) releaseAll(); },
         destroy() { ac.abort(); releaseAll(); }
     };

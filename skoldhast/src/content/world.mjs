@@ -412,7 +412,8 @@ SCENES.viken = {
         { id: 'p8-d3', pts: L([18.2, -0.62], [23.6, -0.62]), flag: 'p8_s3', balk: false, decal: true, dir: 1, when: 'talk_done', glow: true }
     ],
     decor: [
-        { sprite: 'lighthouse', x: h(29.8), y: h(-0.45), layer: 'mid', lighthouse: true },
+        // scaled so the drawn gallery (1000 px above its base) meets the walkable gallery at -7.3 HL
+        { sprite: 'lighthouse', x: h(29.8), y: h(-0.45), layer: 'mid', lighthouse: true, scale: 1.37 },
         { sprite: 'pier-end-rail', x: h(24.1), y: h(-0.62), layer: 'mid', when: '!p8_land' },
         { sprite: 'pipe', x: h(26.5), y: h(5.4), layer: 'mid' },
         { sprite: 'stair', x: h(25.4), y: h(-0.62), layer: 'mid' },
@@ -428,13 +429,14 @@ SCENES.viken = {
         { gulls: 2, x: h(18), y: h(-5.5), layer: 'sky', par: 0.25 }
     ],
     chains: [
-        { id: 'chain1', from: { x: h(12.8), y: h(-1.3) }, to: { x: h(29.1), y: h(-8.35) }, shutter: 0 },
-        { id: 'chain2', from: { x: h(14.2), y: h(6.7) }, to: { x: h(29.8), y: h(-8.35) }, shutter: 1 },
-        { id: 'chain3', from: { x: h(28.6), y: h(-7.35) }, to: { x: h(30.5), y: h(-8.35) }, shutter: 2 }
+        { id: 'chain1', from: { x: h(12.8), y: h(-1.3) }, to: { x: h(29.266), y: h(-7.985) }, shutter: 0 },
+        { id: 'chain2', from: { x: h(14.2), y: h(6.7) }, to: { x: h(29.8), y: h(-7.985) }, shutter: 1 },
+        { id: 'chain3', from: { x: h(28.6), y: h(-7.35) }, to: { x: h(30.334), y: h(-7.985) }, shutter: 2 }
     ],
-    // the lamp room: three shutters (world positions for the sprites)
-    shutters: [{ x: h(29.1), y: h(-8.35), flag: 'shutter1' }, { x: h(29.8), y: h(-8.35), flag: 'shutter2' }, { x: h(30.5), y: h(-8.35), flag: 'shutter3' }],
-    lamp: { x: h(29.8), y: h(-8.6) },
+    // the lamp room: three shutters on the drawn lighthouse (its attachment points, ×1.37: ±78 and −1100 px from the base)
+    shutters: [{ x: h(29.266), y: h(-7.985), flag: 'shutter1' }, { x: h(29.8), y: h(-7.985), flag: 'shutter2' }, { x: h(30.334), y: h(-7.985), flag: 'shutter3' }],
+    lamp: { x: h(29.8), y: h(-7.985) },
+    lighthouseScale: 1.37,
     mirrorZone: { x0: h(14), x1: h(24.2), needHiddenOn: 'pier' },
     exits: [
         { id: 'to-land', x0: h(-1), x1: h(0.2), to: 'land', spawn: 'fromViken', auto: true, when: 'gate_open' }
