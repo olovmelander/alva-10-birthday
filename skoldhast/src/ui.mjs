@@ -231,7 +231,7 @@ export function createUI(host, { assetBase, handlers }) {
                 if (!state.flags.has('ch1_end')) c.append(el('p', 'sk-j-small', '…'));
             },
             (c) => {
-                if (state.flags.has('ended')) c.append(el('p', 'sk-j-conclusion', JOURNAL.conclusionFull || JOURNAL.conclusion));
+                if (state.flags.has('conclusion') || state.flags.has('ended')) c.append(el('p', 'sk-j-conclusion', JOURNAL.conclusionFull || JOURNAL.conclusion));
                 c.append(el('h3', '', JOURNAL.yourNote));
                 const ta = el('textarea', 'sk-j-note');
                 ta.maxLength = 200;

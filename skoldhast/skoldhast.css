@@ -176,3 +176,15 @@ html.skoldhast-lock, html.skoldhast-lock body { overflow: hidden !important; ove
     .sk-dlg-next, .sk-btn.pulse, .sk-hint-mark.on { animation: none; }
 }
 .sk-ui.less-motion .sk-dlg-next, .sk-ui.less-motion .sk-btn.pulse { animation: none; }
+
+/* WebGL context lost for good: one big tap restarts the game from the save */
+.sk-message.sk-tap { font: inherit; font-size: 1.3rem; padding: 20px 28px; border: 2px solid #3b3530; border-radius: 14px; cursor: pointer; color: #3b3530; }
+
+/* stacking inside the game: panels (code, journal, menus) always above the title and the HUD */
+.sk-hud, .sk-controls, .sk-caption { z-index: 2; }
+.sk-dialogue, .sk-choice { z-index: 4; }
+.sk-title { z-index: 5; }
+.sk-draw { z-index: 6; }
+.sk-toasts { z-index: 7; }
+.sk-panel { z-index: 8; }
+.sk-message { z-index: 10; }

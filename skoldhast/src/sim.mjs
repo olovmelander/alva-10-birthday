@@ -257,7 +257,7 @@ export function stepPlayer(p, input, world, dt, events) {
     if (p.auto) { ix = p.auto.dir; iy = 0; }
 
     // --- Göm dig toggle -------------------------------------------------------
-    if (input.hide && p.lockInput <= 0) {
+    if (input.hide && p.lockInput <= 0 && !p.auto) {
         if (p.hidden) unhide(p, events);
         else if (p.mode === 'leap' || p.mode === 'streck' || p.mode === 'air' || p.jump) p.hideQueued = true;
         else p.hideQueued = true;

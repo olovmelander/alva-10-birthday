@@ -466,13 +466,21 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
         S = null;
     }
 
-    function setScene(id) {
+    function setScene(id, { keepCam = false } = {}) {
         clearScene();
         S = buildScene(G.scenes[id]);
         S.id = id;
+        S.placeholders = countPlaceholders();
         L.hero.addChild(hero.view);
-        cam.snap = true;
+        cam.snap = !keepCam;
         makeTooth();
+    }
+    /** true when the scene was built with all of its art (no placeholders) */
+    function countPlaceholders() {
+        let n = 0;
+        const walk = (c) => { if (c._placeholder) n++; for (const ch of c.children || []) walk(ch); };
+        walk(world);
+        return n;
     }
 
     // --- per-frame update -------------------------------------------------------------------------
@@ -739,12 +747,14 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
         notebook: ['klo-notebook'], whisper: ['klo-whisper'], 'map-corner': ['klo-map-corner'], 'sign-folded': ['klo-sign-folded'], happy: ['klo-happy'],
         walk: ['klo-walk-1', 'klo-walk-2', 'klo-walk-3', 'klo-walk-4']
     };
+    // frames with lettering (her SKÖLD häst signs, the /K on the map corner) must never be mirrored
+    const LETTERED = new Set(['signs', 'sign-folded', 'map-corner']);
     function drawActor(s, a, kind, dt) {
         const vis = a.visible && a.scene === S.id;
         s.visible = vis;
         if (!vis) return;
         s.x = a.x; s.y = a.y;
-        s.scale.x = a.facing < 0 ? -1 : 1;
+        s.scale.x = a.facing < 0 && !(kind === 'klo' && LETTERED.has(a.pose) && !a.walk && !a.inHole) ? -1 : 1;
         const pop = a.pop || 0;
         s.scale.y = 1 - pop * 0.6;
         s.alpha = 1 - pop * 0.5;
@@ -934,6 +944,7 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
     return {
         setScene, render, fx, resize, destroy, cam, emit, fadeTo,
         get sceneId() { return S?.id; },
+        built(id) { return S?.id === id && S.placeholders === 0; },
         replaceHero(newHero) { L.hero.removeChild(hero.view); hero.destroy?.(); hero = newHero; L.hero.addChild(hero.view); },
         world, root, layers: L,
         /** Render the current scene into a texture with a given camera (the prologue picture). */

@@ -24,12 +24,16 @@ import { countPencils, totalPencils, createPuzzleState } from './puzzles.mjs';
 import { UI, BALK, CAPTIONS, FAMILY, JOURNAL } from './content/sv.mjs';
 import { CHECKPOINTS } from './content/world.mjs';
 
+// the art bundle each scene draws from (boot holds the hero, Klo, the table and the UI)
+const SCENE_BUNDLES = { land: ['land'], kelp: ['sea', 'bay'], viken: ['bay', 'sea'] };
+
 const DEFAULT_SETTINGS = { help: 'normal', holdGallop: false, followFinger: false, holdToHide: false, bigText: false, lessMotion: false, music: 0.8, sfx: 0.9, voice: 1 };
 
 export function createGame({ host = document.body, assetBase = './skoldhast/', released, onClose } = {}) {
     let state = 'closed';
     let el = null, app = null, assets = null, G = null, view = null, ui = null, input = null, audio = null, story = null, table = null;
     let raf = 0, last = 0, acc = 0, paused = false, mode = 'title';
+    let glLostAt = 0, glPrompt = null;
     let slot = { id: 'alva', label: UI.slotAlva };
     let settings = { ...DEFAULT_SETTINGS };
     let note = '';
@@ -108,6 +112,10 @@ export function createGame({ host = document.body, assetBase = './skoldhast/', r
         if (state !== 'opening') return; // closed while loading
         app.canvas.className = 'sk-canvas';
         el.appendChild(app.canvas);
+        // WebGL context loss (plan §8.2): Pixi restores its textures itself; if the context has not come
+        // back 2 s after the tab is visible, save and offer a clean restart behind one tap
+        app.canvas.addEventListener('webglcontextlost', () => { glLostAt = performance.now(); }, { signal: listeners.signal });
+        app.canvas.addEventListener('webglcontextrestored', () => { glLostAt = 0; }, { signal: listeners.signal });
         assets = createAssets(PIXI, assetBase);
         try {
             await assets.init();
@@ -134,7 +142,10 @@ export function createGame({ host = document.body, assetBase = './skoldhast/', r
             onKey: (k) => { if (mode !== 'play') return; if (k === 'journal') openJournal(); if (k === 'pause') openPause(); }
         });
         await loadAudio();
-        story = createStory(G, { ui, fx: (n, d) => view.fx(n, d), audio, save: () => saveNow() });
+        story = createStory(G, {
+            ui, audio, fx: (n, d) => view.fx(n, d), save: () => saveNow(),
+            toScreen: (x, y) => ({ x: view.world.position.x + x * view.world.scale.x, y: view.world.position.y + y * view.world.scale.y })
+        });
         G.story = story;
         table = createTable({ PIXI, app, view, G, ui, audio, assets, makeHero: () => heroFactory() });
         table.setJournalState(() => journalState());
@@ -178,6 +189,16 @@ export function createGame({ host = document.body, assetBase = './skoldhast/', r
             console.warn('Sköldhästen: audio unavailable', err);
             audio = null;
         }
+    }
+
+    function contextGone() {
+        try { saveNow(); } catch { /* keep going */ }
+        glPrompt = document.createElement('button');
+        glPrompt.className = 'sk-message sk-tap';
+        glPrompt.type = 'button';
+        glPrompt.textContent = UI.tapToGo;
+        el.appendChild(glPrompt);
+        glPrompt.onclick = async () => { await close(); glPrompt = null; glLostAt = 0; open(); };
     }
 
     function showFatal(text) {
@@ -248,17 +269,27 @@ export function createGame({ host = document.body, assetBase = './skoldhast/', r
         note = '';
     }
 
+    /** Wait for a scene's art (they load in the background after boot; usually already here). */
+    async function sceneArt(id) {
+        const wanted = (SCENE_BUNDLES[id] || []).filter((b) => assets.bundles().includes(b) && !assets.loaded(b));
+        if (!wanted.length) return;
+        let slow = setTimeout(() => { slow = null; ui.toast(UI.loading, 2500); }, 350);
+        try { await Promise.all(wanted.map((b) => assets.load(b))); } finally { if (slow) clearTimeout(slow); }
+    }
+
     async function newGame() {
         resetLogic();
         mode = 'table';
         ui.showControls(false);
+        await sceneArt('land');
+        if (state !== 'open') return;
         await table.prologue();
         G.chapterFlags();
         startPlay('start');
         saveNow();
     }
 
-    function continueGame(data) {
+    async function continueGame(data) {
         resetLogic();
         note = data.note || '';
         if (data.settings) settings = { ...DEFAULT_SETTINGS, ...data.settings };
@@ -266,13 +297,19 @@ export function createGame({ host = document.body, assetBase = './skoldhast/', r
         G.restore(data);
         if (data.strokes) restoreStrokes(data.strokes);
         if (!G.flags.has('intro_done')) { newGame(); return; }
+        mode = 'loading';
+        await sceneArt(G.sceneId);
+        if (state !== 'open') return;
         startPlay(null);
     }
 
-    function restoreCode(n) {
+    async function restoreCode(n) {
         resetLogic();
         const r = CODE_RESTORE[n];
         G.restore({ flags: r.flags, checkpoint: r.checkpoint, puz: {} });
+        mode = 'loading';
+        await sceneArt(G.sceneId);
+        if (state !== 'open') return;
         startPlay(null);
         saveNow();
     }
@@ -335,6 +372,11 @@ export function createGame({ host = document.body, assetBase = './skoldhast/', r
         let dt = (now - last) / 1000;
         last = now;
         if (dt > 0.25) dt = 0.25;
+        if (glLostAt) {
+            if (document.hidden) glLostAt = now; // count from when the tab is visible again
+            else if (now - glLostAt > 2000 && !glPrompt) contextGone();
+            return;
+        }
         if (paused || state !== 'open') { if (app) app.render(); return; }
         const t0 = performance.now();
         if (mode === 'play') {
@@ -351,7 +393,18 @@ export function createGame({ host = document.body, assetBase = './skoldhast/', r
                 first = false; acc -= STEP; steps++;
             }
             if (steps >= 10) acc = 0;
-            if (G.sceneId !== view.sceneId && !G.vista) { view.setScene(G.sceneId); audio?.setArea(G.finalRun ? 'final' : areaFor(G.sceneId)); }
+            if (G.sceneId !== view.sceneId && !G.vista) {
+                const id = G.sceneId;
+                view.setScene(id);
+                audio?.setArea(G.finalRun ? 'final' : areaFor(id));
+                // art still arriving (slow network): redraw the scene when it is here
+                const missing = (SCENE_BUNDLES[id] || []).filter((b) => assets.bundles().includes(b) && !assets.loaded(b));
+                if (missing.length) {
+                    Promise.all(missing.map((b) => assets.load(b))).then(() => {
+                        if (view && G && G.sceneId === id && view.sceneId === id && !view.built(id)) view.setScene(id, { keepCam: true });
+                    });
+                }
+            }
             const snap = snapshot(G.player, acc / STEP, G.terrain, G.time);
             view.render(snap, dt);
             ui.setContext(G.context?.label, G.player.hidden);
@@ -553,6 +606,7 @@ export function createGame({ host = document.body, assetBase = './skoldhast/', r
             el?.remove();
             restoreHost();
             app = null; view = null; ui = null; input = null; audio = null; story = null; table = null; G = null; assets = null;
+            glLostAt = 0; glPrompt = null;
             state = 'closed';
         })();
         const done = closing;

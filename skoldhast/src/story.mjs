@@ -13,7 +13,7 @@
  *   audio.* (see audio.mjs), save()
  */
 import { HL } from './sim.mjs';
-import { STORY, HINTS, JOURNAL, BALK, HER_TEXT, FAMILY } from './content/sv.mjs';
+import { STORY, HINTS, JOURNAL, BALK, HER_TEXT, FAMILY, UI } from './content/sv.mjs';
 
 const h = (v) => v * HL;
 
@@ -467,8 +467,12 @@ export function createStory(G, io) {
     beat('k3_window', {
         on: 'windowReached',
         async run(s) {
-            await s.cam({ x: G.sceneDef.spots.window.x, y: G.sceneDef.spots.window.y, zoom: 1.2, t: 0.8, hold: 0.4 });
-            await io.ui.draw({ kind: 'last' });
+            const win = G.sceneDef.spots.window;
+            await s.cam({ x: win.x, y: win.y, zoom: 1.2, t: 0.8, hold: 0.9 });
+            // Alva's pencil joins the two half-marks across the window (tap or trace the anchors; it can't fail)
+            const anchors = [];
+            for (let i = 0; i < 4; i++) { const q = io.toScreen?.(win.x - h(0.9) + i * h(0.6), win.y); if (q) anchors.push([q.x, q.y]); }
+            await io.ui.draw({ prompt: UI.drawLast, anchors: anchors.length ? anchors : null, width: 6, color: '#3b3530' });
             G.flag('p8_done');
             s.stinger('aha');
             // Kartväktaren chooses

@@ -14,6 +14,7 @@ export function createAssets(PIXI, base) {
     const data = new Map();        // data name → object
     const loadedUrls = new Set();
     const pending = new Map();     // bundle → Promise
+    const done = new Set();        // bundles fully loaded
     let manifest = null;
 
     const url = (f) => base + 'assets/' + f;
@@ -54,7 +55,7 @@ export function createAssets(PIXI, base) {
             if (d.bundle !== bundle) continue;
             jobs.push(fetch(url(d.file)).then((r) => r.json()).then((o) => data.set(name, o)).catch((e) => console.warn('data', name, e)));
         }
-        const p = Promise.all(jobs).then(() => bundle);
+        const p = Promise.all(jobs).then(() => { done.add(bundle); return bundle; });
         pending.set(bundle, p);
         return p;
     }
@@ -62,7 +63,7 @@ export function createAssets(PIXI, base) {
     async function close() {
         const urls = [...loadedUrls];
         loadedUrls.clear();
-        frames.clear(); images.clear(); pending.clear();
+        frames.clear(); images.clear(); pending.clear(); done.clear();
         try { await PIXI.Assets.unload(urls); } catch (e) { console.warn('unload', e); }
     }
 
@@ -75,6 +76,7 @@ export function createAssets(PIXI, base) {
         data: (name) => data.get(name) || null,
         frameNames: () => [...frames.keys()],
         has: (name) => frames.has(name) || images.has(name),
+        loaded: (bundle) => done.has(bundle),
         bundles: () => [...new Set(Object.values(manifest?.atlases || {}).map((a) => a.bundle).concat(Object.values(manifest?.images || {}).map((a) => a.bundle)))]
     };
 }
