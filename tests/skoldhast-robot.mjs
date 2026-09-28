@@ -30,8 +30,9 @@ export function createRobot({ released = 3, verbose = false } = {}) {
         ui,
         audio: null,
         save: () => log.push({ t: G.time, kind: 'save', checkpoint: G.checkpoint }),
-        fx: async (name) => {
+        fx: async (name, data) => {
             log.push({ t: G.time, kind: 'fx', name });
+            data?.onCovered?.();
             await G.wait(name === 'plask' ? 1 : 0.3);
         }
     };

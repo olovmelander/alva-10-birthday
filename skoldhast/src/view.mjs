@@ -450,6 +450,9 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
         O.kloSign = spr('sign-hast'); O.kloSign.visible = false; L.actors.addChild(O.kloSign);
         O.kv = spr('kv-stand'); O.kv.visible = false; L.actors.addChild(O.kv);
         O.figure = spr('kv-walk-1'); O.figure.visible = false; L.actors.addChild(O.figure);
+        O.signe = spr('turtle-signe'); O.signe.visible = false; L.actors.addChild(O.signe);
+        // Sandpapperet: hoofprints on sand (walk prints fade, gallop prints stay as graphite)
+        if (def.printMats) { O.prints = new PIXI.Container(); L.mid.addChild(O.prints); O.printSprites = []; }
         // the hint mark and Alva's own gull
         O.hint = spr('p-glow'); O.hint.anchor?.set?.(0.5); O.hint.visible = false; L.hints.addChild(O.hint);
         O.hintGull = null;
@@ -751,6 +754,8 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
         if (O.kloSign.visible) { setTex(O.kloSign, k.holding); O.kloSign.x = O.klo.x + 20 * k.facing; O.kloSign.y = O.klo.y - 70; }
         drawActor(O.kv, G.actors.kv, 'kv', dt);
         drawActor(O.figure, G.actors.figure, 'figure', dt);
+        drawActor(O.signe, G.actors.signe, 'signe', dt);
+        drawPrints();
         // hints
         const hi = G.story?.hintInfo?.();
         if (hi && hi.level >= 0.5 && hi.spot && !G.busy) {
@@ -795,10 +800,47 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
             if (S.def.underwater || (S.id === 'viken' && a.y > 0)) s.y += Math.sin(time * 2) * 8;
         } else if (kind === 'kv') {
             setTex(s, 'kv-' + (a.walk ? (Math.floor(time * 6) % 2 ? 'walk-1' : 'walk-2') : a.pose));
+        } else if (kind === 'signe') {
+            const moving = a.walk || a.pose === 'walk';
+            setTex(s, moving ? (Math.floor(time * 6) % 2 ? 'turtle-signe-1' : 'turtle-signe-2') : 'turtle-signe');
+            if (a.pose === 'wave') s.rotation = Math.sin(time * 6) * 0.06; else s.rotation = 0;
         } else {
             setTex(s, Math.floor(time * 7) % 2 ? 'kv-walk-1' : 'kv-walk-2');
         }
         void dt;
+    }
+
+    // --- Sandpapperet ----------------------------------------------------------------------------------
+    const PRINT_KEEP = 360;
+    function addPrint(e) {
+        const def = S?.def;
+        if (!def || !def.printMats || !def.printMats.includes(e.surface) || e.wading) return;
+        const q = G.prints ||= [];
+        const gallop = e.speed >= 1000;
+        // the four hooves land at different places along the body
+        const off = [-0.36, -0.12, 0.14, 0.36][(q.length + (gallop ? 1 : 0)) % 4] * HL * (G.player.facing || 1);
+        q.push({ x: e.x + off, y: e.y, g: gallop, t: time });
+        if (q.length > PRINT_KEEP) q.splice(0, q.length - PRINT_KEEP);
+    }
+    function drawPrints() {
+        const O = S.obj;
+        if (!O.prints) return;
+        const q = G.prints || [];
+        // walk prints fade away after a few seconds; gallop prints are drawn in graphite and stay
+        for (let i = q.length - 1; i >= 0; i--) if (!q[i].g && time - q[i].t > 3 || q[i].t > time + 1) q.splice(i, 1);
+        const need = q.length;
+        while (O.printSprites.length < need) {
+            const sp = spr('hoofprint'); sp.anchor?.set?.(0.5, 0.5);
+            O.prints.addChild(sp); O.printSprites.push(sp);
+        }
+        for (let i = 0; i < O.printSprites.length; i++) {
+            const sp = O.printSprites[i], pr = q[i];
+            sp.visible = !!pr;
+            if (!pr) continue;
+            sp.x = pr.x; sp.y = pr.y + 4;
+            setTex(sp, pr.g ? 'hoofprint-graphite' : 'hoofprint');
+            sp.alpha = pr.g ? 0.8 : Math.max(0, 0.55 * (1 - (time - pr.t) / 3));
+        }
     }
 
     // --- camera -------------------------------------------------------------------------------------
@@ -840,7 +882,12 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
     on('splashOut', (e) => emit('drop', e.x, e.y, 8, { speed: 260 }));
     on('dolphin', (e) => emit('drop', e.x, e.y, 18, { speed: 480 }));
     on('paddle', (e) => { if (e.surface) emit('drop', e.x, e.y - h(0.6), 2, { speed: 120 }); else emit('bubble', e.x, e.y - h(0.5), 2, { g: -300, speed: 60, life: 1.2 }); });
-    on('hoof', (e) => { if (e.speed > 900 && !e.hollow) emit(e.wading ? 'drop' : 'sand', e.x - (G.player.facing * 60), e.y - 6, 2, { speed: 180, angle: G.player.facing > 0 ? -2.6 : -0.5, spread: 0.8, life: 0.45 }); });
+    on('hoof', (e) => {
+        if (e.speed > 900 && !e.hollow) emit(e.wading ? 'drop' : 'sand', e.x - (G.player.facing * 60), e.y - 6, 2, { speed: 180, angle: G.player.facing > 0 ? -2.6 : -0.5, spread: 0.8, life: 0.45 });
+        if (S?.id === 'land') addPrint(e);
+    });
+    on('flag', (e) => { if (e.flag === 'ended' && G.prints) G.prints.length = 0; }); // the tide wipes Sandpapperet clean
+    on('taste', (e) => emit(e.kind === 'kelp' ? 'bubble' : 'dust', e.x, e.y - h(0.2), 6, { speed: 90, g: e.kind === 'kelp' ? -200 : 300 }));
     on('land', (e) => { if (e.big) { emit('dust', e.x, e.y, 16, { speed: 320 }); emit('star', e.x, e.y - h(0.5), 8, { speed: 260, g: 200 }); cam.shake = 10; } else emit('sand', e.x, e.y, 6, { speed: 200 }); });
     on('neigh', (e) => emit(e.under ? 'bubble' : 'note', e.x + G.player.facing * h(0.55), e.y - h(1.0), e.under ? 6 : 3, { g: e.under ? -400 : -80, speed: 90, life: 1.2 }));
     on('shake', (e) => emit('drop', e.x, e.y - h(0.5), 24, { speed: 420, spread: 6.2, angle: 0 }));
@@ -952,7 +999,7 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
                 break;
             }
             case 'epilogue':
-                await onFx?.('epilogue');
+                await onFx?.('epilogue', data);
                 break;
             default:
                 await G.wait(0.3);

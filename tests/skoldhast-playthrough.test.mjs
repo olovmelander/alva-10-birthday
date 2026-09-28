@@ -57,6 +57,11 @@ export async function chapter1(R) {
     assert.ok(R.has('p1_inked'), 'the arch is inked');
     await R.settle();
 
+    // Smaktestet, part one: a mouthful of steppe grass
+    await R.walkTo(74.8);
+    await R.context('taste');
+    await R.settle();
+    assert.ok(R.has('ate_grass'));
     // the first distant sköldhäst, and Klo at Vågmärkesbranten
     await R.walkTo(61, { gallop: true });
     await R.flag('glimpse1', {}, 10);
@@ -82,6 +87,11 @@ export async function chapter1(R) {
     await R.walkTo(101.8, { gallop: true, max: 120 });
     await R.context('exit');
     assert.equal(G.sceneId, 'kelp');
+    await R.settle();
+    // Smaktestet, part two: kelp → Klo logs it (O1)
+    await R.swimTo(15.1, 5.4);
+    await R.context('taste');
+    await R.flag('exp_smak', {}, 10);
     await R.settle();
     await R.swimTo(20.8, 3.4);
     await R.flag('ch1_end', {}, 60);
@@ -211,6 +221,15 @@ if (!process.env.NO_TEST) {
         t.diagnostic(`the end at ${(R.G.time / 60).toFixed(1)} min; ${R.log.filter((l) => l.kind === 'say').length} dialogues`);
         assert.ok(R.G.time / 60 < 60);
         assert.ok(R.has('conclusion') && R.has('unfolded'));
+        assert.equal(R.G.puz.tally, 0, "Klo's signs stay even until the finale");
+        // after the ending: Signe challenges you, and you always win, even at a crawl (O8)
+        await R.flag('signe_met', {}, 20);
+        await R.settle();
+        await R.walkTo(107.2);
+        await R.context('race');
+        await R.until(() => R.G.busy === 0 && R.G.actors.signe.pose !== 'idle', {}, 10, 'the race starts');
+        await R.until(() => R.has('signe_race'), { x: -0.15 }, 90, 'win the race');
+        assert.ok(R.G.actors.signe.x > R.p().x, 'Signe crossed the line after you');
     });
 
     test('with only Kapitel 1 released, the page stays white after its end', { timeout: 240000 }, async () => {

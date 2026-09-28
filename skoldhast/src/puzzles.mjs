@@ -356,6 +356,17 @@ export function contextAction(G) {
         // Skaka: wet and standing still
         if (p.wet > 0 && Math.abs(p.vx) < 40) add(1.5, { id: 'skaka', label: 'Skaka', run: () => G.shake() });
     }
+    // Smaktestet: a mouthful of steppe grass on land, a bite of kelp in the sea (after Klo's "Ja")
+    if (F.has('klo_ja') && !F.has('exp_smak') && !p.hidden && (p.mode === 'ground' || p.mode === 'swim')) {
+        for (const t of sc.tastes || []) {
+            const flag = 'ate_' + t.kind;
+            if (F.has(flag) || !cond(t.when, F)) continue;
+            if ((t.kind === 'kelp') !== (p.mode === 'swim')) continue;
+            if (Math.abs(p.x - t.x) < h(0.8) && Math.abs(p.y - t.y) < h(1.0)) {
+                add(Math.abs(p.x - t.x) / HL + 0.3, { id: 'taste', label: 'Smaka', run: () => { F.add(flag); G.emit('taste', { kind: t.kind, x: t.x, y: t.y }); } });
+            }
+        }
+    }
     if (!cands.length) return null;
     cands.sort((a, b) => a.dist - b.dist);
     return cands[0];

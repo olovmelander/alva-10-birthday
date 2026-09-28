@@ -28,6 +28,9 @@ export function createStory(G, io) {
     G.actors.klo = { id: 'klo', scene: null, x: 0, y: 0, pose: 'idle', facing: -1, visible: false, pop: 0, walk: null, holding: null };
     G.actors.kv = { id: 'kv', scene: null, x: 0, y: 0, pose: 'stand', facing: -1, visible: false, walk: null };
     G.actors.figure = { id: 'figure', scene: null, x: 0, y: 0, pose: 'kv-walk-1', facing: 1, visible: false, walk: null };
+    G.actors.signe = { id: 'signe', scene: null, x: 0, y: 0, pose: 'idle', facing: -1, visible: false, walk: null };
+    let lastTaste = 'grass';
+    G.on('taste', (e) => { lastTaste = e.kind; });
 
     const say = (lines) => io.ui.say(Array.isArray(lines[0]) ? lines : [lines]);
     const api = {
@@ -253,6 +256,21 @@ export function createStory(G, io) {
         async run(s) {
             await s.say(STORY.k1.deep);
             s.experiment('djup', 'skoldpadda');
+        }
+    });
+
+    // Smaktestet (O1): grass on land and kelp in the sea
+    beat('taste', {
+        on: 'taste', repeat: true,
+        async run(s) {
+            const p = G.player;
+            p.action = 'lookdown'; p.actionT = 0; p.actionDur = 1.0;
+            s.sfx('rustle');
+            await s.wait(0.9);
+            if (F.has('ate_grass') && F.has('ate_kelp') && !F.has('exp_smak_logged')) {
+                await s.say(STORY.k1.smak);
+                s.experiment('smak', 'skoldpadda');
+            } else await s.say(lastTaste === 'kelp' ? STORY.k1.tasteKelp : STORY.k1.tasteGrass);
         }
     });
 
@@ -521,7 +539,11 @@ export function createStory(G, io) {
         await s.say(STORY.final.conclusion);
         G.flag('conclusion');
         await s.wait(0.6);
-        await io.fx('epilogue', {});
+        // home to her beach while the table covers the screen, so play resumes there after the epilogue
+        await io.fx('epilogue', {
+            // called once the table covers the screen
+            onCovered: () => { G.actors.klo.visible = false; G.goto('land', 'start', { silent: true }); }
+        });
         G.flag('ended');
         G.flag('b:k3_window');
         G.evening = false;
@@ -530,6 +552,55 @@ export function createStory(G, io) {
         G.terrain.refresh();
         s.checkpoint('beachEnd');
         io.save();
+    }
+
+    // =========================================================================
+    // After the ending: Kapplöpning mot Sköldpaddan Signe (O8). You always win.
+    // =========================================================================
+    const race = { active: false, done: null, wave: 0 };
+    beat('after_signe', {
+        when: () => inScene('land') && F.has('ended') && !G.busy && Math.abs(P().x - G.sceneDef.race.signe.x) < h(6),
+        async run(s) {
+            const r = G.sceneDef.race;
+            await s.appear('signe', { scene: 'land', x: r.signe.x, y: r.signe.y, pose: 'idle', facing: -1 });
+            await s.say(STORY.after.signeHello);
+            G.flag('signe_met');
+        }
+    });
+    beat('_race', {
+        manual: true, lock: false,
+        async run(s) {
+            const r = G.sceneDef.race;
+            const sg = G.actors.signe;
+            G.busy++;
+            Object.assign(sg, { x: r.start.x - h(0.2), y: r.start.y, facing: -1, pose: 'idle', visible: true, scene: 'land' });
+            await s.say(F.has('signe_race') ? STORY.after.signeAgain : STORY.after.signeGo);
+            G.busy--;
+            race.active = true; race.wave = 0;
+            const won = await new Promise((resolve) => { race.done = resolve; });
+            race.active = false;
+            sg.pose = 'idle';
+            G.busy++;
+            await s.say(won ? STORY.after.signeLose : STORY.after.signeGiveUp);
+            G.busy--;
+            if (won) { G.flag('signe_race'); s.stinger('aha'); }
+            // back to her place by the shells
+            await s.walk('signe', r.signe.x, 160);
+        }
+    });
+    function stepRace(dt) {
+        if (!race.active) return;
+        const r = G.sceneDef?.race, sg = G.actors.signe, p = G.player;
+        if (!r || !inScene('land')) { race.done?.(false); return; }
+        if (p.x <= r.finish) { race.done?.(true); return; }
+        if (p.x > r.start.x + h(3)) { race.done?.(false); return; }
+        // a steady turtle trot; near the line she stops to wave to the crowd until you pass
+        const ahead = sg.x < p.x;
+        const nearLine = sg.x - r.finish < h(0.8);
+        if (nearLine && ahead) { sg.pose = 'wave'; race.wave += dt; return; }
+        const v = h(1.25);
+        sg.x = Math.max(r.finish + h(0.2), sg.x - v * dt);
+        sg.facing = -1; sg.pose = 'walk';
     }
 
     // =========================================================================
@@ -546,6 +617,11 @@ export function createStory(G, io) {
                 if (!F.has('talk2')) out.push({ id: 'talk2', label: 'Prata', dist: d / HL, run: () => start(beats.find((b) => b.id === '_talk2')) });
                 else out.push({ id: 'talk3', label: 'Prata', dist: d / HL, run: () => start(beats.find((b) => b.id === '_talk3')) });
             }
+        }
+        const sg = G.actors.signe;
+        if (inScene('land') && F.has('signe_met') && sg.visible && sg.scene === 'land' && !race.active && !sg.walk) {
+            const d = Math.abs(p.x - sg.x);
+            if (d < h(1.4)) out.push({ id: 'race', label: 'Prata', dist: d / HL, run: () => start(beats.find((b) => b.id === '_race')) });
         }
         if (inScene('land')) {
             const n = G.sceneDef.spots.note1;
@@ -612,6 +688,7 @@ export function createStory(G, io) {
             else { a.x += Math.sign(d) * st; a.facing = Math.sign(d); }
         }
         hints(dt);
+        stepRace(dt);
         if (running) return;
         while (queue.length) {
             const b = queue.shift();

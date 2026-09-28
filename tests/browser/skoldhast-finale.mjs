@@ -86,6 +86,7 @@ await shot('after');
 const fin = await state();
 assert.equal(fin.scene, 'land');
 assert.ok(!fin.flags.includes('final_run'));
+assert.ok(Math.abs(fin.x - 108.6) < 1.5, `back on her beach after the epilogue (x=${fin.x})`);
 assert.deepEqual(errors, []);
 console.log('the ending plays through the real UI');
 await browser.close();

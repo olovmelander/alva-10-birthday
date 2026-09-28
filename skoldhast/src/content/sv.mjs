@@ -23,7 +23,7 @@ export const FAMILY = {
 };
 
 export const NAMES = {
-    horse: 'Sköldhästen', klo: 'Professor Klo', kv: 'Kartväktaren', alva: 'Alva', mira: 'Mira', note: ''
+    horse: 'Sköldhästen', klo: 'Professor Klo', kv: 'Kartväktaren', alva: 'Alva', mira: 'Mira', signe: 'Sköldpaddan Signe', note: ''
 };
 
 export const UI = {
@@ -106,6 +106,9 @@ export const STORY = {
         whisper: ['klo', 'Du gömmer dig jättebra. Förutom manen. Den syns ända upp till ytan.'],
         fishRock: ['klo', 'Fiskarna tror att du är en sten!'],
         deep: ['klo', 'Djupare än alla hästar jag har mätt!'],
+        tasteGrass: ['horse', 'Mums. Stäppgräs.'],
+        tasteKelp: ['horse', 'Kelp! Salt och krispigt.'],
+        smak: [['klo', 'Gräs på land och kelp i havet?'], ['klo', 'Jag antecknar: äter både och. Det avgör ingenting!']],
         waitWaves: ['klo', 'Vänta! Först måste vi mäta vågmärkena uppe på stäppen.'],
         waitPool: ['klo', 'Vänta! Vi har inte undersökt pölen vid klippan än.'],
         hook: [
@@ -160,6 +163,17 @@ export const STORY = {
         note: null, // her question + "Forskningen fortsätter." when HER_TEXT.question is set
         noteFallback: 'Snabbaste sköldpaddan eller långsammaste hästen? Forskningen fortsätter.',
         mira: [['mira', 'Varför är teckningen blöt?'], ['alva', 'Forskning.']]
+    },
+    // after the ending: Kapplöpning mot Sköldpaddan Signe (plan §4.6 O8)
+    after: {
+        signeHello: [
+            ['signe', 'Hej! Jag heter Signe. Sköldpadda. Helt vanlig.'],
+            ['signe', 'Det sägs att du är snabb. Kapplöpning till pölen?']
+        ],
+        signeGo: [['signe', 'Klara … färdiga … gå!']],
+        signeLose: [['signe', 'Jag vann på stilpoäng.']],
+        signeAgain: [['signe', 'En gång till? Klara … färdiga … gå!']],
+        signeGiveUp: [['signe', 'Vi tar det en annan gång.']]
     }
 };
 

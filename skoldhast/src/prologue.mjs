@@ -252,7 +252,7 @@ export function createTable({ PIXI, app, view, G, ui, audio, assets, makeHero })
     }
 
     // --- the epilogue ----------------------------------------------------------------------
-    async function epilogue() {
+    async function epilogue({ onCovered } = {}) {
         view.setScene('land');
         view.render(snapStand(), 0.016);
         start(true);
@@ -262,6 +262,7 @@ export function createTable({ PIXI, app, view, G, ui, audio, assets, makeHero })
         running = true;
         audio?.setArea('table');
         await tween(1.2, (u) => { table.alpha = u; });
+        onCovered?.();
         // a wet hoofprint beside the drawing, and a new note
         const hp = sprite('hoofprint-wet'); hp.x = PIC.x + PIC.w + 90; hp.y = PIC.y + PIC.h - 40; hp.scale.set(0.8); hp.alpha = 0; onPaper.addChild(hp);
         await tween(0.8, (u) => { hp.alpha = u; });

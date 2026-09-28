@@ -34,6 +34,7 @@ export function createGame({ host = document.body, assetBase = './skoldhast/', r
     let el = null, app = null, assets = null, G = null, view = null, ui = null, input = null, audio = null, story = null, table = null;
     let raf = 0, last = 0, acc = 0, paused = false, mode = 'title';
     let glLostAt = 0, glPrompt = null;
+    let audioTheme = null, lastPlank = -1, plankAt = 0;
     let slot = { id: 'alva', label: UI.slotAlva };
     let settings = { ...DEFAULT_SETTINGS };
     let note = '';
@@ -131,7 +132,7 @@ export function createGame({ host = document.body, assetBase = './skoldhast/', r
         G.helpLevel = settings.help;
         ui = createUI(el, { assetBase, handlers: uiHandlers() });
         const heroFactory = await loadHeroFactory();
-        view = createView(PIXI, app, { assets, G, heroFactory, onFx: (name, data) => (name === 'epilogue' ? runEpilogue() : name === 'sfx' ? audio?.sfx(data) : null) });
+        view = createView(PIXI, app, { assets, G, heroFactory, onFx: (name, data) => (name === 'epilogue' ? runEpilogue(data) : name === 'sfx' ? audio?.sfx(data) : null) });
         input = createInput(el, ui, {
             canvas: app.canvas,
             settings: () => settings,
@@ -182,6 +183,7 @@ export function createGame({ host = document.body, assetBase = './skoldhast/', r
     async function loadAudio() {
         try {
             const mod = await import('./audio.mjs');
+            audioTheme = mod.THEME || null;
             audio = mod.createAudio({ ctx: pageAudioCtx() || undefined });
             audio.setVolumes({ music: settings.music, sfx: settings.sfx, voice: settings.voice });
             audio.ready?.catch?.(() => {});
@@ -264,7 +266,7 @@ export function createGame({ host = document.body, assetBase = './skoldhast/', r
         G.flags.clear();
         G.puz = createPuzzleState();
         G.stats = { gallopTime: 0, maxSpeed: 0, leaps: 0 };
-        G.userGull = null; G.userCloud = null; G.userStrokes = null;
+        G.userGull = null; G.userCloud = null; G.userStrokes = null; G.prints = [];
         for (const a of Object.values(G.actors)) a.visible = false;
         note = '';
     }
@@ -344,10 +346,10 @@ export function createGame({ host = document.body, assetBase = './skoldhast/', r
         G.userCloud = make(strokes.cloud, '#3b3530');
     }
 
-    async function runEpilogue() {
+    async function runEpilogue(opts = {}) {
         mode = 'table';
         ui.showControls(false);
-        await table.epilogue();
+        await table.epilogue(opts);
         view.setScene(G.sceneId);
         view.root.visible = true;
         mode = 'play';
@@ -411,6 +413,7 @@ export function createGame({ host = document.body, assetBase = './skoldhast/', r
             if (audio) {
                 const p = G.player;
                 audio.setMotion({ speed01: Math.min(1, Math.abs(p.vx) / 1200), underwater: p.mode === 'swim' && p.submerge > 0.7, hidden: p.hidden });
+                plankNotes(p, now);
             }
         } else if (mode === 'table') {
             table.tick(dt);
@@ -425,6 +428,19 @@ export function createGame({ host = document.body, assetBase = './skoldhast/', r
         }
         app.render();
         if (debug) debugFrame(performance.now() - t0, dt);
+    }
+
+    // Spången (O3): each plank is a note of Sköldhästens visa; a steady pace plays the tune
+    function plankNotes(p, now) {
+        const sp = p.surface;
+        if (!sp || !sp.planks || !sp.hollow || G.sceneId !== 'land' || p.mode !== 'ground') { lastPlank = -1; return; }
+        const k = Math.floor((p.x - sp.pts[0][0] - 40) / 64);
+        if (k === lastPlank || k < 0) return;
+        lastPlank = k;
+        if (now - plankAt < 85) return; // at a full gallop some planks are skipped
+        plankAt = now;
+        const deg = audioTheme?.degrees;
+        audio.note?.(deg && deg.length ? deg[k % deg.length] : k % 7, { inst: 'plank' });
     }
 
     function debugFrame(ms, dt) {
