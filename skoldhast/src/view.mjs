@@ -149,6 +149,7 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
     const particles = [];
     const pool = [];
     function emit(kind, x, y, n = 6, o = {}) {
+        if (G.lessMotion) n = Math.ceil(n / 3);
         for (let i = 0; i < n; i++) {
             let s = pool.pop();
             const name = { drop: 'p-drop', foam: 'p-foam', sand: 'p-sand', bubble: 'p-bubble', fluff: 'p-fluff', glow: 'p-glow', star: 'p-star', note: 'p-note', dust: 'p-dust', ink: 'p-dust' }[kind] || 'p-dust';
@@ -531,6 +532,7 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
         // camera
         updateCamera(dt, snap, W, H);
         world.scale.set(cam.zoom);
+        if (G.lessMotion) cam.shake = 0; // reduced motion: no shaking, gentler camera, fewer particles
         const shx = cam.shake > 0 ? (Math.random() - 0.5) * cam.shake : 0;
         cam.shake = Math.max(0, cam.shake - dt * 30);
         world.position.set(W / 2 - cam.x * cam.zoom + shx, H / 2 - cam.y * cam.zoom);
@@ -898,10 +900,11 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
         tx = clamp(tx, b.x0 + hw, Math.max(b.x0 + hw, b.x1 - hw));
         ty = clamp(ty, b.y0 + hh, Math.max(b.y0 + hh, b.y1 - hh));
         if (cam.snap) { cam.x = tx; cam.y = ty; cam.zoom = zoom; cam.snap = false; return; }
-        const rate = hint ? 2.4 : 4;
+        const calm = G.lessMotion ? 0.6 : 1;
+        const rate = (hint ? 2.4 : 4) * calm;
         cam.x = damp(cam.x, tx, rate, dt);
-        cam.y = damp(cam.y, ty, hint ? 2.4 : 3, dt);
-        cam.zoom = damp(cam.zoom, zoom, hint ? 2 : 1.6, dt);
+        cam.y = damp(cam.y, ty, (hint ? 2.4 : 3) * calm, dt);
+        cam.zoom = damp(cam.zoom, G.lessMotion ? lerp(cam.zoom, zoom, 0.5) : zoom, hint ? 2 : 1.6, dt);
     }
 
     // --- events → particles and small effects ------------------------------------------------------

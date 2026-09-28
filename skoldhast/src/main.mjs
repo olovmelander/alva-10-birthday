@@ -36,7 +36,7 @@ export function createGame({ host = document.body, assetBase = './skoldhast/', r
     let glLostAt = 0, glPrompt = null;
     let audioTheme = null, lastPlank = -1, plankAt = 0;
     let slot = { id: 'alva', label: UI.slotAlva };
-    let settings = { ...DEFAULT_SETTINGS };
+    let settings = { ...DEFAULT_SETTINGS, lessMotion: !!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches };
     let note = '';
     const saver = createSave();
     const hostState = {};
@@ -545,7 +545,7 @@ export function createGame({ host = document.body, assetBase = './skoldhast/', r
         };
     }
     function applySettings() {
-        if (G) G.helpLevel = settings.help;
+        if (G) { G.helpLevel = settings.help; G.lessMotion = !!settings.lessMotion; }
         audio?.setVolumes({ music: settings.music, sfx: settings.sfx, voice: settings.voice });
         ui?.setBigText(settings.bigText);
         ui?.root.classList.toggle('less-motion', !!settings.lessMotion);
