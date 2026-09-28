@@ -110,7 +110,7 @@ export function stepPuzzles(G, events, dt) {
             const z = G.sceneDef.mirrorZone;
             const onPier = p.surface?.id === 'pier' && p.x >= z.x0 && p.x <= z.x1;
             target = onPier ? (hidden ? 0 : 0.35 * p.moveNoise + 0.25) : 0.6;
-        } else target = d < h(5) ? (hidden ? 0 : Math.max(0.3, p.moveNoise)) : 0.25;
+        } else target = d < h(2.2) ? (hidden ? 0 : Math.max(0.3, p.moveNoise)) : 0.25;
         P.ripple += (target - P.ripple) * Math.min(1, dt * (target < P.ripple ? 2.6 : 5));
         const wasStill = P.still;
         P.still = P.ripple < 0.06;

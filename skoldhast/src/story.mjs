@@ -410,6 +410,7 @@ export function createStory(G, io) {
     beat('k3_pipe', {
         on: 'pipeTop', repeat: true,
         async run(s) {
+            if (!inScene('viken')) return;
             const t = G.sceneDef.spots.galleryPop;
             await s.fx('pop', { x: t.x, y: t.y });
             const p = G.player;
@@ -591,6 +592,7 @@ export function createStory(G, io) {
         for (const b of beats) {
             if (b.on !== type) continue;
             if (!b.repeat && done(b.id)) continue;
+            if (running === b || queue.includes(b)) continue; // events repeat every step; run a beat once per occasion
             if (b.filter && !b.filter(data)) continue;
             queue.push(b);
         }

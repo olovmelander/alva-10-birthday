@@ -20,7 +20,7 @@ import { createSave, codeToChapter, CODE_RESTORE } from './save.mjs';
 import { createStory } from './story.mjs';
 import { createAssets } from './assets.mjs';
 import { createTable } from './prologue.mjs';
-import { countPencils, totalPencils } from './puzzles.mjs';
+import { countPencils, totalPencils, createPuzzleState } from './puzzles.mjs';
 import { UI, BALK, CAPTIONS, FAMILY, JOURNAL } from './content/sv.mjs';
 import { CHECKPOINTS } from './content/world.mjs';
 
@@ -227,7 +227,7 @@ export function createGame({ host = document.body, assetBase = './skoldhast/', r
 
     function resetLogic() {
         G.flags.clear();
-        Object.assign(G.puz, { stone: 0, drums: {}, plates: {}, clumps: {}, shells: {}, pencils: 0, glimpse: {}, deepest: 0, tally: 0, pools: {}, school: { state: 'home', x: 0, y: 0, t: 0 }, shy: {} });
+        G.puz = createPuzzleState();
         G.stats = { gallopTime: 0, maxSpeed: 0, leaps: 0 };
         G.userGull = null; G.userCloud = null; G.userStrokes = null;
         for (const a of Object.values(G.actors)) a.visible = false;

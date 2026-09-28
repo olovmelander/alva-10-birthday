@@ -87,8 +87,8 @@ SCENES.land = {
         { id: 'teach-step', pts: L([93.2, -0.7], [94, -0.73], [95, -0.66]), flag: 'teach_streck', bothWays: true, balk: false, decal: true },
         // P1 Streckbron: the arch over the gully
         { id: 'p1-arch', pts: L([75.98, -0.75], [76.6, -0.98], [77.3, -1.15], [78, -1.2], [78.7, -1.15], [79.4, -0.98], [80.02, -0.66]), flag: 'p1_inked', bothWays: true },
-        // P2: the plank over the crack by the pool (decal)
-        { id: 'p2-plank', pts: L([103.8, -0.42], [104.6, -0.43], [105.2, -0.43]), flag: 'p2_plank', bothWays: true, balk: false, decal: true }
+        // P2: the plank over the crack by the pool (decal; inkable once the reflection has shown it solid)
+        { id: 'p2-plank', pts: L([103.8, -0.42], [104.6, -0.43], [105.2, -0.43]), flag: 'p2_plank', bothWays: true, balk: false, decal: true, inkWhen: 'p2_seen' }
     ],
     hurdles: [{ x: h(57), id: 'log-57' }, { x: h(62), id: 'log-62' }],
     waters: [
@@ -100,8 +100,8 @@ SCENES.land = {
         start: { x: h(108.6), y: h(-0.34), facing: 1 },
         fromKelp: { x: h(101.8), y: h(-0.1), facing: 1 },
         fromViken: { x: h(117.6), y: h(-0.16), facing: -1 },
-        kloBeach: { x: h(104.6), y: h(-0.43) },
-        kloHole: { x: h(104.05), y: h(-0.43) },
+        kloBeach: { x: h(106.8), y: h(-0.39) },
+        kloHole: { x: h(106.2), y: h(-0.41) },
         kloNote: { x: h(81.2), y: h(-0.65) },
         kloBranten: { x: h(49.5), y: h(-0.82) },
         kloLedge: { x: h(35.2), y: h(-4.0) },
@@ -207,7 +207,7 @@ SCENES.land = {
         { sprite: 'dune-grass-2', x: h(96.3), y: h(-0.56), layer: 'fore' },
         { sprite: 'dune-grass-3', x: h(99.0), y: h(-0.5), layer: 'mid' },
         { sprite: 'dune-grass-1', x: h(84.2), y: h(-0.62), layer: 'fore' },
-        { sprite: 'klo-hole', x: h(104.05), y: h(-0.43), layer: 'mid' },
+        { sprite: 'klo-hole', x: h(106.2), y: h(-0.41), layer: 'mid' },
         { sprite: 'post-note', x: h(80.7), y: h(-0.65), layer: 'mid', read: 'note1' },
         // the steppe
         { sprite: 'feathergrass-1', x: h(74.8), y: h(-0.76), layer: 'mid' },
@@ -277,19 +277,20 @@ SCENES.kelp = {
     ],
     kelpBeds: [
         { id: 'bed-entry', x0: h(14.2), x1: h(16), y0: h(5.1), y1: h(6.1) },
-        { id: 'bed-lykt', x0: h(23.6), x1: h(25.4), y0: h(10.35), y1: h(12.3), when: 'ch2_open' }
+        // the lyktfiskar's bed lies beside the vault lane (the lane passes along its edge, never through it)
+        { id: 'bed-lykt', x0: h(23.35), x1: h(24.35), y0: h(10.9), y1: h(12.0), when: 'ch2_open' }
     ],
     spots: {
         fromLand: { x: h(1.6), y: h(2.3), facing: 1, mode: 'swim' },
         fromViken: { x: h(46.2), y: h(2.2), facing: -1, mode: 'swim' },
-        klo: { x: h(12.5), y: h(6.05) },
+        klo: { x: h(12.5), y: h(5.92) },
         kloTrench: { x: h(21.2), y: h(6.2) },
         flap: { x: h(17.6), y: h(6.1) },
         overlook: { x: h(21.3), y: h(3.4) },
         veckmuren: { x: h(47.6), y: h(9.0) },
         corner: { x: h(36), y: h(8.4) },
         vault: { x: h(25.8), y: h(11.4) },
-        lyktbed: { x: h(24.5), y: h(11.4) },
+        lyktbed: { x: h(23.9), y: h(11.4) },
         figure: { x: h(47.1), y: h(1.6) }
     },
     areas: [
@@ -301,7 +302,7 @@ SCENES.kelp = {
     ],
     flaps: [{ id: 'flap', x: h(17.6), y: h(6.1), flag: 'flap_flat' }],
     corners: [{ id: 'corner', x: h(36), y: h(8.4), flag: 'p6_flat' }],
-    school: { id: 'lykt', home: { x: h(24.5), y: h(11.2) }, count: 7, lit: { x: h(28.8), y: h(11.6) } },
+    school: { id: 'lykt', home: { x: h(23.9), y: h(11.3) }, count: 7, lit: { x: h(28.8), y: h(11.6) } },
     shy: [
         { id: 'fish-a', kind: 'fish', x: h(15.2), y: h(5.4) },
         { id: 'fish-b', kind: 'fish', x: h(10.2), y: h(4.8) },
@@ -315,7 +316,7 @@ SCENES.kelp = {
         { kelp: 5, x0: h(8.5), x1: h(21), layer: 'fore' },
         { kelp: 8, x0: h(23), x1: h(46), layer: 'mid', chapter: 2 },
         { sprite: 'kelp-bed', x: h(15.1), y: h(6.1), layer: 'mid' },
-        { sprite: 'kelp-bed', x: h(24.5), y: h(12.3), layer: 'mid', chapter: 2 },
+        { sprite: 'kelp-bed', x: h(23.85), y: h(11.85), layer: 'mid', chapter: 2 },
         { sprite: 'kelp-float', x: h(10.5), y: h(0.02), layer: 'fore' },
         { sprite: 'kelp-float', x: h(13.8), y: h(0.02), layer: 'fore' },
         { sprite: 'kelp-float', x: h(17.2), y: h(0.02), layer: 'fore' },
@@ -362,16 +363,18 @@ SCENES.viken = {
         { id: 'pier-end-balk', x: h(24.15), y: h(-0.62), dir: 1, kind: 'balk', reason: 'rail', when: '!p8_land' }
     ],
     waters: [
-        { id: 'pipe', x0: h(26.25), x1: h(26.75), top: h(-7.4), bottom: h(0.1), kind: 'pipe' },
+        // the pipe reaches a little below the bay's surface, so a shell riding the current rises into it
+        { id: 'pipe', x0: h(26.25), x1: h(26.75), top: h(-7.4), bottom: h(0.6), kind: 'pipe' },
         { id: 'bay', x0: h(-1), x1: h(36), top: h(0), kind: 'sea', mirror: true }
     ],
     lanes: [
         { id: 'pipe', pts: L([26.5, 5.2], [26.5, 0.6], [26.5, -7.1]), width: h(0.9), speed: 520, eject: true },
-        { id: 'p8-lane', pts: L([25.9, 1.2], [26.2, 2.0], [26.55, 2.55]), width: h(0.9), speed: 260, dashed: true, when: 'p8_land' }
+        // the sea half of P8 starts where the pier leap lands and ends in a calm pool at the lower window
+        { id: 'p8-lane', pts: L([25.6, 0.85], [25.95, 1.7], [26.2, 2.3], [26.35, 2.6]), width: h(1.4), speed: 260, dashed: true, endHold: true, priority: 1, when: 'p8_land' }
     ],
     spots: {
         fromLand: { x: h(0.6), y: h(-0.16), facing: 1 },
-        fromKelp: { x: h(4.6), y: h(3.6), facing: 1, mode: 'swim' },
+        fromKelp: { x: h(8.6), y: h(3.0), facing: 1, mode: 'swim' },
         stairTop: { x: h(27.2), y: h(-7.3), facing: 1 },
         stairFoot: { x: h(22.6), y: h(-0.62), facing: -1 },
         galleryPop: { x: h(26.9), y: h(-7.3), facing: 1 },
@@ -379,7 +382,7 @@ SCENES.viken = {
         kvGallery: { x: h(29.8), y: h(-7.3) },
         klo: { x: h(20.8), y: h(-0.62) },
         kloShore: { x: h(1.0), y: h(-0.16) },
-        window: { x: h(26.9), y: h(2.6) },
+        window: { x: h(26.9), y: h(2.6), inRock: true }, // the lower window in the rock face (a camera target)
         lighthouse: { x: h(29.8), y: h(-0.45) },
         plate: { x: h(14.2), y: h(6.86) },
         rope: { x: h(28.6), y: h(-7.3) },
@@ -396,9 +399,10 @@ SCENES.viken = {
     pullRopes: [{ id: 'shutter3-rope', x: h(28.6), y: h(-7.3), flag: 'shutter3' }],
     stairs: [{ id: 'stair', x: h(27.2), y: h(-7.3), to: 'stairFoot', label: 'Gå ner' }],
     dashed: [
-        { id: 'p8-d1', pts: L([2.6, -0.62], [9.4, -0.62]), flag: 'p8_s1', balk: false, decal: true, dir: 1, when: 'talk_done', glow: true },
-        { id: 'p8-d2', pts: L([10.8, -0.62], [17.3, -0.62]), flag: 'p8_s2', balk: false, decal: true, dir: 1, when: 'talk_done', glow: true },
-        { id: 'p8-d3', pts: L([18.6, -0.62], [24.0, -0.62]), flag: 'p8_s3', balk: false, decal: true, dir: 1, when: 'talk_done', glow: true }
+        // runways of about 4 HL (shore and pier start), 1.4 HL and 1.4 HL between the segments; each is at most 10 HL
+        { id: 'p8-d1', pts: L([4.0, -0.62], [9.6, -0.62]), flag: 'p8_s1', balk: false, decal: true, dir: 1, when: 'talk_done', glow: true },
+        { id: 'p8-d2', pts: L([11.0, -0.62], [16.8, -0.62]), flag: 'p8_s2', balk: false, decal: true, dir: 1, when: 'talk_done', glow: true },
+        { id: 'p8-d3', pts: L([18.2, -0.62], [23.6, -0.62]), flag: 'p8_s3', balk: false, decal: true, dir: 1, when: 'talk_done', glow: true }
     ],
     decor: [
         { sprite: 'lighthouse', x: h(29.8), y: h(-0.45), layer: 'mid', lighthouse: true },

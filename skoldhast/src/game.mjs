@@ -143,7 +143,9 @@ export function createGame({ released = RELEASED_CHAPTER } = {}) {
             };
         },
         restore(data) {
-            G.flags = new Set(data.flags || []);
+            // mutate the set in place: the story, the terrain and the view hold references to it
+            G.flags.clear();
+            for (const f of data.flags || []) G.flags.add(f);
             G.checkpoint = CHECKPOINTS[data.checkpoint] ? data.checkpoint : 'start';
             Object.assign(G.puz, { deepest: data.puz?.deepest || 0, tally: data.puz?.tally || 0, shells: data.puz?.shells || {} });
             if (G.flags.has('p2_open')) G.puz.stone = SCENES.land.rail.target;

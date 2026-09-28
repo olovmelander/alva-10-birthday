@@ -36,7 +36,7 @@ export function createSave() {
     const ls = storage();
     const available = !!ls;
     const read = (k) => { try { return ls ? JSON.parse(ls.getItem(k) || 'null') : null; } catch { return undefined; } };
-    const write = (k, v) => { try { if (ls) ls.setItem(k, JSON.stringify(v)); return true; } catch { return false; } };
+    const write = (k, v) => { if (!ls) return false; try { ls.setItem(k, JSON.stringify(v)); return true; } catch { return false; } };
 
     function index() {
         const ix = read(INDEX);

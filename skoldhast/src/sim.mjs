@@ -193,6 +193,7 @@ export class Terrain {
     dashedStart(x0, x1, y, dir) {
         for (const d of this.dashed) {
             if (d.kind === 'lane') continue;
+            if (d.inkWhen && !cond(d.inkWhen, this.flags)) continue; // drawn, but not inkable yet
             const start = dir > 0 ? d.pts[0] : d.pts[d.pts.length - 1];
             if (!d.bothWays && dir !== (d.dir || 1)) continue;
             const hit = dir > 0 ? (x0 <= start[0] && x1 >= start[0] - 0.01) : (x0 >= start[0] && x1 <= start[0] + 0.01);
@@ -401,7 +402,11 @@ function stepGround(p, ix, input, world, dt, events) {
     if (sup) {
         const rise = p.y - sup.y;
         const run = Math.abs(nx - p.x) || 1e-6;
-        if (rise > 0 && rise / run > C.maxSlope && rise > 6) {
+        // a steeper surface just overhead (e.g. under a grown ramp): keep to the one underfoot if it goes on
+        const cur = sup.s !== p.surface && p.surface && T.surfaces.includes(p.surface) ? heightOn(p.surface.pts, nx) : null;
+        if (rise > 0 && rise / run > C.maxSlope && rise > 6 && cur !== null && Math.abs(cur - p.y) <= C.snapDown) {
+            p.x = nx; p.y = cur;
+        } else if (rise > 0 && rise / run > C.maxSlope && rise > 6) {
             nx = p.x; p.vx *= 0.3; // too steep: behave like a wall
             const s2 = T.support(nx, p.y, C.stepUp, C.snapDown);
             if (s2) { p.y = s2.y; p.surface = s2.s; }
@@ -564,6 +569,7 @@ function stepAir(p, ix, input, world, dt, events) {
         if (floor === null || floor - w.top > C.wadeMax) {
             p.mode = 'swim'; p.jump = null; p.water = w;
             p.vy = Math.min(p.vy, 500) * 0.5;
+            p.vx *= 0.35; // the water takes most of the run's speed
             events.push({ type: 'splashIn', size: 1, x: p.x, y: w.top, water: w.id, dive: true });
             events.push({ type: 'swimStart', x: p.x, y: w.top });
         }
@@ -612,15 +618,27 @@ function stepSwim(p, ix, iy, input, world, dt, events) {
     // currents and the whirl
     let fx = 0, fy = 0;
     const hidden = p.hidden && p.hide > 0.5;
-    let drift = false;
+    let drift = false, whirl = false;
+    // the nearest lane in reach carries the swimmer (dashed lanes carry only a hidden shell)
+    let lane = null, ln = null;
     for (const l of T.lanes) {
         if (l.dashed && !hidden) continue;
         const n = nearestOnLine(l.pts, p.x, p.y);
         if (!n || n.d > l.width / 2) continue;
-        if (n.s >= l._len - 6) { if (hidden) events.push({ type: 'laneEnd', id: l.id }); continue; } // the calm pool at its end
+        if (n.s >= l._len - 6) {
+            // the calm pool at its end; a lane with endHold keeps the shell there
+            if (hidden) events.push({ type: 'laneEnd', id: l.id });
+            if (l.endHold) { lane = null; ln = null; break; }
+            continue;
+        }
+        const pr = l.priority || 0, best = lane?.priority || 0;
+        if (!ln || pr > best || (pr === best && n.d < ln.d)) { lane = l; ln = n; }
+    }
+    for (const l of lane ? [lane] : []) {
+        const n = ln;
         const fall = 1 - Math.pow(n.d / (l.width / 2), 3) * 0.5;
         const sp = l.speed * fall;
-        if (l.eject && !hidden) {
+        if (l.eject && !hidden && w.kind === 'pipe') {
             // a pipe: swimmers are pushed out sideways through the vents
             const side = Math.sign(p.x - n.px) || -1;
             fx += side * 520; fy += 40;
@@ -642,7 +660,12 @@ function stepSwim(p, ix, iy, input, world, dt, events) {
         const tx = -dy / r * v.spin, ty = dx / r * v.spin;
         if (hidden) {
             if (r < v.eye) { fx = 0; fy = 0; drift = false; events.push({ type: 'vortexEye', id: v.id }); }
-            else { fx += tx * v.speed; fy += ty * v.speed; fx -= dx / r * v.pull; fy -= dy / r * v.pull; drift = true; }
+            else {
+                // round and round, and steadily inward (about 0.8 HL/s): the shell reaches the eye in a few seconds
+                const spin = v.speed * Math.min(1, Math.max(0.3, r / v.r));
+                fx = tx * spin - dx / r * v.pull; fy = ty * spin - dy / r * v.pull;
+                drift = true; whirl = true;
+            }
         } else if (r > v.eye && Math.abs(r - v.r) < 280) {
             fx += tx * v.speed * 0.6; fy += ty * v.speed * 0.6;
             fx += dx / r * 300; fy += dy / r * 300; // gently expelled
@@ -654,6 +677,7 @@ function stepSwim(p, ix, iy, input, world, dt, events) {
 
     if (hidden) {
         if (p.anchored) { p.vx *= Math.exp(-6 * dt); p.vy *= Math.exp(-6 * dt); }
+        else if (whirl) { p.vx = fx; p.vy = fy; } // the whirl steers the shell directly (a lagging velocity would fling it outward)
         else if (drift) { p.vx += (fx - p.vx) * Math.min(1, dt * 4); p.vy += (fy - p.vy) * Math.min(1, dt * 4); }
         else {
             // heavy as a stone: sink
