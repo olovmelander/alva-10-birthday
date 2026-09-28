@@ -1961,7 +1961,12 @@
             height: 18px;
             transform: translateY(-50%);
             background: var(--sag-rainbow-icon) center / contain no-repeat;
-            animation: spin 4s linear infinite;
+            animation: sag-goal-spin 4s linear infinite;
+        }
+
+        @keyframes sag-goal-spin {
+            from { transform: translateY(-50%) rotate(0deg); }
+            to { transform: translateY(-50%) rotate(360deg); }
         }
 
         .sag-progress-alva {
@@ -2123,6 +2128,11 @@
 
         .sag-screens.is-open {
             display: flex;
+        }
+
+        /* Panels that pop up mid-game ignore taps for a moment (see showPanel) */
+        .sag-screens.is-arming .sag-panel {
+            pointer-events: none;
         }
 
         .sag-panel {
