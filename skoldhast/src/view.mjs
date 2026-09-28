@@ -560,7 +560,13 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
             let ox = 0, oy = 0;
             if (it.kind === 'gull') {
                 if (!frozen || !it.her) { it.phase += dt * 2.2; ox = Math.sin(it.phase * 0.35) * 40; oy = Math.sin(it.phase * 0.7) * 16; }
-                const fr = frozen && it.her ? 1 : 1 + (Math.floor(it.phase * 3) % 4);
+                // scattered by a neigh or a passing gallop: up and away, back after a while
+                if (it.scatter !== undefined) {
+                    const u = time - it.scatter;
+                    if (u > 7) it.scatter = undefined;
+                    else { const k = u < 3 ? u : 3 - (u - 3) * 0.75; it.phase += dt * 3; ox += k * 90 * (it.dir || 1); oy -= k * 70; }
+                }
+                const fr = frozen && it.her && it.scatter === undefined ? 1 : 1 + (Math.floor(it.phase * 3) % 4);
                 setTex(it.s, 'gull-m-' + fr);
             } else if (it.anim === 'cloud' && (!frozen || it.it?.user)) {
                 it.x += dt * 6;
@@ -667,7 +673,8 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
         }
         for (const dk of S.dark) { const lit = F.has(dk.dk.until); dk.g.alpha = damp(dk.g.alpha, lit ? 0 : 1, 1.5, dt); }
         updateObjects(dt, snap, frozen);
-        // minis (distant sköldhästar during the final run)
+        // minis: distant sköldhästar run along the far ridge during the final gallop (never close)
+        stepMinis(dt, snap);
         stepParticles(dt);
         // tooth overlay follows the screen
         if (tooth) { tooth.width = W; tooth.height = H; }
@@ -676,6 +683,28 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
         // warm evening
         world.tint = G.evening ? 0xffe6c4 : 0xffffff;
         skyLayer.tint = world.tint;
+    }
+
+    function stepMinis(dt, snap) {
+        const want = G.finalRun && S.id === 'land' ? 1 + (G.flags.has('glimpse2') ? 1 : 0) + (G.flags.has('mark_sea') ? 1 : 0) : 0;
+        while (minis.length < want) {
+            const m = heroFactory({ mini: true });
+            m.view.scale.set(0.26 + minis.length * 0.03);
+            m.view.alpha = 0.75;
+            L.far.addChild(m.view);
+            m.off = h(2.2 + minis.length * 1.7);
+            minis.push(m);
+        }
+        while (minis.length > want) { const m = minis.pop(); m.view.parent?.removeChild(m.view); m.destroy?.(); }
+        minis.forEach((m, i) => {
+            // on a ridge line above the steppe, keeping pace a little ahead of the player
+            const x = snap.x + m.off * (snap.facing || -1);
+            // small and faded just above the ground line: far off across the plain
+            const ground = floorAt(S.def, x) ?? snap.y;
+            const ridge = ground - h(0.3 + i * 0.12);
+            m.view.x = x; m.view.y = ridge;
+            m.update(dt, { x, y: ridge, facing: snap.facing || -1, gait: 'gallop', mode: 'ground', speed: 1200, vx: (snap.facing || -1) * 1200, hide: 0, time: time + i * 0.37, groundAt: () => ridge });
+        });
     }
 
     function updateRopePoints(r, pts) {
@@ -889,11 +918,18 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
     on('flag', (e) => { if (e.flag === 'ended' && G.prints) G.prints.length = 0; }); // the tide wipes Sandpapperet clean
     on('taste', (e) => emit(e.kind === 'kelp' ? 'bubble' : 'dust', e.x, e.y - h(0.2), 6, { speed: 90, g: e.kind === 'kelp' ? -200 : 300 }));
     on('land', (e) => { if (e.big) { emit('dust', e.x, e.y, 16, { speed: 320 }); emit('star', e.x, e.y - h(0.5), 8, { speed: 260, g: 200 }); cam.shake = 10; } else emit('sand', e.x, e.y, 6, { speed: 200 }); });
-    on('neigh', (e) => emit(e.under ? 'bubble' : 'note', e.x + G.player.facing * h(0.55), e.y - h(1.0), e.under ? 6 : 3, { g: e.under ? -400 : -80, speed: 90, life: 1.2 }));
+    on('neigh', (e) => {
+        emit(e.under ? 'bubble' : 'note', e.x + G.player.facing * h(0.55), e.y - h(1.0), e.under ? 6 : 3, { g: e.under ? -400 : -80, speed: 90, life: 1.2 });
+        if (!e.under) scatterGulls(e.x, h(9));
+    });
+    function scatterGulls(x, range) {
+        for (const it of S?.sky || []) if (it.kind === 'gull' && Math.abs(it.x - x) < range && it.scatter === undefined) { it.scatter = time; it.dir = Math.sign(it.x - x) || 1; }
+    }
     on('shake', (e) => emit('drop', e.x, e.y - h(0.5), 24, { speed: 420, spread: 6.2, angle: 0 }));
     on('grow', (e) => { const t = S?.def.tussocks?.find((q) => q.id === e.id); if (t) { emit('fluff', t.x, t.y - 20, 14, { speed: 160, g: 60 }); emit('star', t.x, t.y - 40, 6, { g: 0, speed: 140 }); } });
     on('fluff', (e) => { const c = S?.def.clumps?.find((q) => q.id === e.id); if (c) emit('fluff', c.x, c.y - 70, 16, { angle: e.dir > 0 ? -0.5 : -2.6, spread: 0.9, speed: 520, g: 90, life: 1.4, drag: 0.8 }); });
     on('latch', () => emit('star', G.player.x, G.player.y - h(0.8), 8, { g: 0, speed: 200 }));
+    on('enter', (e) => { if (G.finalRun && (e.id === 'note1' || e.id === 'spangen' || e.id === 'galoppbanan')) scatterGulls(G.player.x, h(14)); });
     on('pickup', () => emit('star', G.player.x, G.player.y - h(0.9), 10, { g: 0, speed: 220 }));
     on('colorin', (e) => { const pc = S?.def.pencils?.find((q) => q.id === e.id); if (pc) emit('star', pc.propAt.x, pc.propAt.y - 60, 14, { g: 0, speed: 240 }); });
     on('shellNote', (e) => { const sh = S?.def.shells?.find((q) => q.id === e.id); if (sh) emit('note', sh.x, -h(0.9), 2, { g: -60, speed: 60, life: 1.3 }); });

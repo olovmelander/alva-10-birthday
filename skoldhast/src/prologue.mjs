@@ -33,6 +33,8 @@ export function createTable({ PIXI, app, view, G, ui, audio, assets, makeHero })
     let t = 0;
     let frozen = false;
     const drops = [];
+    const falling = [];
+    let dropT = 0;
     let running = false;
 
     const sprite = (name, ax = 0.5, ay = 0.5) => {
@@ -102,7 +104,7 @@ export function createTable({ PIXI, app, view, G, ui, audio, assets, makeHero })
         table.visible = false;
         onPaper.removeChildren();
         picHero?.destroy?.(); picHero = null; picKlo = null; splash = null; sun = null;
-        drops.length = 0;
+        drops.length = 0; falling.length = 0;
         running = false;
     }
 
@@ -114,7 +116,22 @@ export function createTable({ PIXI, app, view, G, ui, audio, assets, makeHero })
                 action: picHero._action || null, actionT: picHero._actionT || 0, lookAt: picHero._look || null, groundAt: () => st.y, emote: picHero._emote || null });
             if (picHero._action) { picHero._actionT = Math.min(1, (picHero._actionT || 0) + dt / 0.9); if (picHero._actionT >= 1) picHero._action = null; }
         }
-        if (splash && !frozen) splash.scale.y = splash._base * (1 + Math.sin(t * 6) * 0.07);
+        if (splash && !frozen) {
+            splash.scale.y = splash._base * (1 + Math.sin(t * 6) * 0.07);
+            // her droplets fall, so the freeze is visible later
+            if ((dropT -= dt) <= 0) {
+                dropT = 0.22 + Math.random() * 0.2;
+                const d = sprite('p-drop'); d.scale.set(0.5 + Math.random() * 0.4);
+                d.x = splash.x + (Math.random() - 0.5) * 70; d.y = splash.y - 90 - Math.random() * 40;
+                onPaper.addChild(d); falling.push({ s: d, vy: 20 + Math.random() * 30, t: 0 });
+            }
+        }
+        for (let i = falling.length - 1; i >= 0; i--) {
+            const f = falling[i];
+            if (frozen) continue; // stopped in mid-air
+            f.t += dt; f.vy += 260 * dt; f.s.y += f.vy * dt; f.s.alpha = Math.max(0, 1 - f.t / 0.9);
+            if (f.t > 0.9) { f.s.destroy(); falling.splice(i, 1); }
+        }
         if (sun && !frozen) sun.rotation = Math.sin(t * 0.8) * 0.05;
         for (const d of drops) { d.t += dt; d.s.y = d.y0 - d.t * 22; d.s.alpha = Math.max(0, 1 - d.t / 3.4); }
         for (const s of extras.children) if (s._tw !== undefined) s.alpha = 0.6 + 0.4 * Math.sin(t * 2 + s._tw);

@@ -113,6 +113,21 @@ export function createStory(G, io) {
 
     // Göm dig: the crab comes out only for a hidden shell
     let nearHoleT = 0;
+    beat('k1_hide_nudge', {
+        when: () => {
+            if (!inScene('land') || !F.has('klo_hidden') || F.has('klo_ja') || G.player.hidden) { nearHoleT = 0; return false; }
+            const near = Math.abs(P().x - G.sceneDef.spots.kloHole.x) < h(3) && Math.abs(P().vx) < 40;
+            nearHoleT = near ? nearHoleT + 1 / 120 : 0;
+            return nearHoleT > 4;
+        },
+        lock: false,
+        async run(s) {
+            // Klo's eyes peek out at the shell, and Göm dig pulses once (no text)
+            G.actors.klo.inHole = true; G.actors.klo.pose = 'peek';
+            s.sfx('crabclick');
+            io.ui.pulse?.('hide');
+        }
+    });
     beat('k1_ja', {
         when: () => inScene('land') && F.has('klo_hidden') && G.player.hidden && G.player.hide > 0.95 && Math.abs(P().x - G.sceneDef.spots.kloHole.x) < h(3),
         async run(s) {
