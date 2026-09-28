@@ -1,0 +1,547 @@
+{
+ "version": 1,
+ "atlases": {
+  "hero": {
+   "bundle": "boot",
+   "scale": 1.5,
+   "files": [
+    "hero.json"
+   ],
+   "images": [
+    "hero.webp"
+   ],
+   "bytes": 104886,
+   "frames": 32
+  },
+  "npcs": {
+   "bundle": "boot",
+   "scale": 1.5,
+   "files": [
+    "npcs.json"
+   ],
+   "images": [
+    "npcs.webp"
+   ],
+   "bytes": 107152,
+   "frames": 26
+  },
+  "npcs-sea": {
+   "bundle": "sea",
+   "scale": 1.5,
+   "files": [
+    "npcs-sea.json"
+   ],
+   "images": [
+    "npcs-sea.webp"
+   ],
+   "bytes": 3572,
+   "frames": 2
+  },
+  "npcs-land": {
+   "bundle": "land",
+   "scale": 1.5,
+   "files": [
+    "npcs-land.json"
+   ],
+   "images": [
+    "npcs-land.webp"
+   ],
+   "bytes": 20518,
+   "frames": 3
+  },
+  "npcs-bay": {
+   "bundle": "bay",
+   "scale": 1.5,
+   "files": [
+    "npcs-bay.json"
+   ],
+   "images": [
+    "npcs-bay.webp"
+   ],
+   "bytes": 63364,
+   "frames": 9
+  },
+  "table": {
+   "bundle": "boot",
+   "scale": 1,
+   "files": [
+    "table.json"
+   ],
+   "images": [
+    "table.webp"
+   ],
+   "bytes": 124466,
+   "frames": 6
+  },
+  "props": {
+   "bundle": "boot",
+   "scale": 1,
+   "files": [
+    "props.json"
+   ],
+   "images": [
+    "props.webp"
+   ],
+   "bytes": 396962,
+   "frames": 64
+  },
+  "props-land": {
+   "bundle": "land",
+   "scale": 1,
+   "files": [
+    "props-land.json"
+   ],
+   "images": [
+    "props-land.webp"
+   ],
+   "bytes": 114368,
+   "frames": 19
+  },
+  "props-sea": {
+   "bundle": "sea",
+   "scale": 1,
+   "files": [
+    "props-sea.json"
+   ],
+   "images": [
+    "props-sea.webp"
+   ],
+   "bytes": 295908,
+   "frames": 13
+  },
+  "props-bay": {
+   "bundle": "bay",
+   "scale": 1,
+   "files": [
+    "props-bay.json"
+   ],
+   "images": [
+    "props-bay.webp"
+   ],
+   "bytes": 277384,
+   "frames": 14
+  }
+ },
+ "images": {
+  "bg-beach": {
+   "bundle": "boot",
+   "file": "bg-beach.webp",
+   "bytes": 124394,
+   "w": 2048,
+   "h": 1024,
+   "repeat": false,
+   "scale": 1
+  },
+  "bg-beach-evening": {
+   "bundle": "land",
+   "file": "bg-beach-evening.webp",
+   "bytes": 177280,
+   "w": 2048,
+   "h": 1024,
+   "repeat": false,
+   "scale": 1
+  },
+  "bg-steppe": {
+   "bundle": "land",
+   "file": "bg-steppe.webp",
+   "bytes": 130228,
+   "w": 2048,
+   "h": 1024,
+   "repeat": false,
+   "scale": 1
+  },
+  "bg-steppe-evening": {
+   "bundle": "land",
+   "file": "bg-steppe-evening.webp",
+   "bytes": 157174,
+   "w": 2048,
+   "h": 1024,
+   "repeat": false,
+   "scale": 1
+  },
+  "bg-under": {
+   "bundle": "sea",
+   "file": "bg-under.webp",
+   "bytes": 187572,
+   "w": 2048,
+   "h": 1024,
+   "repeat": false,
+   "scale": 1
+  },
+  "bg-bay": {
+   "bundle": "bay",
+   "file": "bg-bay.webp",
+   "bytes": 218908,
+   "w": 2048,
+   "h": 1024,
+   "repeat": false,
+   "scale": 1
+  },
+  "bg-fold": {
+   "bundle": "sea",
+   "file": "bg-fold.webp",
+   "bytes": 54720,
+   "w": 2048,
+   "h": 1024,
+   "repeat": false,
+   "scale": 1
+  },
+  "mat-sand": {
+   "bundle": "boot",
+   "file": "mat-sand.webp",
+   "bytes": 49364,
+   "w": 512,
+   "h": 512,
+   "repeat": true,
+   "scale": 1
+  },
+  "mat-wetsand": {
+   "bundle": "boot",
+   "file": "mat-wetsand.webp",
+   "bytes": 33124,
+   "w": 512,
+   "h": 512,
+   "repeat": true,
+   "scale": 1
+  },
+  "mat-grass": {
+   "bundle": "land",
+   "file": "mat-grass.webp",
+   "bytes": 85674,
+   "w": 512,
+   "h": 512,
+   "repeat": true,
+   "scale": 1
+  },
+  "mat-earth": {
+   "bundle": "land",
+   "file": "mat-earth.webp",
+   "bytes": 82388,
+   "w": 512,
+   "h": 512,
+   "repeat": true,
+   "scale": 1
+  },
+  "mat-rock": {
+   "bundle": "boot",
+   "file": "mat-rock.webp",
+   "bytes": 73320,
+   "w": 512,
+   "h": 512,
+   "repeat": true,
+   "scale": 1
+  },
+  "mat-wood": {
+   "bundle": "boot",
+   "file": "mat-wood.webp",
+   "bytes": 70966,
+   "w": 512,
+   "h": 512,
+   "repeat": true,
+   "scale": 1
+  },
+  "mat-seabed": {
+   "bundle": "sea",
+   "file": "mat-seabed.webp",
+   "bytes": 63946,
+   "w": 512,
+   "h": 512,
+   "repeat": true,
+   "scale": 1
+  },
+  "mat-water": {
+   "bundle": "boot",
+   "file": "mat-water.webp",
+   "bytes": 117404,
+   "w": 512,
+   "h": 512,
+   "repeat": true,
+   "scale": 1
+  },
+  "mat-deep": {
+   "bundle": "sea",
+   "file": "mat-deep.webp",
+   "bytes": 33432,
+   "w": 512,
+   "h": 512,
+   "repeat": true,
+   "scale": 1
+  },
+  "mat-glass": {
+   "bundle": "boot",
+   "file": "mat-glass.webp",
+   "bytes": 38324,
+   "w": 512,
+   "h": 512,
+   "repeat": true,
+   "scale": 1
+  },
+  "mat-paper": {
+   "bundle": "boot",
+   "file": "mat-paper.webp",
+   "bytes": 10582,
+   "w": 512,
+   "h": 512,
+   "repeat": true,
+   "scale": 1
+  },
+  "mat-cream": {
+   "bundle": "bay",
+   "file": "mat-cream.webp",
+   "bytes": 10282,
+   "w": 512,
+   "h": 512,
+   "repeat": true,
+   "scale": 1
+  },
+  "paper-tooth": {
+   "bundle": "boot",
+   "file": "paper-tooth.webp",
+   "bytes": 4780,
+   "w": 256,
+   "h": 256,
+   "repeat": true,
+   "scale": 1
+  },
+  "desk-wood": {
+   "bundle": "boot",
+   "file": "desk-wood.webp",
+   "bytes": 29430,
+   "w": 512,
+   "h": 512,
+   "repeat": true,
+   "scale": 1
+  },
+  "stroke-graphite": {
+   "bundle": "boot",
+   "file": "stroke-graphite.webp",
+   "bytes": 662,
+   "w": 256,
+   "h": 24,
+   "repeat": true,
+   "scale": 1
+  },
+  "stroke-blue": {
+   "bundle": "boot",
+   "file": "stroke-blue.webp",
+   "bytes": 1486,
+   "w": 256,
+   "h": 24,
+   "repeat": true,
+   "scale": 1
+  },
+  "stroke-dash": {
+   "bundle": "boot",
+   "file": "stroke-dash.webp",
+   "bytes": 834,
+   "w": 256,
+   "h": 24,
+   "repeat": true,
+   "scale": 1
+  },
+  "stroke-dashblue": {
+   "bundle": "boot",
+   "file": "stroke-dashblue.webp",
+   "bytes": 1218,
+   "w": 256,
+   "h": 24,
+   "repeat": true,
+   "scale": 1
+  },
+  "stroke-glow": {
+   "bundle": "boot",
+   "file": "stroke-glow.webp",
+   "bytes": 6254,
+   "w": 256,
+   "h": 24,
+   "repeat": true,
+   "scale": 1
+  },
+  "stroke-chain": {
+   "bundle": "boot",
+   "file": "stroke-chain.webp",
+   "bytes": 1704,
+   "w": 256,
+   "h": 24,
+   "repeat": true,
+   "scale": 1
+  },
+  "stroke-crease": {
+   "bundle": "boot",
+   "file": "stroke-crease.webp",
+   "bytes": 1936,
+   "w": 256,
+   "h": 24,
+   "repeat": true,
+   "scale": 1
+  },
+  "ui-title": {
+   "bundle": "boot",
+   "file": "ui-title.webp",
+   "bytes": 81918,
+   "w": 1200,
+   "h": 520,
+   "repeat": false,
+   "scale": 2
+  },
+  "ui-paper": {
+   "bundle": "boot",
+   "file": "ui-paper.webp",
+   "bytes": 8550,
+   "w": 512,
+   "h": 512,
+   "repeat": true,
+   "scale": 2
+  },
+  "ui-claw": {
+   "bundle": "boot",
+   "file": "ui-claw.webp",
+   "bytes": 1892,
+   "w": 64,
+   "h": 64,
+   "repeat": false,
+   "scale": 2
+  },
+  "ui-journal": {
+   "bundle": "boot",
+   "file": "ui-journal.webp",
+   "bytes": 3194,
+   "w": 96,
+   "h": 96,
+   "repeat": false,
+   "scale": 2
+  },
+  "ui-pause": {
+   "bundle": "boot",
+   "file": "ui-pause.webp",
+   "bytes": 1534,
+   "w": 96,
+   "h": 96,
+   "repeat": false,
+   "scale": 2
+  },
+  "ui-hint-mark": {
+   "bundle": "boot",
+   "file": "ui-hint-mark.webp",
+   "bytes": 902,
+   "w": 48,
+   "h": 48,
+   "repeat": false,
+   "scale": 2
+  },
+  "ui-stick-base": {
+   "bundle": "boot",
+   "file": "ui-stick-base.webp",
+   "bytes": 8172,
+   "w": 256,
+   "h": 256,
+   "repeat": false,
+   "scale": 2
+  },
+  "ui-stick-knob": {
+   "bundle": "boot",
+   "file": "ui-stick-knob.webp",
+   "bytes": 3672,
+   "w": 128,
+   "h": 128,
+   "repeat": false,
+   "scale": 2
+  },
+  "ui-btn": {
+   "bundle": "boot",
+   "file": "ui-btn.webp",
+   "bytes": 3620,
+   "w": 160,
+   "h": 160,
+   "repeat": false,
+   "scale": 2
+  }
+ },
+ "data": {
+  "hero-rig": {
+   "bundle": "boot",
+   "file": "hero-rig.json"
+  }
+ },
+ "bundles": {
+  "boot": {
+   "files": [
+    "assets/hero.json",
+    "assets/hero.webp",
+    "assets/npcs.json",
+    "assets/npcs.webp",
+    "assets/table.json",
+    "assets/table.webp",
+    "assets/props.json",
+    "assets/props.webp",
+    "assets/bg-beach.webp",
+    "assets/mat-sand.webp",
+    "assets/mat-wetsand.webp",
+    "assets/mat-rock.webp",
+    "assets/mat-wood.webp",
+    "assets/mat-water.webp",
+    "assets/mat-glass.webp",
+    "assets/mat-paper.webp",
+    "assets/paper-tooth.webp",
+    "assets/desk-wood.webp",
+    "assets/stroke-graphite.webp",
+    "assets/stroke-blue.webp",
+    "assets/stroke-dash.webp",
+    "assets/stroke-dashblue.webp",
+    "assets/stroke-glow.webp",
+    "assets/stroke-chain.webp",
+    "assets/stroke-crease.webp",
+    "assets/ui-title.webp",
+    "assets/ui-paper.webp",
+    "assets/ui-claw.webp",
+    "assets/ui-journal.webp",
+    "assets/ui-pause.webp",
+    "assets/ui-hint-mark.webp",
+    "assets/ui-stick-base.webp",
+    "assets/ui-stick-knob.webp",
+    "assets/ui-btn.webp",
+    "assets/hero-rig.json"
+   ],
+   "bytes": 1417632
+  },
+  "sea": {
+   "files": [
+    "assets/npcs-sea.json",
+    "assets/npcs-sea.webp",
+    "assets/props-sea.json",
+    "assets/props-sea.webp",
+    "assets/bg-under.webp",
+    "assets/bg-fold.webp",
+    "assets/mat-seabed.webp",
+    "assets/mat-deep.webp"
+   ],
+   "bytes": 639150
+  },
+  "land": {
+   "files": [
+    "assets/npcs-land.json",
+    "assets/npcs-land.webp",
+    "assets/props-land.json",
+    "assets/props-land.webp",
+    "assets/bg-beach-evening.webp",
+    "assets/bg-steppe.webp",
+    "assets/bg-steppe-evening.webp",
+    "assets/mat-grass.webp",
+    "assets/mat-earth.webp"
+   ],
+   "bytes": 767630
+  },
+  "bay": {
+   "files": [
+    "assets/npcs-bay.json",
+    "assets/npcs-bay.webp",
+    "assets/props-bay.json",
+    "assets/props-bay.webp",
+    "assets/bg-bay.webp",
+    "assets/mat-cream.webp"
+   ],
+   "bytes": 569938
+  }
+ },
+ "built": "2026-09-28"
+}

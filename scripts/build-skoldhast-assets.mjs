@@ -99,7 +99,8 @@ async function main() {
     manifest.built = new Date().toISOString().slice(0, 10);
     fs.writeFileSync(manifestPath, JSON.stringify(manifest, null, 1));
 
-    // files the loader prefetches: all game modules, Pixi, the css and the boot bundle
+    // files the loader prefetches: all game modules, Pixi, the css, the boot bundle and the land bundle
+    // (the prologue photographs the land scene, so her picture must be complete from the first frame)
     const src = [];
     const walk = (dir) => {
         for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
@@ -109,7 +110,7 @@ async function main() {
         }
     };
     walk(path.join(ROOT, 'skoldhast', 'src'));
-    const files = ['vendor/pixi-8.21.0.min.mjs', ...src.sort(), 'skoldhast.css', 'assets/manifest.json', ...(bundles.boot?.files || [])];
+    const files = ['vendor/pixi-8.21.0.min.mjs', ...src.sort(), 'skoldhast.css', 'assets/manifest.json', ...(bundles.boot?.files || []), ...(bundles.land?.files || [])];
     fs.writeFileSync(path.join(ROOT, 'skoldhast', 'files.json'), JSON.stringify({ files }, null, 1));
 
     // budget: JS/CSS/JSON counted gzipped (GitHub Pages compresses text), images as-is
