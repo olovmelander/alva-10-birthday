@@ -45,11 +45,15 @@ export function createGame({ host = document.body, assetBase = './skoldhast/', r
     // --------------------------------------------------------------------------------
     function pageMusic() { try { return typeof bgMusic !== 'undefined' ? bgMusic : null; } catch { return null; } } // eslint-disable-line no-undef
     function pageAudioCtx() { try { return typeof audioCtx !== 'undefined' ? audioCtx : null; } catch { return null; } } // eslint-disable-line no-undef
+    // the page's own functions may throw (e.g. if its 3D scene never started); the game must open anyway
+    function hostPause(on) {
+        try { if (typeof setSceneRenderPaused === 'function') setSceneRenderPaused(on); } catch (err) { console.warn('Sköldhästen: page pause', err); } // eslint-disable-line no-undef
+    }
     function takeHost() {
         hostState.focus = document.activeElement;
         const mario = document.getElementById('mario-content');
         if (mario) mario.style.display = 'none';
-        if (typeof setSceneRenderPaused === 'function') setSceneRenderPaused(true); // eslint-disable-line no-undef
+        hostPause(true);
         const m = pageMusic();
         hostState.musicWasPlaying = !!(m && !m.paused);
         try { m?.pause(); } catch { /* ignore */ }
@@ -60,7 +64,7 @@ export function createGame({ host = document.body, assetBase = './skoldhast/', r
         // like the other games: the ticket page comes back with display = ''
         const mario = document.getElementById('mario-content');
         if (mario) mario.style.display = '';
-        if (typeof setSceneRenderPaused === 'function') setSceneRenderPaused(false); // eslint-disable-line no-undef
+        hostPause(false);
         const m = pageMusic();
         if (m && hostState.musicWasPlaying) m.play().catch(() => {});
         document.documentElement.classList.remove('skoldhast-lock');
@@ -78,6 +82,16 @@ export function createGame({ host = document.body, assetBase = './skoldhast/', r
         if (state !== 'closed') return;
         state = 'opening';
         listeners = new AbortController();
+        try {
+            await openInner();
+        } catch (err) {
+            // never leave the page half-taken: free everything so a retry starts clean
+            console.error('Sköldhästen: open failed', err);
+            await close();
+            throw err;
+        }
+    }
+    async function openInner() {
         takeHost();
         el = document.createElement('div');
         el.className = 'sk-root';
