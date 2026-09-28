@@ -360,8 +360,11 @@ export function createGame({ host = document.body, assetBase = './skoldhast/', r
     // --------------------------------------------------------------------------------
     // Saving
     // --------------------------------------------------------------------------------
+    let persistAsked = false;
     function saveNow() {
         if (!G || !G.flags.has('intro_done')) return;
+        // ask once for storage the browser won't evict (a bonus, not a safeguard: plan §8.6)
+        if (!persistAsked) { persistAsked = true; saver.persist(); }
         const data = G.serialize();
         saver.store(slot.id, slot.label, { ...data, settings, note, strokes: G.userStrokes || null, ended: G.flags.has('ended') });
     }
