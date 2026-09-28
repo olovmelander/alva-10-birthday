@@ -1183,6 +1183,7 @@
         const a = run.alva;
 
         if (item === 'bits') {
+            run.stats.bitTotal += 5;
             for (let i = 0; i < 5; i += 1) {
                 const bit = {
                     id: run.level.nextId, type: 'bit', alive: true, t: 0,
@@ -1257,9 +1258,14 @@
         emit(run, 'rescue', { x: a.x });
     }
 
-    function solidBelow(run, x) {
-        if (!pointOverGap(run, x)) return true;
-        return run.entities.some((e) => e.type === 'platform' && e.alive && footOverlaps(surfaceSpan(e), x));
+    // The Luma only lets go over plain ground with runway ahead – enough for the
+    // drop plus a moment to react – so a rescue can't drop Alva into the next hole.
+    function safeToRelease(run, x) {
+        const runway = Math.max(run.def.speed[1], 200) * 0.65 + 40;
+        for (let dx = -ALVA_BOX.footHalfWidth; dx <= runway; dx += 8) {
+            if (pointOverGap(run, x + dx)) return false;
+        }
+        return true;
     }
 
     // A Luma swoops down, lifts Alva out of the hole and lets go over solid ground.
@@ -1271,7 +1277,7 @@
         if (a.rescueT >= liftStart) {
             const t = clamp((a.rescueT - liftStart) / (liftEnd - liftStart), 0, 1);
             a.y = lerp(a.rescueFromY, 150, easeOutCubic(t));
-            if (t >= 1 && solidBelow(run, a.x)) {
+            if (t >= 1 && safeToRelease(run, a.x)) {
                 a.mode = 'air';
                 a.vy = 0;
                 a.grounded = false;
@@ -1779,7 +1785,8 @@
             target = lerp(run.def.speed[0], run.def.speed[1], progress);
             if (a.mode === 'drop') target = 0;
             if (a.rainbowT > 0) target *= 1.18;
-            if (a.mode === 'rescue') target *= 0.55;
+            // Slow while the Luma dives and lifts; once Alva is up, carry her along at full pace
+            if (a.mode === 'rescue' && a.rescueT < 1.25) target *= 0.55;
         }
         const rate = run.speed < target ? 1.8 : 3;
         run.speed += (target - run.speed) * Math.min(1, dt * rate);
@@ -2695,9 +2702,10 @@
         },
         comets: {
             create() {
-                return { comets: [], nextAt: 1.2 };
+                return { comets: [], nextAt: -1 };
             },
             back(state, g, bd, camX, time, rand) {
+                if (state.nextAt < 0) state.nextAt = time + 1.2;
                 if (time > state.nextAt) {
                     state.nextAt = time + 2.2 + rand() * 2.6;
                     state.comets.push({ born: time, x: bd.W * (0.3 + rand() * 0.8), y: rand() * bd.groundY * 0.35, color: rand() < 0.5 ? '#48eeff' : '#ff9be0' });
@@ -2711,7 +2719,8 @@
                     const tail = g.createLinearGradient(x, y, x + 130, y - 53);
                     tail.addColorStop(0, c.color);
                     tail.addColorStop(1, 'rgba(0, 0, 0, 0)');
-                    g.globalAlpha = alpha;
+                    const fade = g.globalAlpha;   // the backdrop's crossfade
+                    g.globalAlpha = fade * alpha;
                     g.strokeStyle = tail;
                     g.lineWidth = 3;
                     g.lineCap = 'round';
@@ -2719,7 +2728,7 @@
                     g.moveTo(x, y);
                     g.lineTo(x + 130, y - 53);
                     g.stroke();
-                    g.globalAlpha = 1;
+                    g.globalAlpha = fade;
                     drawSprite(g, 'dot:white', x, y, 12, alpha);
                 }
             }
@@ -4600,6 +4609,8 @@
         combo: 'Femdubbel studs: +1 hjärta!'
     };
 
+    const JUMP_KEYS = ['Space', 'ArrowUp', 'KeyW', 'KeyK'];
+
     const HEART_PIXELS = [
         '.KK...KK.',
         'KRRK.KRRK',
@@ -4670,6 +4681,10 @@
         hud: {},
         hintsShown: new Set(),
         ready: null,
+        panelShownAt: 0,
+        panelArmMs: 0,
+        swallowedKeys: new Set(),
+        keyDownAt: {},
 
         init() {
             const root = document.getElementById('sag-ui');
@@ -4736,7 +4751,6 @@
             this.input.mode = window.matchMedia('(pointer: coarse)').matches ? 'touch' : 'keys';
             renderer.init(this.el.canvas);
             this.buildHearts();
-            this.ready = art.load().then(() => this.buildIcons());
             this.frameBound = (now) => this.frame(now);
 
             openButton.addEventListener('click', () => this.open());
@@ -4768,6 +4782,7 @@
                 if (document.hidden) this.autoPause();
             });
             window.addEventListener('blur', () => this.autoPause());
+            window.addEventListener('pagehide', () => this.recordRun());
         },
 
         buildIcons() {
@@ -4827,6 +4842,8 @@
             const fonts = document.fonts && document.fonts.load
                 ? Promise.race([document.fonts.load("16px 'Press Start 2P'"), new Promise((resolve) => setTimeout(resolve, 1500))])
                 : Promise.resolve();
+            // The art is prepared the first time the game opens, not while the story loads.
+            if (!this.ready) this.ready = art.load().then(() => this.buildIcons());
             Promise.all([this.ready, fonts]).catch(() => {}).then(() => {
                 if (this.state !== 'opening') return;
                 this.landscape = window.innerWidth > window.innerHeight;
@@ -4870,6 +4887,7 @@
             const run = createRun({ galaxyIndex, view: renderer.view });
             run.score = score;
             run.stats.startScore = score;
+            run.bestBefore = store.data.best || 0;
             this.run = run;
             renderer.setGalaxy(run.def, true);
             renderer.resetLook();
@@ -4942,13 +4960,16 @@
             }
         },
 
+        // Saves a new best score (safe to call any time) and tells whether this
+        // run beat the best that stood when it started.
         recordRun() {
             const run = this.run;
-            if (!run || run.attract || run.recorded) return false;
-            const isRecord = run.score > (store.data.best || 0);
-            if (isRecord) store.data.best = run.score;
-            store.save();
-            return isRecord;
+            if (!run || run.attract) return false;
+            if (run.score > (store.data.best || 0)) {
+                store.data.best = run.score;
+                store.save();
+            }
+            return run.score > run.bestBefore;
         },
 
         // --- Pause -------------------------------------------------------------
@@ -4973,6 +4994,7 @@
         autoPause() {
             this.releaseAll();
             if (this.state === 'playing') this.pause();
+            this.recordRun();
         },
 
         toggleSfx() {
@@ -5017,14 +5039,28 @@
             window.addEventListener('keydown', (event) => this.onKeyDown(event));
             window.addEventListener('keyup', (event) => {
                 if (this.input.keys.delete(event.code)) this.syncHeld();
+                // Releasing a jump key that was pressed before the panel appeared must not click its button.
+                if (this.state !== 'playing' && this.state !== 'closed' && JUMP_KEYS.includes(event.code) &&
+                    (this.swallowedKeys.has(event.code) || (this.keyDownAt[event.code] || 0) < this.panelShownAt)) {
+                    event.preventDefault();
+                }
+                this.swallowedKeys.delete(event.code);
             });
         },
 
         onKeyDown(event) {
             if (this.state === 'closed' || this.state === 'opening') return;
-            if (['Space', 'ArrowUp', 'KeyW', 'KeyK'].includes(event.code)) {
-                // In menus these keys belong to the focused button.
-                if (this.state !== 'playing') return;
+            if (JUMP_KEYS.includes(event.code)) {
+                if (!event.repeat) this.keyDownAt[event.code] = performance.now();
+                if (this.state !== 'playing') {
+                    // In menus these keys belong to the focused button – but not while the
+                    // player is still mashing or holding jump as a panel pops up mid-game.
+                    if (event.repeat || performance.now() - this.panelShownAt < this.panelArmMs) {
+                        event.preventDefault();
+                        this.swallowedKeys.add(event.code);
+                    }
+                    return;
+                }
                 event.preventDefault();
                 this.input.mode = 'keys';
                 if (!event.repeat && !this.input.keys.has(event.code)) {
@@ -5127,7 +5163,7 @@
             switch (e.type) {
                 case 'jump':
                     look.squashV += 5.5;
-                    fx.burst(e.x, 2, 5, { kind: 'dust', speed: 90, spread: Math.PI * 0.8, angle: Math.PI, size: 10, sizeEnd: 18, life: 0.35 });
+                    fx.burst(e.x, e.y + 2, 5, { kind: 'dust', speed: 90, spread: Math.PI * 0.8, angle: Math.PI, size: 10, sizeEnd: 18, life: 0.35 });
                     if (!quiet) sound.jump();
                     break;
                 case 'spin':
@@ -5295,7 +5331,6 @@
             this.releaseAll();
             const run = this.run;
             const isRecord = this.recordRun();
-            run.recorded = true;
             sound.gameOver();
             this.el.overGalaxy.textContent = `Galax ${run.galaxyIndex + 1}: ${run.def.name}`;
             this.el.overScore.textContent = formatScore(run.score);
@@ -5305,7 +5340,7 @@
             const canRetry = run.galaxyIndex > 0;
             this.el.retryButton.hidden = !canRetry;
             this.el.retryButton.textContent = `Försök igen: Galax ${run.galaxyIndex + 1}`;
-            this.showPanel('over');
+            this.showPanel('over', 700);
         },
 
         onFinale() {
@@ -5319,7 +5354,7 @@
             this.el.finaleBits.textContent = formatScore(run.bits);
             this.el.finaleGoombas.textContent = formatScore(run.goombas);
             this.el.finaleRecord.hidden = !isRecord;
-            this.showPanel('finale');
+            this.showPanel('finale', 1600);
             this.celebrate(4200);
         },
 
@@ -5344,7 +5379,8 @@
         // --- HUD ---------------------------------------------------------------
         updateHud() {
             const run = this.run;
-            if (!run || run.attract) return;
+            // While "KLAR!" shows, the next galaxy is already set up behind it: keep the finished one on the HUD.
+            if (!run || run.attract || this.state === 'clear') return;
             const hud = this.hud;
             if (hud.hearts !== run.hearts) {
                 this.heartNodes.forEach((node, i) => {
@@ -5422,8 +5458,14 @@
         },
 
         // --- Panels ------------------------------------------------------------
-        showPanel(name) {
-            this.el.screens.classList.add('is-open');
+        // armMs: panels that pop up mid-game ignore jump keys and taps for a moment,
+        // so an excited player can't skip them by accident.
+        showPanel(name, armMs = 0) {
+            const screens = this.el.screens;
+            this.panelShownAt = performance.now();
+            this.panelArmMs = armMs;
+            screens.classList.add('is-open');
+            screens.classList.toggle('is-arming', armMs > 0);
             let focusTarget = null;
             for (const panel of this.el.panels) {
                 const match = panel.dataset.panel === name;
@@ -5431,6 +5473,15 @@
                 if (match) focusTarget = panel.querySelector('.sag-btn:not([hidden])');
             }
             if (focusTarget) focusTarget.focus({ preventScroll: true });
+            clearTimeout(this.armTimer);
+            if (armMs > 0) {
+                this.armTimer = setTimeout(() => {
+                    screens.classList.remove('is-arming');
+                    // Taps during the pause may have moved focus off the panel; hand it back.
+                    const panel = focusTarget && focusTarget.closest('.sag-panel');
+                    if (panel && !panel.hidden && !panel.contains(document.activeElement)) focusTarget.focus({ preventScroll: true });
+                }, armMs);
+            }
         },
 
         hidePanels() {
@@ -5480,7 +5531,7 @@
             this.el.clearPerfect.textContent = `+${formatScore(finished.perfectBonus)}`;
             this.el.clearScore.textContent = formatScore(finished.score);
             this.el.nextButton.textContent = `Till Galax ${finished.index + 2} ▶`;
-            this.showPanel('clear');
+            this.showPanel('clear', 700);
         }
     };
 

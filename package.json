@@ -1,6 +1,7 @@
 {
   "scripts": {
-    "build:goomba-atlas": "node scripts/build-goomba-atlas.mjs"
+    "build:goomba-atlas": "node scripts/build-goomba-atlas.mjs",
+    "build:mira-sprites": "node scripts/build-mira-sprites.mjs"
   },
   "dependencies": {
     "@napi-rs/canvas": "^0.1.97",
