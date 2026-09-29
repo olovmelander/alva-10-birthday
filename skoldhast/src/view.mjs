@@ -393,11 +393,16 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
             const glow = rope('stroke-glow', pts, { color: 0xffd27a, width: 16, alpha: 0.7 });
             if (!ds.glow) glow.alpha = 0;
             const dash = rope('stroke-dash', pts, { color: 0x3b3530, width: 5, scale: 1 });
-            const ink = rope('stroke-graphite', pts.slice(0, 2), { width: 6 });
+            // MeshRope keeps its initial point capacity. Allocate the entire line;
+            // unfinished points collapse onto the moving pencil tip while drawing.
+            const ink = rope('stroke-graphite', pts, { width: 6 });
+            ink.visible = false;
+            const distances = [0];
+            for (let i = 1; i < pts.length; i++) distances.push(distances[i - 1] + Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]));
             if (glow) c.addChild(glow);
             c.addChild(dash, ink);
             (ds.decal ? L.mid : L.objects).addChild(c);
-            d.dashed.push({ ds, c, glow, dash, ink, pts, len: lineLength(pts), x0: Math.min(ds.pts[0][0], ds.pts[ds.pts.length - 1][0]), x1: Math.max(ds.pts[0][0], ds.pts[ds.pts.length - 1][0]), y: ds.pts[0][1] });
+            d.dashed.push({ ds, c, glow, dash, ink, pts, distances, len: distances.at(-1), x0: Math.min(ds.pts[0][0], ds.pts[ds.pts.length - 1][0]), x1: Math.max(ds.pts[0][0], ds.pts[ds.pts.length - 1][0]), y: ds.pts[0][1] });
         }
         // lanes: motes that show the flow; dashed lanes as blue dashes
         d.lanes = [];
@@ -926,9 +931,8 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
                 dl.glow.alpha = damp(dl.glow.alpha, near ? 0.5 + Math.sin(time * 3.2) * 0.2 : 0, 3, dt);
                 dl.dash.alpha = near ? 0.78 + Math.sin(time * 3.2 + 1) * 0.22 : 1;
             }
-            const n = Math.max(2, Math.round(dl.pts.length * inkT));
-            updateRopePoints(dl.ink, done ? dl.pts : (G.player.streck?.dir < 0 ? dl.pts.slice(dl.pts.length - n) : dl.pts.slice(0, n)));
-            dl.ink.visible = inkT > 0.02;
+            updateInk(dl, inkT, G.player.streck?.dir || 1);
+            dl.ink.visible = inkT > 0;
             if (inkT > 0 && inkT < 1 && Math.random() < 0.5) emit('ink', snap.x, snap.y - 10, 1, { speed: 120, g: 300, life: 0.4, tint: 0x3b3530 });
         }
         // lanes
@@ -1016,6 +1020,18 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
             P[i].x = q[0]; P[i].y = q[1];
         }
         refreshRope(r);
+    }
+
+    function updateInk(dl, progress, dir) {
+        if (progress >= 1) { updateRopePoints(dl.ink, dl.pts); return; }
+        const distance = dl.len * (dir < 0 ? 1 - progress : progress);
+        const tip = pointAt(dl.pts, distance);
+        for (let i = 0; i < dl.pts.length; i++) {
+            const untouched = dir < 0 ? dl.distances[i] < distance : dl.distances[i] > distance;
+            const p = dl.ink._pts[i], q = dl.pts[i];
+            p.x = untouched ? tip.x : q[0]; p.y = untouched ? tip.y : q[1];
+        }
+        refreshRope(dl.ink);
     }
 
     function updateObjects(dt, snap, frozen) {

@@ -256,6 +256,10 @@ or additional chapter release is part of this branch.
   quiet 1.8-second hold. Klo stands beside the hero for his conclusion. Focused
   finale checks pass in landscape and reduced-motion portrait, preserving the
   player's scene, checkpoint, flags and camera across the glimpse.
+- The ink meshes for P1/P8 now retain the whole line. They previously had only
+  two points, truncating a completed stroke after about 30 world units. The
+  focused ink browser check covers 20 drawing states, both directions, exact
+  endpoints, curved joins and finite GPU vertices; no new asset is needed.
 - Order next: finish close-during-drawing cleanup; enable regional collection
   and underwater colouring; add the remaining ten pencils; complete the lit
   lighthouse view at the finale. The clipping remains excluded by the privacy
