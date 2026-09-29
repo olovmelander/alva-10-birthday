@@ -184,9 +184,14 @@ export class Terrain {
         const steps = Math.max(1, Math.ceil(Math.abs(x - fromX) / 24));
         let y = yFeet;
         for (let i = 1; i <= steps; i++) {
-            const r = this.support(fromX + (x - fromX) * i / steps, y, C.stepUp, 90);
-            if (!r) return null;
-            y = r.y;
+            const sx = fromX + (x - fromX) * i / steps;
+            let next = Infinity;
+            for (const surface of this.surfaces) {
+                const sy = heightOn(surface.pts, sx);
+                if (sy !== null && sy >= y - C.stepUp && sy <= y + 90 && sy < next) next = sy;
+            }
+            if (next === Infinity) return null;
+            y = next;
         }
         return y;
     }
