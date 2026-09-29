@@ -27,6 +27,7 @@ export const NAMES = {
 };
 
 export const UI = {
+    goalLabel: 'Mål',
     title: 'Sköldhästen',
     subtitle: 'och havet mellan sidorna',
     credit: 'Sköldhästar är påhittade och ritade av Alva.',
@@ -285,6 +286,7 @@ export const TIPS = {
 // The journal: Forskningsdagbok (plan §4.7)
 // ---------------------------------------------------------------------------
 export const JOURNAL = {
+    tallyHorse: 'Lutar åt häst.', tallyTurtle: 'Lutar åt sköldpadda.', tallyEven: 'Det står lika.',
     title: 'Sköldhäst – först beskriven av Alva',
     latin: 'Chelonippus alvae?',
     latinNote: 'Ett förslag. Alva får döpa om den.',
@@ -337,13 +339,54 @@ export const CAPTIONS = {
     rustle: '(prassel)', plask: '(PLASK!)', neigh: '(gnägg!)', blubb: '(blubb!)', ratchet: '(klick)', latch: '(klonk!)', drum: '(dunk dunk)', unfold: '(prassel …)'
 };
 
-export const CONTEXT_LABELS = { talk: 'Prata', read: 'Läs', swimIn: 'Simma in', down: 'Gå ner', taste: 'Smaka' };
+export const CONTEXT_LABELS = { talk: 'Prata', read: 'Läs', swimIn: 'Simma in', down: 'Gå ner', taste: 'Smaka', push: 'Knuffa', pull: 'Dra', color: 'Färglägg', shake: 'Skaka', dropIn: 'Hoppa i' };
 
 // ---------------------------------------------------------------------------
 // The menus' notebook (src/ui.mjs): the journal's tabs, the report's stamp, the map sketch
 // ---------------------------------------------------------------------------
 export const MENU = {
+    regions: [['Stäppen', 'land'], ['Stranden', 'land'], ['Kelpskogen', 'kelp'], ['Spegelviken', 'viken']],
+    fold: '— veck —',
     tabs: ['Framsida', 'Fältanteckning', 'Vad vet vi?', 'Mätningar', 'Ledtrådar', 'Rapporter', 'Din anteckning'],
     stamp: 'Granskad',
     map: 'Karta'
 };
+// Professor Klo's optional, non-blocking research break. Never required for progress.
+export const KLO_JOKES = [
+    'Jag går i sidled. Det är mitt sätt att tänka utanför rutan.',
+    'Forskningsrapport: sköldhästar är svåra att stoppa i ett pennfodral.',
+    'Jag tog tid på en våg. Den vinkade och gick.',
+    'Havet har många hemligheter. Min anteckningsbok är redan fuktig.',
+    'En penna utan spets? Ett mycket kort trollspö.',
+    'Jag har två klor och noll fickor. Vem ritade min labbrock?',
+    'Min klocka säger tick. Jag säger klick. Vi har mycket gemensamt.',
+    'Om en sköldhäst gömmer sig, är den då en hemlig häst?',
+    'Jag frågade en snäcka vad klockan var. Den svarade: schhh.',
+    'Dagens upptäckt: sand smakar fortfarande sand.',
+    'Jag mäter mod i små steg. Sidosteg räknas också.',
+    'Min penna simmar dåligt. Den föredrar att rita vatten.',
+    'En våg räcker upp handen hela tiden. Så artigt!',
+    'Jag skulle sortera alla sandkorn. Sedan blev det lunch.',
+    'Sköldhästens man ser ut som havets bästa frisyr.',
+    'Jag har skrivit en bok om tystnad. Den börjar med schhh.',
+    'Forskning kräver tålamod. Och ibland ett mellanmål.',
+    'Jag provade att galoppera. Det blev mest trassliga ben.',
+    'Min anteckningsbok är vattentät. Mina anteckningar är det inte.',
+    'En bubbla är havets sätt att säga plopp.',
+    'Jag tappar aldrig hakan. Den sitter så opraktiskt till.',
+    'Tänk om månen är ett suddgummi som glömts i himlen.',
+    'Jag frågade en fisk om vägen. Den pekade åt blubb.',
+    'Sköldhästar har sköld. Jag har skal. Vi borde bilda klubb.',
+    'Dagens experiment: kan man kittla en våg? Den bara skvalpar.',
+    'Jag går inte vilse. Jag undersöker oväntade riktningar.',
+    'Gräs kittlar benen. Jag har gjort flera samtidiga mätningar.',
+    'Min bästa teori står på nästa sida. Eller sidan efter den.',
+    'Jag har hittat spår! Det kan vara hovar. Eller väldigt små tekoppar.',
+    'En krabba med bråttom tar en genväg. I sidled, förstås.',
+    'Jag räknade bubblor till sju. Sedan sprack min uträkning.',
+    'Det bästa med blyertspennor är att misstag kan bli moln.',
+    'Min klocka mäter sekunder. Min mage mäter mellanmål.',
+    'Undrar om havet får hicka när det blåser.',
+    'Vetenskaplig slutsats: du är väldigt bra på att hitta krabbor.',
+    'Jag tänkte vara allvarlig i dag. Men det kliar i klorna.'
+];

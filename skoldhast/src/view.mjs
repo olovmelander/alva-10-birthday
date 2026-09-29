@@ -11,6 +11,9 @@
  */
 import { HL, cond, heightOn, lineLength, pointAt } from './sim.mjs';
 import { createPage, createScreenTurn } from './pageturn.mjs';
+import { terrainShape } from './terrain-shape.mjs';
+import { createKlo } from './klo.mjs';
+import { createWaterLight } from './scenery.mjs';
 
 const h = (v) => v * HL;
 const lerp = (a, b, t) => a + (b - a) * t;
@@ -238,45 +241,41 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
             bgLayer.addChild(s);
             d.bg.push(s);
         }
-        // ground
+        // One exposed contour from the active collision surfaces. Ramps replace
+        // buried terrace tops; they never paint a grass column over the earth.
         const ground = new PIXI.Graphics();
         const groundTop = new PIXI.Graphics();
+        const groundLines = new PIXI.Container();
         const bottom = def.bounds.y1 + h(4);
         for (const s of def.surfaces) {
             const pts = s.pts;
-            const x0 = pts[0][0], x1 = pts[pts.length - 1][0];
             if (s.thin) {
                 const th = s.pier || s.jetty ? 34 : s.bridge ? 30 : 26;
                 const poly = [...pts, ...pts.slice().reverse().map(([x, y]) => [x, y + th])];
                 d.dyn.push({ kind: 'thin', s, poly, when: s.when });
                 continue;
             }
-            const body = [...pts, [x1, bottom], [x0, bottom]];
-            if (s.ramp) { d.dyn.push({ kind: 'ramp', s, poly: body }); continue; }
-            fillPoly(ground, body, s.edgeMat || s.mat);
-            if (s.edgeMat && s.edgeMat !== s.mat) {
-                const band = [...pts, ...pts.slice().reverse().map(([x, y]) => [x, y + 46])];
-                fillPoly(groundTop, band, s.mat);
-            }
         }
-        L.terrainBack.addChild(ground, groundTop);
+        L.terrainBack.addChild(ground, groundTop, groundLines);
         d.ground = ground; d.groundTop = groundTop;
-        // outlines along the tops of solid surfaces
-        for (const s of def.surfaces) {
-            if (s.thin || s.ramp) continue;
-            const r = rope('stroke-graphite', resamplePts(s.pts, 50), { width: 5 });
-            L.terrainBack.addChild(r);
-            d.ropes.push(r);
-            // vertical faces where a surface ends above the next one (walls)
-            const [ex, ey] = s.pts[s.pts.length - 1];
-            const [sx, sy] = s.pts[0];
-            for (const [fx, fy] of [[sx, sy], [ex, ey]]) {
-                const r2 = rope('stroke-graphite', [[fx, fy], [fx + 2, fy + h(0.6)], [fx, fy + h(1.4)]], { width: 4, alpha: 0.9 });
-                r2.alpha = 0.8;
-                L.terrainBack.addChild(r2);
-                d.ropes.push(r2);
+        d.rebuildGround = () => {
+            ground.clear(); groundTop.clear();
+            for (const child of groundLines.removeChildren()) child.destroy({ children: true });
+            const active = def.surfaces.filter(s => cond(s.when, G.flags));
+            const shape = terrainShape(active);
+            for (const { s, pts } of shape.runs) {
+                const x0 = pts[0][0], x1 = pts.at(-1)[0];
+                const baseMat = s.edgeMat || (s.ramp ? 'earth' : s.mat);
+                fillPoly(ground, [...pts, [x1, bottom], [x0, bottom]], baseMat);
+                if (baseMat !== s.mat) {
+                    fillPoly(groundTop, [...pts, ...pts.slice().reverse().map(([x,y]) => [x,y+46])], s.mat);
+                }
             }
-        }
+            for (const pts of shape.outlines) groundLines.addChild(rope('stroke-graphite', resamplePts(pts, 50), { width: 5 }));
+            d.groundRevision = G.terrain.revision;
+            d.groundTerrain = G.terrain;
+        };
+        d.rebuildGround();
         // thin surfaces (planks, bridges): drawn dynamically because some appear with flags
         for (const it of d.dyn) {
             if (it.kind === 'thin' || it.kind === 'ramp') {
@@ -314,6 +313,8 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
             L.waterFront.addChild(wb.surf);
             if (w.mirror) wb.refl = buildReflection(def, w);
             d.waters.push(wb);
+            wb.light = createWaterLight(PIXI, w, { underwater: def.underwater });
+            L.waterFront.addChild(wb.light.view);
         }
         if (def.underwater) {
             // the air above the surface in an underwater scene
@@ -451,6 +452,7 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
         d.dark = [];
         for (const dk of def.darkness || []) {
             const g = new PIXI.Graphics();
+            g.alpha = G.flags.has(dk.until) ? 0 : 1;
             g.rect(dk.x0, dk.y0, dk.x1 - dk.x0, dk.y1 - dk.y0).fill({ color: 0x0e1f2a, alpha: 0.86 });
             L.fore.addChild(g);
             d.dark.push({ dk, g });
@@ -550,7 +552,8 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
             return { pc, s, g };
         });
         // actors
-        O.klo = spr('klo-idle-1'); L.actors.addChild(O.klo);
+        O.kloRig = createKlo(PIXI, { texture: T });
+        O.klo = O.kloRig.container; L.actors.addChild(O.klo);
         O.kloSign = spr('sign-hast'); O.kloSign.visible = false; L.actors.addChild(O.kloSign);
         O.kv = spr('kv-stand'); O.kv.visible = false; L.actors.addChild(O.kv);
         O.figure = spr('kv-walk-1'); O.figure.visible = false; L.actors.addChild(O.figure);
@@ -634,6 +637,7 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
     /** Show `rt` over the screen and turn it away (hinge: the edge it turns about). hold: wait for release(). */
     function startTurn(rt, { hinge = 'left', duration = 1.05, hold = false } = {}) {
         if (!rt) return null;
+        onFx?.('sfx', 'page');
         let show, destroy;
         if (G.lessMotion) {
             // reduced motion: a short crossfade instead of a turning page
@@ -773,6 +777,7 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
             b.scale.set(sc);
             b.x = (W - tw * sc) / 2 - ((cam.x % h(40)) / h(40) - 0.5) * W * 0.03;
             b.y = (H - th * sc) / 2 + clamp(-(cam.y - h(-1)) * cam.zoom * 0.05, -H * 0.04, H * 0.04);
+            if (bb.image === 'bg-steppe') b.y -= H * 0.08;
             let a = 1;
             if (S.bg.length > 1) {
                 const mid = (bb.x0 + bb.x1) / 2, half = (bb.x1 - bb.x0) / 2;
@@ -823,6 +828,7 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
         }
         // dynamic thin surfaces and ramps
         for (const it of S.dyn) { if (it.c) it.c.visible = cond(it.s.when, F); }
+        if (G.terrain !== S.groundTerrain || G.terrain.revision !== S.groundRevision) S.rebuildGround();
         // kelp sway
         for (const k of S.kelp) {
             k.r.visible = !(k.chapter && !F.has('ch2_open'));
@@ -847,6 +853,7 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
                 P[i].y = wb.w.top + Math.sin(time * 2.1 + bx * 0.012) * amp + Math.sin(time * 1.3 + bx * 0.031) * amp * 0.4;
             }
             refreshRope(wb.surf);
+            wb.light?.update({ time, cam, width: W, height: H, frozen: frozen && def.id === 'land' && wb.w.kind === 'sea', evening: G.evening, lessMotion: G.lessMotion, ripple: calm });
             if (wb.refl) {
                 const r = G.puz.pools[wb.w.id]?.ripple ?? 1;
                 const vis = clamp(1 - r * 1.6, 0, 1);
@@ -1085,8 +1092,8 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
             setTex(pc.g, pc.pc.prop + (colored ? '-color' : '-grey'));
         }
         // actors
-        drawActor(O.klo, G.actors.klo, 'klo', dt);
         const k = G.actors.klo;
+        O.kloRig.update(k, { scene: S.id, time: G.time, dt, underwater: S.def.underwater || (S.id === 'viken' && k.y > 0), hero: G.player, talking: k.talking || k.talkUntil > G.time, reducedMotion: G.lessMotion });
         O.kloSign.visible = O.klo.visible && !!k.holding;
         if (O.kloSign.visible) { setTex(O.kloSign, k.holding); O.kloSign.x = O.klo.x + 20 * k.facing; O.kloSign.y = O.klo.y - 70; }
         drawActor(O.kv, G.actors.kv, 'kv', dt);
@@ -1114,28 +1121,16 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
         } else { O.hint.visible = false; if (O.hintGull) O.hintGull.visible = false; }
     }
 
-    const KLO_POSES = {
-        idle: ['klo-idle-1', 'klo-idle-2'], stopwatch: ['klo-stopwatch'], signs: ['klo-signs'], peek: ['klo-peek'], point: ['klo-point'],
-        notebook: ['klo-notebook'], whisper: ['klo-whisper'], 'map-corner': ['klo-map-corner'], 'sign-folded': ['klo-sign-folded'], happy: ['klo-happy'],
-        walk: ['klo-walk-1', 'klo-walk-2', 'klo-walk-3', 'klo-walk-4']
-    };
-    // frames with lettering (her SKÖLD häst signs, the /K on the map corner) must never be mirrored
-    const LETTERED = new Set(['signs', 'sign-folded', 'map-corner']);
     function drawActor(s, a, kind, dt) {
         const vis = a.visible && a.scene === S.id;
         s.visible = vis;
         if (!vis) return;
         s.x = a.x; s.y = a.y;
-        s.scale.x = a.facing < 0 && !(kind === 'klo' && LETTERED.has(a.pose) && !a.walk && !a.inHole) ? -1 : 1;
+        s.scale.x = a.facing < 0 ? -1 : 1;
         const pop = a.pop || 0;
         s.scale.y = 1 - pop * 0.6;
         s.alpha = 1 - pop * 0.5;
-        if (kind === 'klo') {
-            const pose = a.walk ? 'walk' : a.inHole ? 'peek' : a.pose;
-            const frames = KLO_POSES[pose] || KLO_POSES.idle;
-            setTex(s, frames[Math.floor(time * (pose === 'walk' ? 10 : 1.6)) % frames.length]);
-            if (S.def.underwater || (S.id === 'viken' && a.y > 0)) s.y += Math.sin(time * 2) * 8;
-        } else if (kind === 'kv') {
+        if (kind === 'kv') {
             setTex(s, 'kv-' + (a.walk ? (Math.floor(time * 6) % 2 ? 'walk-1' : 'walk-2') : a.pose));
         } else if (kind === 'signe') {
             const moving = a.walk || a.pose === 'walk';
@@ -1222,7 +1217,14 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
     on('splashIn', (e) => { emit('drop', e.x, e.y, e.dive ? 22 : 12, { speed: e.dive ? 520 : 380 }); emit('foam', e.x, e.y, 6, { speed: 200 }); });
     on('splashOut', (e) => emit('drop', e.x, e.y, 8, { speed: 260 }));
     on('dolphin', (e) => emit('drop', e.x, e.y, 18, { speed: 480 }));
-    on('paddle', (e) => { if (e.surface) emit('drop', e.x, e.y - h(0.6), 2, { speed: 120 }); else emit('bubble', e.x, e.y - h(0.5), 2, { g: -300, speed: 60, life: 1.2 }); });
+    on('paddle', (e) => {
+        const x = e.hoofX ?? e.x;
+        if (e.surface) {
+            const y = e.waterY ?? e.y - h(0.6);
+            emit('drop', x, y, 2, { speed: 95, life: 0.45 });
+            emit('foam', x, y + 2, 1, { speed: 32, g: 0, life: 0.8, scale: 0.55, spread: 0, angle: G.player.facing > 0 ? Math.PI : 0 });
+        } else emit('bubble', x, e.hoofY ?? e.y - h(0.5), 2, { g: -120, speed: 40, life: 1.2, scale: 0.6 });
+    });
     on('hoof', (e) => {
         if (e.speed > 900 && !e.hollow) emit(e.wading ? 'drop' : 'sand', e.x - (G.player.facing * 60), e.y - 6, 2, { speed: 180, angle: G.player.facing > 0 ? -2.6 : -0.5, spread: 0.8, life: 0.45 });
         if (S?.id === 'land') addPrint(e);
@@ -1387,6 +1389,7 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
         /** a page is lying over the screen, waiting to turn (the unfold): scene changes should not turn another */
         get holding() { return !!held; },
         get sceneId() { return S?.id; },
+        kloBounds() { return S?.obj?.klo?.visible ? S.obj.klo.getBounds() : null; },
         built(id) { return S?.id === id && S.placeholders === 0; },
         replaceHero(newHero) { L.hero.removeChild(hero.view); hero.destroy?.(); hero = newHero; L.hero.addChild(hero.view); },
         world, root, layers: L,

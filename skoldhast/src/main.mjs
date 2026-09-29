@@ -37,7 +37,7 @@ export function createGame({ host = document.body, assetBase = './skoldhast/', r
     let el = null, app = null, assets = null, G = null, view = null, ui = null, input = null, audio = null, story = null, table = null, guide = null;
     let raf = 0, last = 0, acc = 0, paused = false, mode = 'title';
     let glLostAt = 0, glPrompt = null;
-    let audioTheme = null, lastPlank = -1, plankAt = 0;
+    let audioTheme = null;
     let slot = { id: 'alva', label: UI.slotAlva };
     let settings = { ...DEFAULT_SETTINGS, lessMotion: !!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches };
     let note = '';
@@ -146,6 +146,7 @@ export function createGame({ host = document.body, assetBase = './skoldhast/', r
             isStopped: () => G && Math.abs(G.player.vx) < 20,
             gallopDefl: C.gallopDefl,
             heroHit: (x, y) => heroHit(x, y),
+            kloHit: (x, y) => kloHit(x, y),
             heroScreen: () => heroScreen(),
             onKey: (k) => {
                 if (mode !== 'play') return;
@@ -408,6 +409,7 @@ export function createGame({ host = document.body, assetBase = './skoldhast/', r
             const cont = blocked ? { x: 0, y: 0, hopHeld: false } : input.state();
             const e = input.consume();
             if (ui.dialogueOpen() && e.act) ui.advance();
+            if (!blocked && e.tapKlo) story.tapKlo({ visible: kloOnScreen() });
             let first = true;
             acc += dt;
             let steps = 0;
@@ -439,7 +441,7 @@ export function createGame({ host = document.body, assetBase = './skoldhast/', r
             if (audio) {
                 const p = G.player;
                 audio.setMotion({ speed01: Math.min(1, Math.abs(p.vx) / 1200), underwater: p.mode === 'swim' && p.submerge > 0.7, hidden: p.hidden });
-                plankNotes(p, now);
+                audio.setEnvironment(G.sceneId === 'kelp' ? 'kelp' : G.sceneId === 'viken' ? 'bay' : p.x >= 80 * HL ? 'beach' : 'steppe');
             }
         } else if (mode === 'table') {
             table.tick(dt);
@@ -454,19 +456,6 @@ export function createGame({ host = document.body, assetBase = './skoldhast/', r
         }
         app.render();
         if (debug) debugFrame(performance.now() - t0, dt);
-    }
-
-    // Spången (O3): each plank is a note of Sköldhästens visa; a steady pace plays the tune
-    function plankNotes(p, now) {
-        const sp = p.surface;
-        if (!sp || !sp.planks || !sp.hollow || G.sceneId !== 'land' || p.mode !== 'ground') { lastPlank = -1; return; }
-        const k = Math.floor((p.x - sp.pts[0][0] - 40) / 64);
-        if (k === lastPlank || k < 0) return;
-        lastPlank = k;
-        if (now - plankAt < 85) return; // at a full gallop some planks are skipped
-        plankAt = now;
-        const deg = audioTheme?.degrees;
-        audio.note?.(deg && deg.length ? deg[k % deg.length] : k % 7, { inst: 'plank' });
     }
 
     function debugFrame(ms, dt) {
@@ -490,7 +479,7 @@ export function createGame({ host = document.body, assetBase = './skoldhast/', r
         G.on('*', (type, e) => {
             if (!audio) return;
             switch (type) {
-                case 'hoof': audio.sfx('hoof', { surface: e.hollow ? 'plank' : e.wading ? 'shallow' : e.surface, speed01: Math.min(1, e.speed / 1200) }); break;
+                case 'hoof': audio.sfx('hoof', { surface: e.hollow ? 'pier' : e.wading ? 'shallow' : e.surface, foot: e.foot, speed01: Math.min(1, e.speed / 1200) }); break;
                 case 'splashIn': audio.sfx('splash', { size: e.size ?? 0.6 }); break;
                 case 'splashOut': audio.sfx('drip'); break;
                 case 'dolphin': audio.sfx('splash', { size: 0.8 }); audio.stinger('leap'); break;
@@ -515,6 +504,11 @@ export function createGame({ host = document.body, assetBase = './skoldhast/', r
                 case 'pickup': audio.sfx('pickup'); break;
                 case 'colorin': audio.sfx('colorin'); break;
                 case 'shellNote': audio.note?.(e.note, { inst: 'shell' }); break;
+                case 'plankNote': {
+                    const degrees = audioTheme?.degrees;
+                    audio.note?.(degrees?.length ? degrees[e.note % degrees.length] : e.note % 7, { inst: 'plank' });
+                    break;
+                }
                 case 'shellTune': audio.phrase?.(8); break;
                 case 'schoolFollow': audio.sfx('sparkle'); break;
                 case 'flattened': audio.sfx('thud'); break;
@@ -553,6 +547,7 @@ export function createGame({ host = document.body, assetBase = './skoldhast/', r
     function openPause() { if (mode !== 'play' || ui.panelOpen()) return; paused = true; ui.pauseMenu(); }
     function uiHandlers() {
         return {
+            onMenuSound: (kind) => audio?.sfx(kind === 'page' ? 'page' : 'ui', { kind: 'tab' }),
             openJournal: () => openJournal(),
             openPause: () => openPause(),
             resume: () => { paused = false; last = performance.now(); },
@@ -572,7 +567,7 @@ export function createGame({ host = document.body, assetBase = './skoldhast/', r
             setSetting: (k, v) => { settings[k] = v; applySettings(); saveNow(); },
             setNote: (v) => { note = v.slice(0, 200); saveNow(); },
             nextChapterOpen: (n) => (G.released || 3) > n,
-            onSay: () => audio?.sfx('write'),
+            onSay: (who) => audio?.sfx(who === 'klo' ? 'crabvoice' : 'write'),
             onPencil: (len) => audio?.sfx('pencil', { len })
         };
     }
@@ -596,6 +591,15 @@ export function createGame({ host = document.body, assetBase = './skoldhast/', r
         if (!s) return false;
         const r = HL * 0.6 * view.world.scale.x + 20;
         return Math.hypot(x - s.x, y - s.y) < r;
+    }
+    function kloOnScreen() {
+        const k = G?.actors?.klo, b = view?.kloBounds();
+        return !!(mode === 'play' && !paused && !G.hideActors && !G.vista && k?.visible && !k.inHole && k.scene === G.sceneId && b && b.maxX > 0 && b.minX < app.screen.width && b.maxY > 0 && b.minY < app.screen.height);
+    }
+    function kloHit(x, y) {
+        if (!kloOnScreen() || G.busy || story?.running() || ui?.dialogueOpen() || ui?.panelOpen()) return false;
+        const b = view.kloBounds(), pad = 8;
+        return x >= b.minX - pad && x <= b.maxX + pad && y >= b.minY - pad && y <= b.maxY + pad;
     }
 
     function resumeAudio() { try { audio?.resume(); } catch { /* ignore */ } }
@@ -666,7 +670,7 @@ export function createGame({ host = document.body, assetBase = './skoldhast/', r
     function dispose() { return close(); }
 
     // for automated tests and the ?debug overlay
-    const api = { open, close, pause, resume, dispose, get state() { return state; }, get debug() { return { G, view, ui, app, assets, story, input, guide, heroHit, heroScreen }; } };
+    const api = { open, close, pause, resume, dispose, get state() { return state; }, get debug() { return { G, view, ui, app, assets, story, input, guide, heroHit, heroScreen, kloHit, kloOnScreen }; } };
     window.__skoldhast = api;
     return api;
 }

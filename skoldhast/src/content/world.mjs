@@ -44,8 +44,8 @@ SCENES.land = {
         { id: 'L1', pts: L([38.5, -1.9], [42, -1.92], [46, -1.9]), mat: 'grass', edgeMat: 'earth' },
         // grown ramps (P3)
         { id: 'ramp3', pts: L([36, -4.0], [38.15, -2.95]), mat: 'grass', when: 'p3_t3', ramp: true },
-        { id: 'ramp2', pts: L([38.5, -2.95], [40.65, -1.9]), mat: 'grass', when: 'p3_t2', ramp: true },
-        { id: 'ramp1', pts: L([46, -1.9], [48.2, -0.8]), mat: 'grass', when: 'p3_t1', ramp: true },
+        { id: 'ramp2', pts: L([38.5, -2.95], [40.65, -1.9122857142857144]), mat: 'grass', when: 'p3_t2', ramp: true },
+        { id: 'ramp1', pts: L([46, -1.9], [48.2, -0.811]), mat: 'grass', when: 'p3_t1', ramp: true },
         // Galoppbanan (the steppe floor), hurdles as gentle bumps, the little ditch
         {
             id: 'floor', pts: L([46, -0.8], [50, -0.82], [53, -0.78], [56.6, -0.8], [57, -1.0], [57.4, -0.8], [60, -0.84],
@@ -349,6 +349,7 @@ SCENES.viken = {
     id: 'viken', title: 'Spegelviken',
     bounds: { x0: h(-1), x1: h(36), y0: h(-11), y1: h(9) },
     backdrop: [{ image: 'bg-bay', x0: h(-1), x1: h(36) }],
+    evening: { 'bg-bay': 'bg-bay-evening' },
     surfaces: [
         { id: 'shore', pts: L([-1, -0.16], [1.4, -0.16], [2.2, 0.15], [3.2, 0.9], [4.5, 2.6], [6, 4.6], [8, 5.8]), mat: 'sand' },
         { id: 'bay-bed', pts: L([8, 5.8], [11, 6.4], [14, 6.85], [18, 6.9], [22, 6.6], [24.8, 6.3], [26.2, 6.0]), mat: 'seabed' },
