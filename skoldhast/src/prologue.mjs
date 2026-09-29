@@ -271,7 +271,8 @@ export function createTable({ PIXI, app, view, G, ui, audio, assets, makeHero })
         setPhase('klo-ready');
         await ui.say([HER_TEXT.lastTwo ? STORY.prolog.klo1 : STORY.prolog.klo1Fallback, STORY.prolog.klo2]);
         picKlo.setPose('point'); picHero._look = null;
-        await tween(G.lessMotion ? .2 : 1.2, u => { closeFrame = 1 - u * u * (3 - 2 * u); layout(); });
+        if (G.lessMotion) { closeFrame = 0; layout(); }
+        else await tween(1.2, u => { closeFrame = 1 - u * u * (3 - 2 * u); layout(); });
         // three strokes in the margin, outside her finished picture
         const gullGeometry = () => ({
             ghost: ghostM(880, 150, 0.9).map(([x, y]) => toCss(x, y)),
@@ -284,8 +285,9 @@ export function createTable({ PIXI, app, view, G, ui, audio, assets, makeHero })
         const gs = new PIXI.Sprite(gull.texture); gs.x = gull.box.x; gs.y = gull.box.y; gs.scale.set(0.5); onPaper.addChild(gs);
         audio?.sfx('gull');
         await tween(G.lessMotion ? .4 : 1.8, (u) => {
-            gs.x = gull.box.x - u * 260; gs.y = gull.box.y - u * 120 + (G.lessMotion ? 0 : Math.sin(u * 12) * 10);
-            gs.alpha = 1 - Math.max(0, u - 0.7) / 0.3;
+            const travel = G.lessMotion ? 1 : u;
+            gs.x = gull.box.x - travel * 260; gs.y = gull.box.y - travel * 120 + (G.lessMotion ? 0 : Math.sin(u * 12) * 10);
+            gs.alpha = G.lessMotion ? Math.sin(u * Math.PI) : 1 - Math.max(0, u - 0.7) / 0.3;
             lookAtPaper(gs.x, gs.y);
         });
         // The cloud is authored in paper units, just like the gull. Applying

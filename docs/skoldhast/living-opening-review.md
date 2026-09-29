@@ -1,8 +1,8 @@
 # Living opening: from Alva's pencil to the first mystery
 
 Design and acceptance notes for `codex/skoldhast-living-opening`, based on main
-`3896886`. This records the opening's intended behaviour and the code audit;
-it is not a claim that the new animation has passed visual review.
+`3896886`. This records the opening's design, code audit and before/after review.
+Implementation and verification results are recorded below.
 
 ## Baseline findings
 
@@ -139,3 +139,55 @@ by the sources or evidence of player testing:
   recommends gradual instruction in gameplay context. Application: teach the
   drawing through one small successful action and preserve the later hands-on
   lessons instead of explaining all the world's rules in this introduction.
+
+
+## Before and after
+
+The baseline was captured from an isolated archive of main `3896886` before any
+source edits. The closer framing is intentional: these are the same narrative
+moments at the same device sizes, rather than identical camera crops.
+
+![Wake gesture, landscape](shots/k3/living-opening-wake-844x390.webp)
+![Klo's introduction, landscape](shots/k3/living-opening-klo-844x390.webp)
+![Wake gesture, portrait](shots/k3/living-opening-wake-390x844.webp)
+![Klo's introduction, portrait](shots/k3/living-opening-klo-390x844.webp)
+![The folded sea, landscape](shots/k3/living-opening-fold-844x390.webp)
+![The folded sea, portrait](shots/k3/living-opening-fold-390x844.webp)
+
+The hero now occupies enough of the phone screen to make the shell stroke and
+head reaction legible. Klo stands beside the splash rather than disappearing
+inside it. His feet match the actual beach polyline. The portrait rotation
+notice that covered the first prompt was removed after visual review.
+
+The full-sheet pullback still makes the distant observer a small clue. The
+shoreline, ruler and stopped wave carry the essential cause; the tiny figure
+is not the only explanation. The tower remains unlit. Its brief ruler reflection
+is not a premature restoration of the lighthouse puzzle.
+
+Reduced motion uses a static camera cut and a stationary gull fade, rather than
+accelerating the same spatial movement. Klo keeps his peek, brace and landing
+stages without the hop. The folded paper keeps the same before/after geometry.
+
+## Recorded verification
+
+- Baseline: **141/141** unit/robot tests passed before edits.
+- Final pure suite: **145/145** passed, including deterministic frame-rate
+  replays and the full-game robot. New tests cover Klo's continuous entrance,
+  reduced-motion ground contact, the unlocked gameplay handoff and old-save
+  fallback.
+- Three final contact sheets cover the title and all 27 places at 844×390,
+  390×844 and 1440×900 with no captured browser errors. Comparison with the
+  isolated baseline showed no new missing terrain, clipped controls or changes
+  to scene framing; water/kelp animation phases vary between captures.
+- Final runtime rebuild: **2,777,181 bytes** first playable, below 3,000,000.
+  The two new source modules are included in the prefetch list; no new image
+  atlas, sample download or heavy filter was added.
+- Awakening browser checks pass with real touch and keyboard at 844×390 and
+  390×844, plus reduced motion and close/reopen during the wake. They verify
+  stillness before input, visible response after it, constant-scale crab
+  emergence, causal phase order and no toast covering the drawing toolbar.
+
+No automated check establishes a child's comprehension or physical-phone frame
+pacing. A human review should follow the four acceptance questions above. The
+original sun remains part of the static picture; this pass does not claim a
+new live sun-ray animation.

@@ -1,9 +1,62 @@
 # Sköldhästen – handover
 
-## Latest continuation: connected story, coloured cloud and aligned cave water
+## Latest continuation: the painting wakes under Alva's pencil
 
-Review branch: `codex/skoldhast-story-flow`, based on merged main `b24ee42`.
-The earlier polish was merged in PR #8. Ask before merging this continuation.
+Review branch: `codex/skoldhast-living-opening`, based on merged main `3896886`.
+Ask before merging this continuation. Research, staging decisions and comparison
+images are in [`docs/skoldhast/living-opening-review.md`](../docs/skoldhast/living-opening-review.md).
+
+The opening now starts with a completely still Sköldhäst. One forgiving shell
+accent wakes the existing faithful drawing: head lift, breath, a hoof press and
+the first splash. The camera moves closer for these small reactions. The gull,
+coloured cloud and interrupted shoreline remain the next three drawing actions;
+the hero follows the flying marks with its gaze. Keyboard completion produces
+the same response as tracing. The initial rotation toast no longer covers the
+portrait drawing prompt.
+
+Klo uses the existing articulated crab rig. Sand stirs, eyes peek, a claw braces,
+then he climbs, pops sideways and catches his notebook. His feet use the real
+beach height. Dialogue moves his claws. When the camera enters the picture, the
+same crab scuttles inland while control returns; there is no second entrance.
+Saves and the robot retain a fallback introduction when no paper crab exists.
+
+Pencil ridges, submerged kelp and a distant paper tower establish one coastline.
+An anonymous measuring figure and a reflected ruler glint anticipate the fold.
+The tower lamp remains unlit for P7. The existing physical fold still crosses
+the exact last shoreline point, takes the painted sea underneath and stops the
+wave during the motion. Kelp/current details keep moving below it. Mystery
+answers describe observations; the keeper's identity and protective mistake
+remain discoveries for Kapitel 3. The hero wants its first splash back.
+
+Current pure suite: **145/145 passed**, including the robot and deterministic
+frame-rate replays. First playable: **2,777,181 bytes**; no new art atlas, audio
+sample, filter or TTS. The privacy and hidden-ticket rules are unchanged.
+
+Focused checks:
+
+```sh
+node tests/browser/skoldhast-awakening.mjs --out /tmp/awakening
+node tests/browser/skoldhast-opening.mjs --out /tmp/opening
+node tests/browser/skoldhast-cloud-color.mjs --out /tmp/cloud-color
+```
+
+The awakening check covers native touch and keyboard at both phone sizes,
+reduced motion, a still rig before input, visible wake reactions, full-size crab
+emergence and closing/reopening during the wake. The fold check covers the
+full causal phase order, actual tracing, retained paper, choices, rotation and
+closing/reopening during folding. Final regression and contact-sheet results
+are recorded in the review.
+
+Remaining human review: does a fresh player understand what their stroke woke,
+what the fold interrupted and what the Sköldhäst wants back? The distant figure
+is deliberately a small clue, especially on portrait. Screenshots cannot prove
+comprehension or physical-phone smoothness. The prologue sun is still part of
+the static original picture; no new claim of rotating sun rays is made.
+
+## Previous continuation: connected story, coloured cloud and aligned cave water (merged)
+
+Merged from `codex/skoldhast-story-flow` in PR #9, main `3896886`.
+The earlier polish was merged in PR #8.
 
 Story audit and paired screenshots:
 [`docs/skoldhast/story-flow-review.md`](../docs/skoldhast/story-flow-review.md).
@@ -70,7 +123,7 @@ human listening remain unmeasured. Text-to-speech was explicitly deferred.
 That work was merged from `codex/skoldhast-polish` in PR #8.
 
 
-Last updated: 29 September 2026. The current review branch is `codex/skoldhast-story-flow`, based on `main` at `b24ee42`. The design is in `docs/skoldhast-game-plan.md` (v2); the working rules are in `skoldhast/CLAUDE.md`.
+Last updated: 29 September 2026. The current review branch is `codex/skoldhast-living-opening`, based on `main` at `3896886`. The design is in `docs/skoldhast-game-plan.md` (v2); the working rules are in `skoldhast/CLAUDE.md`.
 
 ## State
 
