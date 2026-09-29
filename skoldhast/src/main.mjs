@@ -12,7 +12,7 @@
  */
 import * as PIXI from '../vendor/pixi-8.21.0.min.mjs';
 import { createGame as createLogic } from './game.mjs';
-import { STEP, snapshot, HL } from './sim.mjs';
+import { STEP, snapshot, HL, C } from './sim.mjs';
 import { createView } from './view.mjs';
 import { createUI } from './ui.mjs';
 import { createGuide } from './guide.mjs';
@@ -142,6 +142,7 @@ export function createGame({ host = document.body, assetBase = './skoldhast/', r
             settings: () => settings,
             isGalloping: () => G && Math.abs(G.player.vx) >= 1000,
             isStopped: () => G && Math.abs(G.player.vx) < 20,
+            gallopDefl: C.gallopDefl,
             heroHit: (x, y) => heroHit(x, y),
             heroScreen: () => heroScreen(),
             onKey: (k) => { if (mode !== 'play') return; if (k === 'journal') openJournal(); if (k === 'pause') openPause(); }

@@ -43,6 +43,8 @@ export function createInput(root, ui, opts) {
         if (m > 1) { dx /= m; dy /= m; }
         stick.x = Math.abs(dx) < 0.12 ? 0 : dx;
         stick.y = Math.abs(dy) < 0.18 ? 0 : dy;
+        // the knob lights up when the stick asks for a full gallop
+        ui.stickBase.classList.toggle('gallop', Math.abs(stick.x) >= (opts.gallopDefl || 0.72));
         moveKnob();
     }, sig);
     const endStick = (e) => {
@@ -52,7 +54,7 @@ export function createInput(root, ui, opts) {
         // Håll kvar galoppen: letting go at full gallop keeps galloping
         if (opts.settings().holdGallop && opts.isGalloping() && Math.abs(stick.x) > 0.7) stick.latched = Math.sign(stick.x);
         stick.id = null; stick.x = stick.y = 0;
-        ui.stickBase.classList.remove('on');
+        ui.stickBase.classList.remove('on', 'gallop');
         moveKnob();
     };
     zone.addEventListener('pointerup', endStick, sig);

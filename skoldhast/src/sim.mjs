@@ -18,10 +18,11 @@ export const STEP = 1 / 120;
 
 export const C = {
     walk: 320, trot: 640, gallop: 1200, gallopMin: 1000,
-    accel: 1000, brake: 2000, turnSkid: 0.35,
+    gallopDefl: 0.72,        // stick deflection that asks for a full gallop
+    accel: 1350, brake: 2000, turnSkid: 0.35,
     stepUp: 52, snapDown: 70, maxSlope: Math.tan(36 * Math.PI / 180),
-    gravity: 2600, hopHeight: 100, buckHeight: 40,
-    swimMax: 440, swimAccel: 1000, swimDrag: 1.6, floatDepth: 130, surfaceBand: 200,
+    gravity: 2600, hopHeight: 125, buckHeight: 55, hopBuffer: 0.18,
+    swimMax: 520, swimAccel: 1250, swimDrag: 1.6, floatDepth: 130, surfaceBand: 200,
     wadeMax: 120, wadeExit: 80, sinkSpeed: 160, buoyancy: 60,
     hideTime: 0.3, unhideHold: 0.5,
     edgeMargin: 26,
@@ -217,7 +218,7 @@ export function createPlayer(spawn = {}) {
         water: null, submerge: 0, wet: 0, wetTimer: 0,
         action: null, actionT: 0, actionDur: 0,
         airT: 0, leap: null, streck: null, jump: null,
-        skid: 0, balkCooldown: 0, lockInput: 0,
+        skid: 0, balkCooldown: 0, lockInput: 0, hopBuf: 0,
         still: 0, moveNoise: 0,
         auto: null, // scripted run: { dir, speed }
         nudge: null, // a short scripted step: { x, t } (after Knuffa the sköldhäst follows the stone)
@@ -249,6 +250,9 @@ export function stepPlayer(p, input, world, dt, events) {
     p.px = p.x; p.py = p.y;
     if (p.balkCooldown > 0) p.balkCooldown -= dt;
     if (p.lockInput > 0) p.lockInput -= dt;
+    // Hoppa pressed a moment before landing still hops when the hooves touch down
+    if (p.hopBuf > 0) p.hopBuf -= dt;
+    if (input.hop && (p.mode === 'air' || p.mode === 'leap')) p.hopBuf = C.hopBuffer;
     if (p.action) {
         p.actionT += dt / (p.actionDur || 1);
         if (p.actionT >= 1) { p.action = null; p.actionT = 0; }
@@ -331,7 +335,7 @@ function stepGround(p, ix, input, world, dt, events) {
     const defl = Math.abs(ix);
     let target = 0;
     if (!p.hidden && !p.hideQueued && dir !== 0) {
-        target = defl >= 0.8 ? C.gallop : (defl / 0.8) * 850;
+        target = defl >= C.gallopDefl ? C.gallop : (defl / C.gallopDefl) * 850;
         if (p.auto) target = p.auto.speed || C.gallop;
     }
     // uphill/downhill feel
@@ -354,7 +358,7 @@ function stepGround(p, ix, input, world, dt, events) {
             p.facing = dir;
             const v = Math.abs(p.vx) * (Math.sign(p.vx) === dir ? 1 : -1);
             let nv;
-            if (v < target) nv = Math.min(target, v + C.accel * (v < 300 ? 1.3 : 1) * dt * (p.auto ? 1.6 : 1));
+            if (v < target) nv = Math.min(target, v + C.accel * (v < 300 ? 1.5 : 1) * dt * (p.auto ? 1.4 : 1));
             else nv = Math.max(target, v - C.brake * dt);
             p.vx = nv * dir;
         } else {
@@ -365,8 +369,9 @@ function stepGround(p, ix, input, world, dt, events) {
     }
     if (p.action === 'balk' || p.action === 'shake' || p.action === 'stamp') p.vx *= 0.8;
 
-    // Hoppa
-    if (input.hop && !p.hidden && !p.jump) {
+    // Hoppa (or a press buffered just before landing)
+    if ((input.hop || p.hopBuf > 0) && !p.hidden && !p.jump) {
+        p.hopBuf = 0;
         startHop(p, world, events);
         if (p.mode !== 'ground') return;
     }

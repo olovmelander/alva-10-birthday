@@ -184,6 +184,45 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
     L.hero.addChild(hero.view);
     const minis = [];
 
+    // full gallop: a few quick pencil strokes stream back from the sköldhäst (the "now you draw" cue)
+    // (in a layer of their own: clearScene empties the scene layers, and these outlive every scene)
+    const speedLayer = new PIXI.Container();
+    world.addChildAt(speedLayer, world.getChildIndex(L.fx));
+    const speedLines = [];
+    for (let i = 0; i < 9; i++) {
+        const g = new PIXI.Graphics();
+        const len = 70 + (i % 3) * 38;
+        g.moveTo(0, 0).lineTo(-len, 1.5).stroke({ width: 3 + (i % 2), color: 0x3b3530, alpha: 1, cap: 'round' });
+        g.visible = false;
+        speedLayer.addChild(g);
+        speedLines.push({ g, t: 1, x: 0, y: 0, dir: 1, life: 0.3 });
+    }
+    let speedAcc = 0;
+    function stepSpeedLines(dt, snap) {
+        const p = G.player;
+        const full = (p.mode === 'ground' || p.mode === 'streck' || p.mode === 'leap') && Math.abs(p.vx) >= 1000 && !G.lessMotion && !G.hideHero;
+        if (full) {
+            speedAcc += dt * 26;
+            while (speedAcc >= 1) {
+                speedAcc -= 1;
+                const sl = speedLines.find((q) => q.t >= 1);
+                if (!sl) break;
+                const dir = Math.sign(p.vx) || 1;
+                sl.dir = dir; sl.t = 0; sl.life = 0.22 + Math.random() * 0.12;
+                sl.x = snap.x - dir * h(0.55 + Math.random() * 0.35);
+                sl.y = snap.y - h(0.15 + Math.random() * 0.75);
+            }
+        } else speedAcc = 0;
+        for (const sl of speedLines) {
+            if (sl.t >= 1) { sl.g.visible = false; continue; }
+            sl.t += dt / sl.life;
+            sl.g.visible = sl.t < 1;
+            sl.g.x = sl.x - sl.dir * sl.t * h(0.5); sl.g.y = sl.y;
+            sl.g.scale.x = sl.dir;
+            sl.g.alpha = 0.45 * Math.sin(Math.min(1, sl.t) * Math.PI);
+        }
+    }
+
     // --- scene building ---------------------------------------------------------------------
     let S = null; // current scene display
 
@@ -725,6 +764,7 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
         updateObjects(dt, snap, frozen);
         // minis: distant sköldhästar run along the far ridge during the final gallop (never close)
         stepMinis(dt, snap);
+        stepSpeedLines(dt, snap);
         stepParticles(dt);
         // tooth overlay follows the screen
         if (tooth) { tooth.width = W; tooth.height = H; }
@@ -997,7 +1037,10 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
         const viewW = W / zoom;
         const lead = snap.mode === 'swim' ? viewW * 0.12 : viewW * lerp(0.08, 0.27, cam.gal);
         let tx = snap.x + (snap.facing || 1) * lead;
-        let ty = snap.y - (H / zoom) * (portrait ? 0.08 : 0.12);
+        // a hop or a buck is small: the camera stays with the ground it left
+        const J = G.player.jump;
+        const baseY = J && (J.kind === 'hop' || J.kind === 'buck') && J.fromY !== undefined ? Math.max(snap.y, J.fromY - h(0.2)) : snap.y;
+        let ty = baseY - (H / zoom) * (portrait ? 0.08 : 0.12);
         if (snap.mode === 'swim') ty = snap.y + (S.def.underwater ? h(0.3) : -h(0.2));
         // the big leap: pan to the landing
         const L0 = G.player.leap;

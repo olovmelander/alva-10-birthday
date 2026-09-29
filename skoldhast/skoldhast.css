@@ -269,3 +269,6 @@ html.skoldhast-lock, html.skoldhast-lock body { overflow: hidden !important; ove
     .sk-ui:not(.table-mode) .sk-dialogue.on { transform: translate(-50%, 0); }
     .sk-ui:has(.sk-dialogue.on) .sk-toasts { top: max(70px, calc(env(safe-area-inset-top) + 64px)); bottom: auto; }
 }
+
+/* --- the stick asks for a full gallop (input.mjs toggles .gallop) --- */
+.sk-stick-base.gallop .sk-stick-knob { filter: drop-shadow(0 0 7px rgba(246, 193, 74, 0.95)) drop-shadow(0 0 2px rgba(224, 120, 42, 0.9)); }
