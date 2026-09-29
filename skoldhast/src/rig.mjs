@@ -287,7 +287,7 @@ function makePart() { return { x: 0, y: 0, rot: 0, sx: 1, sy: 1, alpha: 1, visib
 export function createAnimator(rig, { mini = false } = {}) {
     const an = {
         rig, mini,
-        time: 0, phase: 0, phaseAcc: 0, gaitW: { wWalk: 0, wTrot: 0, wCanter: 0, wGallop: 0 }, moveW: 0, // (not GAITS' keys: a map shared with GAITS would box these)
+        time: 0, phase: 0, phaseAcc: 0, swimPhase: 0, lastGroundRevision: -1, gaitW: { wWalk: 0, wTrot: 0, wCanter: 0, wGallop: 0 }, moveW: 0, // (not GAITS' keys: a map shared with GAITS would box these)
         g: { stride: 190, duty: 0.6, liftF: 15, liftH: 11, bobA: 0, bobH: 2, bobP: 0, pitchA: 0, pitchH: 1, pitchP: 0, neckA: 0, neckH: 2, neckP: 0, low: 0, lean: 0, fold: 0 },
         facing: 1, lastX: NaN, lastY: NaN, vx: 0, vy: 0, ax: 0, ay: 0,
         body: makeXf(), neck: makeXf(), head: makeXf(),
@@ -299,7 +299,7 @@ export function createAnimator(rig, { mini = false } = {}) {
         settleCool: 0, wet: 0,
         legs: [], chains: [], legIndex: {},
         f: { dt: 0, x: 0, y: 0, mode: 'ground', time: 0, first: true, jumped: true, facing: 1, fvx: 0, fvy: 0, speed: 0, vLocal: 0,
-            hideT: 0, inAir: false, wGround: 1, groundW: 1, act: null, aT: 0, airT: 0, emote: null, gaitName: 'stand', moving: false },
+            hideT: 0, inAir: false, groundChanged: false, wGround: 1, groundW: 1, act: null, aT: 0, airT: 0, emote: null, gaitName: 'stand', moving: false },
         tg: { oy: 0, ox: 0, pitch: 0, neck: 0, head: 0, mouth: 0, foreLift: 0, hindKick: 0, stampLift: 0, rearW: 0 },
         hindGround: 0, tailLift: 0, lastMode: 'ground', gsQ: 0, gsX: new Float64Array(16), gsY: new Float64Array(16), gsN: 0, gsI: 0, waterLine: 1e9, wadeLow: 0, wadeMid: 0, wadeHigh: 0,
         ctx: { x: 0, y: 0, facing: 1, liftF: 0, liftH: 0, wGround: 1, wSwim: 0, wAir: 0, wHide: 0, airT: 0, time: 0, hindKick: 0, foreLift: 0, stampLift: 0, rearW: 0, act: null, aT: 0, g: null, fvx: 0, fvy: 0 },
@@ -406,6 +406,16 @@ function update(an, dtIn, s) {
     gaitPhase(an, s);
     poseTargets(an, s);
     if (f.jumped) replant(an, s);
+    else if (f.groundChanged) {
+        // Flags can grow a ramp under a stationary foot: its cached height is no longer valid.
+        for (const leg of an.legs) {
+            leg.gLock.ok = false; leg.gTarget.ok = false;
+            if (leg.stance && f.mode === 'ground') {
+                leg.gLock.q = leg.lockX;
+                leg.lockY = groundCached(an, s, leg.gLock).y;
+            }
+        }
+    }
     bodyFromSupports(an, s);
     legPhases(an, s);
     bodyHeight(an, s);
@@ -441,11 +451,14 @@ function frameMotion(an, s, dtIn) {
     const facing = s.facing === -1 ? -1 : 1;
     const mode = s.mode || 'ground';
     f.dt = dt; f.x = x; f.y = y; f.mode = mode;
+    f.groundChanged = s.terrainRevision !== undefined && s.terrainRevision !== an.lastGroundRevision;
+    if (s.terrainRevision !== undefined) an.lastGroundRevision = s.terrainRevision;
     f.time = s.time !== undefined ? s.time : an.time + dt;
     an.time = f.time;
     // the first frame, or a teleport (a scene change, a checkpoint): everything snaps to its
     // target instead of springing there, and the hooves are planted afresh
-    const first = an.lastX !== an.lastX || Math.abs(x - an.lastX) > 400 || Math.abs(y - an.lastY) > 400;
+    const first = an.lastX !== an.lastX || Math.abs(x - an.lastX) > 400 || Math.abs(y - an.lastY) > 400
+        || (f.groundChanged && mode === 'ground' && an.lastMode === 'ground' && Math.abs(y - an.lastY) > 52);
     f.first = first;
     f.jumped = first;
     if (!f.jumped && facing !== an.facing) {
@@ -524,9 +537,15 @@ function gaitPhase(an, s) {
     an.moveW = f.first ? mT : an.moveW + (mT - an.moveW) * (1 - Math.exp(-(moving ? 10 : 5) * dt));
     blendGait(an);
     if (moving) {
-        const dph = Math.abs(f.vLocal * dt) / an.g.stride;
-        an.phase = frac(an.phase + dph);
-        an.phaseAcc += dph;
+        const dph = typeof s.gaitPhase === 'number' ? frac(s.gaitPhase - an.phase) : Math.abs(f.vLocal * dt) / an.g.stride;
+        // The fixed-step phase drives both hoof beats and legs; dev previews integrate locally.
+        const advance = dph < 0.5 ? dph : 0;
+        an.phase = typeof s.gaitPhase === 'number' ? s.gaitPhase : frac(an.phase + advance);
+        an.phaseAcc += advance;
+    }
+    if (f.mode === 'swim') {
+        an.swimPhase = typeof s.gaitPhase === 'number' ? s.gaitPhase
+            : frac(an.swimPhase + (0.65 + Math.min(1, len2(an.vx, an.vy) / 520) * 0.95) * dt);
     }
 }
 
@@ -630,10 +649,15 @@ function poseTargets(an, s) {
     if (wSwim > 0.001) {
         let tilt = Math.atan2(f.fvy, Math.abs(f.fvx) + 120) * 0.9;
         tilt = tilt < -0.52 ? -0.52 : tilt > 0.52 ? 0.52 : tilt;
+        const depth = typeof s.waterY === 'number' ? f.y - s.waterY : 300;
+        const surface = 1 - smooth01((depth - 150) / 100);
+        const dive = smooth01((f.fvy - 60) / 220);
+        tilt = tilt * (1 - surface * 0.55) - surface * 0.055;
         pitchT += (tilt - pitchT) * wSwim;
-        oy += (Math.sin(time * TAU * 0.5) * 1.5 - oy) * wSwim;
-        neckT += (-0.12 - tilt * 0.6 + Math.sin(time * TAU * 0.5 + 1) * 0.03 - neckT) * wSwim;
-        headT += (-0.02 - tilt * 0.35 - headT) * wSwim;
+        const stroke = Math.sin(an.swimPhase * TAU * 2);
+        oy += (Math.sin(time * TAU * 0.45) * (1.5 + surface) + stroke * 0.8 - oy) * wSwim;
+        neckT += (-0.1 - surface * 0.12 - tilt * 0.65 + dive * 0.16 - neckT) * wSwim;
+        headT += (-0.03 - tilt * 0.35 + dive * 0.06 - headT) * wSwim;
     }
     // air: pitch from vy, stretched
     if (wAir > 0.001) {
@@ -982,6 +1006,9 @@ function solveLeg(an, leg, s, c) {
             bx -= 12 * tuck; by -= 14 * tuck;
         }
         gx = mB[0] * bx + mB[1] * by + mB[2]; gy = mB[3] * bx + mB[4] * by + mB[5];
+        // On a convex uphill joint the chord between two valid footsteps can cross the ground.
+        const floor = groundAtWorld(an, s, x + gx * facing) - y;
+        gy = Math.min(gy, floor - 2 * arc);
         lifted = arc;
         ga = tg.a * e;
     }
@@ -1122,18 +1149,18 @@ function ikLeg(leg) {
 
 /** Swimming: legs paddle (body space sole positions, and the hoof angle). */
 function swimPose(an, leg, c, out) {
-    const f = c.time * TAU * (0.9 + Math.min(1.3, len2(an.vx, an.vy) / 300));
-    const ph = f + (leg.front ? 0 : Math.PI * 0.9) + (leg.near ? 0 : Math.PI);
+    // A long backwards power stroke, then a tucked recovery forward. The phase is
+    // integrated, never absolute time × speed (which jumps when the swimmer accelerates).
+    const offset = (leg.near ? 0 : 0.5) + (leg.front ? 0 : 0.42);
+    const phase = frac(an.swimPhase - offset), power = phase < 0.58;
+    const u = power ? phase / 0.58 : (phase - 0.58) / 0.42;
+    const e = smooth01(u), arc = Math.sin(Math.PI * u);
     const restX = leg.ex, restY = leg.ey + leg.sole;
-    if (leg.front) {
-        out.x = restX + 16 + Math.cos(ph) * 20;
-        out.y = restY - 34 + Math.sin(ph) * 13;
-        out.a = 0.9 + Math.sin(ph) * 0.4;
-    } else {
-        out.x = restX - 16 + Math.cos(ph) * 18;
-        out.y = restY - 22 + Math.sin(ph) * 10;
-        out.a = 0.2 + Math.sin(ph) * 0.4;
-    }
+    const reach = leg.front ? 29 : 22, back = leg.front ? -25 : -28;
+    const base = leg.front ? 26 : 20;
+    out.x = restX + (power ? lerp(reach, back, e) : lerp(back, reach, e));
+    out.y = restY - base + (power ? 6 * arc : -(leg.front ? 30 : 22) * arc);
+    out.a = power ? 0.12 + arc * 0.32 : 0.15 + arc * (leg.front ? 1.25 : 0.8);
     return out;
 }
 
@@ -1262,7 +1289,7 @@ function writePose(an, s) {
     pose.shadow.y = gyc;
     pose.shadow.w = clamp((maxX - minX + 90) / 170, 0.55, 1.3) * (1 - 0.3 * an.wHide) + 0.25 * an.wHide;
     // fades when the body is well above its standing height (a leap)
-    const lift = Math.max(0, -(an.bodyOY + (y - gyc)));
+    const lift = Math.max(0, gyc - an.bodyOY); // both are local: elevation must not fade the shadow
     const sub = s.submerge > 0 ? (s.submerge < 1 ? s.submerge : 1) : 0;
     pose.shadow.alpha = clamp(1 - lift / 180, 0.2, 1) * (1 - an.wSwim) * (1 - sub) * 0.9;
     pose.bodyX = b.tx; pose.bodyY = b.ty; pose.pitch = b.r; pose.neck = an.neck.r; pose.head = an.head.r;
@@ -1290,7 +1317,7 @@ function stepChains(an, dt, s, c) {
     const wx = -an.vx, wy = -an.vy;
     // the dock lifts the tail with speed (and it trails level when swimming)
     const sp = Math.min(1, Math.abs(an.vx) / 1100);
-    an.tailLift = damp(an.tailLift || 0, lerp(0.75 * sp * sp, 0.25 + 0.9 * sp, swim), 4, dt);
+    an.tailLift = damp(an.tailLift || 0, lerp(0.75 * sp * sp, 0.4 + 0.65 * Math.min(1, Math.abs(an.vx) / 520), swim), 4, dt);
     for (let ci = 0; ci < an.chains.length; ci++) {
         const ch = an.chains[ci];
         // carried rest pose -> targets
@@ -1330,7 +1357,8 @@ function stepChains(an, dt, s, c) {
         // air pushes like v², so a walk barely lifts the hair and a gallop streams it
         const vq = Math.min(1.2, Math.abs(an.vx) / 900);
         const windK = lerp((isTail ? 1.35 : 1.1) * (0.25 + 0.75 * vq), 0.6, swim);
-        ENV.wx = wx * windK; ENV.wy = wy * windK * 0.5;
+        ENV.wx = wx * windK + Math.sin(c.time * 1.8 + ch.idx * 0.8) * 8 * swim;
+        ENV.wy = wy * windK * 0.5 + Math.sin(c.time * 1.5 + ch.idx) * 6 * swim;
         ENV.ax = an.ax * (isFringe ? 0.3 : 0.6); ENV.ay = an.ay * 0.2;
         // in water everything goes softer: kelp fringes lift and sway, the mane drifts
         const wetK = isFringe ? an.wadeLow : isTail ? an.wadeMid : an.wadeHigh;
