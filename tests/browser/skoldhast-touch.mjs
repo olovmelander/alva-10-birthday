@@ -19,7 +19,8 @@ const pg = await ctx.newPage();
 const errors = [];
 pg.on('pageerror', (e) => errors.push(e.message));
 const cdp = await ctx.newCDPSession(pg);
-const touch = (type, points) => cdp.send('Input.dispatchTouchEvent', { type, touchPoints: points.map(([x, y], i) => ({ x, y, id: i + 1 })) });
+// `at` (seconds since the epoch) stamps the event itself, so a slow software-WebGL frame between two touches can't stretch a tap
+const touch = (type, points, at) => cdp.send('Input.dispatchTouchEvent', { type, touchPoints: points.map(([x, y], i) => ({ x, y, id: i + 1 })), ...(at ? { timestamp: at } : {}) });
 const G = (fn) => pg.evaluate(fn);
 
 await pg.goto(`${base}/skoldhast/dev/play.html`, { waitUntil: 'load' });
@@ -82,12 +83,13 @@ const hs = await G(() => { const { G, view } = window.__skoldhast.debug; const p
 const neighs = await G(() => { window.__neighs = 0; window.__skoldhast.debug.G.on('neigh', () => window.__neighs++); return 0; });
 void neighs;
 await G(() => { document.addEventListener('pointerdown', (e) => { window.__pd = [e.target.className, e.pointerType, Math.round(e.clientX), Math.round(e.clientY)]; }, true); document.addEventListener('pointerup', (e) => { window.__pu = [e.target.className, Math.round(e.timeStamp - 0)]; }, true); });
-await touch('touchStart', [[hs.x, hs.y]]); await pg.waitForTimeout(60); await touch('touchEnd', []);
+const t0 = Date.now() / 1000;
+await touch('touchStart', [[hs.x, hs.y]], t0); await pg.waitForTimeout(60); await touch('touchEnd', [], t0 + 0.06);
 await pg.waitForFunction(() => window.__neighs >= 1, null, { timeout: 3000 }).catch(() => {});
 const why = await G(() => { const { G, ui } = window.__skoldhast.debug; return { n: window.__neighs, busy: G.busy, hidden: G.player.hidden, mode: G.player.mode, dlg: ui.dialogueOpen(), panel: ui.panelOpen(), pd: window.__pd, pu: window.__pu, tap: window.__skoldhast.debug.input.lastTap }; });
 const el = await G(`document.elementFromPoint(${hs.x}, ${hs.y})?.className + ' hit=' + window.__skoldhast.debug.heroHit(${hs.x}, ${hs.y}) + ' at=' + JSON.stringify(window.__skoldhast.debug.heroScreen())`);
 assert.ok(why.n >= 1, 'a tap on the sköldhäst neighs ' + JSON.stringify({ ...why, el, hs }));
 assert.deepEqual(errors, []);
-console.log('touch play works');
+console.log('touch play works (tap ' + why.tap?.dt + ' ms)');
 await browser.close();
 server.close();

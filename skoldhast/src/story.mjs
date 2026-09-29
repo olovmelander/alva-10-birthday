@@ -13,7 +13,7 @@
  *   audio.* (see audio.mjs), save()
  */
 import { HL } from './sim.mjs';
-import { STORY, HINTS, JOURNAL, BALK, HER_TEXT, FAMILY, UI } from './content/sv.mjs';
+import { STORY, HINTS, JOURNAL, BALK, HER_TEXT, FAMILY, UI, GOALS, TIPS } from './content/sv.mjs';
 
 const h = (v) => v * HL;
 
@@ -88,6 +88,10 @@ export function createStory(G, io) {
         async run(s) {
             s.appear('klo', { scene: 'land', x: G.sceneDef.spots.kloBeach.x, y: G.sceneDef.spots.kloBeach.y, pose: 'stopwatch', facing: 1 });
             s.checkpoint('start');
+            await s.wait(1.2);
+            tipOnce('gallop');
+            await s.wait(2.0);
+            if (!F.has('klo_hidden')) hintOnce('enter', STORY.k1.enterHint);
         }
     });
 
@@ -108,6 +112,8 @@ export function createStory(G, io) {
             s.sfx('crabclick');
             s.camFree();
             G.flag('klo_hidden');
+            tipOnce('hide');
+            hintOnce('hole', STORY.k1.holeHint);
         }
     });
 
@@ -196,6 +202,8 @@ export function createStory(G, io) {
             await s.appear('klo', { scene: 'land', x: G.sceneDef.spots.kloBranten.x, y: G.sceneDef.spots.kloBranten.y, pose: 'point', facing: -1 });
             await s.say(STORY.k1.wavemarksSeen);
             G.actors.klo.pose = 'notebook';
+            await s.wait(0.4);
+            if (!F.has('p3_t1')) hintOnce('tufts', STORY.k1.brantenTufts);
         }
     });
 
@@ -225,6 +233,11 @@ export function createStory(G, io) {
         async run(s) {
             await s.wait(0.8);
             await s.say(STORY.k1.mirror);
+            // say what differs, so the player knows what to do next
+            const lines = [];
+            if (G.puz.stone !== G.sceneDef.rail.target) lines.push(STORY.k1.mirrorStone);
+            if (!F.has('p2_plank')) lines.push(STORY.k1.mirrorPlank);
+            if (lines.length) await s.say(lines);
             s.clue('reflection');
         }
     });
@@ -249,6 +262,8 @@ export function createStory(G, io) {
             G.flag('kelp_entered');
             await s.appear('klo', { scene: 'kelp', x: G.sceneDef.spots.klo.x, y: G.sceneDef.spots.klo.y, pose: 'idle', facing: -1 });
             s.checkpoint('kelp');
+            tipOnce('swim');
+            hintOnce('swim', STORY.k1.swimTip);
         }
     });
     beat('k1_whisper', {
@@ -401,6 +416,7 @@ export function createStory(G, io) {
             s.stinger('chapter');
             await s.report(2);
             io.save();
+            hintOnce('afterEnd', STORY.k2.afterEnd);
         }
     });
 
@@ -416,6 +432,7 @@ export function createStory(G, io) {
             await s.say(STORY.k3.arrive);
             s.camFree();
             s.checkpoint('viken');
+            hintOnce('chains', STORY.k3.chains);
         }
     });
 
@@ -721,61 +738,146 @@ export function createStory(G, io) {
     // Objectives and hints (plan §4.4)
     // =========================================================================
     function objective() {
-        if (F.has('ended')) return 'free';
-        if (inScene('viken')) {
+        if (F.has('ended')) return F.has('signe_met') && !F.has('signe_race') ? 'signe' : 'free';
+        // Kapitel 3: find the way to Spegelviken, light the lamp, talk, draw the last line
+        if (F.has('ch2_end')) {
+            if (!F.has('viken_arrived')) return 'toViken';
             if (!F.has('lamp_lit')) return 'p7';
             if (!F.has('talk_done')) return 'talk';
             return 'p8';
         }
-        if (F.has('ch2_open') && !F.has('ch2_end')) {
-            if (!F.has('mark_land') && (inScene('land') || !F.has('p5_lit'))) {
-                if (inScene('land')) return 'p4';
-            }
-            if (inScene('kelp')) return !F.has('p5_lit') ? 'p5' : !F.has('mark_sea') ? 'p6' : 'p4';
-            return 'p4';
+        // Kapitel 2: the two halves of the mark, one on land and one in the sea
+        if (F.has('ch2_open')) {
+            if (inScene('kelp')) return !F.has('mark_sea') ? (!F.has('p5_lit') ? 'p5' : 'p6') : 'p4';
+            if (!F.has('mark_land')) return 'p4';
+            return 'toSea';
         }
-        if (F.has('ch1_end')) return F.has('ch3_open') ? 'p7' : 'free';
-        if (!F.has('klo_ja')) return F.has('klo_hidden') ? 'hide' : 'explore';
+        // Kapitel 1
+        if (!F.has('klo_hidden')) return 'explore';
+        if (!F.has('klo_ja')) return 'hide';
         if (inScene('kelp')) return 'hook';
         if (F.has('p2_open') && F.has('p3_done')) return 'kelp';
+        // the nearest unfinished puzzle: the pool by her beach, the arch in the west, the steppe beyond it
+        const x = P().x / HL;
+        if (!F.has('p2_open') && x > 96) return F.has('p2_seen') ? 'p2' : 'pool';
+        if (!F.has('p1_inked') && x > 74) return 'p1';
+        if (!F.has('p3_done') && F.has('p1_inked') && x < 80) return F.has('p3_t1') && !(F.has('p3_t2') && F.has('p3_t3')) ? 'p3b' : 'p3';
+        if (!F.has('p2_open')) return F.has('p2_seen') ? 'p2' : 'pool';
         if (!F.has('p1_inked')) return 'p1';
-        if (!F.has('p3_done') && G.player.x < h(80)) return F.has('p3_t1') && !F.has('p3_t2') ? 'p3b' : 'p3';
-        if (!F.has('p2_open')) return 'p2';
-        return F.has('p3_done') ? 'kelp' : 'p3';
+        if (!F.has('p3_done')) return 'p3';
+        return 'kelp';
+    }
+    /** The goal line for the note at the top of the screen. */
+    function goal() {
+        const key = objective();
+        const g = GOALS[key];
+        if (typeof g !== 'function') return g || '';
+        if (key === 'p7') return g(['shutter1', 'shutter2', 'shutter3'].filter((f) => F.has(f)).length);
+        return g((F.has('mark_land') ? 1 : 0) + (F.has('mark_sea') ? 1 : 0));
     }
 
     const HINT_SPOTS = {
+        explore: () => inScene('land') && G.actors.klo.visible && { x: G.actors.klo.x, y: G.actors.klo.y },
         hide: () => inScene('land') && { x: G.sceneDef.spots.kloHole.x, y: G.sceneDef.spots.kloHole.y },
+        pool: () => inScene('land') && { x: h(102.4), y: h(-0.3) },
         p1: () => inScene('land') && { x: h(80.1), y: h(-0.66) },
         p3: () => inScene('land') && { x: h(52.3), y: h(-0.8) },
         p3b: () => inScene('land') && { x: h(44.6), y: h(-1.9) },
-        p2: () => inScene('land') && { x: h(101.6), y: h(-0.3) },
+        p2: () => inScene('land') && (G.puz.stone !== G.sceneDef.rail.target ? { x: G.sceneDef.rail.x0 + G.puz.stone * G.sceneDef.rail.step, y: h(-0.1) } : { x: h(104.5), y: h(-0.43) }),
         kelp: () => inScene('land') && { x: h(101.9), y: h(-0.3) },
         hook: () => inScene('kelp') && { x: h(20.8), y: h(3.4) },
-        p4: () => inScene('land') && { x: h(27.5), y: h(-6.4) },
+        p4: () => inScene('land') && (F.has('p4_leap') ? { x: G.sceneDef.spots.landmark.x, y: G.sceneDef.spots.landmark.y } : { x: h(27.5), y: h(-6.4) }),
+        toSea: () => inScene('land') && { x: h(101.9), y: h(-0.3) },
         p5: () => inScene('kelp') && { x: h(22.8), y: h(7.8) },
         p6: () => inScene('kelp') && { x: h(36), y: h(8.4) },
-        p7: () => inScene('viken') && { x: h(19.5), y: h(-0.62) },
+        toViken: () => inScene('kelp') && { x: h(36.5), y: h(8.4) },
+        p7: () => inScene('viken') && (!F.has('shutter1') ? { x: h(13), y: h(-0.62) } : !F.has('shutter2') ? { x: h(14.2), y: h(6.8) } : { x: h(26.4), y: h(5.0) }),
         talk: () => inScene('viken') && { x: G.actors.kv.x, y: G.actors.kv.y },
-        p8: () => inScene('viken') && { x: h(24.1), y: h(-0.62) }
+        p8: () => inScene('viken') && { x: h(24.1), y: h(-0.62) },
+        signe: () => inScene('land') && G.actors.signe.visible && { x: G.actors.signe.x, y: G.actors.signe.y }
     };
-    const PROGRESS = new Set(['inked', 'grow', 'opened', 'latch', 'lit', 'mark', 'flattened', 'push', 'reflectionSeen', 'scene', 'bigLanding', 'streckDone']);
-    G.on('*', (type) => { if (PROGRESS.has(type)) { hintState.t = 0; hintState.level = 0; } });
+    const PROGRESS = new Set(['inked', 'grow', 'opened', 'latch', 'lit', 'mark', 'flattened', 'push', 'reflectionSeen', 'scene', 'bigLanding', 'streckDone', 'ratchet', 'taste']);
+    G.on('*', (type) => { if (PROGRESS.has(type)) { hintState.t = 0; hintState.level = 0; hintState.said = 0; } });
 
+    /**
+     * When the player seems stuck, Klo helps without stopping play: first a nudge (the margin note),
+     * then the plain answer with a mark on the spot and Alva's gull circling it. Help level scales the waits.
+     */
     function hints(dt) {
         const key = objective();
-        if (key !== hintState.key) { hintState.key = key; hintState.t = 0; hintState.level = 0; }
-        if (G.busy) return;
+        if (key !== hintState.key) { hintState.key = key; hintState.t = 0; hintState.level = 0; hintState.said = 0; }
+        if (G.busy || running) return;
         hintState.t += dt;
-        const mult = G.helpLevel === 'easy' ? 0.5 : G.helpLevel === 'hard' ? 2 : 1;
-        const lvl = hintState.t > 90 * mult ? 1 : hintState.t > 40 * mult ? 0.5 : 0;
-        if (lvl >= 1 && hintState.level < 1) { hintState.level = 1; io.ui.pulse('journal'); }
-        else if (lvl >= 0.5 && hintState.level < 0.5) hintState.level = 0.5;
+        const mult = G.helpLevel === 'easy' ? 0.6 : G.helpLevel === 'hard' ? 2 : 1;
+        const H = HINTS[key];
+        if (!H) return;
+        const first = 30 * mult, second = 75 * mult, again = 60 * mult;
+        if (hintState.said === 0 && hintState.t > first) {
+            hintState.said = 1; hintState.level = 0.5;
+            io.guide?.hint(H.note);
+            tipOnce('journal');
+        } else if (hintState.said === 1 && hintState.t > second) {
+            hintState.said = 2; hintState.level = 1;
+            io.guide?.hint(H.sketch || H.note, 'klo', 9000);
+            io.ui.pulse?.('journal');
+        } else if (hintState.said >= 2 && hintState.t > second + again * (hintState.said - 1)) {
+            hintState.said++;
+            io.guide?.hint(H.sketch || H.note, 'klo', 9000);
+        }
+    }
+    /** a one-off tip about the controls (remembered in the save) */
+    // which control a tip points at on a touch screen (with keys only the journal has a place to point)
+    const TIP_AT = { gallop: 'stick', swim: 'stick', dashed: 'stick', act: 'act', hide: 'hide', journal: 'journal' };
+    function tipOnce(id) {
+        if (F.has('tip_' + id) || !TIPS[id]) return;
+        F.add('tip_' + id);
+        io.guide?.tip(io.touch ? TIPS[id].touch : TIPS[id].keys, { at: io.touch || id === 'journal' ? TIP_AT[id] : null });
+    }
+    /** a one-off hint from Klo (remembered in the save) */
+    function hintOnce(id, text, who = 'klo') {
+        if (F.has('hint_' + id) || !text) return;
+        F.add('hint_' + id);
+        io.guide?.hint(text, who);
+    }
+
+    // ---- small guidance moments (non-blocking) ------------------------------------------------
+    G.on('inked', (e) => {
+        if (e.id === 'teach-step') { hintOnce('teach', STORY.k1.teachStreck); tipOnce('dashed'); }
+        if (e.id === 'p2-plank' && !F.has('p2_open')) hintOnce('plank', STORY.k1.plankDone);
+    });
+    G.on('balk', (e) => {
+        if (e.reason === 'thin' && !F.has('p1_inked')) hintOnce('thin', STORY.k1.firstThin);
+        if (e.reason === 'slow' && e.id === 'sprang-p4') hintOnce('leap', STORY.k2.leapHint);
+    });
+    G.on('push', (e) => { if (e.notch === G.sceneDef.rail?.target) hintOnce('stone', STORY.k1.stoneDone); });
+    G.on('grow', (e) => {
+        if (e.decor) hintOnce('fluff', STORY.k1.teachFluff);
+        else hintOnce('ramp', STORY.k1.rampGrew);
+    });
+    G.on('swimStart', () => { if (inScene('kelp') || inScene('viken')) tipOnce('swim'); });
+    function watch() {
+        const p = P();
+        if (!G.story || G.busy) return;
+        if (inScene('land') && F.has('rule_demo') && !F.has('p2_seen') && Math.abs(p.x - h(102)) < h(3.2)) hintOnce('pool', STORY.k1.poolHint);
+        if (inScene('kelp') && F.has('ch2_open') && !F.has('p5_lit') && !p.hidden) {
+            const home = G.sceneDef.school.home;
+            if (Math.hypot(p.x - home.x, p.y - home.y) < h(5)) hintOnce('lykt', STORY.k2.lyktHint);
+        }
+        if (inScene('kelp') && p.inVortex && !p.hidden && !F.has('p6_flat')) hintOnce('whirl', STORY.k2.whirlHint);
+        if (inScene('viken') && F.has('viken_arrived') && !F.has('lamp_lit')) {
+            if (!F.has('shutter1') && p.surface?.id === 'pier' && p.x > h(4) && p.x < h(22)) hintOnce('drum', STORY.k3.drumHint);
+            if (!F.has('shutter2') && p.mode === 'swim' && Math.abs(p.x - h(14.2)) < h(3) && p.y > h(3)) hintOnce('plate', STORY.k3.plateHint);
+            if (!F.has('shutter3') && p.mode === 'swim' && Math.abs(p.x - h(26.4)) < h(2.5)) hintOnce('pipe', STORY.k3.pipeHint);
+        }
+        if (inScene('viken') && F.has('p8_land') && !F.has('p8_done') && p.mode === 'swim' && !p.hidden) hintOnce('dive', STORY.k3.diveHint);
+        if (p.mode === 'ground' && Math.abs(p.vx) >= 1000 && F.has('intro_done')) tipOnce('fullGallop');
+        if (G.context && G.context.id !== 'skaka') tipOnce('act');
     }
 
     return {
-        step, actions,
-        objective,
+        step(dt) { step(dt); watch(); },
+        actions,
+        objective, goal, tipOnce, hintOnce,
         hintInfo() {
             const key = hintState.key || objective();
             const spot = HINT_SPOTS[key]?.();

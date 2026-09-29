@@ -6,7 +6,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { SCENES, CHECKPOINTS } from '../skoldhast/src/content/world.mjs';
-import { HINTS } from '../skoldhast/src/content/sv.mjs';
+import { HINTS, GOALS, BALK, TIPS } from '../skoldhast/src/content/sv.mjs';
 import { Terrain, HL, cond } from '../skoldhast/src/sim.mjs';
 import { createGame } from '../skoldhast/src/game.mjs';
 import { createStory } from '../skoldhast/src/story.mjs';
@@ -85,14 +85,34 @@ test('every objective has a hint text', () => {
     const keys = new Set();
     const tries = [[], ['intro_done'], ['intro_done', 'klo_hidden'], ['intro_done', 'klo_ja'], ['intro_done', 'klo_ja', 'p1_inked'],
         ['intro_done', 'klo_ja', 'p1_inked', 'p3_done'], ['intro_done', 'klo_ja', 'p1_inked', 'p3_done', 'p2_open'],
-        ['ch1_end'], ['ch1_end', 'ch2_open'], ['ch1_end', 'ch2_open', 'p5_lit'], ['ch1_end', 'ch2_open', 'p5_lit', 'mark_sea'], ['ch2_end', 'ch3_open'], ['ended']];
+        ['ch1_end'], ['ch1_end', 'ch2_open'], ['ch1_end', 'ch2_open', 'p5_lit'], ['ch1_end', 'ch2_open', 'p5_lit', 'mark_sea'],
+        ['ch1_end', 'ch2_open', 'mark_land'], ['ch2_end', 'ch3_open'], ['ch2_end', 'ch3_open', 'viken_arrived'],
+        ['ch2_end', 'ch3_open', 'viken_arrived', 'lamp_lit'], ['ch2_end', 'ch3_open', 'viken_arrived', 'lamp_lit', 'talk_done'], ['ended'], ['ended', 'signe_met']];
     for (const scene of ['land', 'kelp', 'viken']) {
         for (const fl of tries) {
             G.flags.clear(); fl.forEach((f) => G.flags.add(f));
             G.goto(scene, 'start' in SCENES[scene].spots ? 'start' : Object.keys(SCENES[scene].spots)[0], { silent: true });
             keys.add(story.objective());
+            const goal = story.goal();
+            assert.ok(typeof goal === 'string' && goal.length > 4, `objective ${story.objective()} has no goal line`);
         }
     }
-    for (const k of keys) assert.ok(HINTS[k], `objective ${k} has no hint in sv.mjs`);
+    for (const k of keys) {
+        assert.ok(HINTS[k]?.q && HINTS[k]?.note, `objective ${k} has no hint in sv.mjs`);
+        assert.ok(GOALS[k], `objective ${k} has no goal in sv.mjs`);
+    }
     void cond;
+});
+
+test('every refusal and every tip has its words', () => {
+    const reasons = new Set(['thin', 'slow']);
+    for (const sc of Object.values(SCENES)) {
+        for (const e of [...(sc.edges || []), ...(sc.walls || []), ...(sc.water || [])]) {
+            if (e.kind === 'balk') reasons.add(e.reason || 'balk');
+            if (e.kind === 'sprang') reasons.add(e.needsReason || 'edge');
+            if (typeof e.balk === 'string') reasons.add(e.balk);
+        }
+    }
+    for (const r of reasons) assert.ok(BALK[r], `balk reason ${r} has no thought in sv.mjs`);
+    for (const [id, t] of Object.entries(TIPS)) assert.ok(t.touch && t.keys, `tip ${id} needs a touch and a keys version`);
 });
