@@ -64,6 +64,37 @@ After the first playtest ("it is very unclear what to do", "I am a bit stuck som
   - `node tests/browser/skoldhast-pages.mjs [--out dir]` checks a scene turn, the Kapitel 2 paper peel and the lighthouse glimpse;
   - sim tests for the pipe mouth, the plate pull and Knuffa from one spot.
 
+## Fresh-eyes playtest (29 September) and what it changed
+
+An agent played for about two hours with the keyboard at 844×390. Its report, with screenshots and repro scripts, was in the session's scratchpad. Fixed:
+
+- **Pier trap in Kapitel 3:**
+  - "Hoppa i" (or down on the stick) now hops off the pier into the bay. Surfaces marked `dropIn` in `world.mjs` allow it, and `dropIn()` in `sim.mjs` does it.
+  - Skaka is not offered on the pier.
+  - The P7 hints go plate → pipe → pier.
+- **Stuck at walls:** `wallBetween` only counts a wall ahead, and swimmers stay clear of its line.
+- **Sinking into gaps:**
+  - hooves only find ground near the feet (`Terrain.groundNear`);
+  - the rig clamps the body's ground offset;
+  - on a dashed line the hooves stand on the line.
+- **P3 run-up the wrong way:** a miss no longer spends the backsippa (it grows back in 0.9 s).
+- **"Jag har fastnat"** goes to the nearest safe spot in the scene (`G.safeSpot()`).
+- **Currents are visible:** a pale band with flowing streaks. Klo says so if you hide by the lyktfiskar outside the current.
+- **Smaller fixes:**
+  - the rope hint on Klippudden;
+  - the Kapitel 3 mirror camera, and the glimpse camera;
+  - side remarks are non-blocking bubbles;
+  - goal wording, and counters only for the goal's own steps;
+  - MAS works for MÅS;
+  - J and Esc close panels;
+  - Klo's hint keeps off the sköldhäst's head on short landscape screens.
+- **Handed to the menus redesign:**
+  - panels that can't be closed at 390 px height (✕ and a sticky close row);
+  - Enter and focus in the word-code field;
+  - map chips that look like buttons;
+  - the bottom speech box covering the buttons, and toasts on the head.
+- **Not changed:** the one-time journal tip can overlap the sköldhäst for a few seconds on a short landscape screen.
+
 ## How to check it
 
 - `npm test`: the pure tests, including a robot that plays the whole game (about 3 s).
