@@ -153,7 +153,29 @@ export function createGame({ released = RELEASED_CHAPTER } = {}) {
             const cp = CHECKPOINTS[G.checkpoint];
             G.goto(cp.scene, cp.spot || cp.at);
         },
-        setCheckpoint(name) { if (CHECKPOINTS[name]) { G.checkpoint = name; G.emit('checkpoint', { id: name }); } }
+        setCheckpoint(name) { if (CHECKPOINTS[name]) { G.checkpoint = name; G.emit('checkpoint', { id: name }); } },
+
+        /**
+         * "Jag har fastnat": the nearest safe place in this scene (a checkpoint or a spawn), in the water if you
+         * are swimming, never under blank paper and never on the far side of a wall that is closed now.
+         */
+        safeSpot() {
+            const p = G.player, sc = G.sceneDef;
+            const cands = [];
+            for (const cp of Object.values(CHECKPOINTS)) if (cp.scene === G.sceneId) cands.push(cp.spot ? sc.spots[cp.spot] : cp.at);
+            for (const [k, v] of Object.entries(sc.spots)) if (/^(start|from)/.test(k)) cands.push(v);
+            const blank = (x) => (sc.paper || []).some((pc) => !G.flags.has(pc.until) && x >= pc.x0 && x <= pc.x1);
+            const walled = (x) => G.terrain.walls.some((w) => (w.x - p.x) * (w.x - x) < 0);
+            const swimming = p.mode === 'swim';
+            let best = null, bd = Infinity;
+            for (const c of cands) {
+                if (!c || blank(c.x) || walled(c.x)) continue;
+                const same = (c.mode === 'swim') === swimming;
+                const d = Math.hypot(c.x - p.x, c.y - p.y) + (same ? 0 : 40 * HL);
+                if (d > HL * 0.8 && d < bd) { bd = d; best = c; } // somewhere else than right here
+            }
+            return best;
+        }
     };
 
     function neigh() {

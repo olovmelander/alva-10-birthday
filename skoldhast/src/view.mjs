@@ -391,13 +391,32 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
         d.lanes = [];
         for (const ln of def.lanes || []) {
             const pts = resamplePts(ln.pts, 40);
-            const item = { ln, pts, len: lineLength(pts), motes: [] , line: null };
+            const item = { ln, pts, len: lineLength(pts), motes: [], line: null, band: null };
             if (ln.dashed) { item.line = rope('stroke-dashblue', pts, { color: 0x244f8f, width: 5, scale: 1 }); L.objects.addChild(item.line); }
-            for (let i = 0; i < Math.ceil(item.len / 140); i++) {
-                const m = spr(ln.dashed ? 'p-glow' : 'p-bubble');
-                m.anchor?.set?.(0.5); m.alpha = 0.6; m.scale.set(ln.dashed ? 0.4 : 0.8);
+            else {
+                // the current as a pale band, so you can see where it runs (and where to hide in it)
+                const band = new PIXI.Graphics();
+                const path = () => { band.moveTo(pts[0][0], pts[0][1]); for (let i = 1; i < pts.length; i++) band.lineTo(pts[i][0], pts[i][1]); };
+                path(); band.stroke({ width: ln.width * 0.6, color: 0xe4f6ff, alpha: 0.26, cap: 'round', join: 'round' });
+                path(); band.stroke({ width: ln.width * 0.24, color: 0xf7fcff, alpha: 0.26, cap: 'round', join: 'round' });
+                L.mid.addChild(band);
+                item.band = band;
+            }
+            const n = Math.ceil(item.len / (ln.dashed ? 140 : 75));
+            for (let i = 0; i < n; i++) {
+                const streak = !ln.dashed && i % 2 === 1;
+                let m;
+                if (streak) {
+                    // a short stroke that flows along the current
+                    m = new PIXI.Graphics();
+                    m.moveTo(-26, 0).lineTo(26, 0).stroke({ width: 5, color: 0xf2fbff, alpha: 0.9, cap: 'round' });
+                } else {
+                    m = spr(ln.dashed ? 'p-glow' : 'p-bubble');
+                    m.anchor?.set?.(0.5); m.scale.set(ln.dashed ? 0.4 : 0.9);
+                }
+                m.alpha = 0.6;
                 L.objects.addChild(m);
-                item.motes.push({ m, s: Math.random() * item.len, off: (Math.random() - 0.5) * (ln.width * 0.6) });
+                item.motes.push({ m, s: Math.random() * item.len, off: (Math.random() - 0.5) * (ln.width * 0.6), streak });
             }
             d.lanes.push(item);
         }
@@ -861,13 +880,16 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
         for (const ln of S.lanes) {
             const active = cond(ln.ln.when, F);
             if (ln.line) ln.line.visible = active;
+            if (ln.band) ln.band.visible = active;
             for (const m of ln.motes) {
                 m.m.visible = active;
                 if (!active) continue;
                 m.s = (m.s + ln.ln.speed * dt * 0.6) % ln.len;
                 const pt = pointAt(ln.pts, m.s);
                 m.m.x = pt.x - pt.ty * m.off; m.m.y = pt.y + pt.tx * m.off;
-                m.m.alpha = 0.55 * Math.sin(Math.PI * (m.s / ln.len));
+                const fade = Math.sin(Math.PI * (m.s / ln.len));
+                if (m.streak) { m.m.rotation = Math.atan2(pt.ty, pt.tx); m.m.alpha = 0.75 * fade; }
+                else m.m.alpha = 0.6 * fade;
             }
         }
         for (const vx of S.vortex) {

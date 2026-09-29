@@ -147,7 +147,13 @@ export function createGame({ host = document.body, assetBase = './skoldhast/', r
             gallopDefl: C.gallopDefl,
             heroHit: (x, y) => heroHit(x, y),
             heroScreen: () => heroScreen(),
-            onKey: (k) => { if (mode !== 'play') return; if (k === 'journal') openJournal(); if (k === 'pause') openPause(); }
+            onKey: (k) => {
+                if (mode !== 'play') return;
+                // J and Esc close an open panel (the journal, the pause menu, the settings) as well as open one
+                if (ui.panelOpen()) { if (k === 'pause' || k === 'journal') ui.closePanel(); return; }
+                if (k === 'journal') openJournal();
+                if (k === 'pause') openPause();
+            }
         });
         await loadAudio();
         story = createStory(G, {
@@ -551,9 +557,14 @@ export function createGame({ host = document.body, assetBase = './skoldhast/', r
             openPause: () => openPause(),
             resume: () => { paused = false; last = performance.now(); },
             stuck: () => {
-                const cp = CHECKPOINTS[G.checkpoint] || CHECKPOINTS.start;
-                G.goto(cp.scene, cp.spot || cp.at);
-                view.setScene(G.sceneId);
+                // the nearest safe place on this page; the last checkpoint only if there is none
+                const spot = G.safeSpot?.();
+                if (spot) { G.goto(G.sceneId, spot); view.cam.snap = true; }
+                else {
+                    const cp = CHECKPOINTS[G.checkpoint] || CHECKPOINTS.start;
+                    G.goto(cp.scene, cp.spot || cp.at);
+                    view.setScene(G.sceneId);
+                }
                 paused = false; last = performance.now();
             },
             quit: () => close(),

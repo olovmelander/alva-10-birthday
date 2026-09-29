@@ -3,10 +3,15 @@
  * the journal (Forskningsdagbok), pause and settings, chapter reports, and the
  * drawing overlay for Alva's pencil. All text is Swedish (content/sv.mjs).
  *
+ * The menus are a hand-made research notebook (skoldhast.css): paper, pencil
+ * frames and colored-pencil fills, tape, a stamp and drawn icons (all drawn in
+ * code by scripts/skoldhast-art/ui.mjs), plus a few of the game's own drawings
+ * (Klo, her pencils, the eraser) cut from atlases the game has already loaded.
+ *
  * The UI never changes the game directly; it returns promises and calls the
  * handlers main.mjs gives it.
  */
-import { UI, NAMES, JOURNAL, HINTS, HER_TEXT, WORD_CODES, FAMILY } from './content/sv.mjs';
+import { UI, NAMES, JOURNAL, HINTS, HER_TEXT, WORD_CODES, FAMILY, MENU } from './content/sv.mjs';
 
 const el = (tag, cls, text) => {
     const n = document.createElement(tag);
@@ -15,12 +20,62 @@ const el = (tag, cls, text) => {
     return n;
 };
 
+// the handwriting (@font-face in skoldhast.css): ask for it at once, so the title rarely has to swap fonts
+const wantFont = () => { try { document.fonts?.load('20px "Patrick Hand"').catch(() => {}); } catch { /* no font loading API */ } };
+wantFont();
+
+/** A drawn icon from ui-icons.webp (names as in scripts/skoldhast-art/ui.mjs). */
+const icon = (name, cls = '') => {
+    const i = el('span', `sk-ic sk-ic-${name}${cls ? ' ' + cls : ''}`);
+    i.setAttribute('aria-hidden', 'true');
+    return i;
+};
+
+/** A doodle in the margin (the third row of ui-icons.webp), placed by its class in skoldhast.css. */
+const doodle = (name, cls) => icon(name, 'sk-doodle ' + cls);
+
+// the journal's tabs: one icon for each page
+const TAB_ICONS = ['shell', 'pencil', 'bulb', 'watch', 'lens', 'report', 'note'];
+
 export function createUI(host, { assetBase, handlers }) {
     const root = el('div', 'sk-ui');
     host.appendChild(root);
+    wantFont();
+    // iOS Safari shows :active (the buttons' press) only under a touchstart listener
+    root.addEventListener('touchstart', () => {}, { passive: true });
     // absolute, because a url() inside a CSS variable resolves against the stylesheet, not the page
-    const img = (name) => new URL(`${assetBase}assets/${name}.webp`, document.baseURI).href;
-    root.style.setProperty('--sk-paper', `url("${img('ui-paper')}")`);
+    const asset = (file) => new URL(`${assetBase}assets/${file}`, document.baseURI).href;
+    const img = (name) => asset(`${name}.webp`);
+    for (const [v, name] of [
+        ['paper', 'ui-paper'], ['frame', 'ui-frame'], ['frame-sm', 'ui-frame-sm'], ['hatch', 'ui-hatch'], ['tape', 'ui-tape'],
+        ['grunge', 'ui-grunge'], ['icons', 'ui-icons'], ['ring', 'ui-btn'], ['knob', 'ui-stick-knob'],
+        ['desk', 'desk-wood'], ['line', 'stroke-graphite'], ['crease', 'stroke-crease']
+    ]) root.style.setProperty(`--sk-${v}`, `url("${img(name)}")`);
+
+    // A few of the game's own drawings (Klo, her pencils) as decorations, cut from the atlases the
+    // game has already downloaded: frame rectangles from the atlas JSON, so a rebuilt atlas still fits.
+    const atlases = new Map();
+    const atlas = (name) => {
+        if (!atlases.has(name)) atlases.set(name, fetch(asset(`${name}.json`)).then((r) => (r.ok ? r.json() : null)).catch(() => null));
+        return atlases.get(name);
+    };
+    function art(atlasName, frame, cls = '') {
+        const d = el('span', `sk-art sk-art-${frame}${cls ? ' ' + cls : ''}`);
+        d.setAttribute('aria-hidden', 'true');
+        atlas(atlasName).then((j) => {
+            const f = j?.frames?.[frame];
+            if (!f || f.rotated) { d.remove(); return; }
+            const { x, y, w, h } = f.frame, IW = j.meta.size.w, IH = j.meta.size.h;
+            d.style.aspectRatio = `${w} / ${h}`;
+            d.style.backgroundImage = `url("${asset(j.meta.image)}")`;
+            d.style.backgroundSize = `${(IW / w) * 100}% ${(IH / h) * 100}%`;
+            d.style.backgroundPosition = `${IW > w ? (x / (IW - w)) * 100 : 0}% ${IH > h ? (y / (IH - h)) * 100 : 0}%`;
+            d.classList.add('on');
+        });
+        return d;
+    }
+    const tape = (cls = '') => { const t = el('span', 'sk-tape' + (cls ? ' ' + cls : '')); t.setAttribute('aria-hidden', 'true'); return t; };
+    const lessMotion = () => root.classList.contains('less-motion') || !!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
 
     // ---------------------------------------------------------------------------
     // HUD: journal and pause buttons, pencil counter, caption line
@@ -69,7 +124,7 @@ export function createUI(host, { assetBase, handlers }) {
     root.appendChild(controls);
 
     // ---------------------------------------------------------------------------
-    // Dialogue
+    // Dialogue: a strip of paper with the speaker's name on a tab
     // ---------------------------------------------------------------------------
     const dlg = el('div', 'sk-dialogue');
     dlg.setAttribute('role', 'dialog');
@@ -146,21 +201,33 @@ export function createUI(host, { assetBase, handlers }) {
     }
 
     // ---------------------------------------------------------------------------
-    // Panels: journal, pause, settings, report, title
+    // Panels: journal, pause, settings, report, title. A panel holds one sheet of
+    // paper (.sk-card, which scrolls when it must); tape, Klo and the ✕ sit on the
+    // sheet around it (.sk-sheet), so the card's scrolling never hides them.
+    // Every panel closes the same three ways: its own button (Stäng, Fortsätt …),
+    // the ✕ in the corner, or a tap on the dim backdrop beside the sheet.
     // ---------------------------------------------------------------------------
     const panel = el('div', 'sk-panel');
     panel.setAttribute('role', 'dialog');
     root.appendChild(panel);
     let panelClose = null;
-    function openPanel(build, { onClose } = {}) {
+    function openPanel(build, { onClose, kind = 'card' } = {}) {
         panel.innerHTML = '';
+        const sheet = el('div', `sk-sheet sk-sheet-${kind}`);
         const card = el('div', 'sk-card');
-        panel.appendChild(card);
-        build(card);
+        sheet.appendChild(card);
+        panel.appendChild(sheet);
+        build(card, sheet);
+        const x = el('button', 'sk-x');
+        x.type = 'button';
+        x.setAttribute('aria-label', UI.close);
+        x.title = UI.close;
+        x.addEventListener('click', () => closePanel());
+        sheet.appendChild(x);
         panel.classList.add('on');
         panelClose = onClose || null;
-        const first = card.querySelector('button, input, textarea');
-        first?.focus();
+        const first = card.querySelector('[data-focus]') || card.querySelector('button, input, textarea');
+        first?.focus({ preventScroll: true });
     }
     function closePanel() {
         panel.classList.remove('on');
@@ -168,46 +235,80 @@ export function createUI(host, { assetBase, handlers }) {
         const c = panelClose; panelClose = null;
         c?.();
     }
+    // a tap on the backdrop (pressed and released there, so a drag out of the card doesn't count)
+    let downOnBackdrop = false;
+    panel.addEventListener('pointerdown', (e) => { downOnBackdrop = e.target === panel; });
+    panel.addEventListener('click', (e) => {
+        const hit = e.target === panel && downOnBackdrop;
+        downOnBackdrop = false;
+        if (hit && panel.classList.contains('on')) closePanel();
+    });
     const btn = (label, fn, cls = '') => { const b = el('button', 'sk-pbtn ' + cls, label); b.type = 'button'; b.addEventListener('click', fn); return b; };
+    const list = (items, cls = 'sk-j-list') => { const ul = el('ul', cls); for (const l of items) ul.append(el('li', '', l)); return ul; };
 
     // --- the journal ------------------------------------------------------------
+    // One page on a phone, a two-page spread on a wide screen (the first page is a right-hand page,
+    // with the inside of the cover to its left). Tabs jump to a page; pages turn in 3D.
+    const spreadQuery = window.matchMedia?.('(min-width: 900px) and (min-height: 520px)');
     function journal(state) {
-        let page = state.page ?? 2;
+        let page = Math.max(0, Math.min(6, state.page ?? 2));
         const pages = [
             (c) => {
+                c.classList.add('sk-j-cover-page');
                 c.append(el('h2', 'sk-j-title', JOURNAL.title));
                 c.append(el('p', 'sk-j-latin', JOURNAL.latin));
                 c.append(el('p', 'sk-j-small', JOURNAL.latinNote));
+                c.append(art('table', 'hoofprint-wet', 'sk-j-print'));
                 c.append(el('p', 'sk-j-credit', UI.credit));
             },
             (c) => {
                 c.append(el('h3', '', JOURNAL.field));
                 c.append(el('p', 'sk-j-quote', HER_TEXT.full || JOURNAL.fieldFallback));
+                // a little sketch in the margin: her sea, the gulls and the sun
+                const sketch = el('div', 'sk-j-doodles');
+                sketch.setAttribute('aria-hidden', 'true');
+                sketch.append(doodle('sun', 'd-sun'), doodle('gull', 'd-g1'), doodle('gull2', 'd-g2'), doodle('wave', 'd-w1'), doodle('kelp', 'd-k'), doodle('fish', 'd-f'), doodle('wave', 'd-w2'));
+                c.append(sketch);
+                c.append(art('table', 'alva-pencil', 'sk-j-hand'));
             },
             (c) => {
+                c.classList.add('sk-j-known');
                 c.append(el('h3', '', JOURNAL.known));
                 const hint = HINTS[state.objective] || HINTS.explore;
                 c.append(el('p', 'sk-j-question', hint.q));
                 const note = el('p', 'sk-j-margin');
                 note.style.backgroundImage = `url("${img('ui-claw')}")`;
                 const sketch = el('p', 'sk-j-sketch');
-                const b1 = btn(UI.hint, () => { note.textContent = hint.note; note.classList.add('on'); b1.remove(); if (hint.sketch) c.append(b2); });
-                const b2 = btn(UI.hintMore, () => { sketch.textContent = hint.sketch; sketch.classList.add('on'); b2.remove(); });
+                // on a short screen the page scrolls: bring what was just revealed into view
+                const reveal = (n) => { try { n.scrollIntoView({ block: 'nearest', behavior: lessMotion() ? 'auto' : 'smooth' }); } catch { /* old browsers */ } };
+                const b1 = btn(UI.hint, () => {
+                    note.textContent = hint.note; note.classList.add('on'); b1.remove();
+                    if (hint.sketch) { note.after(b2); b2.focus({ preventScroll: true }); reveal(b2); } else reveal(note);
+                }, 'sk-j-help');
+                const b2 = btn(UI.hintMore, () => { sketch.textContent = hint.sketch; sketch.classList.add('on'); b2.remove(); reveal(sketch); }, 'sk-j-help more');
+                b1.prepend(icon('bulb'));
+                b2.prepend(icon('bulb'));
+                b1.dataset.focus = '';
                 c.append(b1, note, sketch);
                 c.append(mapSketch(state));
+                c.append(art('npcs', 'klo-point', 'sk-j-klo'));
             },
             (c) => {
                 c.append(el('h3', '', JOURNAL.measurements));
-                const ul = el('ul', 'sk-j-list');
+                const ul = el('ul', 'sk-j-list sk-j-checks');
                 for (const id of ['fart', 'djup', 'gom', 'gnagg', 'sprang', 'smak']) if (state.flags.has('exp_' + id)) ul.append(el('li', '', JOURNAL.experiments[id]));
-                if (!ul.children.length) ul.append(el('li', 'sk-j-small', JOURNAL.empty));
+                if (!ul.children.length) { ul.className = 'sk-j-list'; ul.append(el('li', 'sk-j-small', JOURNAL.empty)); }
                 c.append(ul);
                 const signs = el('p', 'sk-j-tally', state.tally > 0 ? 'Klos skylt: häst' : state.tally < 0 ? 'Klos skylt: SKÖLDPADDA' : 'Klos skyltar: det står lika.');
-                c.append(signs);
+                // the verdict, with the sign Klo holds up for it
+                const verdict = el('div', 'sk-j-verdict');
+                verdict.append(signs, art('npcs', state.tally > 0 ? 'sign-hast' : state.tally < 0 ? 'sign-skoldpadda' : 'klo-signs', 'sk-j-sign'));
+                c.append(verdict);
+                c.append(art('npcs', 'klo-stopwatch', 'sk-j-klo'));
             },
             (c) => {
                 c.append(el('h3', '', JOURNAL.clues));
-                const ul = el('ul', 'sk-j-list');
+                const ul = el('ul', 'sk-j-list sk-j-clues');
                 for (const [k, text] of Object.entries(JOURNAL.clueText)) if (state.flags.has('clue_' + k)) ul.append(el('li', '', text));
                 if (state.flags.has('mark_land') || state.flags.has('mark_sea') || state.flags.has('ch2_open')) {
                     const m = el('div', 'sk-j-marks');
@@ -215,20 +316,20 @@ export function createUI(host, { assetBase, handlers }) {
                     m.append(el('p', 'sk-j-small', JOURNAL.halves));
                     c.append(m);
                 }
-                if (!ul.children.length) ul.append(el('li', 'sk-j-small', '…'));
+                if (!ul.children.length) { ul.className = 'sk-j-list'; ul.append(el('li', 'sk-j-small', '…')); }
                 c.append(ul);
+                c.append(art('npcs', 'klo-map-corner', 'sk-j-klo'));
             },
             (c) => {
                 c.append(el('h3', '', UI.report + 'er'));
                 for (const n of [1, 2]) {
                     if (!state.flags.has(n === 1 ? 'ch1_end' : 'ch2_end')) continue;
                     c.append(el('h4', '', `${UI.report} nr ${n}`));
-                    const ul = el('ul', 'sk-j-list');
-                    for (const l of JOURNAL.reports[n]) ul.append(el('li', '', l));
-                    c.append(ul);
-                    c.append(el('p', 'sk-j-code', `${UI.code}: ${WORD_CODES[n]}`));
+                    c.append(list(JOURNAL.reports[n], 'sk-j-list sk-j-checks'));
+                    c.append(codeNote(n));
                 }
                 if (!state.flags.has('ch1_end')) c.append(el('p', 'sk-j-small', '…'));
+                c.append(art('npcs', 'klo-notebook', 'sk-j-klo'));
             },
             (c) => {
                 if (state.flags.has('conclusion') || state.flags.has('ended')) c.append(el('p', 'sk-j-conclusion', JOURNAL.conclusionFull || JOURNAL.conclusion));
@@ -236,75 +337,242 @@ export function createUI(host, { assetBase, handlers }) {
                 const ta = el('textarea', 'sk-j-note');
                 ta.maxLength = 200;
                 ta.value = state.note || '';
-                ta.addEventListener('input', () => handlers.setNote(ta.value));
+                ta.addEventListener('input', () => { state.note = ta.value; handlers.setNote(ta.value); });
                 c.append(ta);
-                c.append(el('p', 'sk-j-pencils', `${UI.pencils}: ${state.pencils} / ${state.pencilsTotal}`));
+                const pc = el('p', 'sk-j-pencils', `${UI.pencils}: ${state.pencils} / ${state.pencilsTotal}`);
+                pc.prepend(icon('pencil'));
+                c.append(pc);
+                c.append(art('table', 'pencils-lying', 'sk-j-crayons'));
             }
         ];
-        openPanel((card) => {
+        const N = pages.length;
+        // the inside of the front cover, left of the first page on a spread
+        const insideCover = (c) => {
+            c.classList.add('sk-j-inside');
+            c.append(el('p', 'sk-j-inside-title', UI.journal));
+            c.append(art('npcs', 'klo-notebook', 'sk-j-inside-klo'));
+            c.append(doodle('cloud', 'd-cloud'), doodle('gull', 'd-g1'), doodle('gull2', 'd-g2'), doodle('fish', 'd-fish'), doodle('wave', 'd-wave'));
+        };
+
+        let settle = () => {}, unlisten = () => {};
+        openPanel((card, sheet) => {
             card.classList.add('sk-journal');
-            const body = el('div', 'sk-j-page');
+            sheet.classList.add('sk-sheet-journal');
+            const tabs = el('div', 'sk-j-tabs');
+            tabs.setAttribute('role', 'tablist');
+            tabs.setAttribute('aria-label', UI.journal);
+            const tabBtns = MENU.tabs.slice(0, N).map((label, i) => {
+                const b = el('button', `sk-j-tab t${i}`);
+                b.type = 'button';
+                b.setAttribute('role', 'tab');
+                b.title = label;
+                b.append(icon(TAB_ICONS[i]), el('span', 'sk-j-tab-label', label));
+                b.addEventListener('click', () => go(i));
+                tabs.append(b);
+                return b;
+            });
+            const book = el('div', 'sk-j-book');
+            const slotL = el('div', 'sk-j-leaf l'), slotR = el('div', 'sk-j-leaf r');
+            book.append(slotL, slotR);
             const nav = el('div', 'sk-j-nav');
-            const prev = btn('‹', () => { page = Math.max(0, page - 1); render(); }, 'sk-j-arrow');
+            const prev = btn('‹', () => step(-1), 'sk-j-arrow');
             prev.setAttribute('aria-label', UI.prev);
-            const next = btn('›', () => { page = Math.min(pages.length - 1, page + 1); render(); }, 'sk-j-arrow');
+            const next = btn('›', () => step(1), 'sk-j-arrow');
             next.setAttribute('aria-label', UI.next);
             const closeB = btn(UI.close, closePanel, 'sk-close');
             const dots = el('span', 'sk-j-dots');
-            nav.append(prev, dots, next);
-            card.append(el('div', 'sk-j-head', UI.journal), body, nav, closeB);
-            function render() {
-                body.innerHTML = '';
-                pages[page](body);
-                dots.textContent = `${page + 1} / ${pages.length}`;
-                prev.disabled = page === 0; next.disabled = page === pages.length - 1;
+            nav.append(prev, dots, next, closeB);
+            card.append(el('div', 'sk-j-head', UI.journal), tabs, book, nav);
+
+            let spread = false;
+            const spreadOf = (p) => Math.floor((p + 1) / 2);
+            const shown = () => (spread ? [2 * spreadOf(page) - 1, 2 * spreadOf(page)] : [page]);
+            function pageEl(i) {
+                const p = el('div', 'sk-j-page');
+                if (i < 0) insideCover(p);
+                else if (i >= N) p.classList.add('blank');
+                else { p.dataset.page = String(i); pages[i](p); p.append(el('span', 'sk-j-num', String(i + 1))); }
+                return p;
             }
-            render();
-        }, { onClose: state.onClose });
+            function marks() {
+                const on = shown();
+                tabBtns.forEach((b, i) => {
+                    b.classList.toggle('on', on.includes(i));
+                    b.setAttribute('aria-selected', String(i === page));
+                });
+                const nums = on.filter((i) => i >= 0 && i < N).map((i) => i + 1);
+                dots.textContent = `${nums.join('–')} / ${N}`;
+                prev.disabled = on[0] <= 0;
+                next.disabled = on[on.length - 1] >= N - 1;
+            }
+            function layout() {
+                settle();
+                spread = !!spreadQuery?.matches;
+                card.classList.toggle('spread', spread);
+                sheet.classList.toggle('spread', spread);
+                if (spread) { slotL.replaceChildren(pageEl(shown()[0])); slotR.replaceChildren(pageEl(shown()[1])); }
+                else { slotL.replaceChildren(); slotR.replaceChildren(pageEl(page)); }
+                marks();
+            }
+            // --- turning pages ------------------------------------------------------
+            let flip = null;
+            settle = () => {
+                if (!flip) return;
+                const f = flip; flip = null;
+                for (const a of f.anims) { a.onfinish = null; a.cancel(); }
+                f.after?.();
+                f.leaf.remove();
+            };
+            function turn(dir) {
+                const leaf = el('div', `sk-j-flip sk-j-leaf ${spread && dir < 0 ? 'l' : 'r'} ${dir > 0 ? 'fwd' : 'back'}`);
+                leaf.setAttribute('aria-hidden', 'true');
+                const front = el('div', 'sk-j-face front'), back = el('div', 'sk-j-face back');
+                const shades = [el('div', 'sk-j-shade'), el('div', 'sk-j-shade')];
+                leaf.append(front, back);
+                let after = null, frames;
+                if (spread) {
+                    const [li, ri] = shown();
+                    const newL = pageEl(li), newR = pageEl(ri);
+                    if (dir > 0) {
+                        // the right page lifts and falls over to the left; its back is the new left page
+                        front.append(slotR.firstElementChild || pageEl(N)); back.append(newL);
+                        slotR.replaceChildren(newR);
+                        after = () => slotL.replaceChildren(newL);
+                        frames = [{ transform: 'rotateY(0deg)' }, { transform: 'rotateY(-180deg)' }];
+                    } else {
+                        front.append(slotL.firstElementChild || pageEl(N)); back.append(newR);
+                        slotL.replaceChildren(newL);
+                        after = () => slotR.replaceChildren(newR);
+                        frames = [{ transform: 'rotateY(0deg)' }, { transform: 'rotateY(180deg)' }];
+                    }
+                } else if (dir > 0) {
+                    // one page: the old page lifts off to the left and shows the new one underneath
+                    const neu = pageEl(page);
+                    front.append(slotR.firstElementChild || pageEl(N));
+                    slotR.replaceChildren(neu);
+                    frames = [{ transform: 'rotateY(0deg)' }, { transform: 'rotateY(-92deg)' }];
+                } else {
+                    // the page before comes back from the left and settles over this one
+                    const neu = pageEl(page);
+                    front.append(neu);
+                    after = () => slotR.replaceChildren(neu);
+                    frames = [{ transform: 'rotateY(-92deg)' }, { transform: 'rotateY(0deg)' }];
+                }
+                front.append(shades[0]); back.append(shades[1]);
+                book.append(leaf);
+                // the turning page darkens as it leaves the light, and brightens as it lands
+                const opts = { duration: spread ? 620 : 460, easing: 'cubic-bezier(.45,.05,.3,1)' };
+                const dark = spread ? [{ opacity: 0 }, { opacity: 0.32, offset: 0.5 }, { opacity: 0 }]
+                    : dir > 0 ? [{ opacity: 0 }, { opacity: 0.5 }] : [{ opacity: 0.5 }, { opacity: 0 }];
+                const anims = [leaf.animate(frames, opts), ...shades.map((s) => s.animate(dark, opts))];
+                flip = { leaf, anims, after };
+                anims[0].onfinish = () => settle();
+            }
+            function go(target) {
+                target = Math.max(0, Math.min(N - 1, target));
+                const was = shown();
+                page = target;
+                const now = shown();
+                if (now[0] === was[0] && now[now.length - 1] === was[was.length - 1]) { marks(); return; }
+                settle();
+                if (lessMotion()) { layout(); return; }
+                turn(now[0] > was[0] ? 1 : -1);
+                marks();
+            }
+            function step(d) {
+                if (!spread) { go(page + d); return; }
+                const s = spreadOf(page) + d;
+                go(s <= 0 ? 0 : 2 * s - 1);
+            }
+            layout();
+            // turning the phone (or resizing the window) switches between one page and a spread
+            const onMode = () => { if (card.isConnected) layout(); else unlisten(); };
+            spreadQuery?.addEventListener?.('change', onMode);
+            unlisten = () => spreadQuery?.removeEventListener?.('change', onMode);
+            card.addEventListener('keydown', (e) => {
+                const tag = e.target?.tagName;
+                if (tag === 'TEXTAREA' || tag === 'INPUT') return;
+                if (e.key === 'ArrowRight' || e.key === 'PageDown') { e.preventDefault(); step(1); }
+                else if (e.key === 'ArrowLeft' || e.key === 'PageUp') { e.preventDefault(); step(-1); }
+            });
+        }, { onClose: () => { settle(); unlisten(); state.onClose?.(); }, kind: 'journal' });
     }
 
     function mapSketch(state) {
-        // a tiny pencil map: the regions visited and the fold
+        // a tiny pencil map: the regions visited, and the fold between the kelp forest and the bay
         const d = el('div', 'sk-j-map');
+        d.append(el('span', 'sk-j-map-title', MENU.map));
         const regions = [['Stäppen', 'land'], ['Stranden', 'land'], ['Kelpskogen', 'kelp'], ['Spegelviken', 'viken']];
         for (const [name, id] of regions) {
-            const r = el('span', 'sk-j-region' + (state.visited.has(id) ? ' seen' : ''), name);
-            d.append(r);
+            if (id === 'viken') d.append(el('span', 'sk-j-fold', state.flags.has('unfolded') ? '' : '— veck —'));
+            d.append(el('span', `sk-j-region r-${id}` + (state.visited.has(id) ? ' seen' : ''), name));
         }
-        d.append(el('span', 'sk-j-fold', state.flags.has('unfolded') ? '' : '— veck —'));
         return d;
+    }
+
+    /** The word code on a yellow sticky note (the text stays "Kod: KELP MÅS SKAL"). */
+    function codeNote(n) {
+        const note = el('div', 'sk-sticky sk-code-note');
+        const code = el('p', 'sk-j-code');
+        code.append(el('span', 'sk-code-label', `${UI.code}:`), ' ', el('span', 'sk-code-words', WORD_CODES[n]));
+        note.append(tape('sk-tape-sticky'), code);
+        return note;
     }
 
     // --- pause ----------------------------------------------------------------------
     function pauseMenu() {
-        openPanel((c) => {
+        openPanel((c, sheet) => {
+            c.classList.add('sk-pause');
+            sheet.append(tape('sk-tape-top'), art('npcs', 'klo-peek', 'sk-peek'));
             c.append(el('h2', '', UI.pause));
             c.append(btn(UI.resume, closePanel, 'primary'));
             c.append(btn(UI.stuck, () => {
                 c.innerHTML = '';
-                c.append(el('p', '', UI.stuckQ));
+                c.classList.add('sk-ask');
+                c.append(el('h2', '', UI.stuck));
+                c.append(el('p', 'sk-ask-q', UI.stuckQ));
                 c.append(btn(UI.stuckYes, () => { closePanel(); handlers.stuck(); }, 'primary'), btn(UI.stuckNo, closePanel));
+                c.querySelector('button')?.focus({ preventScroll: true });
             }));
-            c.append(btn(UI.settings, () => { closePanel(); settings(); }));
+            // straight on to the settings: the game stays paused until they close (they resume it)
+            c.append(btn(UI.settings, () => { panelClose = null; settings(); }));
             c.append(btn(UI.back, () => { closePanel(); handlers.quit(); }, 'quiet'));
-        }, { onClose: handlers.resume });
+        }, { onClose: handlers.resume, kind: 'pause' });
     }
 
     function settings() {
         const s = handlers.getSettings();
-        openPanel((c) => {
+        openPanel((c, sheet) => {
+            c.classList.add('sk-settings');
+            sheet.append(tape('sk-tape-top'));
             c.append(el('h2', '', UI.settings));
-            const row = (label, input) => { const r = el('label', 'sk-row'); r.append(el('span', '', label), input); c.append(r); return r; };
-            const sel = el('select');
-            for (const [v, l] of [['easy', UI.helpEasy], ['normal', UI.helpNormal], ['hard', UI.helpHard]]) { const o = el('option', '', l); o.value = v; sel.append(o); }
-            sel.value = s.help;
-            sel.addEventListener('change', () => handlers.setSetting('help', sel.value));
-            row(UI.help, sel);
-            const tog = (key, label, help) => {
+            const colA = el('div', 'sk-set-col'), colB = el('div', 'sk-set-col');
+            const row = (label, input, col, cls = '') => {
+                const r = el('label', 'sk-row' + (cls ? ' ' + cls : ''));
+                r.append(el('span', 'sk-row-label', label), input);
+                col.append(r);
+                return r;
+            };
+            // how much help: three drawn circles to choose between
+            const help = el('div', 'sk-row sk-help');
+            help.setAttribute('role', 'radiogroup');
+            help.setAttribute('aria-label', UI.help);
+            const opts = el('div', 'sk-help-opts');
+            for (const [v, l] of [['easy', UI.helpEasy], ['normal', UI.helpNormal], ['hard', UI.helpHard]]) {
+                const lab = el('label', 'sk-radio');
+                const r = el('input'); r.type = 'radio'; r.name = 'sk-help'; r.value = v; r.checked = s.help === v;
+                r.addEventListener('change', () => { if (r.checked) handlers.setSetting('help', v); });
+                lab.append(r, el('span', 'sk-mark'), el('span', 'sk-radio-label', l));
+                opts.append(lab);
+            }
+            help.append(el('span', 'sk-row-label', UI.help), opts);
+            colA.append(help);
+            const tog = (key, label, hint) => {
                 const cb = el('input'); cb.type = 'checkbox'; cb.checked = !!s[key];
                 cb.addEventListener('change', () => handlers.setSetting(key, cb.checked));
-                const r = row(label, cb);
-                if (help) r.title = help;
+                const r = row(label, cb, colB, 'sk-toggle');
+                r.append(el('span', 'sk-mark'));
+                if (hint) r.title = hint;
             };
             tog('holdGallop', UI.holdGallop, UI.holdGallopHelp);
             tog('followFinger', UI.followFinger);
@@ -313,84 +581,124 @@ export function createUI(host, { assetBase, handlers }) {
             tog('lessMotion', UI.lessMotion);
             const vol = (key, label) => {
                 const r = el('input'); r.type = 'range'; r.min = '0'; r.max = '1'; r.step = '0.05'; r.value = String(s[key]);
-                r.addEventListener('input', () => handlers.setSetting(key, Number(r.value)));
-                row(label, r);
+                const fill = () => r.style.setProperty('--v', r.value);
+                fill();
+                r.addEventListener('input', () => { fill(); handlers.setSetting(key, Number(r.value)); });
+                row(label, r, colA, 'sk-slider');
             };
             vol('music', UI.music); vol('sfx', UI.sound); vol('voice', UI.voices);
-            c.append(btn(UI.close, closePanel, 'primary'));
-        }, { onClose: handlers.resume });
+            const cols = el('div', 'sk-set-cols');
+            cols.append(colA, colB);
+            c.append(cols, btn(UI.close, closePanel, 'primary'));
+        }, { onClose: handlers.resume, kind: 'settings' });
     }
 
     // --- chapter report ----------------------------------------------------------------
     function report(n) {
         return new Promise((resolve) => {
-            openPanel((c) => {
+            openPanel((c, sheet) => {
                 c.classList.add('sk-report');
+                sheet.append(tape('sk-tape-top'), art('npcs', 'klo-happy', 'sk-rep-klo'));
                 c.append(el('h2', '', `${UI.report} nr ${n}`));
-                const ul = el('ul', 'sk-j-list');
-                for (const l of JOURNAL.reports[n]) ul.append(el('li', '', l));
-                c.append(ul);
-                c.append(el('p', 'sk-j-code', `${UI.code}: ${WORD_CODES[n]}`));
-                c.append(el('p', 'sk-j-small', UI.photoTip));
+                c.append(list(JOURNAL.reports[n], 'sk-j-list sk-j-checks'));
+                const stamp = el('div', 'sk-stamp');
+                stamp.setAttribute('aria-hidden', 'true');
+                stamp.append(el('span', 'sk-stamp-word', MENU.stamp), el('span', 'sk-stamp-by', NAMES.klo));
+                const foot = el('div', 'sk-rep-foot');
+                const note = codeNote(n);
+                const tip = el('p', 'sk-j-small sk-photo-tip', UI.photoTip);
+                tip.prepend(icon('camera'));
+                note.append(tip);
+                foot.append(note, stamp);
+                c.append(foot);
                 const next = handlers.nextChapterOpen?.(n) ? '' : UI.nextPage;
                 if (next) c.append(el('p', 'sk-j-next', next));
                 c.append(btn(UI.cont, closePanel, 'primary'));
-            }, { onClose: resolve });
+            }, { onClose: resolve, kind: 'report' });
         });
     }
 
-    // --- title ---------------------------------------------------------------------------
+    // --- title: the Forskningsdagbok lies open on Alva's desk ---------------------------------
     function title({ hasSave, slots, onBegin, onContinue, onSwitch, onCode }) {
         const t = el('div', 'sk-title');
+        const cover = el('div', 'sk-cover');
+        const paper = el('div', 'sk-cover-paper');
+        const head = el('div', 'sk-title-head');
         const logo = el('img', 'sk-title-logo');
         logo.alt = UI.title + ' ' + UI.subtitle;
         logo.src = img('ui-title');
         const sub = el('p', 'sk-title-sub', UI.subtitle);
         sub.hidden = true; // the traced lettering already says it
         logo.onerror = () => { logo.replaceWith(el('h1', 'sk-title-text', UI.title)); sub.hidden = false; };
+        head.append(logo, sub, doodle('gull', 'd-g1'), doodle('gull2', 'd-g2'));
         const bb = el('div', 'sk-title-btns');
         if (hasSave) bb.append(btn(UI.cont, () => { t.remove(); onContinue(); }, 'primary big'));
         bb.append(btn(hasSave ? UI.startOver : UI.begin, () => {
             if (!hasSave) { t.remove(); onBegin(); return; }
-            openPanel((c) => {
-                c.append(el('p', '', UI.confirmRestart));
-                c.append(btn(UI.yes, () => { closePanel(); t.remove(); onBegin(); }, 'primary'), btn(UI.no, closePanel));
-            });
+            openPanel((c, sheet) => {
+                c.classList.add('sk-confirm');
+                sheet.append(art('table', 'eraser', 'sk-eraser'));
+                c.append(el('p', 'sk-ask-q', UI.confirmRestart));
+                const row = el('div', 'sk-btn-row');
+                row.append(btn(UI.yes, () => { closePanel(); t.remove(); onBegin(); }, 'primary'), btn(UI.no, closePanel));
+                c.append(row);
+            }, { kind: 'confirm' });
         }, hasSave ? '' : 'primary big'));
+        bb.querySelector('.primary')?.append(icon('arrow', 'sk-go'));
         if (hasSave || slots.length > 1) bb.append(btn(UI.switchResearcher, () => onSwitch((close) => { t.remove(); close?.(); })));
         bb.append(btn(UI.haveCode, () => {
-            openPanel((c) => {
-                c.append(el('p', '', UI.codePrompt));
+            openPanel((c, sheet) => {
+                c.classList.add('sk-code');
+                sheet.append(tape('sk-tape-top'), art('npcs', 'klo-whisper', 'sk-code-klo'));
+                c.append(el('p', 'sk-ask-q', UI.codePrompt));
                 const inp = el('input', 'sk-code-input'); inp.type = 'text'; inp.autocomplete = 'off';
-                const msg = el('p', 'sk-j-small');
+                inp.spellcheck = false; inp.setAttribute('autocapitalize', 'characters');
+                inp.dataset.focus = ''; // the keyboard opens on the code at once
+                const msg = el('p', 'sk-j-small sk-code-msg');
+                msg.setAttribute('aria-live', 'polite');
                 c.append(inp, msg);
-                c.append(btn(UI.cont, () => {
-                    const ok = onCode(inp.value);
-                    if (ok) { closePanel(); t.remove(); } else msg.textContent = UI.codeBad;
-                }, 'primary'), btn(UI.close, closePanel));
-            });
+                const row = el('div', 'sk-btn-row');
+                const ok = btn(UI.cont, () => {
+                    const good = onCode(inp.value);
+                    if (good) { closePanel(); t.remove(); } else { msg.textContent = UI.codeBad; msg.classList.remove('shake'); void msg.offsetWidth; msg.classList.add('shake'); }
+                }, 'primary');
+                inp.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); ok.click(); } });
+                row.append(ok, btn(UI.close, closePanel));
+                c.append(row);
+            }, { kind: 'code' });
         }, 'quiet'));
         bb.append(btn(UI.back, () => handlers.quit(), 'quiet'));
         const credit = el('p', 'sk-title-credit', UI.credit);
-        t.append(logo, sub, bb, credit);
-        if (FAMILY.dedication) t.append(el('p', 'sk-title-dedication', FAMILY.dedication));
+        credit.append(art('table', 'hoofprint-wet', 'sk-title-print')); // signed with a wet hoofprint
+        // on the open book the menu page carries the notebook's name, like the first page of a new notebook
+        const label = el('p', 'sk-title-label', UI.journal);
+        label.setAttribute('aria-hidden', 'true');
+        paper.append(head, bb, credit, label, doodle('sun', 'd-sun'));
+        if (FAMILY.dedication) paper.append(el('p', 'sk-title-dedication', FAMILY.dedication));
+        cover.append(paper, el('span', 'sk-cover-gutter'), art('npcs', 'klo-peek', 'sk-title-klo'));
+        t.append(art('table', 'pencils-lying', 'sk-title-pencils'), cover);
         root.appendChild(t);
-        t.querySelector('button')?.focus();
+        t.querySelector('button')?.focus({ preventScroll: true });
         return () => t.remove();
     }
 
     function slotPicker(slots, onPick, onNew) {
-        openPanel((c) => {
+        openPanel((c, sheet) => {
+            c.classList.add('sk-slots');
+            sheet.append(tape('sk-tape-top'), art('npcs', 'klo-notebook', 'sk-peek'));
             c.append(el('h2', '', UI.switchResearcher));
-            for (const s of slots) c.append(btn(s.label + (s.note ? ` – ”${s.note}”` : ''), () => { closePanel(); onPick(s.id); }));
+            for (const s of slots) c.append(btn(s.label + (s.note ? ` – ”${s.note}”` : ''), () => { closePanel(); onPick(s.id); }, 'sk-slot'));
             c.append(btn(UI.newResearcher, () => {
                 c.innerHTML = '';
-                const inp = el('input', 'sk-code-input'); inp.type = 'text'; inp.maxLength = 16; inp.placeholder = UI.newResearcher;
-                c.append(inp, btn(UI.cont, () => { const name = inp.value.trim(); if (name) { closePanel(); onNew(name); } }, 'primary'));
+                c.append(el('h2', '', UI.newResearcher));
+                const inp = el('input', 'sk-code-input sk-name-input'); inp.type = 'text'; inp.maxLength = 16; inp.placeholder = UI.newResearcher;
+                const ok = btn(UI.cont, () => { const name = inp.value.trim(); if (name) { closePanel(); onNew(name); } }, 'primary');
+                inp.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); ok.click(); } });
+                c.append(inp, ok);
                 inp.focus();
             }, 'quiet'));
             c.append(btn(UI.close, closePanel));
-        });
+        }, { kind: 'slots' });
     }
 
     // ---------------------------------------------------------------------------

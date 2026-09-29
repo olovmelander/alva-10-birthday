@@ -675,7 +675,9 @@ function bodyFromSupports(an, s) {
     an.supPitch = f.first ? supPitchT : an.supPitch + (supPitchT - an.supPitch) * (1 - Math.exp(-10 * dt));
     const sp = an.supPitch < -0.45 ? -0.45 : an.supPitch > 0.45 ? 0.45 : an.supPitch;
     tg.pitch += sp;
-    tg.oy += (fY + hY) * 0.5 * groundW;
+    // the body follows the hooves' ground, but never far: a hoof reaching past an edge must not drag it down
+    const sup = (fY + hY) * 0.5;
+    tg.oy += (sup < -70 ? -70 : sup > 70 ? 70 : sup) * groundW;
     // landing absorb: a dip when the air mode ends
     if (an.wasAir && !f.inAir) an.bodyVY += 260;
     an.wasAir = f.inAir;

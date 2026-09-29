@@ -58,7 +58,11 @@ export function createStory(G, io) {
             a.facing = Math.sign(x - a.x) || a.facing;
             return new Promise((resolve) => { a.walk = { x, speed, resolve }; });
         },
-        clue(key) { if (!F.has('clue_' + key)) { G.flag('clue_' + key); io.ui.toast(JOURNAL.clues + ': ' + short(JOURNAL.clueText[key])); } },
+        clue(key, { quiet = false } = {}) {
+            if (F.has('clue_' + key)) return;
+            G.flag('clue_' + key);
+            io.ui.toast(quiet ? JOURNAL.clueSaved : JOURNAL.clues + ': ' + short(JOURNAL.clueText[key]));
+        },
         experiment(id, sign) {
             if (F.has('exp_' + id + '_logged')) return;
             G.flag('exp_' + id); G.flag('exp_' + id + '_logged');
@@ -69,6 +73,16 @@ export function createStory(G, io) {
             io.audio?.sfx('write');
         },
         checkpoint(name) { G.setCheckpoint(name); io.save(); },
+        /** A side remark that does not stop play: Klo's bubble, or the sköldhäst's own thought. */
+        remark(lines) {
+            const list = Array.isArray(lines[0]) ? lines : [lines];
+            if (!io.guide) return say(list); // (the robot has no guide)
+            const own = list.filter(([who]) => who === 'horse').map(([, t]) => t).join(' ');
+            const said = list.filter(([who]) => who !== 'horse');
+            if (said.length) io.guide.hint(said.map(([, t]) => t).join(' '), said[0][0], 5500 + 1500 * said.length);
+            if (own) io.guide.think(own, 2600);
+            return G.wait(0.2);
+        },
         report: (n) => io.ui.report(n)
     };
     function short(t) { return t && t.length > 70 ? t.slice(0, 67) + '…' : t; }
@@ -163,7 +177,8 @@ export function createStory(G, io) {
 
     beat('k1_clouds', {
         when: () => inScene('land') && F.has('rule_demo') && G.sceneTime > 6 && P().x < h(100) && P().x > h(84) && !done('k1_clouds'),
-        async run(s) { await s.say(STORY.k1.clouds); }
+        lock: false,
+        async run(s) { await s.remark(STORY.k1.clouds); }
     });
 
     beat('k1_note', {
@@ -177,7 +192,8 @@ export function createStory(G, io) {
     });
     beat('k1_note2', {
         on: 'balk', filter: (e) => e.reason === 'thin' && e.id === 'p1-arch' && F.has('note1_read'),
-        async run(s) { await s.say(STORY.k1.noteKlo2); }
+        lock: false,
+        async run(s) { await s.remark(STORY.k1.noteKlo2); }
     });
 
     beat('k1_p1', {
@@ -189,7 +205,9 @@ export function createStory(G, io) {
     beat('k1_glimpse', {
         on: 'glimpse', filter: (e) => e.id === 'glimpse1',
         async run(s) {
-            await s.cam({ x: G.sceneDef.spots.glimpse1.x, y: G.sceneDef.spots.glimpse1.y + h(1.2), zoom: 0.85, t: 0.8, hold: 1.2 });
+            // frame the sköldhäst and the far ridge together (not an empty sky)
+            const gp = G.sceneDef.spots.glimpse1;
+            await s.cam({ x: (P().x + gp.x) / 2, y: (P().y + gp.y) / 2 - h(0.3), zoom: 0.8, t: 0.8, hold: 1.2 });
             await s.say(STORY.k1.glimpse);
             s.clue('glimpse');
             s.camFree();
@@ -266,25 +284,30 @@ export function createStory(G, io) {
             hintOnce('swim', STORY.k1.swimTip);
         }
     });
+    // side remarks in the sea never stop the swim (Klo's bubble instead of a speech box)
     beat('k1_whisper', {
-        when: () => inScene('kelp') && G.player.hidden && G.player.anchored && !done('k1_whisper'),
+        when: () => inScene('kelp') && G.player.hidden && G.player.anchored && !done('k1_whisper') && !(F.has('ch2_open') && !F.has('p5_lit')),
+        lock: false,
         async run(s) {
             G.actors.klo.pose = 'whisper';
-            await s.say(STORY.k1.whisper);
+            await s.remark(STORY.k1.whisper);
+            await s.wait(3);
             G.actors.klo.pose = 'idle';
         }
     });
     beat('k1_fishrock', {
         on: 'shyOut', filter: (e) => e.kind === 'fish' && G.player.hidden && inScene('kelp'),
+        lock: false,
         async run(s) {
-            await s.say(STORY.k1.fishRock);
+            await s.remark(STORY.k1.fishRock);
             s.experiment('gom', 'skoldpadda');
         }
     });
     beat('k1_deep', {
         on: 'experiment', filter: (e) => e.id === 'djup',
+        lock: false,
         async run(s) {
-            await s.say(STORY.k1.deep);
+            await s.remark(STORY.k1.deep);
             s.experiment('djup', 'skoldpadda');
         }
     });
@@ -292,15 +315,16 @@ export function createStory(G, io) {
     // Smaktestet (O1): grass on land and kelp in the sea
     beat('taste', {
         on: 'taste', repeat: true,
+        lock: false,
         async run(s) {
             const p = G.player;
             p.action = 'lookdown'; p.actionT = 0; p.actionDur = 1.0;
             s.sfx('rustle');
             await s.wait(0.9);
             if (F.has('ate_grass') && F.has('ate_kelp') && !F.has('exp_smak_logged')) {
-                await s.say(STORY.k1.smak);
+                await s.remark(STORY.k1.smak);
                 s.experiment('smak', 'skoldpadda');
-            } else await s.say(lastTaste === 'kelp' ? STORY.k1.tasteKelp : STORY.k1.tasteGrass);
+            } else await s.remark(lastTaste === 'kelp' ? STORY.k1.tasteKelp : STORY.k1.tasteGrass);
         }
     });
 
@@ -351,7 +375,7 @@ export function createStory(G, io) {
 
     beat('k2_note2', {
         when: () => inScene('kelp') && inArea('trench') && F.has('ch2_open'),
-        async run(s) { await s.say(STORY.k2.note2); s.clue('note2'); }
+        async run(s) { await s.say(STORY.k2.note2); s.clue('note2', { quiet: true }); }
     });
 
     beat('k2_lanterns', {
@@ -445,8 +469,12 @@ export function createStory(G, io) {
     beat('k3_mirror', {
         on: 'reflectionSeen', filter: (e) => e.id === 'bay',
         async run(s) {
-            await s.wait(0.8);
+            await s.wait(0.6);
+            // look at the lighthouse and its reflection while Klo talks about them
+            const lh = G.sceneDef.spots.lighthouse;
+            await s.cam({ x: lh.x - h(2), y: lh.y - h(1.5), zoom: 0.62, t: 0.9, hold: 0.6 });
             await s.say(STORY.k3.mirror);
+            s.camFree();
             s.checkpoint('pier');
         }
     });
@@ -776,7 +804,8 @@ export function createStory(G, io) {
         if (key === 'p7') return g(count('shutter1', 'shutter2', 'shutter3'));
         if (key === 'p3' || key === 'p3b') return g(count('p3_t1', 'p3_t2', 'p3_t3'));
         if (key === 'p2') return g((G.puz.stone === G.scenes.land.rail.target ? 1 : 0) + count('p2_plank'));
-        return g(count('mark_land', 'mark_sea'));
+        if (key === 'p4' || key === 'toSea') return g(count('mark_land', 'mark_sea'));
+        return g(0);
     }
 
     const HINT_SPOTS = {
@@ -794,7 +823,7 @@ export function createStory(G, io) {
         p5: () => inScene('kelp') && { x: h(22.8), y: h(7.8) },
         p6: () => inScene('kelp') && { x: h(36), y: h(8.4) },
         toViken: () => inScene('kelp') && { x: h(36.5), y: h(8.4) },
-        p7: () => inScene('viken') && (!F.has('shutter1') ? { x: h(13), y: h(-0.62) } : !F.has('shutter2') ? { x: h(14.2), y: h(6.8) } : { x: h(26.4), y: h(5.0) }),
+        p7: () => inScene('viken') && (!F.has('shutter2') ? { x: h(14.2), y: h(6.8) } : !F.has('shutter3') ? { x: h(26.4), y: h(5.0) } : { x: h(13), y: h(-0.62) }),
         talk: () => inScene('viken') && { x: G.actors.kv.x, y: G.actors.kv.y },
         p8: () => inScene('viken') && { x: h(24.1), y: h(-0.62) },
         signe: () => inScene('land') && G.actors.signe.visible && { x: G.actors.signe.x, y: G.actors.signe.y }
@@ -853,6 +882,7 @@ export function createStory(G, io) {
     G.on('balk', (e) => {
         if (e.reason === 'thin' && !F.has('p1_inked')) hintOnce('thin', STORY.k1.firstThin);
         if (e.reason === 'slow' && e.id === 'sprang-p4') hintOnce('leap', STORY.k2.leapHint);
+        if (e.id === 'klipp-edge' && F.has('p4_leap') && !F.has('p4_plank')) hintOnce('rope', STORY.k2.ropeHint);
         const key = e.reason + ':' + (e.id || '');
         if (key !== balks.key || G.time - balks.t > 25) { balks.key = key; balks.n = 0; }
         balks.n++; balks.t = G.time;
@@ -884,6 +914,8 @@ export function createStory(G, io) {
             if (Math.hypot(p.x - home.x, p.y - home.y) < h(5)) hintOnce('lykt', STORY.k2.lyktHint);
         }
         if (inScene('kelp') && p.inVortex && !p.hidden && !F.has('p6_flat')) hintOnce('whirl', STORY.k2.whirlHint);
+        // hidden by the fish but lying still, outside the current that would carry the shell into the vault
+        if (inScene('kelp') && F.has('ch2_open') && !F.has('p5_lit') && p.hidden && p.mode === 'swim' && !p.inLane && G.puz.school.state === 'follow') hintOnce('laneHide', STORY.k2.laneHide);
         if (inScene('viken') && F.has('viken_arrived') && !F.has('lamp_lit')) {
             if (!F.has('shutter1') && p.surface?.id === 'pier' && p.x > h(4) && p.x < h(22)) hintOnce('drum', STORY.k3.drumHint);
             if (!F.has('shutter2') && p.mode === 'swim' && Math.abs(p.x - h(14.2)) < h(3) && p.y > h(3)) hintOnce('plate', STORY.k3.plateHint);
