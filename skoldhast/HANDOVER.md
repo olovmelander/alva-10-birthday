@@ -336,3 +336,10 @@ or additional chapter release is part of this branch.
 - Reduced motion freezes decorative water, fronds, lanes, vortex motes and clouds. Paper-cover fades use elapsed time, the final page lifts before unfolding, and each world page turn has one sound.
 - P7's mirror explanation uses a reversible lighthouse comparison throughout the dialogue, keeping the dark real lamp and lit reflection visible in either phone orientation. It restores the scene, hidden hero, camera and controls; the temporary layout observer is destroyed on close.
 - Focused renderer check:30 recorded states across both phone sizes, zero errors. P7 uses a real hiding trigger; the mirror-vista browser test checks framing and restoration. Pages and renderer lifecycle checks pass.
+
+### Deeper polish: inspectable map fragments
+
+- The notebook's Ledtrådar page assembles three torn, textured pieces from existing discovery flags. Each can be inspected separately with its find location and explanation; the pieces share one illustrated coastline, route and layout. Missing pieces remain silhouettes.
+- Tap the map or choose a piece, then zoom, pan with arrow buttons, reset or return to the whole map. The existing paper texture is reused. No new saves or art downloads are needed. Older clue aliases work too.
+- The current-hint page links directly to the map. The existing seven-page notebook structure remains. At320px the piece choices stack, and footer arrows/count remain usable.
+- Four pure collection tests and keyboard/touch browser checks pass at844×390,390×844 and320×568, including big text, zoom/pan limits, old saves and rebuilds; zero console errors. Preview `dev/menus.html?m=journal&page=4&map=all` (`map=none`, `corner`, `land` also work).

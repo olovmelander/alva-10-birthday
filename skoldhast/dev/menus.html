@@ -64,6 +64,12 @@ const guide = createGuide(ui.root, { img, heroScreen: () => ({ x: innerWidth * 0
 
 function journalState() {
     const flags = new Set(['intro_done', 'exp_fart', 'exp_djup', 'exp_gnagg', 'clue_map_corner', 'clue_note1', 'clue_wave_marks', 'clue_reflection', 'clue_fold', 'mark_land', 'ch1_end', 'ch2_open', 'kelp_entered']);
+    if (q.has('map')) {
+        for (const flag of ['clue_map_corner', 'mark_land', 'mark_sea', 'clue_mark_land', 'clue_mark_sea']) flags.delete(flag);
+        if (q.get('map') !== 'none') flags.add('clue_map_corner');
+        if (['land', 'all'].includes(q.get('map'))) flags.add('mark_land');
+        if (q.get('map') === 'all') flags.add('mark_sea');
+    }
     flags.add('penna_p-kite'); flags.add('penna_p-hut');
     const collection = { scenes: SCENES, flags };
     return { flags, objective: q.get('objective') || 'p5', tally: Number(q.get('tally') ?? 1), note: q.get('note') || '', pencils: 2, pencilsTotal: totalPencils(collection),
@@ -120,7 +126,7 @@ setInterval(() => guide.update(), 100);
 // links to every state (hidden with &shot=1)
 const nav = document.createElement('div');
 nav.className = 'dev-menu';
-for (const s of ['title', 'title&save=1', 'code', 'restart', 'slots', 'journal&page=0', 'journal&page=2', 'journal&page=3', 'journal&page=5', 'journal&page=6', 'pause', 'stuck', 'settings', 'report&n=1', 'dialogue&who=klo', 'dialogue&who=note', 'choice', 'toasts', 'hud']) {
+for (const s of ['title', 'title&save=1', 'code', 'restart', 'slots', 'journal&page=0', 'journal&page=2', 'journal&page=3', 'journal&page=4&map=all', 'journal&page=5', 'journal&page=6', 'pause', 'stuck', 'settings', 'report&n=1', 'dialogue&who=klo', 'dialogue&who=note', 'choice', 'toasts', 'hud']) {
     const a = document.createElement('a');
     a.href = '?m=' + s + (q.has('big') ? '&big=1' : '');
     a.textContent = s;

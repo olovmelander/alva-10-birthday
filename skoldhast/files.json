@@ -16,6 +16,7 @@
   "src/input.mjs",
   "src/klo.mjs",
   "src/main.mjs",
+  "src/mapbook.mjs",
   "src/pageturn.mjs",
   "src/presses.mjs",
   "src/prologue.mjs",

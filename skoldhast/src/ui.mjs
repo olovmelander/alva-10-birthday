@@ -11,7 +11,9 @@
  * The UI never changes the game directly; it returns promises and calls the
  * handlers main.mjs gives it.
  */
-import { UI, NAMES, JOURNAL, HINTS, HER_TEXT, WORD_CODES, FAMILY, MENU, DRAWING } from './content/sv.mjs';
+import { UI, NAMES, JOURNAL, HINTS, HER_TEXT, WORD_CODES, FAMILY, MENU, MAP, DRAWING } from './content/sv.mjs';
+
+import { createMapBook } from './mapbook.mjs';
 import { createDrawing } from './drawing.mjs';
 
 const el = (tag, cls, text) => {
@@ -49,7 +51,7 @@ export function createUI(host, { assetBase, handlers }) {
     // their own sound below, including the arrow-key shortcut.
     root.addEventListener('click', e => {
         const b = e.target.closest?.('button');
-        if (!b || b.disabled || b.closest('.sk-controls, .sk-dialogue, .sk-draw') || b.matches('.sk-j-tab, .sk-j-arrow, .sk-journal-btn')) return;
+        if (!b || b.disabled || b.closest('.sk-controls, .sk-dialogue, .sk-draw, .sk-mapbook') || b.matches('.sk-j-tab, .sk-j-arrow, .sk-journal-btn')) return;
         handlers.onMenuSound?.('ui');
     }, true);
     root.addEventListener('change', e => { if (e.target.matches?.('.sk-settings input')) handlers.onMenuSound?.('ui'); });
@@ -262,6 +264,7 @@ export function createUI(host, { assetBase, handlers }) {
     const spreadQuery = window.matchMedia?.('(min-width: 900px) and (min-height: 520px)');
     function journal(state) {
         let page = Math.max(0, Math.min(6, state.page ?? 2));
+        let showJournalPage = () => {};
         const pages = [
             (c) => {
                 c.classList.add('sk-j-cover-page');
@@ -301,6 +304,7 @@ export function createUI(host, { assetBase, handlers }) {
                 b1.dataset.focus = '';
                 c.append(b1, note, sketch);
                 c.append(mapSketch(state));
+                c.append(btn(MAP.inspect, () => showJournalPage(4), 'sk-mapbook-open'));
                 c.append(art('npcs', 'klo-point', 'sk-j-klo'));
             },
             (c) => {
@@ -320,12 +324,7 @@ export function createUI(host, { assetBase, handlers }) {
                 c.append(el('h3', '', JOURNAL.clues));
                 const ul = el('ul', 'sk-j-list sk-j-clues');
                 for (const [k, text] of Object.entries(JOURNAL.clueText)) if (state.flags.has('clue_' + k)) ul.append(el('li', '', text));
-                if (state.flags.has('mark_land') || state.flags.has('mark_sea') || state.flags.has('ch2_open')) {
-                    const m = el('div', 'sk-j-marks');
-                    m.append(el('span', 'sk-j-mark land' + (state.flags.has('mark_land') ? ' got' : '')), el('span', 'sk-j-mark sea' + (state.flags.has('mark_sea') ? ' got' : '')));
-                    m.append(el('p', 'sk-j-small', JOURNAL.halves));
-                    c.append(m);
-                }
+                c.append(createMapBook(state, { paperUrl: img('ui-paper'), onSound: handlers.onMenuSound }));
                 if (!ul.children.length) { ul.className = 'sk-j-list'; ul.append(el('li', 'sk-j-small', '…')); }
                 c.append(ul);
                 c.append(art('npcs', 'klo-map-corner', 'sk-j-klo'));
@@ -499,6 +498,7 @@ export function createUI(host, { assetBase, handlers }) {
                 const s = spreadOf(page) + d;
                 go(s <= 0 ? 0 : 2 * s - 1);
             }
+            showJournalPage = go;
             layout();
             // turning the phone (or resizing the window) switches between one page and a spread
             const onMode = () => { if (card.isConnected) layout(); else unlisten(); };

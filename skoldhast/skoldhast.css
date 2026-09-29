@@ -392,7 +392,7 @@ html.skoldhast-lock, html.skoldhast-lock body { overflow: hidden !important; ove
 .sk-pbtn.sk-j-arrow::before { inset: auto; left: 50%; top: 50%; width: 42px; height: 42px; margin: -21px 0 0 -21px;
     background: var(--sk-icons) 33.333% 33.333% / 700% 400% no-repeat; }
 .sk-pbtn.sk-j-arrow:first-child::before { transform: scaleX(-1); }
-.sk-j-dots { flex: 1; text-align: center; font-size: 19px; color: rgba(244, 234, 210, 0.92); }
+.sk-j-dots { white-space: nowrap; flex: 1; text-align: center; font-size: 19px; color: rgba(244, 234, 210, 0.92); }
 .sk-journal .sk-close { flex: none; min-width: 104px; min-height: 50px; }
 
 /* a two-page spread on a wide screen */
@@ -836,6 +836,50 @@ html.skoldhast-lock, html.skoldhast-lock body { overflow: hidden !important; ove
 /* --- the stick asks for a full gallop (input.mjs toggles .gallop) --- */
 .sk-stick-base.gallop .sk-stick-knob { filter: drop-shadow(0 0 7px rgba(246, 193, 74, 0.95)) drop-shadow(0 0 2px rgba(224, 120, 42, 0.9)); }
 
+/* Notebook: textured, individually inspectable map fragments. */
+.sk-mapbook { width: 100%; box-sizing: border-box; margin: 3px 0 15px; color: var(--sk-ink); }
+.sk-mapbook-heading { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 3px 10px; }
+.sk-mapbook-heading h4 { margin: 0; font-size: calc(20px * var(--fz)); }
+.sk-mapbook-count { font-size: calc(15px * var(--fz)); color: var(--sk-soft); }
+.sk-mapbook-stage { overflow: hidden; margin: 7px 0 9px; border: 1px solid #c3b69a; border-radius: 3px 7px 4px 8px;
+    background: repeating-linear-gradient(35deg, #d0c6af33 0 1px, transparent 1px 7px), #ded5bf55;
+    box-shadow: inset 0 1px 5px #6c594b1c; }
+.sk-mapbook-stage svg { display: block; width: 100%; height: auto; aspect-ratio: 32 / 21; max-height: 300px; }
+.sk-mapbook .map-labels { font-family: 'Patrick Hand', cursive; font-size: 22px; }
+.sk-mapbook .map-labels .minor { font-size: 16px; }
+.sk-map-piece { cursor: pointer; }
+.sk-mapbook-pieces { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 5px; }
+.sk-mapbook-piece, .sk-mapbook-tool { font: inherit; color: inherit; min-height: 44px; border: 1px solid #aaa185;
+    border-radius: 3px 6px 4px 5px; background: var(--sk-paper) #f8f3e6; cursor: pointer; }
+.sk-mapbook-piece { display: flex; align-items: center; justify-content: center; gap: 4px; padding: 6px 5px;
+    font-size: calc(15px * var(--fz)); line-height: 1.1; }
+.sk-mapbook-piece > span:last-child { min-width: 0; overflow-wrap: anywhere; }
+@media (max-width: 340px) {
+    .sk-mapbook-pieces { grid-template-columns: 1fr; }
+    .sk-j-nav { gap: 6px; }
+    .sk-j-arrow { width: 48px; }
+    .sk-journal .sk-close { min-width: 84px; }
+    .sk-j-dots { font-size: 17px; min-width: 36px; }
+}
+.sk-mapbook-piece-icon { flex: none; width: 17px; font-size: 25px; color: #58787a; }
+.sk-mapbook-piece.land .sk-mapbook-piece-icon { color: #687b51; }
+.sk-mapbook-piece.corner .sk-mapbook-piece-icon { color: #98713a; }
+.sk-mapbook-piece.selected { background-color: #e5ebd9; border: 2px solid #617d57; box-shadow: inset 0 -4px #8ca76c44; }
+.sk-mapbook-piece:disabled { color: #887d69; cursor: default; background: #ded8c644; border-style: dashed; }
+.sk-mapbook-piece:disabled .sk-mapbook-piece-icon { opacity: .3; }
+.sk-mapbook-tools { display: flex; flex-wrap: wrap; gap: 6px; margin: 7px 0; }
+.sk-mapbook-pan { display: flex; justify-content: center; gap: 6px; margin: 7px 0; }
+.sk-mapbook .reset { width: 100%; font-size: 17px; }
+.sk-mapbook [hidden] { display: none !important; }
+.sk-mapbook-tool { min-width: 44px; padding: 5px 10px; font-size: 22px; }
+.sk-mapbook-tool.overview { flex: 1; font-size: calc(17px * var(--fz)); }
+.sk-mapbook-tool:disabled { opacity: .4; cursor: default; }
+.sk-mapbook button:focus-visible { outline: 3px solid #b88436; outline-offset: 3px; }
+.sk-mapbook-detail { min-height: 92px; padding: 8px 11px; border-left: 3px solid #b4bb99; background: #fff9e66e; }
+.sk-mapbook-detail strong { display: block; font-size: calc(19px * var(--fz)); font-weight: normal; }
+.sk-mapbook-found { display: block; color: var(--sk-soft); font-size: calc(15px * var(--fz)); }
+.sk-mapbook-detail p { margin: 5px 0 0; font-size: calc(17px * var(--fz)); line-height: 1.25; }
+.sk-mapbook-open { font-size: calc(18px * var(--fz)); align-self: flex-start; }
 /* Drawing: a paper draft pad, clear next steps and touch-sized actions. */
 .sk-draw { isolation: isolate; outline: none; }
 .sk-draw.free { background: rgba(49, 43, 32, .18); }
