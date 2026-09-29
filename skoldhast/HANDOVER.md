@@ -224,6 +224,10 @@ or additional chapter release is part of this branch.
 - Asset cleanup now waits for background bundles before unloading them. Late
   atlas, image and data responses cannot repopulate a closed session. Three
   regression tests cover delayed loads, shared-cache reopen and failed requests.
+- Drawing overlays now cancel their keyboard listener and pending completion
+  when replaced or closed. Closing stops UI input before asset unloading, and
+  cancels delayed orientation callbacks. `node tests/browser/skoldhast-lifecycle.mjs`
+  checks drawing cancellation and ten reopen cycles with rendered atlas pixels.
 - Order next: finish close-during-drawing cleanup; enable regional collection
   and underwater colouring; add the remaining ten pencils; complete the lit
   lighthouse view at the finale. The clipping remains excluded by the privacy

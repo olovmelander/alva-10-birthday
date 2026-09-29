@@ -719,12 +719,16 @@ export function createUI(host, { assetBase, handlers }) {
     const drawPrompt = el('div', 'sk-draw-prompt');
     drawLayer.append(drawCanvas, drawPrompt);
     root.appendChild(drawLayer);
+    let cancelDraw = null, destroyed = false;
     /**
      * opts: { prompt, ghost: [[x,y]...] in CSS px (free drawing over a faint ghost),
      *         anchors: [[x,y]...] (trace/tap along generous anchors), color, width }
      * Resolves with the drawn points (CSS px).
+     * Replacing or destroying the overlay cancels its input without advancing the old story.
      */
     function draw(opts) {
+        if (destroyed) return new Promise(() => {});
+        cancelDraw?.();
         const W = host.clientWidth, H = host.clientHeight;
         const dpr = Math.min(2, window.devicePixelRatio || 1);
         drawCanvas.width = W * dpr; drawCanvas.height = H * dpr;
@@ -756,23 +760,33 @@ export function createUI(host, { assetBase, handlers }) {
         };
         redraw();
         return new Promise((resolve) => {
-            let down = false;
-            const finish = () => {
+            let down = false, active = true, finishTimer = null, pointerId = null;
+            const cancel = () => {
+                if (!active) return;
+                active = false;
+                clearTimeout(finishTimer);
                 drawLayer.classList.remove('on');
                 drawLayer.onpointerdown = drawLayer.onpointermove = drawLayer.onpointerup = drawLayer.onpointercancel = null;
                 window.removeEventListener('keydown', onKey);
+                if (pointerId !== null && drawLayer.hasPointerCapture?.(pointerId)) drawLayer.releasePointerCapture(pointerId);
+                if (cancelDraw === cancel) cancelDraw = null;
+            };
+            const finish = () => {
+                if (!active) return;
+                cancel();
                 resolve(pts.length > 1 ? pts.slice() : (opts.ghost ? opts.ghost.slice() : anchors ? anchors.slice() : []));
             };
+            const finishAfter = (ms) => { clearTimeout(finishTimer); finishTimer = setTimeout(finish, ms); };
             const hitAnchor = (x, y) => {
                 if (!anchors) return;
                 while (anchorsHit < anchors.length && Math.hypot(anchors[anchorsHit][0] - x, anchors[anchorsHit][1] - y) < 46) {
                     anchorsHit++; handlers.onPencil?.(0.15);
                     if (opts.stopAt && anchorsHit >= opts.stopAt) { down = false; finish(); return; }
                 }
-                if (anchorsHit >= anchors.length) setTimeout(finish, 250);
+                if (anchorsHit >= anchors.length) finishAfter(250);
             };
             drawLayer.onpointerdown = (e) => {
-                down = true; drawLayer.setPointerCapture?.(e.pointerId);
+                down = true; pointerId = e.pointerId; drawLayer.setPointerCapture?.(pointerId);
                 pts.push([e.offsetX, e.offsetY]); hitAnchor(e.offsetX, e.offsetY); redraw();
             };
             drawLayer.onpointermove = (e) => {
@@ -793,10 +807,11 @@ export function createUI(host, { assetBase, handlers }) {
             const onKey = (e) => {
                 if (e.key === 'Enter' || e.key === ' ') {
                     e.preventDefault();
-                    if (anchors) { anchorsHit = opts.stopAt || anchors.length; pts.length = 0; anchors.slice(0, anchorsHit).forEach((a) => pts.push(a)); redraw(); setTimeout(finish, 300); }
+                    if (anchors) { anchorsHit = opts.stopAt || anchors.length; pts.length = 0; anchors.slice(0, anchorsHit).forEach((a) => pts.push(a)); redraw(); finishAfter(300); }
                     else { pts.length = 0; finish(); }
                 }
             };
+            cancelDraw = cancel;
             window.addEventListener('keydown', onKey);
         });
     }
@@ -818,6 +833,6 @@ export function createUI(host, { assetBase, handlers }) {
         },
         showControls(on) { controls.classList.toggle('off', !on); hud.classList.toggle('off', !on); },
         setBigText(on) { root.classList.toggle('big-text', !!on); },
-        destroy() { root.remove(); }
+        destroy() { destroyed = true; cancelDraw?.(); root.remove(); }
     };
 }

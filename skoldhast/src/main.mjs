@@ -632,7 +632,13 @@ export function createGame({ host = document.body, assetBase = './skoldhast/', r
             if (table?.active) table.layout();
         };
         window.addEventListener('resize', onResize, sig);
-        window.addEventListener('orientationchange', () => { pause({ reason: 'orientation' }); setTimeout(() => { onResize(); resume(); }, 350); }, sig);
+        let orientationTimer = null;
+        sig.signal.addEventListener('abort', () => clearTimeout(orientationTimer), { once: true });
+        window.addEventListener('orientationchange', () => {
+            pause({ reason: 'orientation' });
+            clearTimeout(orientationTimer);
+            orientationTimer = setTimeout(() => { onResize(); resume(); }, 350);
+        }, sig);
         const unlock = () => { if (audio) { resumeAudio(); } };
         for (const t of ['pointerdown', 'pointerup', 'keydown']) el.addEventListener(t, unlock, sig);
     }
@@ -660,13 +666,13 @@ export function createGame({ host = document.body, assetBase = './skoldhast/', r
             cancelAnimationFrame(raf);
             listeners?.abort();
             input?.destroy();
+            ui?.destroy(); // drawing input/timers must stop before a slow asset unload
             try { audio?.dispose(); } catch { /* ignore */ }
             try { table?.destroy(); } catch { /* ignore */ }
             try { view?.destroy(); } catch { /* ignore */ }
             try { await assets?.close(); } catch { /* ignore */ }
             try { app?.destroy(true, { children: true }); } catch { /* ignore */ }
             guide?.destroy();
-            ui?.destroy();
             el?.remove();
             restoreHost();
             app = null; view = null; ui = null; input = null; audio = null; story = null; table = null; G = null; assets = null; guide = null;
