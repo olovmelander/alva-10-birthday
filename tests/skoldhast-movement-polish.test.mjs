@@ -202,3 +202,37 @@ test('a ramp growing under a stationary horse lifts its support and invalidates 
     tick(q, {}, 10);
     assert.equal(q.events.filter(e => e.type === 'rampLift').length, 1, 'one support change per growth');
 });
+
+test('earned ramps share a deterministic smooth growth surface with grounded feet', () => {
+    for (const [id, flag, xHL] of [['ramp1', 'p3_t1', 47], ['ramp2', 'p3_t2', 39.5], ['ramp3', 'p3_t3', 37]]) {
+        const traces = [];
+        for (const hz of [30, 60, 120, 144]) {
+            const q = setup(SCENES.land, { x: xHL * HL, y: 0 });
+            q.p.y = q.world.terrain.floorAt(q.p.x);
+            q.p.surface = q.world.terrain.support(q.p.x, q.p.y, 1, 1).s;
+            tick(q);
+            q.world.flags.add(flag);
+            assert.equal(q.world.terrain.startRampGrowth(id), true);
+            q.world.terrain.refresh();
+            const raw = SCENES.land.surfaces.find(s => s.id === id), targetY = heightOn(raw.pts, q.p.x);
+            assert.ok(q.world.terrain.surfaces.find(s => s.id === id).growing);
+            let acc = 0, previous = q.p.y; const trace = [];
+            for (let frame = 0; frame < hz; frame++) {
+                acc += 1 / hz;
+                while (acc + 1e-10 >= STEP) {
+                    tick(q); acc -= STEP;
+                    assert.ok(previous - q.p.y >= -0.01 && previous - q.p.y < 3, `${id}: no growth pop`);
+                    assert.equal(q.p.y, heightOn(q.p.surface.pts, q.p.x));
+                    trace.push(q.p.y); previous = q.p.y;
+                }
+            }
+            assert.equal(q.p.y, targetY);
+            assert.equal(q.world.terrain.rampGrowth.size, 0);
+            assert.equal(q.world.terrain.surfaces.find(s => s.id === id), raw, 'exact authored geometry after growth');
+            traces.push(trace);
+            const restored = new Terrain(SCENES.land, q.world.flags);
+            assert.equal(restored.surfaces.find(s => s.id === id), raw, 'saved flags load a completed ramp');
+        }
+        for (const trace of traces.slice(1)) assert.deepEqual(trace, traces[0], 'same growth at every render schedule');
+    }
+});

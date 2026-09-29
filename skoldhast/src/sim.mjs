@@ -116,8 +116,9 @@ export class Terrain {
         this.dirty = false;
         const s = this.scene, f = this.flags, previous = this.surfaces || [];
         this.rampAddedAt ||= new Map();
-        this.surfaces = (s.surfaces || []).filter((q) => cond(q.when, f));
-        for (const ramp of this.surfaces) if (ramp.ramp && !previous.includes(ramp)) this.rampAddedAt.set(ramp.id, this.revision);
+        this.rampGrowth ||= new Map();
+        this.surfaces = (s.surfaces || []).filter((q) => cond(q.when, f)).map(q => this.rampGrowth.get(q.id)?.surface || q);
+        for (const ramp of this.surfaces) if (ramp.ramp && !previous.some(q => q.id === ramp.id)) this.rampAddedAt.set(ramp.id, this.revision);
         this.walls = (s.walls || []).filter((q) => cond(q.when, f));
         this.edges = (s.edges || []).filter((q) => cond(q.when, f));
         this.waters = (s.waters || []).filter((q) => cond(q.when, f));
@@ -128,6 +129,41 @@ export class Terrain {
         this.hurdles = (s.hurdles || []).filter((q) => cond(q.when, f));
         for (const l of this.lanes) if (!l._len) l._len = lineLength(l.pts);
         for (const d of this.dashed) if (!d._len) d._len = lineLength(d.pts);
+    }
+    /** A newly earned ramp rises from the old shelf. Restored flags have no transient growth state. */
+    startRampGrowth(id, duration = 0.65) {
+        const raw = this.scene.surfaces.find(s => s.id === id && s.ramp);
+        if (!raw || this.rampGrowth.has(id) || this.surfaces.some(s => s.id === id)) return false;
+        const x0 = raw.pts[0][0], x1 = raw.pts.at(-1)[0];
+        const underneath = this.surfaces.filter(s => s.id !== id && !s.thin);
+        const xs = [...new Set([x0, x1, ...raw.pts.map(p => p[0]), ...underneath.flatMap(s => s.pts.map(p => p[0]).filter(x => x > x0 && x < x1))])].sort((a, b) => a - b);
+        const base = [], target = [], pts = [];
+        for (const x of xs) {
+            // At a terrace endpoint, sample inward so the old upper ledge does not
+            // masquerade as the lower shelf from which the ramp grows.
+            const sx = x === x0 ? x + 0.1 : x === x1 ? x - 0.1 : x;
+            let floor = Infinity;
+            for (const s of underneath) {
+                const y = heightOn(s.pts, sx);
+                if (y !== null && y < floor) floor = y;
+            }
+            const to = heightOn(raw.pts, x), from = floor === Infinity ? to : Math.max(to, floor);
+            base.push(from); target.push(to); pts.push([x, from]);
+        }
+        this.rampGrowth.set(id, { elapsed: 0, duration: Math.max(STEP, duration), base, target, surface: { ...raw, pts, growing: true } });
+        return true;
+    }
+    /** Called only by the fixed simulation step; rendering reads these same active points. */
+    advance(dt) {
+        if (!this.rampGrowth.size) return false;
+        for (const [id, growth] of this.rampGrowth) {
+            growth.elapsed = Math.min(growth.duration, growth.elapsed + dt);
+            const t = growth.elapsed / growth.duration, eased = t * t * (3 - 2 * t);
+            for (let i = 0; i < growth.surface.pts.length; i++) growth.surface.pts[i][1] = growth.base[i] + (growth.target[i] - growth.base[i]) * eased;
+            if (t === 1) this.rampGrowth.delete(id);
+        }
+        this.refresh();
+        return true;
     }
     /** Topmost surface at x whose height is at or below `yFeet - up` (i.e. not higher than a step above the feet). */
     support(x, yFeet, up = C.stepUp, down = Infinity, skip = null) {
@@ -274,6 +310,7 @@ const FEET = { walk: [2, 3, 0, 1], trot: [2, 0], canter: [0, 2, 3], gallop: [0, 
  */
 export function stepPlayer(p, input, world, dt, events) {
     const T = world.terrain;
+    T.advance(dt);
     p.px = p.x; p.py = p.y;
     if (p.terrainRevision !== T.revision) {
         if (p.mode === 'ground' && p.surface) {
