@@ -40,7 +40,7 @@ try {
         window.__neighs = 0; G.on('neigh', () => window.__neighs++);
     });
     await pg.waitForFunction(() => {
-        const d = window.__skoldhast.debug; return !d.G.busy && !d.story.running() && !!window.__kloScreen();
+        const d = window.__skoldhast.debug; return d.G.sceneTime > 0.25 && !d.view.cam.snap && !d.G.busy && !d.story.running() && !!window.__kloScreen();
     }, null, { timeout: 30000 });
     // Put his ground point in the touch band's interior after the camera settles.
     const zone = await pg.locator('.sk-stick-zone').boundingBox();
@@ -50,7 +50,7 @@ try {
     }, { x: zone.x + zone.width * 0.45, y: zone.y + zone.height * 0.5 });
     await pg.waitForFunction(() => {
         const d = window.__skoldhast.debug, b = window.__kloScreen();
-        return b && d.kloHit(b.x, b.y) && document.elementFromPoint(b.x, b.y)?.classList.contains('sk-stick-zone');
+        return b && Math.abs(b.x - (d.view.world.x + d.G.actors.klo.x * d.view.world.scale.x)) < 10 && d.kloHit(b.x, b.y) && document.elementFromPoint(b.x, b.y)?.classList.contains('sk-stick-zone');
     }, null, { timeout: 10000 });
     const spot = await pg.evaluate(() => window.__kloScreen());
     const stamp = Date.now() / 1000;
@@ -100,11 +100,34 @@ try {
     await pg.waitForFunction(() => window.__skoldhast.debug.G.player.vx > 300, null, { timeout: 10000 });
     await touch('touchEnd', [], Date.now() / 1000);
     await pg.waitForFunction(() => Math.abs(window.__skoldhast.debug.G.player.vx) < 30, null, { timeout: 10000 });
+    // The same overlay must route touches when the optional follow-finger mode is on.
+    await pg.evaluate(() => window.__skoldhast.debug.ui.settings());
+    await pg.getByText('Följ fingret', { exact: true }).click();
+    assert.equal(await pg.getByLabel('Följ fingret', { exact: true }).isChecked(), true);
+    await pg.evaluate(() => window.__skoldhast.debug.ui.closePanel());
+    await pg.evaluate(({ x, y }) => {
+        const { G, view } = window.__skoldhast.debug, w = view.world;
+        G.time += 6;
+        Object.assign(G.actors.klo, { x: (x - w.x) / w.scale.x, y: (y - w.y) / w.scale.y + 35, pose: 'notebook' });
+    }, { x: sx, y: sy });
+    await pg.waitForFunction(() => { const s = window.__kloScreen(), d = window.__skoldhast.debug; return s && Math.abs(s.x - (d.view.world.x + d.G.actors.klo.x * d.view.world.scale.x)) < 10 && d.kloHit(s.x, s.y); });
+    const followSpot = await pg.evaluate(() => window.__kloScreen());
+    const followStamp = Date.now() / 1000;
+    await touch('touchStart', [[followSpot.x, followSpot.y]], followStamp); await touch('touchEnd', [], followStamp + 0.08);
+    await pg.waitForFunction(() => window.__kloTaps.length === 4, null, { timeout: 10000 }).catch(async error => {
+        const detail = await pg.evaluate(({ x, y }) => { const d = window.__skoldhast.debug; return { taps: window.__kloTaps.length, lastTap: d.input.lastTap, input: d.input.state(), element: document.elementFromPoint(x,y)?.className, hit: d.kloHit(x,y), spot: window.__kloScreen(), actor: {...d.G.actors.klo, walk:null}, busy:d.G.busy, running:d.story.running(), dialogue:d.ui.dialogueOpen(), panel:d.ui.panelOpen() }; }, followSpot);
+        throw new Error(error.message + ' ' + JSON.stringify(detail));
+    });
+    const cancelStamp = Date.now() / 1000;
+    await touch('touchStart', [[zone.x + 10, sy]], cancelStamp);
+    await pg.waitForFunction(() => Math.abs(window.__skoldhast.debug.input.state().x) > 0.12);
+    await touch('touchCancel', [], cancelStamp + 0.08);
+    assert.equal(await pg.evaluate(() => window.__skoldhast.debug.input.state().x), 0, 'follow steering releases after cancel');
     if (out) {
         await pg.evaluate(() => { const { G } = window.__skoldhast.debug; Object.assign(G.actors.klo, { x: G.player.x + 140, y: G.player.y, pose: 'idle' }); });
         await pg.waitForFunction(() => !!window.__kloScreen());
         await pg.screenshot({ path: path.join(out, `klo-${vp.join('x')}.png`) });
     }
     assert.deepEqual(errors, []);
-    console.log(JSON.stringify({ viewport: vp.join('x'), taps: 3, touch: 'pass', mouse: 'pass', key: 'pass', guards: 'pass', errors }, null, 2));
+    console.log(JSON.stringify({ viewport: vp.join('x'), taps: 4, touch: 'pass', followFinger: 'pass', mouse: 'pass', key: 'pass', guards: 'pass', errors }, null, 2));
 } finally { await browser.close(); await new Promise((resolve) => server.close(resolve)); }

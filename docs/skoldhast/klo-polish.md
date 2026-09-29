@@ -32,16 +32,17 @@ cutscene, dialogue and menu states reject taps without consuming a joke.
 
 Pointer cancellation now clears a potential character tap instead of producing
 an accidental Gnägg. A movement drag still drives the stick; tapping the hero
-still neighs.
+still neighs. The optional Följ fingret mode also routes touches through the
+left control band. Canceled touches release steering and cannot latch a gallop.
 
 ## Checks and places to look
 
 - `node --test tests/skoldhast-klo.test.mjs`: shuffled rounds, interaction gates,
   eased endpoint/ground tracking, world-coordinate independence, lettered poses,
-  and actual input event listeners including cancellation.
+  and actual input event listeners including follow-finger routing and cancellation.
 - `node tests/browser/skoldhast-klo.mjs 844x390` and the same with `390x844`:
   stamped touch in the stick band, mouse, K, cooldown and scene/UI guards; then
-  Gnägg and stick movement.
+  Gnägg and stick movement, followed by a touch/cancel test with Följ fingret.
 - The robot's initial gallop: Klo scuttles to the hole before disappearing.
 - Hide beside the hole: his eyes rise before his shell fully appears.
 - Stop near him for 15 seconds: watch his eyes, stopwatch and notebook.

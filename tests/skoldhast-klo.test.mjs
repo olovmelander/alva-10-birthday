@@ -106,3 +106,39 @@ test('Klo touch/mouse taps and K key coexist with the hero, the stick and cancel
         event(window, 'keydown', { key: 'K' }); assert.equal(input.consume().tapKlo, false);
     } finally { input.destroy(); globalThis.window = oldWindow; globalThis.document = oldDocument; }
 });
+
+test('follow-finger routes the left overlay to steering and Klo taps; canceled gallop cannot latch', () => {
+    const oldWindow = globalThis.window, oldDocument = globalThis.document;
+    globalThis.window = new Element(); globalThis.document = new Element(); document.activeElement = null;
+    window.innerWidth = 844; window.innerHeight = 390;
+    const settings = { followFinger: true, holdGallop: true };
+    const ui = Object.fromEntries(['stickZone', 'stickBase', 'stickKnob', 'actBtn', 'hideBtn'].map((key) => [key, new Element()]));
+    const canvas = new Element();
+    const input = createInput(new Element(), ui, { canvas, settings: () => settings, isGalloping: () => true, isStopped: () => false,
+        heroHit: (x) => x < 150, kloHit: (x) => x < 60, heroScreen: () => ({ x: 100, y: 100 }) });
+    try {
+        for (const area of [ui.stickZone, canvas]) {
+            event(area, 'pointerdown');
+            assert.equal(input.state().x, 0, 'a Klo tap waits without moving the hero or camera');
+            event(area, 'pointerup', { timeStamp: 80 });
+            assert.equal(input.consume().tapKlo, true, 'Klo can be tapped in follow mode');
+            assert.equal(input.state().x, 0, 'releasing a follow touch releases steering');
+            event(area, 'pointerdown');
+            event(area, 'pointermove', { clientX: 260, timeStamp: 40 });
+            assert.ok(input.state().x > 0.4, 'dragging away from Klo becomes ordinary steering');
+            event(area, 'lostpointercapture', { clientX: 260, timeStamp: 80 });
+            assert.equal(input.state().x, 0);
+            assert.equal(input.consume().tapKlo, false);
+        }
+        event(ui.stickZone, 'pointerdown', { clientX: 220 });
+        assert.ok(input.state().x > 0.3, 'ordinary follow touches steer immediately through the overlay');
+        event(ui.stickZone, 'pointerup', { clientX: 220, timeStamp: 80 });
+        settings.followFinger = false;
+        for (const finish of ['pointerup', 'pointercancel', 'lostpointercapture']) {
+            event(ui.stickZone, 'pointerdown', { clientX: 180 });
+            event(ui.stickZone, 'pointermove', { clientX: 240, timeStamp: 40 });
+            event(ui.stickZone, finish, { clientX: 240, timeStamp: 80 });
+            assert.equal(input.state().x, finish === 'pointerup' ? 1 : 0, finish + ' releases or intentionally latches');
+        }
+    } finally { input.destroy(); globalThis.window = oldWindow; globalThis.document = oldDocument; }
+});

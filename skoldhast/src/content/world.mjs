@@ -12,6 +12,7 @@
  * Everything puzzle-related is described here as data; puzzles.mjs gives it life.
  */
 import { HL } from '../sim.mjs';
+import { SCENE_TITLES, CONTEXT_LABELS } from './sv.mjs';
 
 const h = (v) => v * HL;
 const L = (...pts) => pts.map(([x, y]) => [h(x), h(y)]);
@@ -25,7 +26,7 @@ export const SCENES = {};
 // LAND
 // ===========================================================================
 SCENES.land = {
-    id: 'land', title: 'Stranden och stäppen',
+    id: 'land', title: SCENE_TITLES.land,
     bounds: { x0: h(-2), x1: h(119), y0: h(-12), y1: h(3) },
     backdrop: [
         { image: 'bg-steppe', x0: h(-2), x1: h(78) },
@@ -243,7 +244,7 @@ SCENES.land = {
         { id: 'udden-paper', x0: h(-2), x1: h(12.9), until: 'ch2_open', note: { x: h(10.4), y: h(-4.6) } }
     ],
     exits: [
-        { id: 'to-kelp', x0: h(101.0), x1: h(102.7), action: 'Simma in', when: 'p2_open', to: 'kelp', spawn: 'fromLand' },
+        { id: 'to-kelp', x0: h(101.0), x1: h(102.7), action: CONTEXT_LABELS.swimIn, when: 'p2_open', to: 'kelp', spawn: 'fromLand' },
         { id: 'to-viken', x0: h(117.8), x1: h(118.6), when: 'gate_open', to: 'viken', spawn: 'fromLand', auto: true }
     ]
 };
@@ -252,7 +253,7 @@ SCENES.land = {
 // KELP
 // ===========================================================================
 SCENES.kelp = {
-    id: 'kelp', title: 'Kelpskogen', underwater: true,
+    id: 'kelp', title: SCENE_TITLES.kelp, underwater: true,
     bounds: { x0: h(-1), x1: h(50), y0: h(-3), y1: h(14) },
     backdrop: [{ image: 'bg-under', x0: h(-1), x1: h(50) }],
     surfaces: [
@@ -346,7 +347,7 @@ SCENES.kelp = {
 // VIKEN (Spegelviken, Trumbryggan, Pappersfyren)
 // ===========================================================================
 SCENES.viken = {
-    id: 'viken', title: 'Spegelviken',
+    id: 'viken', title: SCENE_TITLES.viken,
     bounds: { x0: h(-1), x1: h(36), y0: h(-11), y1: h(9) },
     backdrop: [{ image: 'bg-bay', x0: h(-1), x1: h(36) }],
     evening: { 'bg-bay': 'bg-bay-evening' },
@@ -407,7 +408,7 @@ SCENES.viken = {
     // a resting shell within `pull` slides onto the plate; `hold` seconds on it latches the shutter
     plates: [{ id: 'plate', x: h(14.2), y: h(6.86), w: h(1.6), pull: h(1.5), flag: 'shutter2', hold: 1.2 }],
     pullRopes: [{ id: 'shutter3-rope', x: h(28.6), y: h(-7.3), flag: 'shutter3' }],
-    stairs: [{ id: 'stair', x: h(27.2), y: h(-7.3), to: 'stairFoot', label: 'Gå ner' }],
+    stairs: [{ id: 'stair', x: h(27.2), y: h(-7.3), to: 'stairFoot', label: CONTEXT_LABELS.down }],
     dashed: [
         // runways of about 4 HL (shore and pier start), 1.4 HL and 1.4 HL between the segments; each is at most 10 HL
         { id: 'p8-d1', pts: L([4.0, -0.62], [9.6, -0.62]), flag: 'p8_s1', balk: false, decal: true, dir: 1, when: 'talk_done', glow: true },

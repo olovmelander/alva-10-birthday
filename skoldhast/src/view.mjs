@@ -261,7 +261,7 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
         d.rebuildGround = () => {
             ground.clear(); groundTop.clear();
             for (const child of groundLines.removeChildren()) child.destroy({ children: true });
-            const active = def.surfaces.filter(s => cond(s.when, G.flags));
+            const active = G.terrain?.scene === def ? G.terrain.surfaces : def.surfaces.filter(s => cond(s.when, G.flags));
             const shape = terrainShape(active);
             for (const { s, pts } of shape.runs) {
                 const x0 = pts[0][0], x1 = pts.at(-1)[0];

@@ -25,6 +25,7 @@ export const FAMILY = {
 export const NAMES = {
     horse: 'Sköldhästen', klo: 'Professor Klo', kv: 'Kartväktaren', alva: 'Alva', mira: 'Mira', signe: 'Sköldpaddan Signe', note: ''
 };
+export const SCENE_TITLES = { land: 'Stranden och stäppen', kelp: 'Kelpskogen', viken: 'Spegelviken' };
 
 export const UI = {
     goalLabel: 'Mål',

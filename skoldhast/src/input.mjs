@@ -60,7 +60,8 @@ export function createInput(root, ui, opts) {
         if (e && e.type === 'pointerup' && stickTap && !stickTap.moved && e.timeStamp - stickTap.t < 350) tapActor(stickTap.x, stickTap.y);
         stickTap = null;
         // Håll kvar galoppen: letting go at full gallop keeps galloping
-        if (opts.settings().holdGallop && opts.isGalloping() && Math.abs(stick.x) > 0.7) stick.latched = Math.sign(stick.x);
+        if (e?.type === 'pointerup' && opts.settings().holdGallop && opts.isGalloping() && Math.abs(stick.x) > 0.7) stick.latched = Math.sign(stick.x);
+        else stick.latched = 0;
         stick.id = null; stick.x = stick.y = 0;
         ui.stickBase.classList.remove('on', 'gallop');
         moveKnob();
@@ -73,12 +74,25 @@ export function createInput(root, ui, opts) {
     // --- follow the finger (optional mode) and taps on the sköldhäst ------------
     const canvasArea = opts.canvas;
     let tapStart = null;
-    canvasArea.addEventListener('pointerdown', (e) => {
-        if (!enabled) return;
-        tapStart = { x: e.clientX, y: e.clientY, t: e.timeStamp, id: e.pointerId }; // event times: robust to a slow frame
-        if (opts.settings().followFinger) { finger.id = e.pointerId; finger.x = e.clientX; finger.y = e.clientY; canvasArea.setPointerCapture?.(e.pointerId); }
-    }, sig);
-    canvasArea.addEventListener('pointermove', (e) => { if (e.pointerId === finger.id) { finger.x = e.clientX; finger.y = e.clientY; } }, sig);
+    const startFinger = (e, captureArea = canvasArea) => {
+        if (!enabled || (tapStart && tapStart.id !== e.pointerId)) return;
+        tapStart = { x: e.clientX, y: e.clientY, t: e.timeStamp, id: e.pointerId, klo: !!opts.kloHit?.(e.clientX, e.clientY) }; // event times: robust to a slow frame
+        // Greeting Klo should not turn the horse/camera and move Klo away from the touch.
+        // A drag from his body still becomes steering once it crosses the tap slop.
+        if (opts.settings().followFinger) { finger.id = tapStart.klo ? null : e.pointerId; finger.x = e.clientX; finger.y = e.clientY; captureArea.setPointerCapture?.(e.pointerId); }
+    };
+    const moveFinger = (e) => {
+        if (tapStart?.id === e.pointerId && tapStart.klo && opts.settings().followFinger && Math.hypot(e.clientX - tapStart.x, e.clientY - tapStart.y) > 14) {
+            tapStart.klo = false; finger.id = e.pointerId;
+        }
+        if (e.pointerId === finger.id) { finger.x = e.clientX; finger.y = e.clientY; }
+    };
+    canvasArea.addEventListener('pointerdown', startFinger, sig);
+    canvasArea.addEventListener('pointermove', moveFinger, sig);
+    // The transparent stick band remains above the canvas in follow mode.
+    // Forward its gestures instead of swallowing the entire left side of the screen.
+    zone.addEventListener('pointerdown', (e) => { if (opts.settings().followFinger) startFinger(e, zone); }, sig);
+    zone.addEventListener('pointermove', moveFinger, sig);
     const endFinger = (e) => {
         if (tapStart && e.pointerId === tapStart.id) {
             const quick = e.type === 'pointerup' && e.timeStamp - tapStart.t < 350 && Math.hypot(e.clientX - tapStart.x, e.clientY - tapStart.y) < 14;
@@ -89,8 +103,11 @@ export function createInput(root, ui, opts) {
         }
         if (e.pointerId === finger.id) finger.id = null;
     };
-    canvasArea.addEventListener('pointerup', endFinger, sig);
-    canvasArea.addEventListener('pointercancel', endFinger, sig);
+    for (const area of [canvasArea, zone]) {
+        area.addEventListener('pointerup', endFinger, sig);
+        area.addEventListener('pointercancel', endFinger, sig);
+        area.addEventListener('lostpointercapture', endFinger, sig);
+    }
 
     // --- buttons ----------------------------------------------------------------------
     const press = (btn, down, up) => {
