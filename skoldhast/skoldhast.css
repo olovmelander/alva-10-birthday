@@ -901,6 +901,15 @@ html.skoldhast-lock, html.skoldhast-lock body { overflow: hidden !important; ove
 .sk-draw .sk-draw-prompt::before { display: none; }
 .sk-draw-hint { margin: 5px 0 0; font-size: calc(17px * var(--fz)); line-height: 1.2; }
 .sk-draw-keyboard { margin: 3px 0 0; font-size: 13px; line-height: 1.15; opacity: .65; }
+.sk-draw-palette { margin-top: 7px; pointer-events: auto; }
+.sk-draw-palette-label { display: block; margin-bottom: 3px; font-size: 15px; line-height: 1.2; }
+.sk-draw-pencils { display: flex; justify-content: center; gap: 7px; }
+.sk-draw-pencils .sk-draw-pencil { position: relative; width: 46px; height: 44px; min-width: 44px; min-height: 44px;
+    margin: 0; padding: 0; border: 2px solid transparent; border-radius: 9px; background: #fffaf0; cursor: pointer; }
+.sk-draw-pencil::before { content: ''; display: block; width: 24px; height: 28px; margin: auto; transform: rotate(-12deg);
+    border: 1px solid #6d605880; border-radius: 6px 6px 3px 3px; background: repeating-linear-gradient(100deg, #ffffff40 0 1px, transparent 1px 4px), var(--pencil-color); }
+.sk-draw-pencils .sk-draw-pencil[aria-pressed="true"] { border-color: #655440; box-shadow: 0 2px 0 #655440; }
+.sk-draw-pencils .sk-draw-pencil:focus-visible { outline: 3px solid #bf8736; outline-offset: 2px; }
 .sk-draw-progress { display: inline-block; min-width: 128px; margin-top: 6px; padding: 2px 12px; border: 1px solid #b8bea8;
     border-radius: 12px; font-size: 16px; line-height: 1.2; background: linear-gradient(90deg, #dbe5cc calc(var(--draw-progress, 0) * 100%), #f4f0e4 0); }
 .sk-draw-actions { position: absolute; z-index: 2; bottom: max(12px, env(safe-area-inset-bottom)); left: 50%; transform: translateX(-50%);

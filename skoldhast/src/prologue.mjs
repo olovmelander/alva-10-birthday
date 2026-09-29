@@ -8,8 +8,9 @@
  * one drop rolls upward, and the sköldhäst blinks. The camera dives into the page.
  */
 import { HL } from './sim.mjs';
-import { STORY, UI, HER_TEXT, FAMILY, CAPTIONS } from './content/sv.mjs';
+import { STORY, UI, HER_TEXT, FAMILY, CAPTIONS, DRAWING } from './content/sv.mjs';
 import { createOpeningFold } from './opening-fold.mjs';
+import { CLOUD_PENCILS, createUserCloud, paintUserCloud } from './user-cloud.mjs';
 
 const h = (v) => v * HL;
 const PW = 1000, PH = 760;                 // the paper, in paper units
@@ -230,11 +231,23 @@ export function createTable({ PIXI, app, view, G, ui, audio, assets, makeHero })
             ghost: ghostCloud(885, 330).map(([x, y]) => toCss(885 + (x - 885) * 0.85, 330 + (y - 330) * 0.85)),
             bounds: paperBounds(790, 250, 190, 160)
         });
-        const cloudPts = await ui.draw({ prompt: UI.drawCloud, ...cloudGeometry(), getGeometry: cloudGeometry });
-        const cloud = strokeTexture(cloudPts, { color: '#3b3530' });
-        G.userCloud = cloud.texture; G.userStrokes.cloud = cloud.pts;
-        const cs = new PIXI.Sprite(cloud.texture); cs.x = cloud.box.x; cs.y = cloud.box.y; cs.scale.set(0.5); onPaper.addChild(cs);
-        tween(4, (u) => { cs.x = cloud.box.x - u * 160; });
+        let cloudColor = 'sky';
+        const cloudPts = await ui.draw({ prompt: UI.drawCloud, ...cloudGeometry(), getGeometry: cloudGeometry,
+            palette: CLOUD_PENCILS.map(p => ({ ...p, label: DRAWING.cloudColors[p.id] })), selectedColor: cloudColor,
+            onColor: value => { cloudColor = value; }, paintDraft: paintUserCloud });
+        const cloud = createUserCloud(PIXI, cloudPts.map(([x, y]) => [(x - paperLayer.x) / paperLayer.scale.x, (y - paperLayer.y) / paperLayer.scale.y]), cloudColor);
+        G.userCloud = cloud.texture; G.userStrokes.cloud = cloud.pts; G.userStrokes.cloudColor = cloud.color;
+        const cs = new PIXI.Sprite(cloud.texture); cs.label = 'opening-user-cloud';
+        cs.scale.set(Math.min(.5, 210 / cloud.texture.width, 106 / cloud.texture.height)); onPaper.addChild(cs);
+        // The new cloud settles in the retained blue sky, below the sun's rays
+        // and to the left of the future crease. It must never hang over wood.
+        const cloudHome = { x: PIC.x + 55, y: PIC.y + 180 };
+        await tween(G.lessMotion ? .3 : 1.45, (u) => {
+            const e = u * u * (3 - 2 * u);
+            cs.position.set(G.lessMotion ? cloudHome.x : lerp(cloud.box.x, cloudHome.x, e),
+                G.lessMotion ? cloudHome.y : lerp(cloud.box.y, cloudHome.y, e));
+            cs.alpha = G.lessMotion ? e : 1;
+        });
         // the shoreline, traced along generous anchors from the picture's edge; the crease cuts it short
         await ui.say([STORY.prolog.shoreInvite]);
         const st = G.scenes.land.spots.start;
@@ -311,7 +324,7 @@ export function createTable({ PIXI, app, view, G, ui, audio, assets, makeHero })
             ruler.x = rulerX + Math.max(0, (u - .25) / .75) * 230;
             ruler.alpha = Math.max(0, 1 - u * 2);
             // The freeze happens at the visible fold, never before its cause.
-            if (u >= .45 && !frozen) {
+            if (u >= (G.lessMotion ? .5 : .45) && !frozen) {
                 frozen = true; audio?.freeze(true); audio?.stinger('freeze');
             }
         });

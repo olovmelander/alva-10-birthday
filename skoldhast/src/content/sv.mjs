@@ -104,7 +104,7 @@ export const STORY = {
         ],
         mapPurpose: 'Vi följer spåren på land och under vattnet. De måste leda till havets veck.',
         mapDemoLabels: { map: 'Kartbiten', world: 'Stranden' },
-        clouds: [['klo', 'Varför är molnen inte färglagda?'], ['horse', 'Moln är vita, Klo.']],
+        clouds: [['klo', 'Varför är de andra molnen inte färglagda?'], ['horse', 'De har inte lånat Alvas färgpennor.']],
         note1: ['note', 'OBS! Ofärdigt streck. Rör ej! /K'],
         noteKlo: [
             ['klo', 'K? Det är inte jag! Jag kan inte ens hålla i en linjal.'],
@@ -448,6 +448,8 @@ export const CONTEXT_LABELS = { talk: 'Prata', read: 'Läs', swimIn: 'Simma in',
 
 // Drawing actions remain available without a precise trace or a keyboard.
 export const DRAWING = {
+    paletteLabel: name => `Molnfärg: ${name}`,
+    cloudColors: { sky: 'Himmelsblå', lavender: 'Lavendel', peach: 'Persika', rose: 'Ros', paper: 'Pappersvit' },
     freeHint: 'Rita med fingret eller musen. Du bestämmer formen.',
     traceHint: 'Följ prickarna med fingret eller musen.',
     previewHint: 'Vill du behålla teckningen eller rita om?',

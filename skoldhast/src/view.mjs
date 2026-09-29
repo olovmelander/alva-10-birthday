@@ -20,6 +20,7 @@ import { createRouteCue, createPencilBeam } from './route-cue.mjs';
 import { createActionCue } from './action-cue.mjs';
 import { createFoldDemo } from './fold-demo.mjs';
 import { createMapAssemble } from './map-assemble.mjs';
+import { cloudSkyLayout } from './cloud-sky.mjs';
 import { STORY } from './content/sv.mjs';
 
 const h = (v) => v * HL;
@@ -387,12 +388,12 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
             (it.layer === 'fore' ? L.fore : it.layer === 'far' ? L.far : L.mid).addChild(s);
             d.items.push({ s, it });
         }
-        // her own cloud from the prologue drifts over Stranden (plan §3.4)
+        // Her own pencil cloud stays in the distant land sky, at a readable size.
         if (def.id === 'land' && G.userCloud) {
             const s = new PIXI.Sprite(G.userCloud);
-            s.anchor.set(0.5); s._baseScale = 1.5; s.alpha = 0.9;
+            s.anchor.set(0.5); s.alpha = 0.94; s.label = 'user-cloud';
             skyLayer.addChild(s);
-            d.sky.push({ kind: 'sky', s, x: def.spots.start.x - h(1.5), y: def.spots.start.y - h(5.2), par: 0.18, anim: 'cloud', it: { user: true } });
+            d.userCloud = s;
         }
         // hoofprints (old ones in the kelp sand)
         for (const [x, y] of def.hoofprints || []) {
@@ -851,6 +852,18 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
         return n;
     }
 
+    function placeUserCloud(width, height, picture = false) {
+        if (!S?.userCloud) return;
+        const sun = S.sky.find(it => it.anim === 'sun')?.s;
+        const b = sun?.getBounds();
+        const cloud = S.userCloud;
+        const p = cloudSkyLayout({ width, height, textureWidth: cloud.texture.width,
+            textureHeight: cloud.texture.height, cameraX: cam.x, originX: S.def.spots.start.x,
+            time, lessMotion: G.lessMotion, picture,
+            sun: b ? { x: b.x, y: b.y, width: b.width, height: b.height } : null });
+        cloud.position.set(p.x, p.y); cloud.scale.set(p.scale);
+    }
+
     // --- per-frame update -------------------------------------------------------------------------
     let time = 0;
     function render(snap, dt) {
@@ -929,14 +942,14 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
                 }
                 const fr = frozen && it.her && it.scatter === undefined ? 1 : 1 + (Math.floor(it.phase * 3) % 4);
                 setTex(it.s, 'gull-m-' + fr);
-            } else if (it.anim === 'cloud' && (!frozen || it.it?.user) && !G.lessMotion) {
+            } else if (it.anim === 'cloud' && !frozen && !G.lessMotion) {
                 it.x += dt * 6;
-                if (it.it?.user && it.x > def.spots.start.x + h(14)) it.x -= h(30);
             }
             else if (it.anim === 'sun' && !frozen) { it.s.rotation = G.lessMotion ? 0 : Math.sin(time * 0.2) * 0.02; }
             it.s.x = sx + ox * cam.zoom; it.s.y = sy + oy * cam.zoom;
             it.s.scale.set(cam.zoom * (it.s._baseScale || 1) * (it.s.scale.x < 0 ? -1 : 1), cam.zoom * (it.s._baseScale || 1));
         }
+        placeUserCloud(W, H);
         // decor conditions and label fade
         for (const { s, it } of S.items) {
             let vis = cond(it.when, F);
@@ -1677,11 +1690,14 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
             const rt = PIXI.RenderTexture.create({ width, height, resolution: 1 });
             const save = { x: cam.x, y: cam.y, zoom: cam.zoom };
             const sw = app.screen.width, sh = app.screen.height;
+            const backdropState = [...S.bg, ...S.sky.map(it => it.s), ...(S.userCloud ? [S.userCloud] : [])]
+                .map(s => ({ s, x: s.x, y: s.y, sx: s.scale.x, sy: s.scale.y }));
             cam.x = x; cam.y = y; cam.zoom = zoom;
             world.scale.set(zoom);
             world.position.set(width / 2 - x * zoom, height / 2 - y * zoom);
             for (const b of S.bg) { const tw = b.texture.width, th = b.texture.height; const sc = Math.max(width / tw, height / th); b.scale.set(sc); b.x = (width - tw * sc) / 2; b.y = (height - th * sc) / 2; }
             for (const it of S.sky) { it.s.x = width / 2 + (it.x - x) * zoom * it.par; it.s.y = height / 2 + (it.y - y) * zoom * (skyFactor ?? Math.max(0.5, it.par * 2.5)); it.s.scale.set(zoom * (it.s._baseScale || 1)); }
+            placeUserCloud(width, height, true);
             const vis = { root: root.visible, hero: hero.view.visible, actors: L.actors.visible, hints: L.hints.visible, fx: L.fx.visible };
             root.visible = true;
             hero.view.visible = !G.hideHero;
@@ -1695,6 +1711,7 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
             for (const q of splashes) q.s.visible = true;
             root.visible = vis.root; hero.view.visible = vis.hero; L.actors.visible = vis.actors; L.hints.visible = vis.hints; L.fx.visible = vis.fx;
             Object.assign(cam, save);
+            for (const { s, x: bx, y: by, sx, sy } of backdropState) { s.position.set(bx, by); s.scale.set(sx, sy); }
             world.scale.set(cam.zoom);
             world.position.set(sw / 2 - cam.x * cam.zoom, sh / 2 - cam.y * cam.zoom);
             return rt;

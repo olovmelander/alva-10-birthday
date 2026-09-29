@@ -25,6 +25,7 @@ import { createTable } from './prologue.mjs';
 import { countPencils, totalPencils, pencilProgress, createPuzzleState } from './puzzles.mjs';
 import { UI, BALK, CAPTIONS, FAMILY, JOURNAL } from './content/sv.mjs';
 import { CHECKPOINTS } from './content/world.mjs';
+import { createUserCloud, cloudColor, cloudPoints } from './user-cloud.mjs';
 
 // the art bundle each scene draws from (boot holds the hero, Klo, the table and the UI)
 const SCENE_BUNDLES = { land: ['land'], kelp: ['sea', 'bay'], viken: ['bay', 'sea'] };
@@ -370,9 +371,9 @@ export function createGame({ host = document.body, assetBase = './skoldhast/', r
             c.beginPath(); pts.forEach(([x, y], i) => (i ? c.lineTo(x - x0 + pad, y - y0 + pad) : c.moveTo(x - x0 + pad, y - y0 + pad))); c.stroke();
             return PIXI.Texture.from(cv);
         };
-        G.userStrokes = strokes;
+        G.userStrokes = { ...strokes, cloud: cloudPoints(strokes.cloud), cloudColor: cloudColor(strokes.cloudColor) };
         G.userGull = make(strokes.gull, '#4d6e8c');
-        G.userCloud = make(strokes.cloud, '#3b3530');
+        G.userCloud = createUserCloud(PIXI, G.userStrokes.cloud, G.userStrokes.cloudColor)?.texture || null;
     }
 
     async function runEpilogue(opts = {}) {
