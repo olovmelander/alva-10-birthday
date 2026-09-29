@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="sv">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Sköldhästen – menyer (dev)</title>
+<link rel="stylesheet" href="../skoldhast.css">
+<style>
+    html, body { margin: 0; background: #333; }
+    /* a still of the game behind the menus (the real game draws with WebGL here) */
+    .sk-scene { position: absolute; inset: 0; background: url(../assets/bg-beach.webp) 50% 70% / cover; }
+    .sk-scene::after { content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: 30%; background: url(../assets/mat-sand.webp) 0 0 / 256px; box-shadow: 0 -2px 0 #6b635a; }
+    .dev-menu { position: fixed; z-index: 20000; left: 8px; bottom: 8px; display: flex; flex-wrap: wrap; gap: 4px; max-width: calc(100% - 16px); font: 12px/1 system-ui, sans-serif; }
+    .dev-menu a { padding: 5px 7px; background: rgba(255, 255, 255, 0.85); color: #333; border-radius: 4px; text-decoration: none; }
+    .shot .dev-menu { display: none; }
+</style>
+</head>
+<body>
+<!--
+  Development page: every menu of the game's DOM interface without the game itself (no WebGL),
+  over a still of the beach. The interface is the real one (src/ui.mjs, src/guide.mjs, skoldhast.css).
+
+    menus.html?m=title            title (&save=1 with a save, &slots=2 with two researchers)
+    menus.html?m=code | restart | slots
+    menus.html?m=journal&page=2   the journal at a page (0–6); &objective=p5
+    menus.html?m=pause | stuck | settings | report&n=1
+    menus.html?m=dialogue&who=klo | choice | toasts | hud | draw
+    &big=1 bigger text, &less=1 less motion, &shot=1 hides this page's own links
+-->
+<script type="module">
+import { createUI } from '../src/ui.mjs';
+import { createGuide } from '../src/guide.mjs';
+import { STORY, GOALS, HINTS, TIPS, BALK, UI } from '../src/content/sv.mjs';
+
+const q = new URLSearchParams(location.search);
+const m = q.get('m') || 'title';
+if (q.has('shot')) document.body.classList.add('shot');
+
+const host = document.createElement('div');
+host.className = 'sk-root';
+document.body.appendChild(host);
+const scene = document.createElement('div');
+scene.className = 'sk-scene';
+host.appendChild(scene);
+
+const settings = { help: 'normal', holdGallop: false, followFinger: false, holdToHide: true, bigText: q.has('big'), lessMotion: q.has('less'), music: 0.8, sfx: 0.9, voice: 1 };
+const log = (...a) => console.log('[menus]', ...a);
+const ui = createUI(host, {
+    assetBase: '../',
+    handlers: {
+        openJournal: () => ui.journal(journalState()), openPause: () => ui.pauseMenu(), resume: () => log('resume'),
+        stuck: () => log('stuck'), quit: () => log('quit'), getSettings: () => settings,
+        setSetting: (k, v) => { settings[k] = v; log('setting', k, v); if (k === 'bigText') ui.setBigText(v); if (k === 'lessMotion') ui.root.classList.toggle('less-motion', v); },
+        setNote: (v) => log('note', v), nextChapterOpen: (n) => n < 2, onSay: () => {}, onPencil: () => {}
+    }
+});
+ui.setBigText(settings.bigText);
+ui.root.classList.toggle('less-motion', settings.lessMotion);
+ui.setPencils(2, 5);
+const img = (name) => new URL(`../assets/${name}.webp`, location.href).href;
+const guide = createGuide(ui.root, { img, heroScreen: () => ({ x: innerWidth * 0.45, y: innerHeight * 0.55, scale: 0.8, facing: 1 }), onGoalTap: () => ui.journal(journalState()) });
+
+function journalState() {
+    const flags = new Set(['intro_done', 'exp_fart', 'exp_djup', 'exp_gnagg', 'clue_map_corner', 'clue_note1', 'clue_wave_marks', 'clue_reflection', 'clue_fold', 'mark_land', 'ch1_end', 'ch2_open', 'kelp_entered']);
+    return { flags, objective: q.get('objective') || 'p5', tally: Number(q.get('tally') ?? 1), note: q.get('note') || '', pencils: 2, pencilsTotal: 5,
+        visited: new Set(['land', 'kelp']), page: q.has('page') ? Number(q.get('page')) : undefined, onClose: () => log('journal closed') };
+}
+const titleOpts = () => ({
+    hasSave: q.has('save'), slots: q.get('slots') === '2' ? [{ id: 'alva', label: 'Alva' }, { id: 'r-signe', label: 'Signe' }] : [{ id: 'alva', label: 'Alva' }],
+    onBegin: () => log('begin'), onContinue: () => log('continue'), onSwitch: (done) => ui.slotPicker([{ id: 'alva', label: 'Alva', note: 'Mer forskning!' }, { id: 'r-signe', label: 'Signe' }], (id) => { done(); log('pick', id); }, (name) => { done(); log('new', name); }),
+    onCode: (t) => /kelp|fyr/i.test(t)
+});
+const play = () => { ui.showControls(true); guide.show(true); guide.goal(GOALS.p5(0)); };
+
+switch (m) {
+    case 'title': ui.showControls(false); ui.title(titleOpts()); break;
+    case 'code': ui.showControls(false); ui.title(titleOpts()); document.querySelectorAll('.sk-title button')[q.has('save') ? 3 : 1].click(); break;
+    case 'restart': ui.showControls(false); ui.title({ ...titleOpts(), hasSave: true }); document.querySelectorAll('.sk-title button')[1].click(); break;
+    case 'slots': ui.showControls(false); ui.title({ ...titleOpts(), hasSave: true }); document.querySelectorAll('.sk-title button')[2].click(); break;
+    case 'journal': {
+        play(); ui.journal(journalState());
+        // &hint=1 shows Klo's note, &hint=2 also the sketch
+        for (let i = 0; i < Number(q.get('hint') || 0); i++) document.querySelector('.sk-j-help')?.click();
+        // &flip=1: stop half-way through a page turn (the preview's own screenshot trick)
+        if (q.has('flip')) {
+            document.querySelectorAll('.sk-j-arrow')[1].click();
+            for (const a of document.getAnimations()) if (a.effect?.target?.closest?.('.sk-j-flip')) { a.pause(); a.currentTime = Number(q.get('flip')) * (a.effect.getTiming().duration || 0); }
+        }
+        break;
+    }
+    case 'pause': play(); ui.pauseMenu(); break;
+    case 'stuck': play(); ui.pauseMenu(); document.querySelectorAll('.sk-panel button')[1].click(); break;
+    case 'settings': play(); ui.settings(); break;
+    case 'report': play(); ui.report(Number(q.get('n') || 1)); break;
+    case 'dialogue': {
+        play();
+        const who = q.get('who') || 'klo';
+        const line = { klo: STORY.k2.open[0], kv: STORY.k3.talk1[0], horse: STORY.k1.stopwatch[2], note: STORY.k1.note1, alva: ['alva', 'Forskning.'], caption: ['caption', STORY.prolog.captionFallback] }[who] || STORY.k2.open[0];
+        if (q.has('table')) ui.root.classList.add('table-mode');
+        ui.say([line]);
+        break;
+    }
+    case 'choice': ui.showControls(false); ui.root.classList.add('table-mode'); ui.say([STORY.prolog.stuck]); ui.choice([UI.choiceWhat, UI.choiceWho]); break;
+    case 'toasts': play(); ui.toast('Ledtrådar: En kartbit i sanden, signerad /K.', 60000); ui.toast('Professor Klos mätningar: Fartfällan: 42,7 km/h.', 60000); break;
+    case 'hud':
+        play();
+        guide.hint(HINTS.p5.note, 'klo', 60000);
+        guide.tip(TIPS.hide.touch, { at: 'hide', ms: 60000 });
+        guide.think(BALK.dark, 60000);
+        break;
+    case 'draw': ui.showControls(false); ui.draw({ prompt: UI.drawGull, ghost: [[100, 300], [160, 260], [220, 300]] }); break;
+}
+setInterval(() => guide.update(), 100);
+
+// links to every state (hidden with &shot=1)
+const nav = document.createElement('div');
+nav.className = 'dev-menu';
+for (const s of ['title', 'title&save=1', 'code', 'restart', 'slots', 'journal&page=0', 'journal&page=2', 'journal&page=3', 'journal&page=5', 'journal&page=6', 'pause', 'stuck', 'settings', 'report&n=1', 'dialogue&who=klo', 'dialogue&who=note', 'choice', 'toasts', 'hud']) {
+    const a = document.createElement('a');
+    a.href = '?m=' + s + (q.has('big') ? '&big=1' : '');
+    a.textContent = s;
+    nav.appendChild(a);
+}
+document.body.appendChild(nav);
+window.__menus = { ui, guide };
+</script>
+</body>
+</html>

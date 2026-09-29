@@ -455,6 +455,60 @@
    "h": 160,
    "repeat": false,
    "scale": 2
+  },
+  "ui-frame": {
+   "bundle": "boot",
+   "file": "ui-frame.webp",
+   "bytes": 4326,
+   "w": 200,
+   "h": 200,
+   "repeat": false,
+   "scale": 2
+  },
+  "ui-frame-sm": {
+   "bundle": "boot",
+   "file": "ui-frame-sm.webp",
+   "bytes": 2418,
+   "w": 112,
+   "h": 112,
+   "repeat": false,
+   "scale": 2
+  },
+  "ui-hatch": {
+   "bundle": "boot",
+   "file": "ui-hatch.webp",
+   "bytes": 11234,
+   "w": 160,
+   "h": 160,
+   "repeat": true,
+   "scale": 2
+  },
+  "ui-tape": {
+   "bundle": "boot",
+   "file": "ui-tape.webp",
+   "bytes": 2334,
+   "w": 240,
+   "h": 72,
+   "repeat": false,
+   "scale": 2
+  },
+  "ui-grunge": {
+   "bundle": "boot",
+   "file": "ui-grunge.webp",
+   "bytes": 5154,
+   "w": 96,
+   "h": 96,
+   "repeat": true,
+   "scale": 2
+  },
+  "ui-icons": {
+   "bundle": "boot",
+   "file": "ui-icons.webp",
+   "bytes": 22026,
+   "w": 448,
+   "h": 256,
+   "repeat": false,
+   "scale": 2
   }
  },
  "data": {
@@ -500,9 +554,15 @@
     "assets/ui-stick-base.webp",
     "assets/ui-stick-knob.webp",
     "assets/ui-btn.webp",
+    "assets/ui-frame.webp",
+    "assets/ui-frame-sm.webp",
+    "assets/ui-hatch.webp",
+    "assets/ui-tape.webp",
+    "assets/ui-grunge.webp",
+    "assets/ui-icons.webp",
     "assets/hero-rig.json"
    ],
-   "bytes": 1417632
+   "bytes": 1465124
   },
   "sea": {
    "files": [
