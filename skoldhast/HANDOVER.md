@@ -251,6 +251,8 @@ or additional chapter release is part of this branch.
   the stairs. Run `tests/browser/skoldhast-collection.mjs` (see its header).
   `npm run build:skoldhast -- --check` refreshes the prefetch list and enforces
   a strict **3,000,000-byte** first-playable limit without rebuilding art.
+- The regional pencil badge sits clear of the goal note in portrait; the
+  collection browser check asserts that the two never overlap.
 - The finale now revisits the distant lighthouse view introduced in Kapitel 2:
   the real lamp and its reflection both glow in evening light, followed by a
   quiet 1.8-second hold. Klo stands beside the hero for his conclusion. Focused

@@ -128,6 +128,10 @@ try {
             check(!G.flags.has('penna_' + pc.id), `${pc.id}: not pre-collected`);
             check(document.querySelector('.sk-pencils').textContent.includes(`/${total}`), `${scene}: counter updates on entry`);
             check(document.querySelector('.sk-pencils').getAttribute('aria-label')?.includes(title), `${scene}: counter names region`);
+            const badge = document.querySelector('.sk-pencils').getBoundingClientRect();
+            const goal = document.querySelector('.sk-goal').getBoundingClientRect();
+            check(badge.right <= goal.left || badge.left >= goal.right || badge.bottom <= goal.top || badge.top >= goal.bottom,
+                `${scene}: the goal note cannot cover the regional counter`);
             await move(pc.x, pc.y, start.mode === 'swim');
             if (hop) { await step({ act: true }); await until(() => G.flags.has('penna_' + pc.id), {}, 4, `${pc.id} perch hop`); }
             check(G.flags.has('penna_' + pc.id), `${pc.id}: contact pickup (${where()})`);
