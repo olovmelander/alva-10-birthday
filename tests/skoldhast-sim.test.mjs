@@ -77,3 +77,36 @@ test('the big leap needs Kapitel 2 and a gallop', () => {
     const walk = run(60, 30, () => ({ x: -0.3 }), onHill(['intro_done', 'ch2_open']));
     assert.ok(!walk.flags.has('p4_leap'), 'no leap at a walk');
 });
+
+// --- forgiving puzzle mechanics (hidden shells are heavy and blind, so the world meets them halfway) ---
+const inViken = (at) => (G) => {
+    for (const f of ['intro_done', 'ch2_end', 'ch3_open', 'viken_arrived']) G.flags.add(f);
+    G.goto('viken', at);
+};
+
+test('a hidden shell that sinks near Strömröret is drawn into it and rides up', () => {
+    // 1.6 HL west of the pipe's mouth, near the bottom of the bay
+    const G = run(60, 12, pressAt(0.2, 'hide'), inViken({ x: 24.9 * HL, y: 5.2 * HL, facing: 1, mode: 'swim' }));
+    assert.ok(G.player.y < -6 * HL, `up the pipe to the gallery (y ${(G.player.y / HL).toFixed(2)} HL)`);
+});
+
+test('a shell resting beside the plate slides onto it and opens the shutter', () => {
+    const G = run(60, 8, pressAt(0.2, 'hide'), inViken({ x: 13.1 * HL, y: 6.3 * HL, facing: 1, mode: 'swim' }));
+    assert.ok(G.flags.has('shutter2'), `the plate latches (x ${(G.player.x / HL).toFixed(2)} HL)`);
+});
+
+test('after Knuffa the sköldhäst steps after the stone, so it can push again', () => {
+    const G = createGame();
+    for (const f of ['intro_done', 'p2_seen']) G.flags.add(f);
+    G.goto('land', { x: 99.6 * HL, y: -0.1 * HL, facing: 1 });
+    const rail = G.sceneDef.rail;
+    for (let push = 1; push <= rail.target; push++) {
+        let t = 0;
+        while (G.context?.id !== 'knuffa' && t++ < 240) G.step({ x: 0 });
+        assert.equal(G.context?.id, 'knuffa', `Knuffa is offered for push ${push}`);
+        G.step({ act: true });
+        assert.equal(G.puz.stone, push);
+    }
+    for (let i = 0; i < 120; i++) G.step({});
+    assert.equal(G.puz.stone, rail.target, 'four pushes from one spot, with no walking in between');
+});

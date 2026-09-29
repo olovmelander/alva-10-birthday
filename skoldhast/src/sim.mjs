@@ -18,10 +18,11 @@ export const STEP = 1 / 120;
 
 export const C = {
     walk: 320, trot: 640, gallop: 1200, gallopMin: 1000,
-    accel: 1000, brake: 2000, turnSkid: 0.35,
+    gallopDefl: 0.72,        // stick deflection that asks for a full gallop
+    accel: 1350, brake: 2000, turnSkid: 0.35,
     stepUp: 52, snapDown: 70, maxSlope: Math.tan(36 * Math.PI / 180),
-    gravity: 2600, hopHeight: 100, buckHeight: 40,
-    swimMax: 440, swimAccel: 1000, swimDrag: 1.6, floatDepth: 130, surfaceBand: 200,
+    gravity: 2600, hopHeight: 125, buckHeight: 55, hopBuffer: 0.18,
+    swimMax: 520, swimAccel: 1250, swimDrag: 1.6, floatDepth: 130, surfaceBand: 200,
     wadeMax: 120, wadeExit: 80, sinkSpeed: 160, buoyancy: 60,
     hideTime: 0.3, unhideHold: 0.5,
     edgeMargin: 26,
@@ -217,9 +218,10 @@ export function createPlayer(spawn = {}) {
         water: null, submerge: 0, wet: 0, wetTimer: 0,
         action: null, actionT: 0, actionDur: 0,
         airT: 0, leap: null, streck: null, jump: null,
-        skid: 0, balkCooldown: 0, lockInput: 0,
+        skid: 0, balkCooldown: 0, lockInput: 0, hopBuf: 0,
         still: 0, moveNoise: 0,
         auto: null, // scripted run: { dir, speed }
+        nudge: null, // a short scripted step: { x, t } (after Knuffa the sköldhäst follows the stone)
         inLane: null, inVortex: null, anchored: false, resting: false
     };
 }
@@ -248,6 +250,9 @@ export function stepPlayer(p, input, world, dt, events) {
     p.px = p.x; p.py = p.y;
     if (p.balkCooldown > 0) p.balkCooldown -= dt;
     if (p.lockInput > 0) p.lockInput -= dt;
+    // Hoppa pressed a moment before landing still hops when the hooves touch down
+    if (p.hopBuf > 0) p.hopBuf -= dt;
+    if (input.hop && (p.mode === 'air' || p.mode === 'leap')) p.hopBuf = C.hopBuffer;
     if (p.action) {
         p.actionT += dt / (p.actionDur || 1);
         if (p.actionT >= 1) { p.action = null; p.actionT = 0; }
@@ -255,6 +260,12 @@ export function stepPlayer(p, input, world, dt, events) {
     let ix = p.lockInput > 0 ? 0 : (input.x || 0);
     let iy = p.lockInput > 0 ? 0 : (input.y || 0);
     if (p.auto) { ix = p.auto.dir; iy = 0; }
+    if (p.nudge) {
+        p.nudge.t -= dt;
+        const ndx = p.nudge.x - p.x;
+        if (p.nudge.t <= 0 || Math.abs(ndx) < 6 || p.mode !== 'ground' || p.hidden) p.nudge = null;
+        else { ix = Math.sign(ndx) * Math.min(0.6, Math.max(0.15, Math.abs(ndx) / 150)); iy = 0; } // slows down as it arrives
+    }
 
     // --- Göm dig toggle -------------------------------------------------------
     if (input.hide && p.lockInput <= 0 && !p.auto) {
@@ -324,7 +335,7 @@ function stepGround(p, ix, input, world, dt, events) {
     const defl = Math.abs(ix);
     let target = 0;
     if (!p.hidden && !p.hideQueued && dir !== 0) {
-        target = defl >= 0.8 ? C.gallop : (defl / 0.8) * 850;
+        target = defl >= C.gallopDefl ? C.gallop : (defl / C.gallopDefl) * 850;
         if (p.auto) target = p.auto.speed || C.gallop;
     }
     // uphill/downhill feel
@@ -347,7 +358,7 @@ function stepGround(p, ix, input, world, dt, events) {
             p.facing = dir;
             const v = Math.abs(p.vx) * (Math.sign(p.vx) === dir ? 1 : -1);
             let nv;
-            if (v < target) nv = Math.min(target, v + C.accel * (v < 300 ? 1.3 : 1) * dt * (p.auto ? 1.6 : 1));
+            if (v < target) nv = Math.min(target, v + C.accel * (v < 300 ? 1.5 : 1) * dt * (p.auto ? 1.4 : 1));
             else nv = Math.max(target, v - C.brake * dt);
             p.vx = nv * dir;
         } else {
@@ -358,8 +369,9 @@ function stepGround(p, ix, input, world, dt, events) {
     }
     if (p.action === 'balk' || p.action === 'shake' || p.action === 'stamp') p.vx *= 0.8;
 
-    // Hoppa
-    if (input.hop && !p.hidden && !p.jump) {
+    // Hoppa (or a press buffered just before landing)
+    if ((input.hop || p.hopBuf > 0) && !p.hidden && !p.jump) {
+        p.hopBuf = 0;
         startHop(p, world, events);
         if (p.mode !== 'ground') return;
     }
@@ -620,7 +632,7 @@ function stepSwim(p, ix, iy, input, world, dt, events) {
     const hidden = p.hidden && p.hide > 0.5;
     let drift = false, whirl = false;
     // the nearest lane in reach carries the swimmer (dashed lanes carry only a hidden shell)
-    let lane = null, ln = null;
+    let lane = null, ln = null, held = false;
     for (const l of T.lanes) {
         if (l.dashed && !hidden) continue;
         const n = nearestOnLine(l.pts, p.x, p.y);
@@ -628,11 +640,20 @@ function stepSwim(p, ix, iy, input, world, dt, events) {
         if (n.s >= l._len - 6) {
             // the calm pool at its end; a lane with endHold keeps the shell there
             if (hidden) events.push({ type: 'laneEnd', id: l.id });
-            if (l.endHold) { lane = null; ln = null; break; }
+            if (l.endHold) { lane = null; ln = null; held = true; break; }
             continue;
         }
         const pr = l.priority || 0, best = lane?.priority || 0;
         if (!ln || pr > best || (pr === best && n.d < ln.d)) { lane = l; ln = n; }
+    }
+    // a lane with a mouth (`suck`) draws in a hidden shell that sank close to where it starts
+    if (!lane && !held && hidden) {
+        for (const l of T.lanes) {
+            if (!l.suck) continue;
+            const [sx, sy] = l.pts[0];
+            const d = Math.hypot(sx - p.x, sy - p.y);
+            if (d > 1 && d < l.suck) { fx += (sx - p.x) / d * 260; fy += (sy - p.y) / d * 260; drift = true; p.inLane = l; break; }
+        }
     }
     for (const l of lane ? [lane] : []) {
         const n = ln;

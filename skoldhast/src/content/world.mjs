@@ -274,8 +274,8 @@ SCENES.kelp = {
     ],
     lanes: [
         { id: 'lane-entry', pts: L([8.2, 2.5], [11, 3.0], [14, 3.25], [17.5, 3.1], [20.4, 3.7]), width: h(1.3), speed: 380 },
-        { id: 'lane-vault', pts: L([22.7, 7.8], [23.3, 9.4], [24.3, 10.4], [25.5, 11.35]), width: h(1.0), speed: 300, when: 'ch2_open' },
-        { id: 'lane-vault-in', pts: L([25.5, 11.35], [27.5, 11.9], [30, 11.8], [31.4, 11.2]), width: h(1.0), speed: 320, when: 'p5_lit' },
+        { id: 'lane-vault', pts: L([22.7, 7.8], [23.3, 9.4], [24.3, 10.4], [25.5, 11.35]), width: h(1.5), speed: 300, when: 'ch2_open' },
+        { id: 'lane-vault-in', pts: L([25.5, 11.35], [27.5, 11.9], [30, 11.8], [31.4, 11.2]), width: h(1.3), speed: 320, when: 'p5_lit' },
         { id: 'lane-out', pts: L([36, 8.5], [39, 6.5], [42, 4.5], [45, 2.8], [47.2, 1.6]), width: h(1.4), speed: 520, when: 'marks_both' }
     ],
     vortices: [
@@ -375,7 +375,7 @@ SCENES.viken = {
         { id: 'bay', x0: h(-1), x1: h(36), top: h(0), kind: 'sea', mirror: true }
     ],
     lanes: [
-        { id: 'pipe', pts: L([26.5, 5.2], [26.5, 0.6], [26.5, -7.1]), width: h(0.9), speed: 520, eject: true },
+        { id: 'pipe', pts: L([26.5, 5.2], [26.5, 0.6], [26.5, -7.1]), width: h(0.9), speed: 520, eject: true, suck: h(2.2) },
         // the sea half of P8 starts where the pier leap lands and ends in a calm pool at the lower window
         { id: 'p8-lane', pts: L([25.6, 0.85], [25.95, 1.7], [26.2, 2.3], [26.35, 2.6]), width: h(1.4), speed: 260, dashed: true, endHold: true, priority: 1, when: 'p8_land' }
     ],
@@ -401,8 +401,9 @@ SCENES.viken = {
         { id: 'pier-end', x0: h(18.5), x1: h(24.2), y1: h(-0.3) },
         { id: 'gallery', x0: h(26), x1: h(32), y1: h(-6.5) }
     ],
-    drums: [{ id: 'shutter1', surface: 'pier', x0: h(4), x1: h(22), notches: 40, flag: 'shutter1', when: 'viken_arrived' }],
-    plates: [{ id: 'plate', x: h(14.2), y: h(6.86), w: h(0.9), flag: 'shutter2', hold: 2 }],
+    drums: [{ id: 'shutter1', surface: 'pier', x0: h(4), x1: h(22), notches: 24, flag: 'shutter1', when: 'viken_arrived' }],
+    // a resting shell within `pull` slides onto the plate; `hold` seconds on it latches the shutter
+    plates: [{ id: 'plate', x: h(14.2), y: h(6.86), w: h(1.6), pull: h(1.5), flag: 'shutter2', hold: 1.2 }],
     pullRopes: [{ id: 'shutter3-rope', x: h(28.6), y: h(-7.3), flag: 'shutter3' }],
     stairs: [{ id: 'stair', x: h(27.2), y: h(-7.3), to: 'stairFoot', label: 'Gå ner' }],
     dashed: [

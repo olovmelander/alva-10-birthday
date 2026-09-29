@@ -10,6 +10,7 @@
  * The view never changes game state; it reads G every frame.
  */
 import { HL, cond, heightOn, lineLength, pointAt } from './sim.mjs';
+import { createPage, createScreenTurn } from './pageturn.mjs';
 
 const h = (v) => v * HL;
 const lerp = (a, b, t) => a + (b - a) * t;
@@ -36,7 +37,8 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
     const skyLayer = new PIXI.Container();      // parallax sky props (sun, clouds, gulls)
     const world = new PIXI.Container();         // camera transform
     const overlay = new PIXI.Container();       // screen space: tooth, darkness, fades
-    root.addChild(bgLayer, skyLayer, world, overlay);
+    const turnLayer = new PIXI.Container();     // screen space: pages turning away (scene changes, the unfold)
+    root.addChild(bgLayer, skyLayer, world, overlay, turnLayer);
     const L = {};
     for (const name of ['far', 'terrainBack', 'mid', 'objects', 'actors', 'hero', 'waterFront', 'fore', 'fx', 'cover', 'hints']) {
         L[name] = new PIXI.Container();
@@ -183,6 +185,45 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
     let hero = heroFactory();
     L.hero.addChild(hero.view);
     const minis = [];
+
+    // full gallop: a few quick pencil strokes stream back from the sköldhäst (the "now you draw" cue)
+    // (in a layer of their own: clearScene empties the scene layers, and these outlive every scene)
+    const speedLayer = new PIXI.Container();
+    world.addChildAt(speedLayer, world.getChildIndex(L.fx));
+    const speedLines = [];
+    for (let i = 0; i < 9; i++) {
+        const g = new PIXI.Graphics();
+        const len = 70 + (i % 3) * 38;
+        g.moveTo(0, 0).lineTo(-len, 1.5).stroke({ width: 3 + (i % 2), color: 0x3b3530, alpha: 1, cap: 'round' });
+        g.visible = false;
+        speedLayer.addChild(g);
+        speedLines.push({ g, t: 1, x: 0, y: 0, dir: 1, life: 0.3 });
+    }
+    let speedAcc = 0;
+    function stepSpeedLines(dt, snap) {
+        const p = G.player;
+        const full = (p.mode === 'ground' || p.mode === 'streck' || p.mode === 'leap') && Math.abs(p.vx) >= 1000 && !G.lessMotion && !G.hideHero;
+        if (full) {
+            speedAcc += dt * 26;
+            while (speedAcc >= 1) {
+                speedAcc -= 1;
+                const sl = speedLines.find((q) => q.t >= 1);
+                if (!sl) break;
+                const dir = Math.sign(p.vx) || 1;
+                sl.dir = dir; sl.t = 0; sl.life = 0.22 + Math.random() * 0.12;
+                sl.x = snap.x - dir * h(0.55 + Math.random() * 0.35);
+                sl.y = snap.y - h(0.15 + Math.random() * 0.75);
+            }
+        } else speedAcc = 0;
+        for (const sl of speedLines) {
+            if (sl.t >= 1) { sl.g.visible = false; continue; }
+            sl.t += dt / sl.life;
+            sl.g.visible = sl.t < 1;
+            sl.g.x = sl.x - sl.dir * sl.t * h(0.5); sl.g.y = sl.y;
+            sl.g.scale.x = sl.dir;
+            sl.g.alpha = 0.45 * Math.sin(Math.min(1, sl.t) * Math.PI);
+        }
+    }
 
     // --- scene building ---------------------------------------------------------------------
     let S = null; // current scene display
@@ -337,13 +378,14 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
         for (const ds of def.dashed || []) {
             const pts = resamplePts(ds.pts, 30);
             const c = new PIXI.Container();
-            const glow = ds.glow ? rope('stroke-glow', pts, { color: 0xffd27a, width: 16, alpha: 0.7 }) : null;
+            const glow = rope('stroke-glow', pts, { color: 0xffd27a, width: 16, alpha: 0.7 });
+            if (!ds.glow) glow.alpha = 0;
             const dash = rope('stroke-dash', pts, { color: 0x3b3530, width: 5, scale: 1 });
             const ink = rope('stroke-graphite', pts.slice(0, 2), { width: 6 });
             if (glow) c.addChild(glow);
             c.addChild(dash, ink);
             (ds.decal ? L.mid : L.objects).addChild(c);
-            d.dashed.push({ ds, c, glow, dash, ink, pts, len: lineLength(pts) });
+            d.dashed.push({ ds, c, glow, dash, ink, pts, len: lineLength(pts), x0: Math.min(ds.pts[0][0], ds.pts[ds.pts.length - 1][0]), x1: Math.max(ds.pts[0][0], ds.pts[ds.pts.length - 1][0]), y: ds.pts[0][1] });
         }
         // lanes: motes that show the flow; dashed lanes as blue dashes
         d.lanes = [];
@@ -381,7 +423,10 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
             const edge = rope('stroke-graphite', edgePts, { width: 4, alpha: 0.7 });
             const c = new PIXI.Container(); c.addChild(g, edge);
             L.cover.addChild(c);
-            d.paper.push({ pc, c });
+            // covered → (the chapter is out) waiting → turning (peels away like a page) → gone
+            const state = !G.flags.has(pc.until) ? 'covered' : G.flags.has('peeled_' + pc.id) ? 'gone' : 'waiting';
+            if (state === 'gone') c.visible = false;
+            d.paper.push({ pc, c, state, wait: 0 });
         }
         // darkness (Mörka valvet)
         d.dark = [];
@@ -412,6 +457,32 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
             // P2 stone on its rail
             O.rail = spr('rail-groove'); O.rail.x = def.rail.x0 + def.rail.step * def.rail.notches / 2; O.rail.y = def.rail.y + 8; O.rail.anchor?.set?.(0.5, 0.5); L.mid.addChild(O.rail);
             O.stone = spr('rail-stone'); O.stone.y = def.rail.y; L.objects.addChild(O.stone);
+            // the notches in the sand, and (after the reflection) a ghost of the stone where it belongs
+            O.railMarks = new PIXI.Graphics();
+            for (let i = 0; i <= def.rail.notches; i++) { const x = def.rail.x0 + i * def.rail.step; O.railMarks.moveTo(x, def.rail.y + 2).lineTo(x + 2, def.rail.y + 16); }
+            O.railMarks.stroke({ width: 3, color: 0x3b3530, alpha: 0.45, cap: 'round' });
+            L.mid.addChild(O.railMarks);
+            O.ghostStone = spr('rail-stone'); O.ghostStone.x = def.rail.x0 + def.rail.target * def.rail.step; O.ghostStone.y = def.rail.y; O.ghostStone.alpha = 0; O.ghostStone.tint = 0xfff2d8;
+            L.mid.addChild(O.ghostStone);
+            O.pushArrow = new PIXI.Graphics();
+            O.pushArrow.moveTo(-30, 0).lineTo(22, 0).stroke({ width: 7, color: 0xe0782a, cap: 'round' });
+            O.pushArrow.moveTo(8, -15).lineTo(26, 0).lineTo(8, 15).stroke({ width: 7, color: 0xe0782a, cap: 'round', join: 'round' });
+            O.pushArrow.alpha = 0; L.hints.addChild(O.pushArrow);
+            // where each backsippa's fluff will fly: a few seeds drifting along the arc to its dotted tuft
+            O.fluffPaths = [];
+            for (const c of def.clumps || []) {
+                const tx = c.x - h(5);
+                const t = (def.tussocks || []).filter((q) => Math.abs(q.x - tx) < h(1.5)).sort((a, b) => Math.abs(a.x - tx) - Math.abs(b.x - tx))[0];
+                if (!t) continue;
+                const at = (u) => [lerp(c.x, t.x, u), lerp(c.y - h(0.5), t.y - h(0.15), u) - Math.sin(u * Math.PI) * h(1.1)];
+                // a faint dotted trail (dots, not dashes: dashes mean a line to draw) and seeds drifting along it
+                const trail = new PIXI.Graphics();
+                for (let u = 0.04; u < 0.97; u += 0.045) { const [x, y] = at(u); trail.circle(x, y, 5).fill({ color: 0x7d6aa8, alpha: 0.55 }); }
+                trail.alpha = 0; L.mid.addChild(trail);
+                const motes = [];
+                for (let i = 0; i < 7; i++) { const m = spr('p-fluff'); m.anchor?.set?.(0.5); m.alpha = 0; m.scale.set(1.6); m.tint = 0xb7a3e0; L.fx.addChild(m); motes.push({ m, u: i / 7 }); }
+                O.fluffPaths.push({ c, t, at, trail, motes, vis: 0 });
+            }
             // backsippa clumps and tussocks
             O.clumps = (def.clumps || []).map((c) => { const s = spr('backsippa'); s.x = c.x; s.y = c.y; L.mid.addChild(s); const b = spr('backsippa-bare'); b.x = c.x; b.y = c.y; b.visible = false; L.mid.addChild(b); return { c, s, b }; });
             O.tussocks = (def.tussocks || []).map((t) => { const s = spr('tussock-dotted'); s.x = t.x; s.y = t.y; L.objects.addChild(s); return { t, s }; });
@@ -440,6 +511,18 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
             O.chains = (def.chains || []).map((c) => { const pts = []; for (let i = 0; i <= 16; i++) { const t = i / 16; pts.push([lerp(c.from.x, c.to.x, t), lerp(c.from.y, c.to.y, t) + Math.sin(t * Math.PI) * 60]); } const r = rope('stroke-chain', pts, { color: 0x6b635a, width: 4, scale: 1 }); r.alpha = 0.5; L.mid.addChild(r); return { c, r }; });
             O.map = spr('map-closed'); O.map.visible = false; L.objects.addChild(O.map);
             O.ratchet = d.items.find((q) => q.it.ratchet)?.s;
+            // progress rings: the pier drum (gallop steps) and the seabed plate (seconds resting on it)
+            const ring = () => { const g = new PIXI.Graphics(); g._frac = -1; L.hints.addChild(g); return g; };
+            if (O.ratchet && def.drums?.[0]) {
+                const s = O.ratchet, ax = s.anchor?.x ?? 0.5, ay = s.anchor?.y ?? 0.5;
+                O.drumRing = ring(); O.drumRing.x = s.x + (0.5 - ax) * s.width; O.drumRing.y = s.y + (0.5 - ay) * s.height;
+                O.drumRing._r = Math.max(s.width, s.height) / 2 + 18; O.drumRing._drum = def.drums[0];
+            }
+            if (def.plates?.[0]) {
+                const pl = def.plates[0];
+                O.plateRing = ring(); O.plateRing.x = pl.x; O.plateRing.y = pl.y - 14; O.plateRing._rx = pl.w / 2 + 14; O.plateRing._ry = 26; O.plateRing._plate = pl;
+                O.plateGlow = spr('p-glow'); O.plateGlow.anchor?.set?.(0.5); O.plateGlow.x = pl.x; O.plateGlow.y = pl.y - 16; O.plateGlow.alpha = 0; L.hints.addChild(O.plateGlow);
+            }
         }
         // pencils and props to colour
         O.pencils = (def.pencils || []).map((pc) => {
@@ -489,6 +572,7 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
 
     function clearScene() {
         if (!S) return;
+        dropPeels();
         for (const layer of Object.values(L)) {
             for (const ch of layer.removeChildren()) if (ch !== hero.view && !particles.some((p) => p.s === ch)) ch.destroy({ children: true });
         }
@@ -500,7 +584,9 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
         S = null;
     }
 
-    function setScene(id, { keepCam = false } = {}) {
+    function setScene(id, { keepCam = false, turn = null } = {}) {
+        // the old picture becomes a page that turns away over the new one
+        const rt = turn && S ? capture() : null;
         clearScene();
         S = buildScene(G.scenes[id]);
         S.id = id;
@@ -508,6 +594,125 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
         L.hero.addChild(hero.view);
         cam.snap = !keepCam;
         makeTooth();
+        if (rt) return startTurn(rt, { hinge: turn });
+        return null;
+    }
+
+    // --- pages turning (src/pageturn.mjs) ---------------------------------------------------------------
+    /** The view as it looks now, as a texture the size of the screen. */
+    function capture() {
+        const W = app.screen.width, H = app.screen.height;
+        if (!W || !H) return null;
+        const rt = PIXI.RenderTexture.create({ width: W, height: H, resolution: app.renderer.resolution });
+        const was = turnLayer.visible;
+        turnLayer.visible = false;
+        app.renderer.render({ container: root, target: rt, clear: true });
+        turnLayer.visible = was;
+        return rt;
+    }
+    const turns = [];
+    let held = null;
+    /** Show `rt` over the screen and turn it away (hinge: the edge it turns about). hold: wait for release(). */
+    function startTurn(rt, { hinge = 'left', duration = 1.05, hold = false } = {}) {
+        if (!rt) return null;
+        let show, destroy;
+        if (G.lessMotion) {
+            // reduced motion: a short crossfade instead of a turning page
+            const s = new PIXI.Sprite(rt); s.width = app.screen.width; s.height = app.screen.height;
+            turnLayer.addChild(s);
+            show = (k) => { s.alpha = 1 - k * k * (3 - 2 * k); };
+            destroy = () => s.destroy();
+            duration = Math.min(0.45, duration * 0.4);
+        } else {
+            // the back of the page is the notebook's own paper
+            const turn = createScreenTurn(PIXI, app, { texture: rt, hinge, parent: turnLayer, paper: T('mat-paper') || null });
+            show = (k) => turn.at(k);
+            destroy = () => turn.destroy();
+        }
+        const tr = { rt, k: 0, dur: duration, hold, show, destroy, resolve: null };
+        tr.done = new Promise((r) => { tr.resolve = r; });
+        show(0);
+        turns.push(tr);
+        onFx?.('sfx', 'page');
+        return tr;
+    }
+    function stepTurns(dt) {
+        for (let i = turns.length - 1; i >= 0; i--) {
+            const tr = turns[i];
+            if (tr.hold) continue;
+            tr.k = Math.min(1, tr.k + dt / tr.dur);
+            tr.show(tr.k);
+            if (tr.k >= 1) { turns.splice(i, 1); tr.destroy(); tr.rt.destroy(true); tr.resolve(); }
+        }
+    }
+    function endTurns() {
+        for (const tr of turns.splice(0)) { tr.destroy(); tr.rt.destroy(true); tr.resolve(); }
+        held = null;
+    }
+
+    /** A white paper cover peels away like a page, from the edge you see toward the far end of the scene. */
+    function peelCover(pc) {
+        if (pc.state === 'turning' || pc.state === 'gone') return pc.done || Promise.resolve();
+        pc.state = 'turning';
+        const d = pc.pc, H = app.screen.height / cam.zoom, Wv = app.screen.width / cam.zoom;
+        const top = cam.y - H / 2 - h(4), height = H + h(8);
+        const camL = cam.x - Wv / 2, camR = cam.x + Wv / 2;
+        // the sheet that turns is the part of the cover you can see (at least 5 HL), hinged just beyond it,
+        // so the whole turn happens in view; the rest of the cover is off screen and simply goes
+        const width = clamp((d.under ? camR - d.x0 : d.x1 - camL) + h(0.3), Math.min(h(2), d.x1 - d.x0), d.x1 - d.x0);
+        const x0 = d.under ? d.x0 : d.x1 - width;
+        const paper = T('mat-paper');
+        const finish = () => {
+            pc.state = 'gone'; pc.c.visible = false;
+            G.flags.add('peeled_' + d.id); // cosmetic: a saved game does not peel it again
+        };
+        if (!paper || G.lessMotion) {
+            // no paper texture or reduced motion: fade the cover out
+            pc.done = new Promise((resolve) => {
+                const tick = () => {
+                    if (!S || !S.paper.includes(pc)) { resolve(); return; }
+                    pc.c.alpha = Math.max(0, pc.c.alpha - 1 / 30);
+                    if (pc.c.alpha <= 0) { finish(); resolve(); } else requestAnimationFrame(tick);
+                };
+                tick();
+            });
+            return pc.done;
+        }
+        // the far edge is the hinge; the edge facing the player lifts first
+        const hinge = d.under ? 'right' : 'left';
+        const eye = { x: clamp(cam.x - x0, 0, width), y: cam.y - top }; // the viewer: follows the camera each frame
+        const page = createPage(PIXI, {
+            front: paper, tile: true, width, height, columns: Math.max(24, Math.min(96, Math.ceil(width / h(0.35)))), rows: 8,
+            edges: 'free', hinge, curl: 0.5, perspective: 1, lift: 0.04, eye
+        });
+        page.view.x = x0; page.view.y = top;
+        L.cover.addChild(page.view);
+        pc.c.visible = false;
+        const band = [clamp(camL - x0, 0, width), clamp(camR - x0, 0, width)];
+        const clock = page.timeline(band[0], band[1]);
+        const dur = 1.7;
+        let k = 0;
+        onFx?.('sfx', 'page');
+        pc.done = new Promise((resolve) => {
+            pc.resolve = resolve;
+            pc.step = (dt) => {
+                k = Math.min(1, k + dt / dur);
+                eye.x = cam.x - x0; eye.y = cam.y - top;
+                page.set(clock(k));
+                if (k >= 1) { page.destroy(); pc.page = null; pc.step = null; finish(); resolve(); }
+            };
+            pc.page = page;
+        });
+        return pc.done;
+    }
+    /** Stop a cover mid-peel (the scene is going away): free the page, count it as peeled, let awaiters go on. */
+    function dropPeels() {
+        for (const pc of S?.paper || []) {
+            if (pc.state !== 'turning') continue;
+            pc.page?.destroy(); pc.page = null; pc.step = null;
+            pc.state = 'gone'; G.flags.add('peeled_' + pc.pc.id);
+            pc.resolve?.();
+        }
     }
     /** true when the scene was built with all of its art (no placeholders) */
     function countPlaceholders() {
@@ -595,7 +800,7 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
                 else { s.scale.y = 1; }
                 if (F.has('plask')) s.visible = false;
             }
-            if (it.ratchet) s.rotation = (G.puz.drums[it.ratchet] || (F.has(it.ratchet) ? 40 : 0)) * 0.35;
+            if (it.ratchet) { const n = def.drums?.find((q) => q.id === it.ratchet)?.notches || 24; s.rotation = (F.has(it.ratchet) ? n : (G.puz.drums[it.ratchet] || 0)) * (8.4 / n); }
         }
         // dynamic thin surfaces and ramps
         for (const it of S.dyn) { if (it.c) it.c.visible = cond(it.s.when, F); }
@@ -639,7 +844,14 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
             const done = F.has(dl.ds.flag);
             const inkT = done ? 1 : (dl.ds._ink ?? 0) * (G.player.mode === 'streck' && G.player.streck?.d === dl.ds ? 1 : 0);
             dl.dash.visible = !done;
-            if (dl.glow) dl.glow.alpha = done ? 0.25 : 0.45 + Math.sin(time * 3) * 0.2;
+            if (dl.ds.glow) dl.glow.alpha = done ? 0.25 : 0.45 + Math.sin(time * 3) * 0.2;
+            else {
+                // an unfinished line you could draw now breathes when you come near
+                const p = G.player;
+                const near = !done && cond(dl.ds.inkWhen, F) && p.x > dl.x0 - h(7) && p.x < dl.x1 + h(7) && Math.abs(p.y - dl.y) < h(2);
+                dl.glow.alpha = damp(dl.glow.alpha, near ? 0.5 + Math.sin(time * 3.2) * 0.2 : 0, 3, dt);
+                dl.dash.alpha = near ? 0.78 + Math.sin(time * 3.2 + 1) * 0.22 : 1;
+            }
             const n = Math.max(2, Math.round(dl.pts.length * inkT));
             updateRopePoints(dl.ink, done ? dl.pts : (G.player.streck?.dir < 0 ? dl.pts.slice(dl.pts.length - n) : dl.pts.slice(0, n)));
             dl.ink.visible = inkT > 0.02;
@@ -668,18 +880,26 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
                 m.m.x = vx.v.x + Math.cos(m.a) * m.r; m.m.y = vx.v.y + Math.sin(m.a) * m.r;
             }
         }
-        // paper covers
+        // paper covers: once the chapter is out, the white page peels away when you first see it
         for (const pc of S.paper) {
-            const released = F.has(pc.pc.until);
-            if (released && pc.c.alpha > 0) pc.c.alpha = Math.max(0, pc.c.alpha - dt * 0.8);
-            pc.c.visible = pc.c.alpha > 0.01;
-            if (!released) pc.c.alpha = 1;
+            if (!F.has(pc.pc.until)) { pc.state = 'covered'; pc.c.visible = true; pc.c.alpha = 1; continue; }
+            if (pc.state === 'covered') { pc.state = 'waiting'; pc.wait = 0; }
+            if (pc.state === 'waiting') {
+                // peel when a good part of it is in view (so the whole turn can be seen), and nothing else is on
+                const halfW = W / cam.zoom / 2;
+                const seen = Math.max(0, Math.min(pc.pc.x1, cam.x + halfW) - Math.max(pc.pc.x0, cam.x - halfW)) / (2 * halfW);
+                pc.wait = seen > 0.3 && !G.busy ? pc.wait + dt : 0;
+                if (pc.wait > 0.4) peelCover(pc);
+            }
+            if (pc.state === 'turning') pc.step?.(dt);
         }
         for (const dk of S.dark) { const lit = F.has(dk.dk.until); dk.g.alpha = damp(dk.g.alpha, lit ? 0 : 1, 1.5, dt); }
         updateObjects(dt, snap, frozen);
         // minis: distant sköldhästar run along the far ridge during the final gallop (never close)
         stepMinis(dt, snap);
+        stepSpeedLines(dt, snap);
         stepParticles(dt);
+        stepTurns(dt);
         // tooth overlay follows the screen
         if (tooth) { tooth.width = W; tooth.height = H; }
         fade.clear();
@@ -726,6 +946,40 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
         if (def.id === 'land') {
             const target = def.rail.x0 + Z.stone * def.rail.step;
             O.stone.x = damp(O.stone.x || target, target, 6, dt);
+            // the stone's cues: only while the puzzle is open and the reflection has shown the answer
+            const railOpen = !F.has('p2_open');
+            O.railMarks.visible = railOpen;
+            const want = Math.sign(def.rail.target - Z.stone);
+            const showGhost = railOpen && F.has('p2_seen') && want !== 0;
+            O.ghostStone.alpha = damp(O.ghostStone.alpha, showGhost ? 0.45 + Math.sin(time * 2.4) * 0.12 : 0, 3, dt);
+            O.ghostStone.visible = O.ghostStone.alpha > 0.01;
+            const nearStone = showGhost && Math.abs(snap.x - O.stone.x) < h(4) && snap.mode === 'ground';
+            O.pushArrow.alpha = damp(O.pushArrow.alpha, nearStone ? 0.9 : 0, 4, dt);
+            O.pushArrow.visible = O.pushArrow.alpha > 0.01;
+            if (O.pushArrow.visible) {
+                O.pushArrow.scale.x = want || 1;
+                O.pushArrow.x = O.stone.x + (want || 1) * (Math.sin(time * 4) * 8 + 10);
+                O.pushArrow.y = def.rail.y - h(0.62);
+            }
+            // fluff paths near a backsippa whose tuft still waits
+            for (const fp of O.fluffPaths) {
+                const bare = (Z.clumps[fp.c.id] || 0) > 0;
+                const on = !F.has(fp.t.flag) && !bare && Math.abs(snap.x - fp.c.x) < h(7) && Math.abs(snap.y - fp.c.y) < h(1.2) && !G.busy;
+                fp.vis = damp(fp.vis, on ? 1 : 0, 2.5, dt);
+                fp.trail.alpha = fp.vis * (0.55 + Math.sin(time * 2.2) * 0.15);
+                fp.trail.visible = fp.vis > 0.02;
+                for (const mo of fp.motes) {
+                    mo.m.visible = fp.vis > 0.02;
+                    if (!mo.m.visible) continue;
+                    mo.u = (mo.u + dt * 0.3) % 1;
+                    const [x, y] = fp.at(mo.u);
+                    mo.m.x = x; mo.m.y = y + Math.sin(time * 3 + mo.u * 9) * 8;
+                    mo.m.alpha = fp.vis * 0.95 * Math.sin(mo.u * Math.PI);
+                    mo.m.rotation += dt * 1.5;
+                }
+                const tu = O.tussocks.find((q) => q.t === fp.t);
+                if (tu) tu.s.scale.set(1 + fp.vis * 0.07 * Math.sin(time * 4));
+            }
             for (const c of O.clumps) { const bare = (Z.clumps[c.c.id] || 0) > 0; c.s.visible = !bare; c.b.visible = bare; }
             for (const t of O.tussocks) { t.s.visible = !F.has(t.t.flag) || t.t.decor; if (t.t.decor && F.has(t.t.flag)) setTex(t.s, 'feathergrass-2'); }
             for (const pw of O.pinwheels) { pw.a += (Z.pinwheels[pw.pw.id] || 0.3) * dt * 2; pw.hd.rotation = pw.a; }
@@ -768,6 +1022,34 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
         }
         if (def.id === 'viken') {
             O.shutters.forEach((o) => setTex(o.s, F.has(o.sh.flag) ? 'shutter-open' : 'shutter-closed'));
+            // a ring (or a flat ellipse on the seabed) that fills as the progress grows
+            const drawRing = (g, frac, on) => {
+                g.alpha = damp(g.alpha, on ? 1 : 0, 3, dt);
+                g.visible = g.alpha > 0.01;
+                if (!g.visible || Math.abs(frac - g._frac) < 0.004) return;
+                g._frac = frac;
+                g.clear();
+                const rx = g._rx || g._r, ry = g._ry || g._r, w = g._ry ? 7 : 9;
+                const path = (f) => { const n = Math.max(2, Math.ceil(48 * f)); for (let i = 0; i <= n; i++) { const a = -Math.PI / 2 + (i / n) * f * Math.PI * 2; const x = Math.cos(a) * rx, y = Math.sin(a) * ry; if (i) g.lineTo(x, y); else g.moveTo(x, y); } };
+                path(1); g.stroke({ width: w, color: 0x3b3530, alpha: 0.28 });
+                if (frac > 0) { path(frac); g.stroke({ width: w, color: frac >= 1 ? 0xf6c14a : 0xe0782a, alpha: 0.95, cap: 'round', join: 'round' }); }
+            };
+            if (O.drumRing) {
+                const dr = O.drumRing._drum, done = F.has(dr.flag);
+                if (done && !O.drumRing._doneAt) O.drumRing._doneAt = time;
+                const n = Z.drums[dr.id] || 0;
+                drawRing(O.drumRing, done ? 1 : n / dr.notches, F.has('viken_arrived') && (!done ? n > 0 || Math.abs(snap.x - O.drumRing.x) < h(9) : time - O.drumRing._doneAt < 1.6));
+            }
+            if (O.plateRing) {
+                const pl = O.plateRing._plate, done = F.has(pl.flag);
+                if (done && !O.plateRing._doneAt) O.plateRing._doneAt = time;
+                const held = Z.plates[pl.id] || 0;
+                const nearPlate = !done && F.has('viken_arrived') && snap.mode === 'swim' && Math.hypot(snap.x - pl.x, snap.y - pl.y) < h(5);
+                drawRing(O.plateRing, done ? 1 : Math.min(1, held / pl.hold), done ? time - O.plateRing._doneAt < 1.6 : held > 0 || nearPlate);
+                O.plateGlow.alpha = damp(O.plateGlow.alpha, nearPlate ? 0.5 + Math.sin(time * 3) * 0.2 : 0, 3, dt);
+                O.plateGlow.visible = O.plateGlow.alpha > 0.01;
+                O.plateGlow.scale.set(1.8 + Math.sin(time * 2) * 0.2, 0.7);
+            }
             O.lamp.alpha = damp(O.lamp.alpha, F.has('lamp_lit') ? 0.95 + Math.sin(time * 2) * 0.05 : 0, 1.2, dt);
             O.chains.forEach((c) => { const on = F.has(def.shutters[c.c.shutter].flag); c.r.alpha = on ? 0.95 : 0.45; c.r.tint = on ? 0xffe08a : 0xffffff; });
             const kv = G.actors.kv;
@@ -889,7 +1171,10 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
         const viewW = W / zoom;
         const lead = snap.mode === 'swim' ? viewW * 0.12 : viewW * lerp(0.08, 0.27, cam.gal);
         let tx = snap.x + (snap.facing || 1) * lead;
-        let ty = snap.y - (H / zoom) * (portrait ? 0.08 : 0.12);
+        // a hop or a buck is small: the camera stays with the ground it left
+        const J = G.player.jump;
+        const baseY = J && (J.kind === 'hop' || J.kind === 'buck') && J.fromY !== undefined ? Math.max(snap.y, J.fromY - h(0.2)) : snap.y;
+        let ty = baseY - (H / zoom) * (portrait ? 0.08 : 0.12);
         if (snap.mode === 'swim') ty = snap.y + (S.def.underwater ? h(0.3) : -h(0.2));
         // the big leap: pan to the landing
         const L0 = G.player.leap;
@@ -979,10 +1264,20 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
                 emit('glow', def.spots.arch.x, def.spots.arch.y - h(1), 6, { g: 0, speed: 80, life: 1.4 });
                 await G.wait(1.2);
                 break;
-            case 'paperFill':
-                for (const pc of S.paper) emit('star', (pc.pc.x0 + pc.pc.x1) / 2, cam.y, 1, { g: 0, speed: 0 });
-                await G.wait(1.0);
+            case 'paperFill': {
+                // the white page over the next chapter: look at it, then it turns away. A cover far off (the
+                // other end of the scene) waits and peels by itself when the player first comes to it.
+                const Wv = app.screen.width / cam.zoom;
+                const pc = S.paper.find((q) => G.flags.has(q.pc.until) && q.state === 'waiting' && Math.abs((q.pc.under ? q.pc.x0 : q.pc.x1) - cam.x) < Wv * 1.6);
+                if (!pc) { await G.wait(0.6); break; }
+                const edge = pc.pc.under ? pc.pc.x0 : pc.pc.x1;
+                const before = G.camHint;
+                G.camHint = { x: edge + (pc.pc.under ? 1 : -1) * Wv * 0.24, y: cam.y, t0: G.time };
+                await G.wait(1.2);
+                await peelCover(pc);
+                G.camHint = before;
                 break;
+            }
             case 'lamp':
                 emit('glow', def.lamp.x, def.lamp.y, 10, { g: 0, speed: 120, life: 1.6 });
                 emit('star', def.lamp.x, def.lamp.y, 16, { g: 0, speed: 300 });
@@ -995,13 +1290,18 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
                 emit('drop', data.x, data.y, 14, { speed: 380 });
                 await G.wait(0.2);
                 break;
-            case 'unfold':
-                await fadeTo(0.9, 0.8, 0xfbf8f1);
-                await G.wait(0.4);
+            case 'unfold': {
+                // the page is lifted: the picture lies over the screen until cutToPicture turns it away
+                endTurns();
+                held = startTurn(capture(), { hinge: 'right', duration: 1.6, hold: true });
+                if (!held) await fadeTo(0.9, 0.8, 0xfbf8f1);
+                await G.wait(0.5);
                 break;
+            }
             case 'cutToPicture':
                 cam.snap = true;
-                await fadeTo(0, 0.9);
+                if (held) { const tr = held; held = null; tr.hold = false; await tr.done; }
+                else await fadeTo(0, 0.9);
                 break;
             case 'plask': {
                 const sp = def.spots.splash;
@@ -1014,16 +1314,16 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
                 break;
             }
             case 'vista': {
-                // show another scene for a moment (the lighthouse at the end of Kapitel 2)
-                await fadeTo(1, 0.4, 0xfbf8f1);
+                // turn to another page for a moment (the lighthouse at the end of Kapitel 2), then back
                 const back = S.id;
                 const save = { x: cam.x, y: cam.y, zoom: cam.zoom };
-                setScene(data.scene);
+                const hintBefore = G.camHint;
+                G.vista = true;
+                const t1 = setScene(data.scene, { turn: 'left' });
                 G.hideHero = true;
                 cam.x = data.x; cam.y = data.y; cam.zoom = (data.zoom || 1) * 0.6; cam.snap = false;
                 G.camHint = { x: data.x, y: data.y, zoom: data.zoom || 1 };
-                G.vista = true;
-                await fadeTo(0, 0.4);
+                if (t1) await t1.done; else await fadeTo(0, 0.4);
                 if (data.peek) {
                     const fig = G.actors.figure;
                     Object.assign(fig, { scene: data.scene, x: data.x, y: data.y - h(1.0), visible: true, pose: 'kv-peek', facing: -1 });
@@ -1032,11 +1332,11 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
                     onFx?.('sfx', 'latch');
                 }
                 await G.wait(Math.max(0.5, (data.t || 2) - 1.6));
-                await fadeTo(1, 0.4);
+                const t2 = setScene(back, { turn: 'right' });
                 G.vista = false; G.hideHero = false;
-                setScene(back);
-                Object.assign(cam, save);
-                await fadeTo(0, 0.4);
+                G.camHint = hintBefore; // back to what the story was looking at on this page
+                Object.assign(cam, save); cam.snap = false;
+                if (t2) await t2.done; else { fadeAlpha = 0; }
                 break;
             }
             case 'epilogue':
@@ -1054,6 +1354,7 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
 
     function destroy() {
         offs.forEach((o) => o());
+        endTurns();
         clearScene();
         hero.destroy?.();
         root.destroy({ children: true });
@@ -1061,6 +1362,8 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
 
     return {
         setScene, render, fx, resize, destroy, cam, emit, fadeTo,
+        /** a page is lying over the screen, waiting to turn (the unfold): scene changes should not turn another */
+        get holding() { return !!held; },
         get sceneId() { return S?.id; },
         built(id) { return S?.id === id && S.placeholders === 0; },
         replaceHero(newHero) { L.hero.removeChild(hero.view); hero.destroy?.(); hero = newHero; L.hero.addChild(hero.view); },

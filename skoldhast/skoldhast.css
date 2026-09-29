@@ -195,3 +195,80 @@ html.skoldhast-lock, html.skoldhast-lock body { overflow: hidden !important; ove
 
 /* at Alva's table the speech sits at the bottom, so her picture stays in view */
 .sk-root .table-mode .sk-dialogue, .sk-ui.table-mode .sk-dialogue { top: auto; bottom: max(14px, env(safe-area-inset-bottom)); }
+
+/* --- guidance: the goal note, Klo's hints, thought bubbles, tips (src/guide.mjs) --- */
+.sk-guide { position: absolute; inset: 0; pointer-events: none; z-index: 3; }
+.sk-guide.off { display: none; }
+/* the goal note and Klo's hint share one column at the top, between the journal and pause buttons */
+.sk-guide-top { position: absolute; left: 0; right: 0; top: max(10px, env(safe-area-inset-top)); display: flex; flex-direction: column; align-items: center;
+    gap: 10px; padding: 0 max(12px, env(safe-area-inset-right)) 0 max(12px, env(safe-area-inset-left)); pointer-events: none; }
+/* the pencil count becomes a small badge on the journal button, so the note can use the width */
+.sk-pencils { position: absolute; left: calc(max(12px, env(safe-area-inset-left)) + 30px); top: calc(max(10px, env(safe-area-inset-top)) + 36px);
+    padding: 1px 6px; border-radius: 9px; font-size: 12px; line-height: 16px; color: #3b3530; background: #fdf6dc; box-shadow: inset 0 0 0 1.5px rgba(59,53,48,0.55); z-index: 1; }
+.sk-pencils:empty { display: none; }
+.sk-goal { align-self: flex-start; margin-left: 62px; max-width: min(460px, calc(100% - 136px)); pointer-events: auto; cursor: pointer; position: relative;
+    display: flex; gap: 8px; align-items: baseline; text-align: left; border: 0; padding: 6px 14px 7px; border-radius: 3px 5px 4px 6px;
+    background: #fdf6dc; color: #3b3530; font: 700 15px/1.3 'Segoe Print', 'Bradley Hand', 'Chalkboard SE', 'Comic Sans MS', cursive;
+    box-shadow: 0 2px 7px rgba(59,53,48,0.22), inset 0 0 0 1.5px rgba(59,53,48,0.5); transform: rotate(-0.8deg); transform-origin: left top; }
+.sk-goal::before { content: ''; position: absolute; left: 50%; top: -7px; width: 46px; height: 14px; margin-left: -23px; transform: rotate(-3deg);
+    background: rgba(214, 160, 80, 0.55); box-shadow: 0 1px 1px rgba(59,53,48,0.12); }
+.sk-goal.empty { display: none; }
+.sk-goal-label { flex: none; font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: #9c4318; }
+.sk-goal.new { animation: sk-goal-in 0.7s cubic-bezier(0.2, 1.3, 0.4, 1); }
+@keyframes sk-goal-in { 0% { transform: translateY(-30px) rotate(-6deg); opacity: 0; } 60% { opacity: 1; } 100% { transform: rotate(-0.8deg); } }
+
+.sk-hintbubble { width: min(520px, 100%); box-sizing: border-box; display: flex; gap: 10px; align-items: center; padding: 9px 16px 10px 10px;
+    border-radius: 18px 16px 20px 14px; pointer-events: none; background: rgba(253, 248, 236, 0.97); color: #3b3530;
+    box-shadow: 0 3px 12px rgba(59,53,48,0.25), inset 0 0 0 2px rgba(156,67,24,0.55);
+    opacity: 0; visibility: hidden; transform: translateY(-10px) scale(0.96); transition: opacity 0.3s, transform 0.35s cubic-bezier(0.2, 1.3, 0.4, 1), visibility 0s 0.35s; }
+.sk-hintbubble.on { opacity: 1; visibility: visible; transform: none; pointer-events: auto; transition: opacity 0.3s, transform 0.35s cubic-bezier(0.2, 1.3, 0.4, 1); }
+.sk-hint-face { flex: none; width: 42px; height: 42px; border-radius: 50%; background: #f7dfcf center / 76% no-repeat; box-shadow: inset 0 0 0 2px rgba(156,67,24,0.6); }
+.sk-hint-body { display: flex; flex-direction: column; gap: 1px; }
+.sk-hint-who { font-weight: 800; font-size: 12px; letter-spacing: 0.03em; color: #9c4318; }
+.sk-hintbubble.who-kv .sk-hint-who { color: #2b4a78; }
+.sk-hint-text { font-size: 16px; line-height: 1.3; }
+/* a short landscape phone has no sky to spare: the hint takes the goal note's place for a moment */
+@media (orientation: landscape) and (max-height: 520px) {
+    .sk-guide-top.hinting .sk-goal { display: none; }
+    .sk-hintbubble { width: min(640px, calc(100% - 136px)); padding: 6px 14px 7px 8px; }
+    .sk-hint-face { width: 34px; height: 34px; }
+    .sk-hint-text { font-size: 15px; }
+}
+
+.sk-think { position: absolute; left: 0; top: 0; max-width: 230px; padding: 9px 14px 10px; border-radius: 22px; text-align: center;
+    background: #fff; color: #3b3530; font: 700 14px/1.25 'Segoe Print', 'Bradley Hand', 'Chalkboard SE', 'Comic Sans MS', cursive;
+    box-shadow: 0 2px 8px rgba(59,53,48,0.22), inset 0 0 0 2px rgba(59,53,48,0.55); opacity: 0; transition: opacity 0.25s; }
+.sk-think.on { opacity: 1; }
+.sk-think-dot { position: absolute; left: 0; top: 0; border-radius: 50%; background: #fff; box-shadow: inset 0 0 0 2px rgba(59,53,48,0.55); }
+.sk-think-dot.a { width: 14px; height: 14px; }
+.sk-think-dot.b { width: 8px; height: 8px; }
+
+.sk-tip { position: absolute; left: 0; top: 0; max-width: min(400px, calc(100% - 40px)); box-sizing: border-box; display: flex; gap: 10px; align-items: center;
+    padding: 9px 16px; border-radius: 12px; background: rgba(59, 53, 48, 0.9); color: #fbf6e8; font-size: 15px; line-height: 1.3;
+    opacity: 0; transition: opacity 0.3s; --a: 20px; }
+.sk-tip.on { opacity: 1; animation: sk-tip-in 0.5s cubic-bezier(0.2, 1.3, 0.4, 1); }
+@keyframes sk-tip-in { from { margin-top: 8px; } to { margin-top: 0; } }
+.sk-tip-icon { font-size: 18px; }
+.sk-tip::after { content: ''; position: absolute; width: 0; height: 0; border: 8px solid transparent; display: none; }
+.sk-tip.pt-down::after { display: block; left: var(--a); bottom: -16px; border-top-color: rgba(59, 53, 48, 0.9); }
+.sk-tip.pt-up::after { display: block; left: var(--a); top: -16px; border-bottom-color: rgba(59, 53, 48, 0.9); }
+.sk-tip.pt-right::after { display: block; top: var(--a); right: -16px; border-left-color: rgba(59, 53, 48, 0.9); }
+.sk-tip.pt-left::after { display: block; top: var(--a); left: -16px; border-right-color: rgba(59, 53, 48, 0.9); }
+
+.big-text .sk-goal { font-size: 18px; } .big-text .sk-hint-text { font-size: 19px; } .big-text .sk-think, .big-text .sk-tip { font-size: 17px; }
+.less-motion .sk-goal.new, .less-motion .sk-tip.on { animation: none; }
+.less-motion .sk-hintbubble { transform: none; }
+
+/* toasts start below the goal note and the hint (guide.mjs sets --sk-guide-free) */
+.sk-toasts { top: var(--sk-guide-free, max(70px, calc(env(safe-area-inset-top) + 64px))); }
+/* a speech box at the top: toasts go low instead, above the (idle) controls */
+.sk-ui:has(.sk-dialogue.on) .sk-toasts { top: auto; bottom: 30%; }
+/* short landscape phones: speech at the bottom, where the controls rest during a scene, so the sköldhäst stays in view */
+@media (orientation: landscape) and (max-height: 520px) {
+    .sk-ui:not(.table-mode) .sk-dialogue { top: auto; bottom: max(10px, env(safe-area-inset-bottom)); transform: translate(-50%, 8px); }
+    .sk-ui:not(.table-mode) .sk-dialogue.on { transform: translate(-50%, 0); }
+    .sk-ui:has(.sk-dialogue.on) .sk-toasts { top: max(70px, calc(env(safe-area-inset-top) + 64px)); bottom: auto; }
+}
+
+/* --- the stick asks for a full gallop (input.mjs toggles .gallop) --- */
+.sk-stick-base.gallop .sk-stick-knob { filter: drop-shadow(0 0 7px rgba(246, 193, 74, 0.95)) drop-shadow(0 0 2px rgba(224, 120, 42, 0.9)); }
