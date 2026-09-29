@@ -11,7 +11,8 @@
  * The UI never changes the game directly; it returns promises and calls the
  * handlers main.mjs gives it.
  */
-import { UI, NAMES, JOURNAL, HINTS, HER_TEXT, WORD_CODES, FAMILY, MENU } from './content/sv.mjs';
+import { UI, NAMES, JOURNAL, HINTS, HER_TEXT, WORD_CODES, FAMILY, MENU, DRAWING } from './content/sv.mjs';
+import { createDrawing } from './drawing.mjs';
 
 const el = (tag, cls, text) => {
     const n = document.createElement(tag);
@@ -48,7 +49,7 @@ export function createUI(host, { assetBase, handlers }) {
     // their own sound below, including the arrow-key shortcut.
     root.addEventListener('click', e => {
         const b = e.target.closest?.('button');
-        if (!b || b.disabled || b.closest('.sk-controls, .sk-dialogue') || b.matches('.sk-j-tab, .sk-j-arrow, .sk-journal-btn')) return;
+        if (!b || b.disabled || b.closest('.sk-controls, .sk-dialogue, .sk-draw') || b.matches('.sk-j-tab, .sk-j-arrow, .sk-journal-btn')) return;
         handlers.onMenuSound?.('ui');
     }, true);
     root.addEventListener('change', e => { if (e.target.matches?.('.sk-settings input')) handlers.onMenuSound?.('ui'); });
@@ -718,108 +719,8 @@ export function createUI(host, { assetBase, handlers }) {
     // ---------------------------------------------------------------------------
     // Drawing overlay: Alva's pencil (prologue strokes, the final stroke)
     // ---------------------------------------------------------------------------
-    const drawLayer = el('div', 'sk-draw');
-    const drawCanvas = el('canvas');
-    const drawPrompt = el('div', 'sk-draw-prompt');
-    drawLayer.append(drawCanvas, drawPrompt);
-    root.appendChild(drawLayer);
-    let cancelDraw = null, destroyed = false;
-    /**
-     * opts: { prompt, ghost: [[x,y]...] in CSS px (free drawing over a faint ghost),
-     *         anchors: [[x,y]...] (trace/tap along generous anchors), color, width }
-     * Resolves with the drawn points (CSS px).
-     * Replacing or destroying the overlay cancels its input without advancing the old story.
-     */
-    function draw(opts) {
-        if (destroyed) return new Promise(() => {});
-        cancelDraw?.();
-        const W = host.clientWidth, H = host.clientHeight;
-        const dpr = Math.min(2, window.devicePixelRatio || 1);
-        drawCanvas.width = W * dpr; drawCanvas.height = H * dpr;
-        drawCanvas.style.width = W + 'px'; drawCanvas.style.height = H + 'px';
-        const ctx = drawCanvas.getContext('2d');
-        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-        drawPrompt.textContent = opts.prompt || '';
-        drawLayer.classList.add('on');
-        const pts = [];
-        let anchorsHit = 0;
-        const anchors = opts.anchors || null;
-        const redraw = () => {
-            ctx.clearRect(0, 0, W, H);
-            if (opts.ghost) {
-                ctx.save(); ctx.globalAlpha = 0.28; ctx.strokeStyle = '#6b635a'; ctx.lineWidth = 5; ctx.setLineDash([10, 9]); ctx.lineCap = 'round';
-                ctx.beginPath(); opts.ghost.forEach(([x, y], i) => (i ? ctx.lineTo(x, y) : ctx.moveTo(x, y))); ctx.stroke(); ctx.restore();
-            }
-            if (anchors) {
-                anchors.forEach(([x, y], i) => {
-                    ctx.beginPath(); ctx.arc(x, y, 22, 0, Math.PI * 2);
-                    ctx.fillStyle = i < anchorsHit ? 'rgba(59,53,48,0.55)' : 'rgba(255,210,122,0.45)'; ctx.fill();
-                    ctx.lineWidth = 2; ctx.strokeStyle = '#3b3530'; ctx.stroke();
-                });
-            }
-            if (pts.length > 1) {
-                ctx.strokeStyle = opts.color || '#3b3530'; ctx.lineWidth = opts.width || 5; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
-                ctx.beginPath(); pts.forEach(([x, y], i) => (i ? ctx.lineTo(x, y) : ctx.moveTo(x, y))); ctx.stroke();
-            }
-        };
-        redraw();
-        return new Promise((resolve) => {
-            let down = false, active = true, finishTimer = null, pointerId = null;
-            const cancel = () => {
-                if (!active) return;
-                active = false;
-                clearTimeout(finishTimer);
-                drawLayer.classList.remove('on');
-                drawLayer.onpointerdown = drawLayer.onpointermove = drawLayer.onpointerup = drawLayer.onpointercancel = null;
-                window.removeEventListener('keydown', onKey);
-                if (pointerId !== null && drawLayer.hasPointerCapture?.(pointerId)) drawLayer.releasePointerCapture(pointerId);
-                if (cancelDraw === cancel) cancelDraw = null;
-            };
-            const finish = () => {
-                if (!active) return;
-                cancel();
-                resolve(pts.length > 1 ? pts.slice() : (opts.ghost ? opts.ghost.slice() : anchors ? anchors.slice() : []));
-            };
-            // Repeated taps/key repeats must not keep postponing a confirmed drawing.
-            const finishAfter = (ms) => { if (finishTimer === null) finishTimer = setTimeout(finish, ms); };
-            const hitAnchor = (x, y) => {
-                if (!anchors) return;
-                while (anchorsHit < anchors.length && Math.hypot(anchors[anchorsHit][0] - x, anchors[anchorsHit][1] - y) < 46) {
-                    anchorsHit++; handlers.onPencil?.(0.15);
-                    if (opts.stopAt && anchorsHit >= opts.stopAt) { down = false; finish(); return; }
-                }
-                if (anchorsHit >= anchors.length) finishAfter(250);
-            };
-            drawLayer.onpointerdown = (e) => {
-                down = true; pointerId = e.pointerId; drawLayer.setPointerCapture?.(pointerId);
-                pts.push([e.offsetX, e.offsetY]); hitAnchor(e.offsetX, e.offsetY); redraw();
-            };
-            drawLayer.onpointermove = (e) => {
-                if (!down) return;
-                const last = pts[pts.length - 1];
-                if (!last || Math.hypot(e.offsetX - last[0], e.offsetY - last[1]) > 3) { pts.push([e.offsetX, e.offsetY]); handlers.onPencil?.(0.05); }
-                hitAnchor(e.offsetX, e.offsetY); redraw();
-            };
-            drawLayer.onpointerup = drawLayer.onpointercancel = () => {
-                if (!down) return;
-                down = false;
-                if (anchors) { if (anchorsHit >= anchors.length) finish(); return; }
-                // a free stroke: accepted whatever it is (a too-short one becomes the ghost shape)
-                if (pts.length < 6) pts.length = 0;
-                finish();
-            };
-            // keyboard: Enter/space draws it for you (plan: keyboard users confirm anchors)
-            const onKey = (e) => {
-                if (e.key === 'Enter' || e.key === ' ') {
-                    e.preventDefault();
-                    if (anchors) { anchorsHit = opts.stopAt || anchors.length; pts.length = 0; anchors.slice(0, anchorsHit).forEach((a) => pts.push(a)); redraw(); finishAfter(300); }
-                    else { pts.length = 0; finish(); }
-                }
-            };
-            cancelDraw = cancel;
-            window.addEventListener('keydown', onKey);
-        });
-    }
+    const drawing = createDrawing(root, { host, words: DRAWING, onPencil: handlers.onPencil, onUiSound: handlers.onMenuSound });
+    const draw = opts => drawing.draw(opts);
 
     // ---------------------------------------------------------------------------
     return {
@@ -842,6 +743,6 @@ export function createUI(host, { assetBase, handlers }) {
         },
         showControls(on) { controls.classList.toggle('off', !on); hud.classList.toggle('off', !on); },
         setBigText(on) { root.classList.toggle('big-text', !!on); },
-        destroy() { destroyed = true; cancelDraw?.(); root.remove(); }
+        destroy() { drawing.destroy(); root.remove(); }
     };
 }

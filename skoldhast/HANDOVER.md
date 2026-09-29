@@ -322,3 +322,9 @@ or additional chapter release is part of this branch.
 - The goal note, notebook hint and world target share one semantic guidance selector. Context cards name the actual next action and distinguish approach, hiding, waiting, sinking/drifting and emergence. Control wording follows hold/toggle and follow-finger settings; progress comes from the puzzle state.
 - P2 commits the stone independently of the plank, including old saves. P5 refreshes collision when the lanternfish light the passage. P8 arrives once, holds the shell still, saves the sea half and resumes the final drawing after reload. Emerging always releases the hold.
 - Tests cover puzzle ordering, save/reload, deterministic P8 schedules and eleven guidance situations. The integrated pure suite currently passes117 tests, including drawing/map work in progress. Focused context shots cover eighteen states at both phone sizes.
+
+### Deeper polish: drawing drafts and forgiving tracing
+
+- Free drawings use a large paper pad with a preview, Rita om, Rita åt mig and Klar. Cancelled or tiny touches cannot silently commit a replacement drawing. Finished strokes map back into the original notebook margin and remain bounded to200 points.
+- Guided strokes accept fast segments or intentional point taps, support the final line in either direction, own one pointer, cancel cleanly and keep their geometry correct after rotation. Keyboard help and focus containment remain available.
+- Checks: seven geometry tests, the native pointer/cancel/rotation/focus browser suite at both phone sizes, ten close/reopen cycles, and fresh P1–P8 plus extra-activity journeys on touch at both phone sizes and keyboard landscape. Run `tests/browser/skoldhast-drawing.mjs` and `tests/browser/skoldhast-journey.mjs`.

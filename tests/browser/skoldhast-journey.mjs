@@ -48,7 +48,11 @@ try {
         const state = await pg.evaluate(() => {
             const d = window.__skoldhast.debug;
             if (d.ui.dialogueOpen()) d.ui.advance();
-            return { intro: d.G.flags.has('intro_done'), draw: !!document.querySelector('.sk-draw.on'), prompt: document.querySelector('.sk-draw-prompt')?.textContent, points: window.__journeyDraw?.anchors || window.__journeyDraw?.ghost, choice: !!document.querySelector('.sk-choice.on button') };
+            const opts = window.__journeyDraw, geometry = opts?.getGeometry?.() || opts;
+            let points = geometry?.anchors || geometry?.ghost;
+            const pad = document.querySelector('.sk-draw.free.on .sk-draw-pad')?.getBoundingClientRect();
+            if (pad && geometry.bounds && geometry.ghost) points = geometry.ghost.map(([x, y]) => [pad.x + (x - geometry.bounds.x) / geometry.bounds.width * pad.width, pad.y + (y - geometry.bounds.y) / geometry.bounds.height * pad.height]);
+            return { intro: d.G.flags.has('intro_done'), draw: !!document.querySelector('.sk-draw.on'), preview: !!document.querySelector('.sk-draw.on.preview'), prompt: document.querySelector('.sk-draw-prompt')?.textContent, points, choice: !!document.querySelector('.sk-choice.on button') };
         });
         if (state.intro) break;
         if (i && i % 20 === 0) console.log('prologue waiting:', state.draw ? `${state.prompt} (${state.points?.length} points)` : 'dialogue / animation');
@@ -57,7 +61,8 @@ try {
                 await pg.screenshot({ path: path.join(out, `00-prologue-cloud-${args.input || 'keyboard'}-${width}x${height}.png`) });
                 cloudPhotographed = true;
             }
-            if (touchMode && state.points?.length) {
+            if (state.preview) await pg.locator('.sk-draw-done')[touchMode ? 'tap' : 'click']();
+            else if (touchMode && state.points?.length) {
                 // A real touch trace for Alva's three prologue drawings.
                 const cdp = await ctx.newCDPSession(pg);
                 const points = state.points;
@@ -66,6 +71,7 @@ try {
                 for (const [x, y] of points.slice(1)) await cdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x, y, id: 1 }] });
                 await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
                 await cdp.detach();
+                if (await pg.locator('.sk-draw.on.free.preview').count()) await pg.locator('.sk-draw-done').tap();
             } else await pg.keyboard.press('Enter');
         }
         if (state.choice) await pg.locator('.sk-choice.on button').first()[touchMode ? 'tap' : 'click']();
@@ -134,13 +140,19 @@ try {
                 render(); app.render();
                 if (ui.dialogueOpen()) { await sleep(365); ui.advance(); }
                 else if (document.querySelector('.sk-draw.on')) {
-                    const opts = window.__journeyDraw, layer = document.querySelector('.sk-draw.on');
-                    if (touchMode && (opts?.anchors || opts?.ghost)?.length) {
-                        layer.setPointerCapture = () => {};
-                        const points = opts.anchors || opts.ghost;
-                        pointer(layer, 'pointerdown', ...points[0]);
-                        for (const pt of points.slice(1)) pointer(layer, 'pointermove', ...pt);
-                        pointer(layer, 'pointerup', ...points.at(-1));
+                    const opts = window.__journeyDraw, geometry = opts?.getGeometry?.() || opts, layer = document.querySelector('.sk-draw.on');
+                    if (layer.classList.contains('preview')) layer.querySelector('.sk-draw-done').click();
+                    else if (touchMode && (geometry?.anchors || geometry?.ghost)?.length) {
+                        const canvas = layer.querySelector('canvas'); canvas.setPointerCapture = () => {};
+                        let points = geometry.anchors || geometry.ghost;
+                        if (!geometry.anchors && geometry.bounds) {
+                            const pad = layer.querySelector('.sk-draw-pad').getBoundingClientRect(), b = geometry.bounds;
+                            points = points.map(([x, y]) => [pad.x + (x - b.x) / b.width * pad.width, pad.y + (y - b.y) / b.height * pad.height]);
+                        }
+                        pointer(canvas, 'pointerdown', ...points[0]);
+                        for (const pt of points.slice(1)) pointer(canvas, 'pointermove', ...pt);
+                        pointer(canvas, 'pointerup', ...points.at(-1));
+                        if (layer.classList.contains('preview')) layer.querySelector('.sk-draw-done').click();
                     } else { key('Enter', true); key('Enter', false); }
                     await sleep(320);
                 }

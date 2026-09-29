@@ -5,6 +5,8 @@
   "src/audio.mjs",
   "src/content/sv.mjs",
   "src/content/world.mjs",
+  "src/drawing-geometry.mjs",
+  "src/drawing.mjs",
   "src/game.mjs",
   "src/guardian.mjs",
   "src/guidance-state.mjs",
