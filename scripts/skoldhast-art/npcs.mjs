@@ -1676,6 +1676,53 @@ export function buildKvFrames(scale = KV_SCALE) {
     return out;
 }
 
+/** Small articulated pieces retain the same paper facets as the complete poses.
+ * Their origins are real joints, so a rotating knee never carries a padded
+ * whole-character frame around with it. No words are baked into these parts. */
+export function buildGuardianParts(scale = KV_SCALE) {
+    const out = [];
+    const mk = (name, w, h, draw) => {
+        const sh = sprite('kv-part-' + name, w, h, scale * KV_SIZE, [0.5, 0.5]);
+        draw(sh);
+        out.push({ name: 'kv-part-' + name, canvas: finish(sh, [0.5, 0.5]), anchor: [0.5, 0.5] });
+    };
+    // Coat coordinates are relative to the hips; the shoulder line is y=-56.
+    mk('coat', 80, 140, (sh) => {
+        const poly = [[-4,-59],[-11,-55],[-14,-45],[-22,6],[-16,10],[-10,7],[-4,10],[2,7],[8,10],[14,7],[21,9],[12,-55],[4,-59]];
+        paperPiece(sh, poly, { facets: [
+            { poly: [[-11,-55],[-14,-45],[-22,6],[-16,10],[-6,8],[2,-41]], shade: 1 },
+            { poly: [[2,-41],[6,10],[21,10],[12,-55]], shade: 1, angle: 0.5 }
+        ], folds: [[[2,-41],[-7,8]],[[2,-41],[6,8]],[[-12,-44],[-11,-28]]], line: 2.2 });
+        paperPiece(sh, [[-4,-59],[2,-41],[-11,-55]], { facets: [{ poly: [[-4,-59],[2,-41],[-11,-55]], shade: 2 }], line: 1.6 });
+        paperPiece(sh, [[4,-59],[2,-41],[12,-55]], { line: 1.6 });
+        sh.dots(P.inkBlue, sh.T([[3,-34],[4,-24],[5,-14]]), { rx: 1.4 * sh.S, ry: 1.4 * sh.S, alpha: 0.9, opaque: true });
+    });
+    mk('cape', 84, 140, (sh) => paperPiece(sh,
+        [[-7,-56],[-14,-51],[-27,8],[-20,12],[-10,7],[2,-41]],
+        { facets: [{ poly: [[-14,-51],[-27,8],[-20,12],[-16,-24]], shade: 2 }], folds: [[[-11,-45],[-20,7]]], line: 1.7 }));
+    for (const [name, width] of [['leg',7.4],['arm',6.6],['neck',6]]) {
+        mk(name, 26, 86, (sh) => paperStrip(sh, [0,0], [0,32], width, { capA: 1.5, capB: 1.5, shadeSide: -1 }));
+    }
+    mk('shoe', 52, 24, (sh) => paperPiece(sh,
+        [[-4.5,-2.6],[2.5,-3.2],[15,3.6],[14.5,4.4],[-4,4.4],[-5.5,2]],
+        { facets: [{ poly: [[-6,1.2],[16,1.2],[16,6],[-6,6]], shade: 2 }], folds: [[[-4.5,1.2],[11,1.8]]], line: 1.8 }));
+    for (const kind of ['mitt','grip','open','point']) mk('hand-' + kind, 40, 32, (sh) => paperHand(sh, [0,0], 0, kind));
+    mk('ruler', 140, 22, (sh) => drawRuler(sh, [-32,0], [32,0]));
+    mk('pencil', 50, 58, (sh) => drawPencil(sh, [-6,-12], [6,12], 3.2));
+    for (const mood of ['normal','worry','soft']) for (const action of ['','-blink','-talk']) {
+        mk('head-' + mood + action, 90, 76, (sh) => {
+            const pose = kvDefault();
+            pose.head = [0,0]; pose.headTilt = 0; pose.only = { hands: [] };
+            pose.face = { brows: mood === 'soft' ? 'soft' : mood === 'worry' ? 'up' : 'worry',
+                eyes: action === '-blink' ? 'closed' : mood === 'worry' ? 'wide' : 'dot',
+                mouth: action === '-talk' ? 'o' : mood === 'soft' ? 'smile' : 'wobbly',
+                blush: mood === 'soft', look: [0.65, 0.15] };
+            drawKv(sh, pose);
+        });
+    }
+    return out;
+}
+
 // ---------------------------------------------------------------------------
 // Creatures: small, cute, pencil-simple
 // ---------------------------------------------------------------------------
@@ -2264,7 +2311,7 @@ export async function build(api) {
     api.atlas('npcs-land', { scale: 1.5, bundle: 'land', quality: 78 });
     for (const f of creatures.filter(isLand)) api.frame('npcs-land', f.name, f.canvas, f.anchor);
     api.atlas('npcs-bay', { scale: 1.5, bundle: 'bay', quality: 78 });
-    for (const f of buildKvFrames(1.5)) api.frame('npcs-bay', f.name, f.canvas, f.anchor);
+    for (const f of [...buildKvFrames(1.5), ...buildGuardianParts(1.5)]) api.frame('npcs-bay', f.name, f.canvas, f.anchor);
     api.atlas('table', { scale: 1, bundle: 'boot', quality: 72 });
     for (const f of tableFrames()) api.frame('table', f.name, f.canvas, f.anchor);
 }

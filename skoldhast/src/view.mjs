@@ -13,8 +13,10 @@ import { HL, cond, heightOn, lineLength, pointAt } from './sim.mjs';
 import { createPage, createScreenTurn } from './pageturn.mjs';
 import { terrainShape } from './terrain-shape.mjs';
 import { createKlo } from './klo.mjs';
+import { createGuardian } from './guardian.mjs';
 import { createWaterLight } from './scenery.mjs';
 import { pencilAvailable } from './puzzles.mjs';
+import { createRouteCue, createPencilBeam } from './route-cue.mjs';
 
 const h = (v) => v * HL;
 const lerp = (a, b, t) => a + (b - a) * t;
@@ -402,7 +404,9 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
             if (glow) c.addChild(glow);
             c.addChild(dash, ink);
             (ds.decal ? L.mid : L.objects).addChild(c);
-            d.dashed.push({ ds, c, glow, dash, ink, pts, distances, len: distances.at(-1), x0: Math.min(ds.pts[0][0], ds.pts[ds.pts.length - 1][0]), x1: Math.max(ds.pts[0][0], ds.pts[ds.pts.length - 1][0]), y: ds.pts[0][1] });
+            const route = ds.glow ? createRouteCue(PIXI, pts, { label: ds.id }) : null;
+            if (route) L.hints.addChild(route.container);
+            d.dashed.push({ ds, c, glow, dash, ink, route, pts, distances, len: distances.at(-1), x0: Math.min(ds.pts[0][0], ds.pts[ds.pts.length - 1][0]), x1: Math.max(ds.pts[0][0], ds.pts[ds.pts.length - 1][0]), y: ds.pts[0][1] });
         }
         // lanes: motes that show the flow; dashed lanes as blue dashes
         d.lanes = [];
@@ -418,6 +422,10 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
                 path(); band.stroke({ width: ln.width * 0.24, color: 0xf7fcff, alpha: 0.26, cap: 'round', join: 'round' });
                 L.mid.addChild(band);
                 item.band = band;
+            }
+            if (ln.dashed) {
+                item.route = createRouteCue(PIXI, pts, { water: true, label: ln.id });
+                L.hints.addChild(item.route.container);
             }
             const n = Math.ceil(item.len / (ln.dashed ? 140 : 75));
             for (let i = 0; i < n; i++) {
@@ -544,7 +552,15 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
         }
         if (def.id === 'viken') {
             O.shutters = def.shutters.map((sh) => { const s = spr('shutter-closed'); s.anchor?.set?.(0.5); s.x = sh.x; s.y = sh.y; L.objects.addChild(s); return { sh, s }; });
-            O.lamp = spr('lamp-lit'); O.lamp.anchor?.set?.(0.5); O.lamp.x = def.lamp.x; O.lamp.y = def.lamp.y; O.lamp.alpha = 0; L.fx.addChild(O.lamp);
+            O.lamp = spr('lamp-lit'); O.lamp.anchor?.set?.(0.5); O.lamp.x = def.lamp.x; O.lamp.y = def.lamp.y; O.lamp.alpha = G.flags.has('lamp_lit') ? 1 : 0; L.fx.addChild(O.lamp);
+            O.beam = createPencilBeam(PIXI); O.beam.position.set(def.lamp.x, def.lamp.y); O.beam.alpha = G.flags.has('lamp_lit') ? .88 : 0; L.far.addChild(O.beam);
+            O.windowMarks = new PIXI.Container(); O.windowMarks.label = 'p8-window-marks';
+            for (const [i, name] of ['mark-land', 'mark-sea'].entries()) {
+                const mark = spr(name); mark.anchor?.set?.(.5); mark.scale.set(.54);
+                mark.position.set(def.spots.window.x + (i ? 36 : -36), def.spots.window.y - 84);
+                O.windowMarks.addChild(mark);
+            }
+            O.windowMarks.visible = false; L.hints.addChild(O.windowMarks);
             O.chains = (def.chains || []).map((c) => { const pts = []; for (let i = 0; i <= 16; i++) { const t = i / 16; pts.push([lerp(c.from.x, c.to.x, t), lerp(c.from.y, c.to.y, t) + Math.sin(t * Math.PI) * 60]); } const r = rope('stroke-chain', pts, { color: 0x6b635a, width: 4, scale: 1 }); r.alpha = 0.5; L.mid.addChild(r); return { c, r }; });
             O.map = spr('map-closed'); O.map.visible = false; L.objects.addChild(O.map);
             O.ratchet = d.items.find((q) => q.it.ratchet)?.s;
@@ -571,8 +587,11 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
         O.kloRig = createKlo(PIXI, { texture: T });
         O.klo = O.kloRig.container; L.actors.addChild(O.klo);
         O.kloSign = spr('sign-hast'); O.kloSign.visible = false; L.actors.addChild(O.kloSign);
-        O.kv = spr('kv-stand'); O.kv.visible = false; L.actors.addChild(O.kv);
-        O.figure = spr('kv-walk-1'); O.figure.visible = false; L.actors.addChild(O.figure);
+        O.kvRig = createGuardian(PIXI, { texture: T });
+        O.kv = O.kvRig.container; O.kv.label = 'guardian-kv'; O.kv.visible = false; L.actors.addChild(O.kv);
+        O.figureRig = createGuardian(PIXI, { texture: T });
+        O.figure = O.figureRig.container; O.figure.label = 'guardian-figure'; O.figure.visible = false; L.actors.addChild(O.figure);
+        O.guardianOptions = { scene: def.id, hero: G.player, time: 0, dt: 0, reducedMotion: false, figure: false };
         O.signe = spr('turtle-signe'); O.signe.visible = false; L.actors.addChild(O.signe);
         // Sandpapperet: hoofprints on sand (walk prints fade, gallop prints stay as graphite)
         if (def.printMats) { O.prints = new PIXI.Container(); L.mid.addChild(O.prints); O.printSprites = []; }
@@ -602,6 +621,8 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
             for (const sh of def.shutters) { const s = spr('shutter-open'); s.anchor?.set?.(0.5); s.x = sh.x; s.y = w.top + (w.top - sh.y); s.scale.y = -1; inner.addChild(s); }
             const lamp = spr('lamp-lit'); lamp.anchor?.set?.(0.5); lamp.x = def.lamp.x; lamp.y = w.top + (w.top - def.lamp.y); inner.addChild(lamp);
             c._lamp = lamp;
+            const beam = createPencilBeam(PIXI); beam.position.set(lamp.x, lamp.y); beam.scale.y = -1;
+            inner.addChildAt(beam, 0); c._beam = beam;
             mask.clear().rect(w.x0, w.top, w.x1 - w.x0, h(9)).fill({ color: 0xffffff });
         }
         c._inner = inner;
@@ -655,7 +676,7 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
         const x = def.spots.lighthouse.x, y = bay.w.top;
         const shore = [[x - h(3.5), y + 8], [x - h(2.4), y - h(0.45)], [x + h(2.4), y - h(0.45)], [x + h(3.5), y + 8]];
         fillPoly(island, shore, 'rock');
-        c.addChild(island, rope('stroke-graphite', shore, { width: 4 }), tower, ...O.shutters.map(o => o.s), O.lamp, O.figure);
+        c.addChild(island, rope('stroke-graphite', shore, { width: 4 }), O.beam, tower, ...O.shutters.map(o => o.s), O.lamp, O.figure);
         const sea = new PIXI.Graphics();
         fillPoly(sea, [[x - h(100), y], [x + h(100), y], [x + h(100), y + h(100)], [x - h(100), y + h(100)]], 'mat-water', 0.2);
         c.addChild(bay.refl, sea, bay.light.view);
@@ -919,10 +940,17 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
         for (const dl of S.dashed) {
             const vis = cond(dl.ds.when, F);
             dl.c.visible = vis;
+            if (dl.route) dl.route.container.visible = vis;
             if (!vis) continue;
             const done = F.has(dl.ds.flag);
             const inkT = done ? 1 : (dl.ds._ink ?? 0) * (G.player.mode === 'streck' && G.player.streck?.d === dl.ds ? 1 : 0);
-            dl.dash.visible = !done;
+            dl.dash.visible = !done && !dl.route;
+            if (dl.route) {
+                const r = S.routeReveal;
+                const segment = S.dashed.indexOf(dl);
+                const reveal = r && !G.lessMotion ? clamp((time - r.start) / r.duration * 3 - segment, 0, 1) : 1;
+                dl.route.update({ visible: vis, completed: done, reveal, time, reducedMotion: G.lessMotion });
+            }
             if (dl.ds.glow) dl.glow.alpha = done ? 0.25 : 0.45 + Math.sin(time * 3) * 0.2;
             else {
                 // an unfinished line you could draw now breathes when you come near
@@ -938,7 +966,8 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
         // lanes
         for (const ln of S.lanes) {
             const active = cond(ln.ln.when, F);
-            if (ln.line) ln.line.visible = active;
+            if (ln.line) ln.line.visible = active && !ln.route;
+            if (ln.route) ln.route.update({ visible: active, time, reducedMotion: G.lessMotion });
             if (ln.band) ln.band.visible = active;
             for (const m of ln.motes) {
                 m.m.visible = active;
@@ -1144,6 +1173,8 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
                 O.plateGlow.scale.set(1.8 + Math.sin(time * 2) * 0.2, 0.7);
             }
             O.lamp.alpha = damp(O.lamp.alpha, F.has('lamp_lit') ? 0.95 + Math.sin(time * 2) * 0.05 : 0, 1.2, dt);
+            O.beam.alpha = damp(O.beam.alpha, F.has('lamp_lit') ? .88 : 0, 2, dt);
+            O.windowMarks.visible = F.has('p8_land') && !F.has('p8_done');
             O.chains.forEach((c) => { const on = F.has(def.shutters[c.c.shutter].flag); c.r.alpha = on ? 0.95 : 0.45; c.r.tint = on ? 0xffe08a : 0xffffff; });
             const kv = G.actors.kv;
             O.map.visible = kv.visible && kv.scene === 'viken';
@@ -1162,8 +1193,12 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
         O.kloRig.update(k, { scene: S.id, time: G.time, dt, underwater: S.def.underwater || (S.id === 'viken' && k.y > 0), hero: G.player, talking: k.talking || k.talkUntil > G.time, reducedMotion: G.lessMotion });
         O.kloSign.visible = O.klo.visible && !!k.holding;
         if (O.kloSign.visible) { setTex(O.kloSign, k.holding); O.kloSign.x = O.klo.x + 20 * k.facing; O.kloSign.y = O.klo.y - 70; }
-        drawActor(O.kv, G.actors.kv, 'kv', dt);
-        drawActor(O.figure, G.actors.figure, 'figure', dt);
+        const guardianOptions = O.guardianOptions;
+        guardianOptions.time = G.time; guardianOptions.dt = dt; guardianOptions.hero = G.player;
+        guardianOptions.reducedMotion = G.lessMotion; guardianOptions.figure = false;
+        O.kvRig.update(G.actors.kv, guardianOptions);
+        guardianOptions.figure = true;
+        O.figureRig.update(G.actors.figure, guardianOptions);
         drawActor(O.signe, G.actors.signe, 'signe', dt);
         drawPrints();
         // hints
@@ -1199,9 +1234,10 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
         if (kind === 'kv') {
             setTex(s, 'kv-' + (a.walk ? (Math.floor(time * 6) % 2 ? 'walk-1' : 'walk-2') : a.pose));
         } else if (kind === 'signe') {
-            const moving = a.walk || a.pose === 'walk';
-            setTex(s, moving ? (Math.floor(time * 6) % 2 ? 'turtle-signe-1' : 'turtle-signe-2') : 'turtle-signe');
-            if (a.pose === 'wave') s.rotation = Math.sin(time * 6) * 0.06; else s.rotation = 0;
+            const moving = (a.speed || 0) > 0 || a.walk || a.pose === 'walk';
+            const phase = G.lessMotion ? 0 : a.walkPhase ?? time * .7;
+            setTex(s, moving ? (Math.floor(phase * 2) % 2 ? 'turtle-signe-1' : 'turtle-signe-2') : 'turtle-signe');
+            if (a.pose === 'wave' && !G.lessMotion) s.rotation = Math.sin(time * 3) * 0.04; else s.rotation = 0;
         } else {
             setTex(s, Math.floor(time * 7) % 2 ? 'kv-walk-1' : 'kv-walk-2');
         }
@@ -1385,7 +1421,10 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
                 await G.wait(1.4);
                 break;
             case 'lineAppears':
-                await G.wait(0.8);
+                S.routeReveal = { start: time, duration: G.lessMotion ? .2 : 1.2 };
+                if (!G.lessMotion) for (const dl of S.dashed) if (dl.route) dl.route.update({ reveal: 0 });
+                onFx?.('sfx', 'pencil');
+                await G.wait(G.lessMotion ? .25 : 1.25);
                 break;
             case 'pop':
                 emit('drop', data.x, data.y, 14, { speed: 380 });

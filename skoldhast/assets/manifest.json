@@ -58,8 +58,8 @@
    "images": [
     "npcs-bay.webp"
    ],
-   "bytes": 63364,
-   "frames": 9
+   "bytes": 93176,
+   "frames": 30
   },
   "table": {
    "bundle": "boot",
@@ -610,7 +610,7 @@
     "assets/bg-bay-evening.webp",
     "assets/mat-cream.webp"
    ],
-   "bytes": 655464
+   "bytes": 685276
   }
  },
  "built": "2026-09-29"

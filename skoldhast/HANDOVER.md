@@ -309,3 +309,10 @@ or additional chapter release is part of this branch.
 - **The hero's pose is local to the feet** while its hooves and hair live in world space. Always test it with real world coordinates; a test at x = 0 hid a bug that lifted it and sent its hair far away.
 - **Headless Chromium renders WebGL in software**, so browser checks must wait for state rather than time it. A 60 ms tap can arrive as a long press at DPR 2 (`tests/browser/skoldhast-touch.mjs` runs at DPR 1 for that reason).
 - **Contact sheets** for all 27 places at 844×390, 390×844 and 1440×900 are in `docs/skoldhast/shots/k3/` (refreshed after the polish round). The menus are in `docs/skoldhast/shots/menus/`.
+
+### Deeper polish: lighthouse route and paper guardian
+
+- P8 now uses reserved-paper dashes, directional arrows and distinct endpoint marks, readable over both planks and water. The route draws itself on arrival; completed segments remain quiet. The lamp and its reflection have a bounded, hatched beam.
+- Kartväktaren has articulated paper limbs, blinks, breathing, hem movement, walking, talking gestures and smooth pose changes. His window glimpse correctly shows his head and hands. Map lettering is never mirrored; reduced motion removes idle movement.
+- Signe's foot cycle follows actual travel distance, including her newly gentle race speed.
+- Checks: five guardian pure tests; 18 guardian poses across both phone aspects; 22 focused scene captures plus two reveal states; the full ink-mesh regression. No game browser errors. Run `tests/browser/skoldhast-guardian.mjs` and `tests/browser/skoldhast-polish-scenes.mjs` (headers document options).
