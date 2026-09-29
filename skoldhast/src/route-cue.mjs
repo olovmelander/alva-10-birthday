@@ -72,15 +72,19 @@ export function createPencilBeam(PIXI) {
     container.label = 'lighthouse-pencil-beam';
     const edge = new PIXI.Graphics();
     edge.moveTo(0, -9).lineTo(-770, -84).moveTo(0, 9).lineTo(-770, 84)
-        .stroke({ width: 3, color: 0x485764, alpha: .13 });
+        .stroke({ width: 3, color: 0x485764, alpha: .25 });
+    edge.moveTo(-16, 0).lineTo(-340, 2).lineTo(-724, 5)
+        .stroke({ width: 7, color: 0xfffbe9, alpha: .55 });
+    edge.moveTo(-24, 4).lineTo(-346, 5).lineTo(-718, 8)
+        .stroke({ width: 1.4, color: 0xcbb779, alpha: .45 });
     container.addChild(edge);
     for (let i = 0; i < 11; i++) {
         const offset = (i - 5) / 5, g = new PIXI.Graphics();
         const x = -590 - (i % 3) * 65;
         g.moveTo(-12, offset * 8).lineTo(x, offset * 73)
-            .stroke({ width: 13, color: 0xfff6c8, alpha: .055 + (1 - Math.abs(offset)) * .055 });
+            .stroke({ width: 13, color: 0xfff6c8, alpha: .08 + (1 - Math.abs(offset)) * .065 });
         g.moveTo(-20, offset * 8).lineTo(x * .44, offset * 32).moveTo(x * .5, offset * 38).lineTo(x, offset * 73)
-            .stroke({ width: 2.3, color: 0xfffbea, alpha: .16 + (1 - Math.abs(offset)) * .13 });
+            .stroke({ width: 2.3, color: 0xfffbea, alpha: .23 + (1 - Math.abs(offset)) * .21 });
         container.addChild(g);
     }
     return container;

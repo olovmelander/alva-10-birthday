@@ -544,11 +544,10 @@ export function createStory(G, io) {
         on: 'reflectionSeen', filter: (e) => e.id === 'bay',
         async run(s) {
             await s.wait(0.6);
-            // look at the lighthouse and its reflection while Klo talks about them
-            const lh = G.sceneDef.spots.lighthouse;
-            await s.cam({ x: lh.x - h(2), y: lh.y - h(1.5), zoom: 0.62, t: 0.9, hold: 0.6 });
-            await s.say(STORY.k3.mirror);
-            s.camFree();
+            // Keep the actual answer visible for the whole explanation. The
+            // reversible comparison removes the rock face hiding the reflection.
+            await s.fx('vista', { scene: 'viken', lighthouse: true, comparison: true,
+                whileVisible: () => s.say(STORY.k3.mirror), hold: 0.6 });
             s.checkpoint('pier');
         }
     });

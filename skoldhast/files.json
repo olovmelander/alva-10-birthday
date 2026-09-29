@@ -1,6 +1,7 @@
 {
  "files": [
   "vendor/pixi-8.21.0.min.mjs",
+  "src/action-cue.mjs",
   "src/assets.mjs",
   "src/audio.mjs",
   "src/content/sv.mjs",

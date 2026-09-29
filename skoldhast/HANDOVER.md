@@ -328,3 +328,11 @@ or additional chapter release is part of this branch.
 - Free drawings use a large paper pad with a preview, Rita om, Rita åt mig and Klar. Cancelled or tiny touches cannot silently commit a replacement drawing. Finished strokes map back into the original notebook margin and remain bounded to200 points.
 - Guided strokes accept fast segments or intentional point taps, support the final line in either direction, own one pointer, cancel cleanly and keep their geometry correct after rotation. Keyboard help and focus containment remain available.
 - Checks: seven geometry tests, the native pointer/cancel/rotation/focus browser suite at both phone sizes, ten close/reopen cycles, and fresh P1–P8 plus extra-activity journeys on touch at both phone sizes and keyboard landscape. Run `tests/browser/skoldhast-drawing.mjs` and `tests/browser/skoldhast-journey.mjs`.
+
+### Deeper polish: atmosphere, paper transitions and mirror staging
+
+- Water's foreground pencil veil is lighter; bounded highlights/rays and drifting flecks add depth without filters or new assets. Foreground kelp fades near the hero. A faint real ridge supports the distant steppe figure.
+- Nearby action symbols and their progress use the exact same guidance object as the HUD. They distinguish a shell, emergence, travel and interaction without depending on colour.
+- Reduced motion freezes decorative water, fronds, lanes, vortex motes and clouds. Paper-cover fades use elapsed time, the final page lifts before unfolding, and each world page turn has one sound.
+- P7's mirror explanation uses a reversible lighthouse comparison throughout the dialogue, keeping the dark real lamp and lit reflection visible in either phone orientation. It restores the scene, hidden hero, camera and controls; the temporary layout observer is destroyed on close.
+- Focused renderer check:30 recorded states across both phone sizes, zero errors. P7 uses a real hiding trigger; the mirror-vista browser test checks framing and restoration. Pages and renderer lifecycle checks pass.

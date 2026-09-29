@@ -25,7 +25,9 @@ const stages = [
     { name: '08-guardian-talk', scene: 'viken', x: 21.5, y: -.62, phase: 'guardian', guardian: 'point', talking: true },
     { name: '09-guardian-peek', scene: 'viken', x: 28, y: -7.3, phase: 'peek', peek: true },
     { name: '10-evening-bay', scene: 'viken', x: 20.5, y: -.62, phase: 'p8', evening: true },
-    { name: '11-kelp-silhouette', scene: 'kelp', x: 12, y: 3.4, mode: 'swim', phase: 'kelp' }
+    { name: '11-kelp-silhouette', scene: 'kelp', x: 12, y: 3.4, mode: 'swim', phase: 'kelp' },
+    { name: '12-steppe-ridge', scene: 'land', x: 58, y: -.82, phase: 'p8' },
+    { name: '13-lit-lamp-gallery', scene: 'viken', x: 28, y: -7.3, phase: 'p8', hideHero: true, focusX: 29.8 }
 ];
 const revision = execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim();
 const server = await serve(), browser = await launch(), records = [], errors = [];
@@ -57,6 +59,7 @@ try {
             d.guide.clear();
         });
         for (const stage of stages) {
+            if (args.only && !stage.name.includes(String(args.only))) continue;
             const record = await pg.evaluate(stage => {
                 const { G, view, app, ui, guide, story } = window.__skoldhast.debug;
                 const { snapshot } = window.__polishSim;
@@ -70,7 +73,7 @@ try {
                 if (stage.phase === 'guardian') for (const f of ['shutter1','shutter2','shutter3','lamp_lit','kv_met']) G.flags.add(f);
                 if (stage.phase === 'plate') G.flags.add('shutter1');
                 G.time = 12; G.busy = 0; G.evening = !!stage.evening; G.lessMotion = false;
-                G.hideHero = !!stage.peek; G.vista = false; G.finalRun = false; G.freeze = false;
+                G.hideHero = !!stage.peek || !!stage.hideHero; G.vista = false; G.finalRun = false; G.freeze = false;
                 G.goto(stage.scene, { x: stage.x * 200, y: stage.y * 200, facing: 1, mode: stage.mode || 'ground' }, { silent: true });
                 Object.assign(G.player, { x: stage.x * 200, y: stage.y * 200, px: stage.x * 200, py: stage.y * 200,
                     vx: 0, vy: 0, speed: 0, gait: 'stand', gaitPhase: .2, hidden: !!stage.hidden, hide: stage.hidden ? 1 : 0 });
@@ -80,14 +83,17 @@ try {
                 if (stage.peek) Object.assign(G.actors.figure, { visible: true, scene: 'viken', x: G.sceneDef.lamp.x,
                     y: G.sceneDef.lamp.y + 45, facing: -1, pose: 'kv-peek' });
                 G.puz.plates.plate = stage.hidden ? .6 : 0;
-                G.camHint = stage.peek ? { x: 29.8 * 200, y: -7.7 * 200, zoom: 1 } : { x: stage.x * 200, y: (stage.y - .8) * 200, zoom: 1 };
+                G.camHint = stage.peek ? { x: 29.8 * 200, y: -7.7 * 200, zoom: 1 } : { x: (stage.focusX ?? stage.x) * 200, y: (stage.y - .8) * 200, zoom: 1 };
                 // Scene decor uses randomness only at construction: fixed seed gives
                 // the same fronds and particles in before and after captures.
                 const random = Math.random; let seed = 6021;
                 Math.random = () => ((seed = seed * 16807 % 2147483647) - 1) / 2147483646;
                 try { view.setScene(stage.scene); } finally { Math.random = random; }
                 view.cam.snap = true;
-                guide.clear(); guide.goal(story.goal()); guide.show(true); guide.update();
+                guide.clear(); guide.goal(story.goal()); guide.show(!stage.hideHero); guide.update();
+                ui.showControls(!stage.hideHero);
+                G.guidance = story.guidance?.();
+                if (G.guidance) guide.context?.(G.guidance);
                 ui.setContext(stage.mode === 'swim' ? null : undefined, G.player.hidden);
                 // A fixed number of visual frames settles hair/alpha; it does not
                 // step puzzles, move the player or trigger a story beat.
@@ -101,11 +107,12 @@ try {
                         ...c.routeCue, visible: c.visible, shown: c.children.filter(m => m.visible).length })),
                     guardian: view.layers.actors.children.filter(c => c.label?.startsWith('guardian-')).map(c => ({
                         label: c.label, visible: c.visible, articulated: c.children[1]?.visible,
-                        visibleParts: c.children[1]?.children.filter(p => p.visible).length })) };
+                        visibleParts: c.children[1]?.children.filter(p => p.visible).length })),
+                    actionCue: (() => { const c = view.layers.hints.children.find(c => c.guidanceCue); return c && { ...c.guidanceCue, visible: c.visible }; })() };
             }, stage);
             assert.equal(record.built, true, `${size} ${stage.name}: complete artwork`);
             if (args.verify) {
-                if (stage.phase === 'p8') {
+                if (stage.phase === 'p8' && stage.scene === 'viken') {
                     const routes = record.routes.filter(c => c.label.startsWith('route-p8-d'));
                     assert.equal(routes.length, 3, `${size}: all three land segments have shaped route marks`);
                     assert.ok(routes.every(c => c.visible && c.reveal === 1 && c.shown > 10), `${size}: land route visible without a pulse`);
@@ -158,10 +165,27 @@ try {
             assert.deepEqual(reveal.reduced, [1, 1, 1], `${size}: reduced motion shows the full cue`);
             assert.equal(reveal.seaAfterEnd, false, `${size}: completed ending has no active sea route`);
             records.push({ viewport: size, reveal });
+            const calm = await pg.evaluate(() => {
+                const { G, view } = window.__skoldhast.debug, { snapshot } = window.__polishSim;
+                G.goto('kelp', { x: 12 * 200, y: 3.4 * 200, mode: 'swim' }, { silent: true });
+                G.lessMotion = true; G.guidance = null; view.setScene('kelp'); view.cam.snap = true;
+                const render = () => view.render(snapshot(G.player, 1, G.terrain, G.time), 1 / 60);
+                for (let i = 0; i < 60; i++) render();
+                const geometry = () => ({
+                    waves: view.layers.waterFront.children.filter(c => c._pts).map(c => c._pts.map(p => [p.x, p.y])),
+                    kelp: [...view.layers.mid.children, ...view.layers.fore.children].filter(c => c._strip).map(c => [...c._strip.positions]),
+                    atmosphere: view.layers.far.children.find(c => c.atmosphere).children.map(c => [c.x, c.y, c.scale.x, c.scale.y, c.alpha])
+                });
+                const first = geometry();
+                for (let i = 0; i < 120; i++) render();
+                return { first, later: geometry() };
+            });
+            assert.deepEqual(calm.first, calm.later, `${size}: reduced-motion water, fronds and atmospheric marks stay still`);
+            records.push({ viewport: size, reducedSceneryStable: true });
         }
         await pg.close();
     }
     assert.deepEqual(errors, []);
-    fs.writeFileSync(path.join(out, 'states.json'), JSON.stringify({ revision, staged: true, records, errors }, null, 2));
+    fs.writeFileSync(path.join(out, args.only ? `states-${String(args.only).replace(/[^a-z0-9-]/gi, '')}.json` : 'states.json'), JSON.stringify({ revision, staged: true, records, errors }, null, 2));
     console.log(`${records.length} focused states captured; no browser errors; ${out}`);
 } finally { await browser.close(); server.close(); }

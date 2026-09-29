@@ -14,9 +14,10 @@ import { createPage, createScreenTurn } from './pageturn.mjs';
 import { terrainShape } from './terrain-shape.mjs';
 import { createKlo } from './klo.mjs';
 import { createGuardian } from './guardian.mjs';
-import { createWaterLight } from './scenery.mjs';
+import { createWaterLight, createAtmosphere } from './scenery.mjs';
 import { pencilAvailable } from './puzzles.mjs';
 import { createRouteCue, createPencilBeam } from './route-cue.mjs';
+import { createActionCue } from './action-cue.mjs';
 
 const h = (v) => v * HL;
 const lerp = (a, b, t) => a + (b - a) * t;
@@ -37,6 +38,7 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
     const T = (name) => assets.tex(name);
     let destroyed = false;
     const pendingFrames = new Set();
+    const comparisonObservers = new Set();
     function nextFrame(callback) {
         if (destroyed) return;
         const id = requestAnimationFrame((time) => {
@@ -246,6 +248,8 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
 
     function buildScene(def) {
         const d = { def, items: [], dyn: [], ropes: [], waters: [], sky: [], bg: [], paper: [], dashed: [], kelp: [], disposers: [] };
+        d.atmosphere = createAtmosphere(PIXI, { scene: def.id });
+        L.far.addChild(d.atmosphere.view);
         // backdrops
         for (const b of def.backdrop || []) {
             const t = T(b.image);
@@ -315,7 +319,9 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
             if (w.kind === 'pipe') continue;
             const wb = { w, g: new PIXI.Graphics(), surf: null, refl: null };
             const yb = w.bottom ?? bottom;
-            const alpha = def.underwater ? 0.2 : w.kind === 'pool' ? 0.5 : 0.42;
+            // A translucent pencil veil should tint the creature, not erase its
+            // legs under repeating white water hatching.
+            const alpha = def.underwater ? 0.12 : w.kind === 'pool' ? 0.36 : 0.26;
             fillPoly(wb.g, [[w.x0, w.top], [w.x1, w.top], [w.x1, yb], [w.x0, yb]], def.underwater ? 'mat-deep' : 'mat-water', alpha);
             if (!T('mat-water')) { wb.g.clear(); wb.g.rect(w.x0, w.top, w.x1 - w.x0, yb - w.top).fill({ color: 0x5b9bd0, alpha: alpha * 0.8 }); }
             L.waterFront.addChild(wb.g);
@@ -360,7 +366,7 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
                     const fore = it.layer === 'fore';
                     if (fore) r.alpha = 0.6; // the sköldhäst stays visible through the front fronds
                     (fore ? L.fore : L.mid).addChild(r);
-                    d.kelp.push({ r, pts, x, fy, H, n, phase: Math.random() * 6, chapter: it.chapter });
+                    d.kelp.push({ r, pts, x, fy, H, n, fore, phase: Math.random() * 6, chapter: it.chapter });
                 }
                 continue;
             }
@@ -538,6 +544,12 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
             O.gate = spr('gate-closed'); O.gate.x = h(115.2); O.gate.y = h(-0.16); L.objects.addChild(O.gate);
             O.glimpse = heroFactory({ mini: true });
             O.glimpse.view.scale.set(0.34);
+            O.glimpseRidge = new PIXI.Container();
+            const ridge = [[-1050, 350], [-740, 180], [-390, 55], [-90, 0], [100, 0], [480, 90], [1030, 320]];
+            const ridgeFill = new PIXI.Graphics();
+            fillPoly(ridgeFill, [...ridge, [1030, 1600], [-1050, 1600]], 'grass', .27);
+            O.glimpseRidge.addChild(ridgeFill, rope('stroke-graphite', resamplePts(ridge, 45), { alpha: .2 }));
+            L.far.addChild(O.glimpseRidge);
             L.far.addChild(O.glimpse.view);
             O.landmark = spr('mark-land'); O.landmark.x = def.spots.landmark.x; O.landmark.y = def.spots.landmark.y - h(0.4); O.landmark.anchor?.set?.(0.5); L.objects.addChild(O.landmark);
             O.ropeDown = spr('rope-plank-down'); O.ropeDown.x = h(7.95); O.ropeDown.y = h(-4.0) + 10; O.ropeDown.anchor?.set?.(0, 0.5); L.mid.addChild(O.ropeDown);
@@ -598,6 +610,7 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
         // the hint mark and Alva's own gull
         O.hint = spr('p-glow'); O.hint.anchor?.set?.(0.5); O.hint.visible = false; L.hints.addChild(O.hint);
         O.hintGull = null;
+        O.actionCue = createActionCue(PIXI); L.hints.addChild(O.actionCue.container);
     }
 
     function buildReflection(def, w) {
@@ -717,21 +730,26 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
             duration = Math.min(0.45, duration * 0.4);
         } else {
             // the back of the page is the notebook's own paper
-            const turn = createScreenTurn(PIXI, app, { texture: rt, hinge, parent: turnLayer, paper: T('mat-paper') || null });
+            const turn = createScreenTurn(PIXI, app, { texture: rt, hinge, parent: turnLayer, paper: T('mat-paper') || null,
+                curl: .43, lift: .095, slant: .045 });
             show = (k) => turn.at(k);
             destroy = () => turn.destroy();
         }
-        const tr = { rt, k: 0, dur: duration, hold, show, destroy, resolve: null };
+        const tr = { rt, k: 0, dur: duration, hold, preview: 0, show, destroy, resolve: null };
         tr.done = new Promise((r) => { tr.resolve = r; });
         show(0);
         turns.push(tr);
-        onFx?.('sfx', 'page');
         return tr;
     }
     function stepTurns(dt) {
         for (let i = turns.length - 1; i >= 0; i--) {
             const tr = turns[i];
-            if (tr.hold) continue;
+            if (tr.hold) {
+                // The final page takes a breath and lifts before it turns. Reduced
+                // motion holds a still picture, then uses the short crossfade.
+                if (!G.lessMotion) { tr.preview = Math.min(.065, tr.preview + dt * .13); tr.k = tr.preview; tr.show(tr.preview); }
+                continue;
+            }
             tr.k = Math.min(1, tr.k + dt / tr.dur);
             tr.show(tr.k);
             if (tr.k >= 1) { turns.splice(i, 1); tr.destroy(); tr.rt.destroy(true); tr.resolve(); }
@@ -761,9 +779,11 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
         if (!paper || G.lessMotion) {
             // no paper texture or reduced motion: fade the cover out
             pc.done = new Promise((resolve) => {
+                const started = performance.now(), duration = G.lessMotion ? 280 : 450;
                 const tick = () => {
                     if (!S || !S.paper.includes(pc)) { resolve(); return; }
-                    pc.c.alpha = Math.max(0, pc.c.alpha - 1 / 30);
+                    const k = clamp((performance.now() - started) / duration, 0, 1);
+                    pc.c.alpha = 1 - k * k * (3 - 2 * k);
                     if (pc.c.alpha <= 0) { finish(); resolve(); } else nextFrame(tick);
                 };
                 tick();
@@ -822,6 +842,7 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
         const F = G.flags;
         const frozen = def.id === 'land' ? (!F.has('plask') || G.freeze) : false;
         const W = app.screen.width, H = app.screen.height;
+        const scenicTime = G.lessMotion ? 0 : time;
 
         // hero
         hero.update(dt, snap);
@@ -835,6 +856,7 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
         const shx = cam.shake > 0 ? (Math.random() - 0.5) * cam.shake : 0;
         cam.shake = Math.max(0, cam.shake - dt * 30);
         world.position.set(W / 2 - cam.x * cam.zoom + shx, H / 2 - cam.y * cam.zoom);
+        S.atmosphere.update({ cam, width: W, height: H, time: scenicTime, lessMotion: G.lessMotion, evening: G.evening });
 
         // backdrops (cover the screen, crossfade by camera x)
         for (const b of S.bg) {
@@ -866,20 +888,20 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
             const sy = H / 2 + (it.y - cam.y) * cam.zoom * Math.max(0.5, it.par * 2.5);
             let ox = 0, oy = 0;
             if (it.kind === 'gull') {
-                if (!frozen || !it.her) { it.phase += dt * 2.2; ox = Math.sin(it.phase * 0.35) * 40; oy = Math.sin(it.phase * 0.7) * 16; }
+                if ((!frozen || !it.her) && !G.lessMotion) { it.phase += dt * 2.2; ox = Math.sin(it.phase * 0.35) * 40; oy = Math.sin(it.phase * 0.7) * 16; }
                 // scattered by a neigh or a passing gallop: up and away, back after a while
-                if (it.scatter !== undefined) {
+                if (it.scatter !== undefined && !G.lessMotion) {
                     const u = time - it.scatter;
                     if (u > 7) it.scatter = undefined;
                     else { const k = u < 3 ? u : 3 - (u - 3) * 0.75; it.phase += dt * 3; ox += k * 90 * (it.dir || 1); oy -= k * 70; }
                 }
                 const fr = frozen && it.her && it.scatter === undefined ? 1 : 1 + (Math.floor(it.phase * 3) % 4);
                 setTex(it.s, 'gull-m-' + fr);
-            } else if (it.anim === 'cloud' && (!frozen || it.it?.user)) {
+            } else if (it.anim === 'cloud' && (!frozen || it.it?.user) && !G.lessMotion) {
                 it.x += dt * 6;
                 if (it.it?.user && it.x > def.spots.start.x + h(14)) it.x -= h(30);
             }
-            else if (it.anim === 'sun' && !frozen) { it.s.rotation = Math.sin(time * 0.2) * 0.02; }
+            else if (it.anim === 'sun' && !frozen) { it.s.rotation = G.lessMotion ? 0 : Math.sin(time * 0.2) * 0.02; }
             it.s.x = sx + ox * cam.zoom; it.s.y = sy + oy * cam.zoom;
             it.s.scale.set(cam.zoom * (it.s._baseScale || 1) * (it.s.scale.x < 0 ? -1 : 1), cam.zoom * (it.s._baseScale || 1));
         }
@@ -899,6 +921,7 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
                 if (F.has('plask')) s.visible = false;
             }
             if (it.ratchet) { const n = def.drums?.find((q) => q.id === it.ratchet)?.notches || 24; s.rotation = (F.has(it.ratchet) ? n : (G.puz.drums[it.ratchet] || 0)) * (8.4 / n); }
+            if (/^(feathergrass|dune-grass)/.test(it.sprite || '')) s.rotation = G.lessMotion ? 0 : Math.sin(time * .7 + it.x * .006) * .025;
         }
         // dynamic thin surfaces and ramps
         for (const it of S.dyn) { if (it.c) it.c.visible = cond(it.s.when, F); }
@@ -909,9 +932,13 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
             if (!k.r.visible) continue;
             const pts = k.pts;
             const sway = (G.player.hidden && Math.abs(G.player.x - k.x) < h(1.5)) ? 0.4 : 1;
+            if (k.fore) {
+                const crossesHero = Math.abs(snap.x - k.x) < h(.75) && snap.y > k.fy - k.H && snap.y - h(1.5) < k.fy;
+                k.r.alpha = damp(k.r.alpha, crossesHero ? .16 : .6, 6, dt);
+            }
             for (let i = 0; i <= k.n; i++) {
                 const u = 1 - i / k.n; // 1 at the top
-                pts[i][0] = k.x + Math.sin(time * 0.9 + k.phase + u * 2.2) * 38 * u * u * sway + Math.sin(time * 0.37 + k.phase) * 12 * u;
+                pts[i][0] = k.x + Math.sin(scenicTime * 0.9 + k.phase + u * 2.2) * 38 * u * u * sway + Math.sin(scenicTime * 0.37 + k.phase) * 12 * u;
                 pts[i][1] = k.fy - k.H * u;
             }
             if (k.r._strip) updateStrip(k.r, pts);
@@ -924,7 +951,7 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
             const amp = frozen && def.id === 'land' && wb.w.kind === 'sea' ? 0 : (wb.w.kind === 'pool' ? 6 : 10) * Math.max(0.15, calm);
             for (let i = 0; i < P.length; i++) {
                 const bx = wb.surfBase[i][0];
-                P[i].y = wb.w.top + Math.sin(time * 2.1 + bx * 0.012) * amp + Math.sin(time * 1.3 + bx * 0.031) * amp * 0.4;
+                P[i].y = wb.w.top + Math.sin(scenicTime * 2.1 + bx * 0.012) * amp + Math.sin(scenicTime * 1.3 + bx * 0.031) * amp * 0.4;
             }
             refreshRope(wb.surf);
             wb.light?.update({ time, cam, width: W, height: H, frozen: frozen && def.id === 'land' && wb.w.kind === 'sea', evening: G.evening, lessMotion: G.lessMotion, ripple: calm });
@@ -932,7 +959,7 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
                 const r = S.vista ? 0.08 : G.puz.pools[wb.w.id]?.ripple ?? 1;
                 const vis = clamp(1 - r * 1.6, 0, 1);
                 wb.refl._inner.alpha = 0.12 + 0.62 * vis;
-                wb.refl._inner.x = Math.sin(time * 7) * 18 * r;
+                wb.refl._inner.x = G.lessMotion ? 0 : Math.sin(time * 2) * 9 * r;
                 if (wb.refl._fish) { wb.refl._fish.x = wb.w.x0 + ((time * 90) % (wb.w.x1 - wb.w.x0)); wb.refl._fish.visible = vis > 0.4; }
             }
         }
@@ -972,7 +999,7 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
             for (const m of ln.motes) {
                 m.m.visible = active;
                 if (!active) continue;
-                m.s = (m.s + ln.ln.speed * dt * 0.6) % ln.len;
+                if (!G.lessMotion) m.s = (m.s + ln.ln.speed * dt * 0.6) % ln.len;
                 const pt = pointAt(ln.pts, m.s);
                 m.m.x = pt.x - pt.ty * m.off; m.m.y = pt.y + pt.tx * m.off;
                 const fade = Math.sin(Math.PI * (m.s / ln.len));
@@ -985,8 +1012,10 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
             for (const m of vx.motes) {
                 m.m.visible = active;
                 if (!active) continue;
-                m.a += dt * (vx.v.speed / Math.max(120, m.r)) * vx.v.spin;
-                m.r = m.r > vx.v.eye * 1.3 ? m.r - dt * 22 : vx.v.r * (0.6 + Math.random() * 0.5);
+                if (!G.lessMotion) {
+                    m.a += dt * (vx.v.speed / Math.max(120, m.r)) * vx.v.spin;
+                    m.r = m.r > vx.v.eye * 1.3 ? m.r - dt * 22 : vx.v.r * (0.6 + Math.random() * 0.5);
+                }
                 m.m.x = vx.v.x + Math.cos(m.a) * m.r; m.m.y = vx.v.y + Math.sin(m.a) * m.r;
             }
         }
@@ -1114,6 +1143,7 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
             const gp = def.spots.glimpse1;
             const lie = Z.glimpse.glimpse1 || 0;
             O.glimpse.view.x = gp.x + (cam.x - gp.x) * 0.35; O.glimpse.view.y = gp.y;
+            O.glimpseRidge.position.set(O.glimpse.view.x, gp.y);
             O.glimpse.view.visible = !G.finalRun;
             O.glimpse.update(dt, { x: gp.x, y: gp.y, facing: -1, gait: 'stand', mode: 'ground', hide: lie, speed: 0, time, groundAt: () => gp.y });
             O.landmark.visible = F.has('ch2_open') && !F.has('mark_land');
@@ -1203,6 +1233,8 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
         drawPrints();
         // hints
         const hi = G.story?.hintInfo?.();
+        O.actionCue.update(G.guidance, { scene: S.id, hero: G.player, cam, width: app.screen.width, height: app.screen.height,
+            busy: !!G.busy || G.hideHero || G.vista, time, lessMotion: G.lessMotion });
         if (hi && hi.level >= 0.5 && hi.spot && !G.busy) {
             O.hint.visible = true;
             O.hint.x = hi.spot.x; O.hint.y = hi.spot.y - h(0.4);
@@ -1304,8 +1336,11 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
             // Both the lamp and its reflection fit in landscape and portrait. This is
             // a distant view, so it is independent of the playable page's edge clamps.
             const f = hint.frame;
-            cam.x = (f.x0 + f.x1) / 2; cam.y = (f.y0 + f.y1) / 2;
-            cam.zoom = Math.min(W * 0.9 / (f.x1 - f.x0), H * 0.9 / (f.y1 - f.y0));
+            const pad = f.insets || { left: W * .05, right: W * .05, top: H * .05, bottom: H * .05 };
+            const roomW = Math.max(80, W - pad.left - pad.right), roomH = Math.max(100, H - pad.top - pad.bottom);
+            cam.zoom = Math.min(roomW / (f.x1 - f.x0), roomH / (f.y1 - f.y0));
+            cam.x = (f.x0 + f.x1) / 2 + (pad.right - pad.left) / (2 * cam.zoom);
+            cam.y = (f.y0 + f.y1) / 2 + (pad.bottom - pad.top) / (2 * cam.zoom);
             cam.snap = false;
             return;
         }
@@ -1385,6 +1420,7 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
             case 'foldDemo': {
                 // a patch of beach folds up like paper and unfolds again
                 const s = spr('rock-1'); s.x = data.x; s.y = data.y; L.objects.addChild(s);
+                if (G.lessMotion) { await G.wait(.3); if (!s.destroyed) s.destroy(); break; }
                 const t0 = time;
                 await new Promise((r) => {
                     const tick = () => {
@@ -1464,6 +1500,28 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
                 G.hideHero = true;
                 const frame = data.lighthouse ? lighthouseVista() : null;
                 G.camHint = frame ? { frame } : { x: data.x, y: data.y, zoom: data.zoom || 1 };
+                // The mirror comparison lasts as long as its dialogue. Reserve
+                // that actual DOM rectangle without measuring layout each frame.
+                let comparisonObserver = null;
+                const fitComparison = () => {
+                    if (!data.comparison || !frame || destroyed) return;
+                    const W = app.screen.width, H = app.screen.height;
+                    const dialog = app.canvas.closest('.sk-root')?.querySelector('.sk-dialogue.on') || document.querySelector('.sk-dialogue.on');
+                    frame.insets = { left: 24, right: 24, top: 34, bottom: 34 };
+                    if (!dialog) return;
+                    const bounds = dialog.getBoundingClientRect(), canvas = app.canvas.getBoundingClientRect();
+                    const sy = H / canvas.height, top = (bounds.top - canvas.top) * sy, bottom = (bounds.bottom - canvas.top) * sy;
+                    if ((top + bottom) / 2 > H / 2) frame.insets.bottom = Math.min(H - 130, H - top + 22);
+                    else frame.insets.top = Math.min(H - 130, bottom + 22);
+                };
+                if (data.comparison && frame) {
+                    fitComparison();
+                    const dialog = document.querySelector('.sk-dialogue');
+                    if (dialog && typeof ResizeObserver !== 'undefined') {
+                        comparisonObserver = new ResizeObserver(fitComparison); comparisonObserver.observe(dialog);
+                        comparisonObservers.add(comparisonObserver);
+                    }
+                }
                 if (!frame) { cam.x = data.x; cam.y = data.y; cam.zoom = (data.zoom || 1) * 0.6; }
                 cam.snap = false;
                 try {
@@ -1478,8 +1536,14 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
                         fig.visible = false;
                         onFx?.('sfx', 'latch');
                     }
+                    const dialogue = data.whileVisible?.();
+                    fitComparison();
+                    await dialogue;
+                    if (destroyed) return;
                     await G.wait(data.hold ?? Math.max(0.5, (data.t || 2) - 1.6));
                 } finally {
+                    comparisonObserver?.disconnect();
+                    comparisonObservers.delete(comparisonObserver);
                     if (!destroyed) {
                         if (S.vista) S.vista.phase = 'leaving';
                         Object.assign(G.actors.figure, figureBefore);
@@ -1510,6 +1574,8 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
         destroyed = true;
         for (const id of pendingFrames) cancelAnimationFrame(id);
         pendingFrames.clear();
+        for (const observer of comparisonObservers) observer.disconnect();
+        comparisonObservers.clear();
         offs.forEach((o) => o());
         endTurns();
         clearScene();
