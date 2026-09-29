@@ -53,8 +53,15 @@ After the first playtest ("it is very unclear what to do", "I am a bit stuck som
   - higher hops, and Hoppa pressed just before landing still hops;
   - the camera no longer bobs on small hops;
   - swimming is a little quicker.
+- **Turning pages** (`src/pageturn.mjs`, used by `view.mjs`; tune it in `dev/pageturn.html`):
+  - moving between land, the kelp forest and the bay turns the old picture away like a notebook page, forward or back in the page order `PAGE` in `main.mjs`;
+  - the white paper over a new chapter peels away. The Kapitel 2 opening frames it first; other covers peel when a third of the screen shows them. A cosmetic flag `peeled_<id>` remembers it;
+  - the lighthouse glimpse turns to the bay's page and back;
+  - the final unfold lifts the page, and it turns away onto Alva's picture;
+  - less motion turns each of these into a short crossfade.
 - **New checks:**
   - `node tests/browser/skoldhast-guide.mjs [--out dir]` plays a new game into Kapitel 1 and checks every guidance step;
+  - `node tests/browser/skoldhast-pages.mjs [--out dir]` checks a scene turn, the Kapitel 2 paper peel and the lighthouse glimpse;
   - sim tests for the pipe mouth, the plate pull and Knuffa from one spot.
 
 ## How to check it
@@ -65,6 +72,7 @@ After the first playtest ("it is very unclear what to do", "I am a bit stuck som
 - `node tests/browser/skoldhast-tour.mjs --out <dir> [--viewport 390x844] [--sheet]`: photographs every place; `--sheet` composes one contact sheet per viewport.
 - `node tests/browser/skoldhast-save.mjs` and `node tests/browser/skoldhast-touch.mjs [390x844]`: saving and continuing, and touch play (stick, Hoppa, Göm dig, a tap for Gnägg). The touch check stamps its CDP touch events, so a slow software frame can't stretch a tap into a long press.
 - `node tests/browser/skoldhast-guide.mjs`: the first minutes of a new game, with the goal note, tips, Klo's hints and a thought bubble.
+- `node tests/browser/skoldhast-pages.mjs`: the turning pages (scene change, chapter paper, lighthouse glimpse).
 - `skoldhast/dev/play.html?debug`: the game without the ticket page, with an fps overlay. `window.__skoldhast.debug` exposes `G`, `view`, `ui` and more.
 - `skoldhast/dev/hero.html`: the hero's gaits and actions. `skoldhast/dev/audio.html`: every sound.
 - `npm run build:skoldhast`: rebuilds all art (`--only hero,npcs,…` for one module) and checks the 3 MB first-playable budget.
