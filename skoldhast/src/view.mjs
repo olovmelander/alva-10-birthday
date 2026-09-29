@@ -18,6 +18,9 @@ import { createWaterLight, createAtmosphere } from './scenery.mjs';
 import { pencilAvailable } from './puzzles.mjs';
 import { createRouteCue, createPencilBeam } from './route-cue.mjs';
 import { createActionCue } from './action-cue.mjs';
+import { createFoldDemo } from './fold-demo.mjs';
+import { createMapAssemble } from './map-assemble.mjs';
+import { STORY } from './content/sv.mjs';
 
 const h = (v) => v * HL;
 const lerp = (a, b, t) => a + (b - a) * t;
@@ -39,6 +42,8 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
     let destroyed = false;
     const pendingFrames = new Set();
     const comparisonObservers = new Set();
+    let foldDemo = null;
+    let mapAssembly = null;
     function nextFrame(callback) {
         if (destroyed) return;
         const id = requestAnimationFrame((time) => {
@@ -647,6 +652,8 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
 
     function clearScene() {
         if (!S) return;
+        endFoldDemo(false);
+        endMapAssembly(false);
         dropPeels();
         for (const layer of Object.values(L)) {
             for (const ch of layer.removeChildren()) if (ch !== hero.view && !particles.some((p) => p.s === ch)) ch.destroy({ children: true });
@@ -663,12 +670,20 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
         if (destroyed) return null;
         // the old picture becomes a page that turns away over the new one
         const rt = turn && S ? capture() : null;
+        // A late atlas bundle can rebuild this same scene. Keep an already
+        // awaited experiment alive; only leaving the scene abandons its story.
+        const carryFold = id === S?.id ? foldDemo : null;
+        const carryMap = id === S?.id ? mapAssembly : null;
+        if (carryFold) { carryFold.effect.container.parent?.removeChild(carryFold.effect.container); foldDemo = null; }
+        if (carryMap) mapAssembly = null;
         clearScene();
         for (const layer of Object.values(L)) layer.visible = true;
         S = buildScene(G.scenes[id]);
         S.id = id;
         S.placeholders = countPlaceholders();
         L.hero.addChild(hero.view);
+        if (carryFold) { foldDemo = carryFold; L.fx.addChild(foldDemo.effect.container); }
+        if (carryMap) mapAssembly = carryMap;
         cam.snap = !keepCam;
         makeTooth();
         if (rt) return startTurn(rt, { hinge: turn });
@@ -845,6 +860,20 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
         const frozen = def.id === 'land' ? (!F.has('plask') || G.freeze) : false;
         const W = app.screen.width, H = app.screen.height;
         const scenicTime = G.lessMotion ? 0 : time;
+        if (mapAssembly) {
+            const previous = mapAssembly.elapsed;
+            mapAssembly.elapsed += dt;
+            mapAssembly.state = mapAssembly.effect.update(mapAssembly.elapsed);
+            mapAssembly.effect.fit(W, H);
+            if (previous < 1.15 && mapAssembly.elapsed >= 1.15) onFx?.('sfx', 'pencil');
+            if (mapAssembly.state.done) endMapAssembly(true);
+        }
+        if (foldDemo) {
+            foldDemo.elapsed += dt;
+            foldDemo.state = foldDemo.effect.update(foldDemo.elapsed);
+            frameFoldDemo();
+            if (foldDemo.state.done) endFoldDemo(true);
+        }
 
         // hero
         hero.update(dt, snap);
@@ -853,6 +882,7 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
 
         // camera
         updateCamera(dt, snap, W, H);
+        foldDemo?.effect.fit(cam.zoom);
         world.scale.set(cam.zoom);
         if (G.lessMotion) cam.shake = 0; // reduced motion: no shaking, gentler camera, fewer particles
         const shx = cam.shake > 0 ? (Math.random() - 0.5) * cam.shake : 0;
@@ -1415,22 +1445,65 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
     }
 
     // --- effects the story asks for -------------------------------------------------------------------
+    function endMapAssembly(completed) {
+        if (!mapAssembly) return;
+        const effect = mapAssembly; mapAssembly = null;
+        effect.effect.destroy();
+        if (completed && !destroyed) effect.resolve();
+    }
+    function frameFoldDemo() {
+        if (!foldDemo) return;
+        const W = app.screen.width, H = app.screen.height;
+        // Labels, actors and the lifted patch stay above the touch controls. The
+        // same authored frame is refitted on rotation, never a cached pixel crop.
+        foldDemo.hint.frame.insets = { left: 38, right: 38, top: H > W ? 100 : 26, bottom: H > W ? 150 : 90 };
+    }
+    function endFoldDemo(completed) {
+        if (!foldDemo) return;
+        const demo = foldDemo; foldDemo = null;
+        demo.effect.destroy();
+        if (G.camHint === demo.hint) G.camHint = demo.before;
+        cam.snap = !completed;
+        // An abandoned scene must not resume its dialogue in a different scene.
+        if (completed && !destroyed) demo.resolve();
+    }
     async function fx(name, data) {
         if (destroyed) return new Promise(() => {});
         const def = S?.def;
         switch (name) {
+            case 'mapAssemble': {
+                endMapAssembly(false);
+                const effect = createMapAssemble(PIXI, { texture: T, caption: STORY.k2.mapAssemble, lessMotion: G.lessMotion });
+                overlay.addChild(effect.container);
+                effect.fit(app.screen.width, app.screen.height);
+                onFx?.('sfx', 'rustle');
+                await new Promise((resolve) => { mapAssembly = { effect, elapsed: 0, state: effect.update(0), resolve }; });
+                break;
+            }
             case 'foldDemo': {
-                // a patch of beach folds up like paper and unfolds again
-                const s = spr('rock-1'); s.x = data.x; s.y = data.y; L.objects.addChild(s);
-                if (G.lessMotion) { await G.wait(.3); if (!s.destroyed) s.destroy(); break; }
-                const t0 = time;
-                await new Promise((r) => {
-                    const tick = () => {
-                        const u = (time - t0) / 1.6;
-                        s.scale.y = u < 0.5 ? 1 - Math.sin(u * Math.PI) * 1.8 : Math.max(-0.8, 1 - Math.sin(u * Math.PI) * 1.8);
-                        if (u >= 1) { s.destroy(); r(); } else nextFrame(tick);
-                    };
-                    tick();
+                endFoldDemo(false);
+                const x = data.x, y = G.terrain.groundNear(x, data.y, 120) ?? data.y;
+                const k = G.actors.klo;
+                const kx = k?.visible && Math.abs(k.x - x) < h(5) ? k.x : x + h(1.6), ky = k?.y ?? y;
+                const effect = createFoldDemo(PIXI, {
+                    texture: T, x, y,
+                    leftY: G.terrain.groundNear(x - 110, y, 120) ?? y,
+                    rightY: G.terrain.groundNear(x + 110, y, 120) ?? y,
+                    mapX: kx + 60, mapY: ky - 330, clawX: kx + 29, clawY: ky - 65,
+                    labels: STORY.k1.mapDemoLabels, lessMotion: G.lessMotion
+                });
+                L.fx.addChild(effect.container);
+                const frame = { ...effect.bounds };
+                if (Math.abs(G.player.x - x) < h(5)) {
+                    frame.x0 = Math.min(frame.x0, G.player.x - h(.8));
+                    frame.x1 = Math.max(frame.x1, G.player.x + h(.8));
+                    frame.y0 = Math.min(frame.y0, G.player.y - h(1.8));
+                }
+                const before = G.camHint, hint = { frame };
+                G.camHint = hint;
+                await new Promise((resolve) => {
+                    foldDemo = { effect, elapsed: 0, state: effect.update(0), before, hint, resolve };
+                    frameFoldDemo();
                 });
                 break;
             }
@@ -1569,6 +1642,8 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
     function resize() {
         if (tooth) { tooth.width = app.screen.width; tooth.height = app.screen.height; }
         cam.snap = true;
+        frameFoldDemo();
+        mapAssembly?.effect.fit(app.screen.width, app.screen.height);
     }
 
     function destroy() {
@@ -1591,6 +1666,8 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
         get holding() { return !!held; },
         get sceneId() { return S?.id; },
         get vista() { return S?.vista || null; },
+        get foldDemo() { return foldDemo ? { ...foldDemo.state, elapsed: foldDemo.elapsed, bounds: { ...foldDemo.hint.frame } } : null; },
+        get mapAssembly() { return mapAssembly ? { ...mapAssembly.state, elapsed: mapAssembly.elapsed } : null; },
         kloBounds() { return S?.obj?.klo?.visible ? S.obj.klo.getBounds() : null; },
         built(id) { return S?.id === id && S.placeholders === 0; },
         replaceHero(newHero) { L.hero.removeChild(hero.view); hero.destroy?.(); hero = newHero; L.hero.addChild(hero.view); },

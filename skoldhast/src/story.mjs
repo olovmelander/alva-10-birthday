@@ -523,6 +523,7 @@ export function createStory(G, io) {
     beat('k2_end', {
         on: 'marksBoth',
         async run(s) {
+            await s.fx('mapAssemble', {});
             await s.say(STORY.k2.bothHalves);
             if (inScene('kelp')) await s.cam({ x: h(43), y: h(3.5), zoom: 0.8, t: 1.6, hold: 1.2 });
             // a glimpse of the lighthouse: the paper figure peeks and snaps a shutter shut
