@@ -1,6 +1,6 @@
 # Sköldhästen – handover
 
-Last updated: 29 September 2026. The branch is `ccr-c498dbd6-rfd39d`. The design is in `docs/skoldhast-game-plan.md` (v2); the working rules are in `skoldhast/CLAUDE.md`.
+Last updated: 29 September 2026. The review branch is `codex/skoldhast-polish`, based on `main` at `1af945b`. The design is in `docs/skoldhast-game-plan.md` (v2); the working rules are in `skoldhast/CLAUDE.md`.
 
 ## State
 
@@ -20,8 +20,76 @@ The whole game is built in one pass:
 | Hero (`hero.mjs`, `rig.mjs`, `scripts/skoldhast-art/hero.mjs`) | Done. Her sköldhäst traced in code (route B), rigged with gaits by distance, leg IK on the terrain, leaps, Göm dig, swimming and drifting, the actions, and verlet hair. `dev/hero.html` shows it all. |
 | Characters, table, UI art | Done: Klo with the signs, Kartväktaren, the lyktfiskar, shy creatures, Signe, the table props, the title lettering, the icons. |
 | Scenery art (materials, backdrops, props) | Done: land, sea and bay atlases, evening backdrops, pencil strokes. |
-| Audio (`audio.mjs`) | Done. The theme "Sköldhästens visa" in D dorian in five arrangements, eight stingers, 28 effects, and adaptive layers for speed, underwater and hiding. It still needs a human listen (`dev/audio.html`). |
+| Audio (`audio.mjs`) | Done. The theme "Sköldhästens visa" in D dorian in five arrangements, stingers, synthesized foley, place ambience and adaptive layers for speed, underwater and hiding. It still needs a human listen (`dev/audio.html`). |
 | Ticket integration (`index.html`) | Done. A hidden fourth button, a loading overlay that prefetches `files.json`, Avbryt and retry, and Mira's launch-race guard. |
+
+## Animation, movement, audio and visual polish (29 September)
+
+This pass improves the existing three chapters; `RELEASED_CHAPTER` stays 3.
+The before/after audit and acceptance evidence are in
+`docs/skoldhast/polish-review.md`. The original contact sheets are preserved in
+`docs/skoldhast/shots/k3/before/`; the three current sheets are in `shots/k3/`.
+
+- **Klo:** separate pencil body parts, sideways leg cycle, eased scuttles,
+  bobbing, eye blinks, claw gestures, instrument fidgets, hole entry/emergence,
+  underwater floating and a soft sprite shadow. Lettered frames never mirror.
+  Touch, mouse and **K** give a click, hop/wave and one of **36** shuffled Swedish
+  jokes in the nonblocking hint bubble. A 5.2-second cooldown and visibility,
+  story/dialogue/menu guards protect play. Hero taps, the stick and Följ fingret
+  share input routing; canceled pointers cannot leave steering or gallop held.
+- **Hills:** exposed terrain is one material contour, including exact cliff
+  faces and ramp joins. Hooves query the reachable surface instead of buried
+  ground. Earned ramps grow over 0.65 seconds using the same fixed-step geometry
+  for drawing and collision. The former 121-unit jump is now at most 2.31 units
+  per step in the measured midpoint case. See `docs/skoldhast/hills-review.md`.
+- **Movement:** forward hops and stationary perch hops work, slope speed varies
+  continuously, hurdles use actual landing support and canceled skids respond
+  correctly. Actions survive display frames with no simulation step, and menus
+  clear pending input. Hold-to-hide release cancels a queued tuck, and reopening
+  after a pause starts a live session. Deterministic replay includes 30/60/120/144 Hz.
+- **Swimming:** integrated alternating paddle strokes, surface head lift,
+  diving, floating hair/tail, softer buoyancy and glide. Real world coordinate
+  tests cover feet, hair, particles and shadows. See `docs/skoldhast/movement-polish.md`.
+- **Puzzles/menus:** stable contextual labels, reachable shell tune beside
+  Signe, wet perch hopping, deterministic Spången notes, soft menu cues and
+  scrollable 44-pixel notebook tabs. Portrait prologue cloud tracing now uses
+  the same paper-to-screen transform as the other drawings.
+- **Audio:** warmer arrangements of Sköldhästens visa, gait-timed surface
+  contacts including a hollow pier, water/pencil/page/menu cues, Klo chatter,
+  four place ambiences, darker light reverb and independent volume buses.
+  Offline Chromium/FFmpeg QA reports zero clipping/non-finite samples, maximum
+  sample peak −1.72 dBFS and true peak −1.5 dBFS under extreme overlap. Exact
+  listening instructions and measurements: `docs/skoldhast/audio-polish.md`.
+- **Scenery:** gentler pencil materials, visible distant ridges, underwater
+  shafts/depth, bounded water shimmer and a dedicated warm evening bay. No
+  heavy filters or downloaded sound/art were added. See `docs/skoldhast/scenery-polish.md`.
+
+Final pure gate: **66/66 tests pass**, including the whole-game robot. Required
+launch, save, touch (both phone sizes), guide, pages and finale browser checks
+pass; focused Klo, notebook, hills, audio and fresh journey evidence is linked
+from `docs/skoldhast/polish-review.md`.
+
+Additional checks:
+
+```sh
+node tests/browser/skoldhast-klo.mjs 844x390
+node tests/browser/skoldhast-klo.mjs 390x844
+node tests/browser/skoldhast-notebook.mjs
+node tests/browser/skoldhast-journey.mjs --viewport 844x390 --input touch --out /tmp/journey
+node tests/browser/skoldhast-journey.mjs --viewport 390x844 --input keyboard --out /tmp/journey
+node tests/browser/skoldhast-hills.mjs --viewport 844x390 --out /tmp/hills
+node scripts/skoldhast-audio-check.mjs --out /tmp/audio --no-images
+```
+
+Run the journey for both input modes at both phone sizes. It starts a fresh
+save through the real title/prologue and sends DOM/CDP input, then accelerates
+the fixed simulation to cover P1–P8 and the implemented extras. It is an
+automated playthrough, not a human usability or physical-device performance test.
+
+The first-playable bundle is **2,708,659 bytes (2.58 MiB)**, below both 3 MB and the build's
+3 MiB gate. Human listening and performance/feel on Alva's actual device remain
+unverified. Foreground kelp can still briefly soften/overlap the hero; no new
+missing scenery or terrain seams were found in the 27-place review.
 
 ## Polish round (29 September): understandable, forgiving, springier
 
@@ -75,7 +143,7 @@ After the first playtest ("it is very unclear what to do", "I am a bit stuck som
 - Every panel has an ✕, and a tap on the backdrop closes it (on a report it means continue). J and Esc close panels.
 - Settings opened from the pause menu keep the game paused.
 - **Known:**
-  - on a 320 px-wide phone the journal tabs are 37 px wide, under the 44 px target;
+  - the earlier 320 px tab-size issue is fixed by a scrollable row of 44 px targets;
   - only headless Chromium has been used, never a real phone.
 
 ## Fresh-eyes playtest (29 September) and what it changed
@@ -136,20 +204,19 @@ An agent played for about two hours with the keyboard at 844×390. Its report, w
 
 ## Frågor till Pappa (still open)
 
-1. **Original drawing:** is there a flat scan or a straight photo of the paper drawing? With one, the hero can be cut from her real strokes (route A).
-2. **Device:** which phone or tablet, which browser, upright or sideways? May `#skoldhast` open the game directly?
-3. **Surprise and dates:** keep it hidden until Kapitel 1 is revealed? Which dates?
-4. **Her words (Q5):** (a) verbatim, (b) only her question and "Sköldhästar är fantastiska", or (c) paraphrase only.
-   - Hyphen or not in "kelp-skogarna"?
-   - Commit `d843277` on this branch quoted her full text. If the answer isn't (a), squash the branch before merging, or ask Claude to rewrite its history.
-5. **Reference crop:** may a creature-only crop of her drawing be committed? It would have no name, no magazine, EXIF stripped and your scribble removed.
-6. **Family touches:** Mira's two lines in the epilogue? The three star-tiger stars (currently on)? A "Publicerad!" clipping? Recorded voices (your neigh, Mira as Klo)?
-7. **Dedication:** would you like to write one?
-8. **Mira:** her own save slot with the easier help? Can she keep the secret?
+- Which phone/tablet and browser should receive the final listening, performance
+  and touch-feel check?
+- After reviewing this branch, should it be merged to main?
+
+The current instruction is definitive: first name only, `HER_TEXT` stays null,
+no photos/scans, and the ticket button stays hidden behind `?skoldhast` (the
+existing `#skoldhast` alias only reveals the button). Earlier requests for scans
+or permission to quote her printed words are superseded. No new public reveal
+or additional chapter release is part of this branch.
 
 ## Known issues and next steps
 
-- **Performance on a real phone is unmeasured.** Headless Chromium renders WebGL in software (15–50 fps there), and the JS side takes 1–3 ms per frame. Measure with `?debug` on Alva's device and lower the resolution cap in `main.mjs` `sizes()` if needed.
+- **Performance on a real phone is unmeasured.** Headless Chromium renders WebGL in software, so its frame rate is not a device benchmark. Measure with `?debug` on Alva's device and lower the resolution cap in `main.mjs` `sizes()` if needed.
 - **Audio** has passed automatic checks (levels, seams, tuning) but needs a listen.
 - **Not built** (optional in the plan):
   - O7 Flytbryggan (stretch);

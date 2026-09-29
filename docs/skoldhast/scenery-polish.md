@@ -3,8 +3,7 @@
 ## Before review
 
 Reviewed the 27 tour places at 844 × 390, 390 × 844 and 1440 × 900.
-The fresh baseline is captured under `/tmp/skoldhast-before/<viewport>/`;
-the previous committed tour confirms the same visual issues at all three sizes.
+The fresh baseline is preserved in `shots/k3/before/`, one sheet per viewport.
 
 | Places | Observed issue | Planned correction |
 | --- | --- | --- |
@@ -60,3 +59,28 @@ answer, the now-visible steppe ridges, kelp shafts and the bay after the finale.
 playable at 2.57 MB during this pass. The final combined budget is recorded in
 the handover. Actual GPU memory use and frame rate still require a real phone;
 these browser captures use software WebGL.
+
+## Final before/after comparison
+
+All 27 final tour stops, plus the title, were visually compared with
+`shots/k3/before/` at **844 × 390, 390 × 844 and 1440 × 900**.
+
+| Stops | Final comparison |
+| --- | --- |
+| 01–06, beach through Streckbron | The lighter wet sand retains its ochre colour and paper tooth. The hero, shells and pool answer remain legible; bridge silhouettes and filled faces remain continuous. |
+| 07–13, steppe through Klippudden | Distant green ridges now remain visible above the foreground at all three sizes. They stay behind the graphite walk edge and do not compete with the orange mane. No new gaps or exposed backdrop edges appear at the photographed terraces and cleft. |
+| 14, jetty | Frozen foam, posts and waterline remain distinct. Highlights are restrained, preserving the frozen-sea appearance. |
+| 15–21, kelp forest | Shafts read more clearly at phone size; teal depth and dark foreground fronds remain distinct. The brighter background does not erase the hero's outline. The solved vault has no transient darkness rectangle in the final captures. |
+| 22–27, bay through gallery | Pier, shore, underwater floor and gallery retain continuous edges. Cool water stays subordinate to the cream lighthouse and warm hero. Surface-light changes are subtle at sheet scale; the evening supplement shows the larger palette change. |
+
+No new blank regions, missing scenery or ground-fill holes were identified in
+these final static views. The title and outline-cloud treatment remain
+consistent with the notebook style.
+
+Limits: screenshots cannot establish animation smoothness, physical hoof
+contact or real-phone frame rate. Swimming poses, kelp positions and temporary
+hints differ with capture timing, so these are visual comparisons, not pixel
+diffs. The foreground water still lowers underwater contrast, and a nearby kelp
+frond can briefly cross the hero; these existing composition limits remain
+visible in the aquatic stops. The all-place tour uses a chapter-three save, so
+its goal note is not a fresh-play guidance check.
