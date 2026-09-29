@@ -255,7 +255,7 @@ export function stepPuzzles(G, events, dt) {
     // --- pencils (färgpennor) lying in the open ---------------------------------------------
     for (const pc of sc.pencils || []) {
         const got = F.has('penna_' + pc.id);
-        if (got) continue;
+        if (got || !pencilAvailable(pc, F)) continue;
         const onHopp = (sc.hoppstallen || []).some((hs) => hs.pencil === pc.id);
         if (onHopp) continue; // those are collected by landing on top
         if (Math.abs(p.x - pc.x) < h(0.4) && Math.abs(p.y - pc.y) < h(0.5)) pickPencil(G, pc);
@@ -305,7 +305,7 @@ function hoppReward(G, hs) {
     G.emit('hoppReward', { id: hs.id, reward: hs.reward });
     if (hs.reward === 'penna') {
         const pc = (G.sceneDef.pencils || []).find((q) => q.id === hs.pencil);
-        if (pc) pickPencil(G, pc);
+        if (pc && pencilAvailable(pc, F)) pickPencil(G, pc);
     } else if (hs.reward === 'shell') G.emit('shellNote', { note: hs.note });
 }
 
@@ -316,14 +316,26 @@ function pickPencil(G, pc) {
 }
 
 export function countPencils(G) {
-    let n = 0;
-    for (const f of G.flags) if (f.startsWith('penna_')) n++;
-    return n;
+    return pencilProgress(G).reduce((n, region) => n + region.found, 0);
 }
 export function totalPencils(G) {
     let n = 0;
     for (const sc of Object.values(G.scenes)) n += (sc.pencils || []).length;
     return n;
+}
+
+/** The same authored gates control pickup, colouring and visibility. */
+export function pencilAvailable(pc, flags) {
+    return (!pc.chapter || pc.chapter < 2 || flags.has('ch' + pc.chapter + '_open')) && cond(pc.when, flags);
+}
+
+/** Count stable authored IDs, so old/unknown save flags cannot inflate the collection. */
+export function pencilProgress(G) {
+    return Object.values(G.scenes).map(sc => ({
+        id: sc.id, title: sc.title,
+        found: (sc.pencils || []).filter(pc => G.flags.has('penna_' + pc.id)).length,
+        total: (sc.pencils || []).length
+    }));
 }
 
 // ---------------------------------------------------------------------------
@@ -376,15 +388,6 @@ export function contextAction(G) {
         for (const st of sc.stairs || []) {
             if (Math.abs(p.x - st.x) < h(1.2) && Math.abs(p.y - st.y) < h(0.6)) add(0.5, { id: 'stair', label: st.label, run: () => G.stair(st) });
         }
-        // Färglägg: grey props, with a pencil in the pocket
-        for (const pc of sc.pencils || []) {
-            if (!F.has('penna_' + pc.id) || F.has('color_' + pc.id)) continue;
-            const at = pc.propAt;
-            // An unfinished drawing wins a close tie with a chat. In
-            // particular, Signe stands beside the grey bucket after the end.
-            const dist = Math.abs(p.x - at.x) / HL;
-            if (dist < 1.1 && Math.abs(p.y - at.y) < h(0.8)) add(dist - (dist < 0.2 ? 0.25 : 0), { id: 'farglagg', label: CONTEXT_LABELS.color, run: () => { F.add('color_' + pc.id); G.emit('colorin', { id: pc.id, prop: pc.prop }); } });
-        }
         // Skaka: wet and standing still, out of the water (in a pool it would only flicker between Skaka and Hoppa)
         // (not on the pier, where the button offers Hoppa i instead)
         const shellDistance = !F.has('shells_tune') ? Math.min(...(sc.shells || []).filter(s => !S.shells[s.id]).map(s => Math.abs(s.x - p.x))) : Infinity;
@@ -400,6 +403,18 @@ export function contextAction(G) {
         if (p.surface?.dropIn) {
             const col = G.terrain.waterColumn(p.x + p.facing * 60);
             if (col && col.swim !== false && col.top >= p.y) add(3, { id: 'hoppa-i', label: CONTEXT_LABELS.dropIn, run: () => { const ev = []; dropIn(p, { terrain: G.terrain, flags: F }, ev); for (const e of ev) G.emit(e.type, e); } });
+        }
+    }
+    // Färglägg works beside a drawing on land and while swimming past one.
+    if (!p.hidden && (p.mode === 'ground' || p.mode === 'swim')) {
+        for (const pc of sc.pencils || []) {
+            if (!pencilAvailable(pc, F) || !F.has('penna_' + pc.id) || F.has('color_' + pc.id)) continue;
+            const at = pc.propAt, dist = Math.abs(p.x - at.x) / HL;
+            // An unfinished drawing wins a close tie with a chat, e.g. Signe by the bucket.
+            if (dist < 1.1 && Math.abs(p.y - at.y) < h(0.8)) add(dist - (dist < 0.2 ? 0.25 : 0), { id: 'farglagg', label: CONTEXT_LABELS.color, run: () => {
+                if (F.has('color_' + pc.id)) return;
+                F.add('color_' + pc.id); G.emit('colorin', { id: pc.id, prop: pc.prop });
+            } });
         }
     }
     // Smaktestet: a mouthful of steppe grass on land, a bite of kelp in the sea (after Klo's "Ja")

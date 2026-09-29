@@ -54,6 +54,8 @@ export const UI = {
     bigText: 'Större text', lessMotion: 'Mindre rörelse',
     music: 'Musik', sound: 'Ljud', voices: 'Röster',
     pencils: 'Färgpennor', nextPage: 'Nästa sida kommer snart.',
+    pencilBadge: (n, total) => `✎ ${n}/${total}`,
+    pencilRegion: (name, n, total) => `${name}: ${n} / ${total}`,
     report: 'Forskningsrapport', code: 'Kod', photoTip: 'Ta gärna en bild på koden.',
     chapter1: 'Kapitel 1: Stranden och stäppen', chapter2: 'Kapitel 2: Udden och djupet', chapter3: 'Kapitel 3: Pappersfyren',
     prologue: 'Ett streck till', finale: 'Havet hittar hem',

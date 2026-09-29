@@ -351,6 +351,10 @@ export function createUI(host, { assetBase, handlers }) {
                 const pc = el('p', 'sk-j-pencils', `${UI.pencils}: ${state.pencils} / ${state.pencilsTotal}`);
                 pc.prepend(icon('pencil'));
                 c.append(pc);
+                if (state.pencilRegions?.length) {
+                    const regions = list(state.pencilRegions.filter(r => r.total).map(r => UI.pencilRegion(r.title, r.found, r.total)), 'sk-j-list sk-j-small sk-j-pencil-regions');
+                    c.append(regions);
+                }
                 c.append(art('table', 'pencils-lying', 'sk-j-crayons'));
             }
         ];
@@ -824,7 +828,11 @@ export function createUI(host, { assetBase, handlers }) {
         panelOpen: () => panel.classList.contains('on'),
         dialogueOpen: () => !!dlgResolve,
         advance,
-        setPencils(n, total) { pencilCount.textContent = n ? `✎ ${n}/${total}` : ''; },
+        setPencils(n, total, region = '') {
+            pencilCount.textContent = total ? UI.pencilBadge(n, total) : '';
+            pencilCount.title = UI.pencilRegion(region || UI.pencils, n, total);
+            pencilCount.setAttribute('aria-label', pencilCount.title);
+        },
         setContext(label, hidden) {
             const l = label || UI.hop;
             if (actBtn.textContent !== l) actBtn.textContent = l;

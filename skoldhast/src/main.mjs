@@ -22,7 +22,7 @@ import { createSave, codeToChapter, CODE_RESTORE } from './save.mjs';
 import { createStory } from './story.mjs';
 import { createAssets } from './assets.mjs';
 import { createTable } from './prologue.mjs';
-import { countPencils, totalPencils, createPuzzleState } from './puzzles.mjs';
+import { countPencils, totalPencils, pencilProgress, createPuzzleState } from './puzzles.mjs';
 import { UI, BALK, CAPTIONS, FAMILY, JOURNAL } from './content/sv.mjs';
 import { CHECKPOINTS } from './content/world.mjs';
 
@@ -531,7 +531,7 @@ export function createGame({ host = document.body, assetBase = './skoldhast/', r
         G.on('pickup', () => updatePencils());
         G.on('colorin', () => updatePencils());
         G.on('checkpoint', () => saveNow());
-        G.on('scene', () => { if (!G.vista) saveNow(); });
+        G.on('scene', () => { updatePencils(); if (!G.vista) saveNow(); });
         G.on('neigh', () => {
             if (G.puz.neighs.land && G.puz.neighs.water && !G.flags.has('exp_gnagg')) {
                 G.flag('exp_gnagg'); G.puz.tally += 1;
@@ -540,7 +540,11 @@ export function createGame({ host = document.body, assetBase = './skoldhast/', r
         });
         G.on('shellTune', () => ui.toast('♪ Sköldhästens visa ♪', 3000));
     }
-    function updatePencils() { if (ui && G) ui.setPencils(countPencils(G), totalPencils(G)); }
+    function updatePencils() {
+        if (!ui || !G) return;
+        const region = pencilProgress(G).find(r => r.id === G.sceneId);
+        if (region) ui.setPencils(region.found, region.total, region.title);
+    }
 
     // --------------------------------------------------------------------------------
     // Handlers for the UI
@@ -550,7 +554,7 @@ export function createGame({ host = document.body, assetBase = './skoldhast/', r
         if (G.flags.has('kelp_entered')) visited.add('kelp');
         if (G.flags.has('viken_arrived')) visited.add('viken');
         visited.add('land');
-        return { flags: G.flags, objective: story.objective(), tally: G.puz.tally, note, pencils: countPencils(G), pencilsTotal: totalPencils(G), visited };
+        return { flags: G.flags, objective: story.objective(), tally: G.puz.tally, note, pencils: countPencils(G), pencilsTotal: totalPencils(G), pencilRegions: pencilProgress(G).filter(r => visited.has(r.id)), visited };
     }
     function openJournal() { if (mode !== 'play' || ui.panelOpen()) return; pause(); audio?.sfx('page'); ui.journal({ ...journalState(), onClose: () => resume() }); }
     function openPause() { if (mode !== 'play' || ui.panelOpen()) return; pause(); ui.pauseMenu(); }

@@ -31,6 +31,8 @@
 import { createUI } from '../src/ui.mjs';
 import { createGuide } from '../src/guide.mjs';
 import { STORY, GOALS, HINTS, TIPS, BALK, UI } from '../src/content/sv.mjs';
+import { SCENES } from '../src/content/world.mjs';
+import { pencilProgress, totalPencils } from '../src/puzzles.mjs';
 
 const q = new URLSearchParams(location.search);
 const m = q.get('m') || 'title';
@@ -56,13 +58,16 @@ const ui = createUI(host, {
 });
 ui.setBigText(settings.bigText);
 ui.root.classList.toggle('less-motion', settings.lessMotion);
-ui.setPencils(2, 5);
+ui.setPencils(2, SCENES.land.pencils.length, SCENES.land.title);
 const img = (name) => new URL(`../assets/${name}.webp`, location.href).href;
 const guide = createGuide(ui.root, { img, heroScreen: () => ({ x: innerWidth * 0.45, y: innerHeight * 0.55, scale: 0.8, facing: 1 }), onGoalTap: () => ui.journal(journalState()) });
 
 function journalState() {
     const flags = new Set(['intro_done', 'exp_fart', 'exp_djup', 'exp_gnagg', 'clue_map_corner', 'clue_note1', 'clue_wave_marks', 'clue_reflection', 'clue_fold', 'mark_land', 'ch1_end', 'ch2_open', 'kelp_entered']);
-    return { flags, objective: q.get('objective') || 'p5', tally: Number(q.get('tally') ?? 1), note: q.get('note') || '', pencils: 2, pencilsTotal: 5,
+    flags.add('penna_p-kite'); flags.add('penna_p-hut');
+    const collection = { scenes: SCENES, flags };
+    return { flags, objective: q.get('objective') || 'p5', tally: Number(q.get('tally') ?? 1), note: q.get('note') || '', pencils: 2, pencilsTotal: totalPencils(collection),
+        pencilRegions: pencilProgress(collection).filter(r => r.id !== 'viken'),
         visited: new Set(['land', 'kelp']), page: q.has('page') ? Number(q.get('page')) : undefined, onClose: () => log('journal closed') };
 }
 const titleOpts = () => ({

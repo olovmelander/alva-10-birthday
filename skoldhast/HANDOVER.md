@@ -228,6 +228,11 @@ or additional chapter release is part of this branch.
   when replaced or closed. Closing stops UI input before asset unloading, and
   cancels delayed orientation callbacks. `node tests/browser/skoldhast-lifecycle.mjs`
   checks drawing cancellation and ten reopen cycles with rendered atlas pixels.
+- Collection foundations now allow colouring while swimming, keep hidden or
+  fast-moving players out of contextual colouring, and share chapter/clue gates
+  between pickup, props and rendering. The HUD counts the current region; the
+  notebook lists visited regions. Counts use authored IDs, preserving existing
+  collected/coloured pencils while ignoring stray save flags.
 - Order next: finish close-during-drawing cleanup; enable regional collection
   and underwater colouring; add the remaining ten pencils; complete the lit
   lighthouse view at the finale. The clipping remains excluded by the privacy

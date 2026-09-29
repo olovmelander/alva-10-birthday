@@ -14,6 +14,7 @@ import { createPage, createScreenTurn } from './pageturn.mjs';
 import { terrainShape } from './terrain-shape.mjs';
 import { createKlo } from './klo.mjs';
 import { createWaterLight } from './scenery.mjs';
+import { pencilAvailable } from './puzzles.mjs';
 
 const h = (v) => v * HL;
 const lerp = (a, b, t) => a + (b - a) * t;
@@ -1086,7 +1087,9 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
             if (O.map.visible) { O.map.x = kv.x - h(0.7); O.map.y = kv.y; setTex(O.map, kv.map === 'open' ? 'map-open' : 'map-closed'); }
         }
         for (const pc of O.pencils) {
-            pc.s.visible = !F.has('penna_' + pc.pc.id);
+            const available = pencilAvailable(pc.pc, F);
+            pc.s.visible = available && !F.has('penna_' + pc.pc.id);
+            pc.g.visible = available;
             pc.s.y = pc.pc.y - 20 + Math.sin(time * 2 + pc.pc.x) * 6;
             const colored = F.has('color_' + pc.pc.id);
             setTex(pc.g, pc.pc.prop + (colored ? '-color' : '-grey'));
