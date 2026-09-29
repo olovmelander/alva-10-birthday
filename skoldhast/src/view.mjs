@@ -331,8 +331,9 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
             fillPoly(wb.g, [[w.x0, w.top], [w.x1, w.top], [w.x1, yb], [w.x0, yb]], def.underwater ? 'mat-deep' : 'mat-water', alpha);
             if (!T('mat-water')) { wb.g.clear(); wb.g.rect(w.x0, w.top, w.x1 - w.x0, yb - w.top).fill({ color: 0x5b9bd0, alpha: alpha * 0.8 }); }
             L.waterFront.addChild(wb.g);
-            const pts = [];
-            for (let x = w.x0; x <= w.x1 + 1; x += 50) pts.push([Math.min(x, w.x1), w.top]);
+            // Include both exact bank endpoints, including widths not divisible
+            // by the pencil segment length. Connected bodies share their join.
+            const pts = resamplePts([[w.x0, w.top], [w.x1, w.top]], 50);
             wb.surfBase = pts.map((p) => p.slice());
             wb.surf = rope('stroke-blue', pts, { color: 0x244f8f, width: 4 });
             L.waterFront.addChild(wb.surf);
@@ -342,9 +343,19 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
             L.waterFront.addChild(wb.light.view);
         }
         if (def.underwater) {
-            // the air above the surface in an underwater scene
+            // Air, tint, pencil line and buoyancy use the same authored surface.
+            // A separate hardcoded y=0 edge used to put air 180 units above the
+            // cave's water and created a second, apparently disconnected horizon.
             const sky = new PIXI.Graphics();
-            sky.rect(def.bounds.x0 - h(20), def.bounds.y0 - h(10), def.bounds.x1 - def.bounds.x0 + h(40), -def.bounds.y0 + h(10)).fill({ color: 0xd6e8f2 });
+            const bodies = d.waters.map(wb => wb.w).sort((a, b) => a.x0 - b.x0);
+            const airTop = def.bounds.y0 - h(10);
+            for (const [i, w] of bodies.entries()) {
+                const x0 = i === 0 ? def.bounds.x0 - h(20) : w.x0;
+                const x1 = i === bodies.length - 1 ? def.bounds.x1 + h(20) : w.x1;
+                sky.rect(x0, airTop, x1 - x0, w.top - airTop);
+            }
+            sky.fill({ color: 0xd6e8f2 }); sky.label = 'water-air';
+            d.waterTop = bodies[0]?.top ?? 0;
             L.far.addChild(sky);
             d.skyBand = sky;
         }
@@ -901,7 +912,7 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
         const shx = cam.shake > 0 ? (Math.random() - 0.5) * cam.shake : 0;
         cam.shake = Math.max(0, cam.shake - dt * 30);
         world.position.set(W / 2 - cam.x * cam.zoom + shx, H / 2 - cam.y * cam.zoom);
-        S.atmosphere.update({ cam, width: W, height: H, time: scenicTime, lessMotion: G.lessMotion, evening: G.evening });
+        S.atmosphere.update({ cam, width: W, height: H, time: scenicTime, lessMotion: G.lessMotion, evening: G.evening, waterTop: S.waterTop ?? 0 });
 
         // backdrops (cover the screen, crossfade by camera x)
         for (const b of S.bg) {
@@ -1371,7 +1382,9 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
         const J = G.player.jump;
         const baseY = J && (J.kind === 'hop' || J.kind === 'buck') && J.fromY !== undefined ? Math.max(snap.y, J.fromY - h(0.2)) : snap.y;
         let ty = baseY - (H / zoom) * (portrait ? 0.08 : 0.12);
-        if (snap.mode === 'swim') ty = snap.y + (S.def.underwater ? h(0.3) : -h(0.2));
+        // The swim origin is at the feet. Frame the torso in the underwater
+        // page so the head stays visible above the surface and below the HUD.
+        if (snap.mode === 'swim') ty = snap.y - (S.def.underwater ? h(0.8) : h(0.2));
         // the big leap: pan to the landing
         const L0 = G.player.leap;
         if (L0 && L0.pan) { tx = lerp(L0.from.x, L0.to.x, 0.75); ty = Math.min(L0.from.y, L0.to.y) - h(1.2); zoom *= 0.85; }
