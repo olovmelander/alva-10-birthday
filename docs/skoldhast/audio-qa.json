@@ -1,0 +1,2085 @@
+{
+  "sampleRate": 48000,
+  "rows": [
+    {
+      "name": "area-table",
+      "dur": 32,
+      "peakDb": -11.132349630540093,
+      "rmsDb": -26.29954591654652,
+      "stRmsDb": -22.390012045313696,
+      "dc": 0.000028780090307966097,
+      "maxStep": 0.11252224072813988,
+      "clipped": 0,
+      "nonFinite": 0,
+      "readyMs": 173.5,
+      "renderMs": 1581.4000000001397,
+      "speed": 20.23523460224938,
+      "seamDb": -1.2257159583072417,
+      "seamClick": 1.337587851878993,
+      "status": "ok",
+      "loudness": {
+        "integratedLufs": -23.7,
+        "rangeLu": 1.9,
+        "truePeakDb": -11.1
+      }
+    },
+    {
+      "name": "area-land",
+      "dur": 27,
+      "peakDb": -6.241714420612027,
+      "rmsDb": -23.572064432074068,
+      "stRmsDb": -20.642763608578974,
+      "dc": 0.00006135256976173237,
+      "maxStep": 0.06887138448655605,
+      "clipped": 0,
+      "nonFinite": 0,
+      "readyMs": 107.0999999998603,
+      "renderMs": 2022.8000000000466,
+      "speed": 13.347834684595302,
+      "seamDb": 0.15865500215567524,
+      "seamClick": 0.9638063891814445,
+      "status": "ok",
+      "loudness": {
+        "integratedLufs": -21.3,
+        "rangeLu": 1.2,
+        "truePeakDb": -6.2
+      }
+    },
+    {
+      "name": "area-sea",
+      "dur": 39,
+      "peakDb": -9.51807132093215,
+      "rmsDb": -24.220593884950826,
+      "stRmsDb": -19.697773452686437,
+      "dc": 0.000003040718320739365,
+      "maxStep": 0.024135872721672058,
+      "clipped": 0,
+      "nonFinite": 0,
+      "readyMs": 115.39999999990687,
+      "renderMs": 2232.1999999999534,
+      "speed": 17.471552728250522,
+      "seamDb": 1.6591737880699033,
+      "seamClick": 0.474409300534831,
+      "status": "ok",
+      "loudness": {
+        "integratedLufs": -22,
+        "rangeLu": 1.9,
+        "truePeakDb": -9.5
+      }
+    },
+    {
+      "name": "area-bay",
+      "dur": 37,
+      "peakDb": -12.190062755475303,
+      "rmsDb": -28.685058861084634,
+      "stRmsDb": -23.519808793508638,
+      "dc": 0.000013326414837482278,
+      "maxStep": 0.025090384297072887,
+      "clipped": 0,
+      "nonFinite": 0,
+      "readyMs": 100.0999999998603,
+      "renderMs": 2535.1999999999534,
+      "speed": 14.59450930893053,
+      "seamDb": 1.3626382850100394,
+      "seamClick": 1.0085677088531513,
+      "status": "ok",
+      "loudness": {
+        "integratedLufs": -26.3,
+        "rangeLu": 1.7,
+        "truePeakDb": -12.2
+      }
+    },
+    {
+      "name": "area-final",
+      "dur": 26,
+      "peakDb": -5.844186993938348,
+      "rmsDb": -22.935639409567475,
+      "stRmsDb": -19.81107190534803,
+      "dc": 0.00006632405431004466,
+      "maxStep": 0.07134546339511871,
+      "clipped": 0,
+      "nonFinite": 0,
+      "readyMs": 92,
+      "renderMs": 2429.8000000000466,
+      "speed": 10.700469174417442,
+      "seamDb": 0.6930424781914271,
+      "seamClick": 1.1690782469238958,
+      "status": "ok",
+      "loudness": {
+        "integratedLufs": -20.6,
+        "rangeLu": 1.3,
+        "truePeakDb": -5.8
+      }
+    },
+    {
+      "name": "scene-master-stress",
+      "dur": 9,
+      "peakDb": -1.7237230280894764,
+      "rmsDb": -14.029724730923752,
+      "stRmsDb": -11.176579630602728,
+      "dc": 0.00003007674947484365,
+      "maxStep": 0.5752873420715332,
+      "clipped": 0,
+      "nonFinite": 0,
+      "readyMs": 92.4000000001397,
+      "renderMs": 1107.1999999999534,
+      "speed": 8.128612716763348,
+      "status": "ok",
+      "loudness": {
+        "integratedLufs": -10.6,
+        "rangeLu": 3,
+        "truePeakDb": -1.5
+      }
+    },
+    {
+      "name": "scene-ambience-beach",
+      "dur": 10,
+      "peakDb": -25.57945898634184,
+      "rmsDb": -42.490080193843845,
+      "stRmsDb": -38.66642528979309,
+      "dc": 3.315071056325299e-8,
+      "maxStep": 0.019350306829437613,
+      "clipped": 0,
+      "nonFinite": 0,
+      "readyMs": 86.79999999981374,
+      "renderMs": 306.19999999995343,
+      "speed": 32.65839320705918,
+      "status": "ok",
+      "loudness": {
+        "integratedLufs": -38.5,
+        "rangeLu": 3.6,
+        "truePeakDb": -25.6
+      }
+    },
+    {
+      "name": "scene-ambience-steppe",
+      "dur": 10,
+      "peakDb": -31.02194301802281,
+      "rmsDb": -45.887699557976376,
+      "stRmsDb": -42.22166592362061,
+      "dc": 1.9922195651815854e-7,
+      "maxStep": 0.004259792622178793,
+      "clipped": 0,
+      "nonFinite": 0,
+      "readyMs": 92.80000000004657,
+      "renderMs": 309.5,
+      "speed": 32.31017770597738,
+      "status": "ok",
+      "loudness": {
+        "integratedLufs": -43,
+        "rangeLu": 1.4,
+        "truePeakDb": -31
+      }
+    },
+    {
+      "name": "scene-ambience-kelp",
+      "dur": 10,
+      "peakDb": -26.05085292053213,
+      "rmsDb": -38.45377641542801,
+      "stRmsDb": -36.63614022294361,
+      "dc": 0.0000016345330195993787,
+      "maxStep": 0.0007606223225593567,
+      "clipped": 0,
+      "nonFinite": 0,
+      "readyMs": 93.4000000001397,
+      "renderMs": 298.60000000009313,
+      "speed": 33.48961821834187,
+      "status": "ok",
+      "loudness": {
+        "integratedLufs": -39.2,
+        "rangeLu": 1.7,
+        "truePeakDb": -26
+      }
+    },
+    {
+      "name": "scene-ambience-bay",
+      "dur": 10,
+      "peakDb": -25.906862487569686,
+      "rmsDb": -45.51476956358683,
+      "stRmsDb": -37.963347254994005,
+      "dc": 1.9239389500095663e-7,
+      "maxStep": 0.00420702900737524,
+      "clipped": 0,
+      "nonFinite": 0,
+      "readyMs": 90.5,
+      "renderMs": 301.60000000009313,
+      "speed": 33.156498673729814,
+      "status": "ok",
+      "loudness": {
+        "integratedLufs": -40.7,
+        "rangeLu": 5.5,
+        "truePeakDb": -25.9
+      }
+    },
+    {
+      "name": "scene-land-adaptive",
+      "dur": 30,
+      "peakDb": -5.838529282149221,
+      "rmsDb": -24.840325680333425,
+      "stRmsDb": -19.996336515026957,
+      "dc": 0.00004747717460756273,
+      "maxStep": 0.05414681788533926,
+      "clipped": 0,
+      "nonFinite": 0,
+      "readyMs": 90.5999999998603,
+      "renderMs": 2558.5,
+      "speed": 11.72562048075044,
+      "status": "ok",
+      "loudness": {
+        "integratedLufs": -22.4,
+        "rangeLu": 3.6,
+        "truePeakDb": -5.8
+      }
+    },
+    {
+      "name": "scene-crossfade",
+      "dur": 26,
+      "peakDb": -7.892772562059286,
+      "rmsDb": -26.631305335634824,
+      "stRmsDb": -21.587596002415694,
+      "dc": 0.000017381547918562435,
+      "maxStep": 0.033417098224163055,
+      "clipped": 0,
+      "nonFinite": 0,
+      "readyMs": 96.39999999990687,
+      "renderMs": 2517.1999999999534,
+      "speed": 10.328936914031654,
+      "status": "ok",
+      "loudness": {
+        "integratedLufs": -23.5,
+        "rangeLu": 10.8,
+        "truePeakDb": -7.9
+      }
+    },
+    {
+      "name": "scene-prologue-freeze",
+      "dur": 18,
+      "peakDb": -2.145633552578048,
+      "rmsDb": -24.85784306682623,
+      "stRmsDb": -14.981990083955363,
+      "dc": 0.000028719755681844686,
+      "maxStep": 0.6069437563419342,
+      "clipped": 0,
+      "nonFinite": 0,
+      "readyMs": 124.70000000018626,
+      "renderMs": 1562.5,
+      "speed": 11.52,
+      "status": "ok",
+      "loudness": {
+        "integratedLufs": -20.6,
+        "rangeLu": 11.7,
+        "truePeakDb": -2.1
+      }
+    },
+    {
+      "name": "scene-freeze-direct",
+      "dur": 9,
+      "peakDb": -7.9846922077337315,
+      "rmsDb": -25.172825360980234,
+      "stRmsDb": -20.536001225078397,
+      "dc": 0.00003496872374701828,
+      "maxStep": 0.04093465209007263,
+      "clipped": 0,
+      "nonFinite": 0,
+      "readyMs": 117,
+      "renderMs": 871.5,
+      "speed": 10.327022375215146,
+      "status": "ok",
+      "loudness": {
+        "integratedLufs": -21.5,
+        "rangeLu": 8.7,
+        "truePeakDb": -8
+      }
+    },
+    {
+      "name": "scene-stingers-over-music",
+      "dur": 22,
+      "peakDb": -3.2560371097202596,
+      "rmsDb": -21.147444855411894,
+      "stRmsDb": -12.61035787064591,
+      "dc": 0.000046850359093572145,
+      "maxStep": 0.3238598480820656,
+      "clipped": 0,
+      "nonFinite": 0,
+      "readyMs": 119.5,
+      "renderMs": 2689.2999999998137,
+      "speed": 8.180567433905301,
+      "status": "ok",
+      "loudness": {
+        "integratedLufs": -18.4,
+        "rangeLu": 6.6,
+        "truePeakDb": -3.3
+      }
+    },
+    {
+      "name": "scene-toys",
+      "dur": 14,
+      "peakDb": -7.82442818287622,
+      "rmsDb": -25.866819375708396,
+      "stRmsDb": -21.7270565305752,
+      "dc": 0.00000959459832327931,
+      "maxStep": 0.13213612139225006,
+      "clipped": 0,
+      "nonFinite": 0,
+      "readyMs": 112.79999999981374,
+      "renderMs": 581,
+      "speed": 24.096385542168676,
+      "status": "ok",
+      "loudness": {
+        "integratedLufs": -22.2,
+        "rangeLu": 4.9,
+        "truePeakDb": -7.8
+      }
+    },
+    {
+      "name": "stinger-aha",
+      "dur": 5,
+      "peakDb": -9.701880785203237,
+      "rmsDb": -30.6544304027266,
+      "stRmsDb": -20.607206450503732,
+      "dc": 0.000015251766408982803,
+      "maxStep": 0.03470039926469326,
+      "clipped": 0,
+      "nonFinite": 0,
+      "readyMs": 133.70000000018626,
+      "renderMs": 204.19999999995343,
+      "speed": 24.48579823702811,
+      "status": "ok",
+      "loudness": {
+        "integratedLufs": -21.4,
+        "rangeLu": 25.3,
+        "truePeakDb": -9.7
+      }
+    },
+    {
+      "name": "stinger-reveal",
+      "dur": 7,
+      "peakDb": -10.597002423681213,
+      "rmsDb": -26.082874291686274,
+      "stRmsDb": -21.111884846229994,
+      "dc": 0.00002174179425791018,
+      "maxStep": 0.032441550865769386,
+      "clipped": 0,
+      "nonFinite": 0,
+      "readyMs": 103.5,
+      "renderMs": 385.19999999995343,
+      "speed": 18.172377985464294,
+      "status": "ok",
+      "loudness": {
+        "integratedLufs": -20.9,
+        "rangeLu": 4.8,
+        "truePeakDb": -10.6
+      }
+    },
+    {
+      "name": "stinger-chapter",
+      "dur": 7,
+      "peakDb": -3.807927892247385,
+      "rmsDb": -22.445261531120106,
+      "stRmsDb": -14.358164504743767,
+      "dc": 0.00001840347032573066,
+      "maxStep": 0.04785961098968983,
+      "clipped": 0,
+      "nonFinite": 0,
+      "readyMs": 100.60000000009313,
+      "renderMs": 519.1999999997206,
+      "speed": 13.482280431440229,
+      "status": "ok",
+      "loudness": {
+        "integratedLufs": -18.8,
+        "rangeLu": 8.8,
+        "truePeakDb": -3.8
+      }
+    },
+    {
+      "name": "stinger-freeze",
+      "dur": 5,
+      "peakDb": -10.323131547282696,
+      "rmsDb": -33.878425226570194,
+      "stRmsDb": -22.909326770889002,
+      "dc": 0.000006620314118724006,
+      "maxStep": 0.018940314650535583,
+      "clipped": 0,
+      "nonFinite": 0,
+      "readyMs": 104,
+      "renderMs": 125.5,
+      "speed": 39.8406374501992,
+      "status": "ok",
+      "loudness": {
+        "integratedLufs": -22.5,
+        "rangeLu": 6.2,
+        "truePeakDb": -10.3
+      }
+    },
+    {
+      "name": "stinger-plask",
+      "dur": 5,
+      "peakDb": -2.563955189114308,
+      "rmsDb": -23.021692548944674,
+      "stRmsDb": -15.5318394924886,
+      "dc": 0.0000010065214516847239,
+      "maxStep": 0.32692888379096985,
+      "clipped": 0,
+      "nonFinite": 0,
+      "readyMs": 154.3000000002794,
+      "renderMs": 381.20000000018626,
+      "speed": 13.116474291703978,
+      "status": "ok",
+      "loudness": {
+        "integratedLufs": -18.5,
+        "rangeLu": 9.1,
+        "truePeakDb": -2.6
+      }
+    },
+    {
+      "name": "stinger-leap",
+      "dur": 5,
+      "peakDb": -3.1303956131135746,
+      "rmsDb": -22.313090065964175,
+      "stRmsDb": -15.532969615131861,
+      "dc": 0.000033609389404531,
+      "maxStep": 0.04829620383679867,
+      "clipped": 0,
+      "nonFinite": 0,
+      "readyMs": 100.70000000018626,
+      "renderMs": 396.60000000009313,
+      "speed": 12.607160867369707,
+      "status": "ok",
+      "loudness": {
+        "integratedLufs": -19,
+        "rangeLu": 2,
+        "truePeakDb": -3.1
+      }
+    },
+    {
+      "name": "stinger-unfold",
+      "dur": 7.5,
+      "peakDb": -9.077642558275974,
+      "rmsDb": -24.156324626379572,
+      "stRmsDb": -18.703757748037756,
+      "dc": 0.000015912528623529295,
+      "maxStep": 0.042195672169327736,
+      "clipped": 0,
+      "nonFinite": 0,
+      "readyMs": 102,
+      "renderMs": 493.60000000009313,
+      "speed": 15.194489465151104,
+      "status": "ok",
+      "loudness": {
+        "integratedLufs": -20.8,
+        "rangeLu": 6.2,
+        "truePeakDb": -9.1
+      }
+    },
+    {
+      "name": "stinger-discovery",
+      "dur": 5,
+      "peakDb": -11.313368822239287,
+      "rmsDb": -27.204378057528793,
+      "stRmsDb": -21.02269454502148,
+      "dc": 0.0000019912490036707214,
+      "maxStep": 0.0390896238386631,
+      "clipped": 0,
+      "nonFinite": 0,
+      "readyMs": 113.10000000009313,
+      "renderMs": 320,
+      "speed": 15.625,
+      "status": "ok",
+      "loudness": {
+        "integratedLufs": -22.4,
+        "rangeLu": 7.8,
+        "truePeakDb": -11.3
+      }
+    },
+    {
+      "name": "sfx-hoof",
+      "dur": 10.6,
+      "peakDb": -6.653904628469636,
+      "rmsDb": -26.06766256763936,
+      "stRmsDb": -18.64662610703036,
+      "dc": 0.000006424569785409152,
+      "maxStep": 0.3104696813970804,
+      "clipped": 0,
+      "nonFinite": 0,
+      "readyMs": 103.5,
+      "renderMs": 444.79999999981374,
+      "speed": 23.83093525180854,
+      "status": "ok",
+      "loudness": {
+        "integratedLufs": -23.7,
+        "rangeLu": 4,
+        "truePeakDb": -6.6
+      }
+    },
+    {
+      "name": "sfx-splash",
+      "dur": 6.5,
+      "peakDb": -4.231546777146097,
+      "rmsDb": -29.935602008756174,
+      "stRmsDb": -22.872217100071733,
+      "dc": 5.711140355486303e-7,
+      "maxStep": 0.3308713659644127,
+      "clipped": 0,
+      "nonFinite": 0,
+      "readyMs": 103.40000000037253,
+      "renderMs": 314.89999999990687,
+      "speed": 20.641473483651705,
+      "status": "ok",
+      "loudness": {
+        "integratedLufs": -19,
+        "rangeLu": 4.8,
+        "truePeakDb": -4.2
+      }
+    },
+    {
+      "name": "sfx-drip",
+      "dur": 3,
+      "peakDb": -8.83948836935279,
+      "rmsDb": -31.758288681952592,
+      "stRmsDb": -28.904581733157784,
+      "dc": 0.000002010049454939791,
+      "maxStep": 0.061228323727846146,
+      "clipped": 0,
+      "nonFinite": 0,
+      "readyMs": 111.39999999990687,
+      "renderMs": 111.1999999997206,
+      "speed": 26.978417266254834,
+      "status": "ok",
+      "loudness": {
+        "integratedLufs": -26.4,
+        "rangeLu": 20,
+        "truePeakDb": -8.8
+      }
+    },
+    {
+      "name": "sfx-shake",
+      "dur": 4.4,
+      "peakDb": -7.26579062159049,
+      "rmsDb": -26.160196517183238,
+      "stRmsDb": -25.9729076990768,
+      "dc": 3.124203064516857e-7,
+      "maxStep": 0.08561317250132561,
+      "clipped": 0,
+      "nonFinite": 0,
+      "readyMs": 108.20000000018626,
+      "renderMs": 216.20000000018626,
+      "speed": 20.3515263644598,
+      "status": "ok",
+      "loudness": {
+        "integratedLufs": -21.4,
+        "rangeLu": 0.9,
+        "truePeakDb": -7.3
+      }
+    },
+    {
+      "name": "sfx-bubble",
+      "dur": 3.6,
+      "peakDb": -12.208815538902979,
+      "rmsDb": -33.94348237215986,
+      "stRmsDb": -29.098306731515287,
+      "dc": 0.00003329387989651877,
+      "maxStep": 0.015885120257735252,
+      "clipped": 0,
+      "nonFinite": 0,
+      "readyMs": 109.40000000037253,
+      "renderMs": 137.5,
+      "speed": 26.181818181818183,
+      "status": "ok",
+      "loudness": {
+        "integratedLufs": -30.8,
+        "rangeLu": 0.8,
+        "truePeakDb": -12.2
+      }
+    },
+    {
+      "name": "sfx-swim",
+      "dur": 3.3,
+      "peakDb": -7.716646996196317,
+      "rmsDb": -25.733724285098667,
+      "stRmsDb": -21.201737230503277,
+      "dc": 0.0000019771174347532897,
+      "maxStep": 0.05120317527325824,
+      "clipped": 0,
+      "nonFinite": 0,
+      "readyMs": 103.5,
+      "renderMs": 207.89999999990687,
+      "speed": 15.873015873022984,
+      "status": "ok",
+      "loudness": {
+        "integratedLufs": -21.6,
+        "rangeLu": 20.3,
+        "truePeakDb": -7.7
+      }
+    },
+    {
+      "name": "sfx-pencil",
+      "dur": 6.4,
+      "peakDb": -12.844450246651288,
+      "rmsDb": -31.40718783041036,
+      "stRmsDb": -27.42193874550687,
+      "dc": 1.2141707718645498e-7,
+      "maxStep": 0.1497882343828678,
+      "clipped": 0,
+      "nonFinite": 0,
+      "readyMs": 114.29999999981374,
+      "renderMs": 490.40000000037253,
+      "speed": 13.050570962469696,
+      "status": "ok",
+      "loudness": {
+        "integratedLufs": -25.3,
+        "rangeLu": 3.1,
+        "truePeakDb": -12.8
+      }
+    },
+    {
+      "name": "sfx-rustle",
+      "dur": 4,
+      "peakDb": -6.961569566833421,
+      "rmsDb": -32.92166105253574,
+      "stRmsDb": -28.62794271125442,
+      "dc": 2.2491051383137044e-7,
+      "maxStep": 0.7024020850658417,
+      "clipped": 0,
+      "nonFinite": 0,
+      "readyMs": 131.60000000009313,
+      "renderMs": 255.39999999990687,
+      "speed": 15.661707126082453,
+      "status": "ok",
+      "loudness": {
+        "integratedLufs": -25.1,
+        "rangeLu": 1.9,
+        "truePeakDb": -6.1
+      }
+    },
+    {
+      "name": "sfx-unfold",
+      "dur": 5,
+      "peakDb": -7.736038963466099,
+      "rmsDb": -25.2728690496023,
+      "stRmsDb": -21.815780806631196,
+      "dc": 2.4805186470378733e-7,
+      "maxStep": 0.15333104506134987,
+      "clipped": 0,
+      "nonFinite": 0,
+      "readyMs": 154.20000000018626,
+      "renderMs": 414.20000000018626,
+      "speed": 12.071463061317603,
+      "status": "ok",
+      "loudness": {
+        "integratedLufs": -21.2,
+        "rangeLu": 2.3,
+        "truePeakDb": -7.7
+      }
+    },
+    {
+      "name": "sfx-crabclick",
+      "dur": 3,
+      "peakDb": -11.433081073893979,
+      "rmsDb": -36.5421674205997,
+      "stRmsDb": -31.894462927983852,
+      "dc": 1.1419231001733958e-7,
+      "maxStep": 0.08936852961778641,
+      "clipped": 0,
+      "nonFinite": 0,
+      "readyMs": 125.79999999981374,
+      "renderMs": 249.29999999981374,
+      "speed": 12.03369434417265,
+      "status": "ok",
+      "loudness": {
+        "integratedLufs": -30.1,
+        "rangeLu": 20,
+        "truePeakDb": -11.4
+      }
+    },
+    {
+      "name": "sfx-crabvoice",
+      "dur": 4.6,
+      "peakDb": -10.066612706643078,
+      "rmsDb": -30.991021953462848,
+      "stRmsDb": -26.336312987210047,
+      "dc": 1.618130013609872e-7,
+      "maxStep": 0.04651001235470176,
+      "clipped": 0,
+      "nonFinite": 0,
+      "readyMs": 158.6999999997206,
+      "renderMs": 225.10000000009313,
+      "speed": 20.43536206129763,
+      "status": "ok",
+      "loudness": {
+        "integratedLufs": -26.2,
+        "rangeLu": 1.5,
+        "truePeakDb": -10.1
+      }
+    },
+    {
+      "name": "sfx-ui",
+      "dur": 3,
+      "peakDb": -18.638544860476955,
+      "rmsDb": -42.09105481999741,
+      "stRmsDb": -38.15576066980359,
+      "dc": 3.5592108057850663e-9,
+      "maxStep": 0.019205789896659553,
+      "clipped": 0,
+      "nonFinite": 0,
+      "readyMs": 148.39999999990687,
+      "renderMs": 243.10000000009313,
+      "speed": 12.340600575889965,
+      "status": "ok",
+      "loudness": {
+        "integratedLufs": -37.3,
+        "rangeLu": 20,
+        "truePeakDb": -18.6
+      }
+    },
+    {
+      "name": "sfx-neigh",
+      "dur": 6,
+      "peakDb": -3.600486383939155,
+      "rmsDb": -16.8846703590912,
+      "stRmsDb": -12.016220985658034,
+      "dc": 0.0000012313780684962694,
+      "maxStep": 0.15886024944484234,
+      "clipped": 0,
+      "nonFinite": 0,
+      "readyMs": 168.89999999990687,
+      "renderMs": 384.3000000002794,
+      "speed": 15.612802498037048,
+      "status": "ok",
+      "loudness": {
+        "integratedLufs": -11.5,
+        "rangeLu": 2.4,
+        "truePeakDb": -3.6
+      }
+    },
+    {
+      "name": "sfx-blubb",
+      "dur": 5,
+      "peakDb": -4.055611544059595,
+      "rmsDb": -22.385054952781065,
+      "stRmsDb": -17.62325089696172,
+      "dc": 1.5312974616487433e-7,
+      "maxStep": 0.042343929409980774,
+      "clipped": 0,
+      "nonFinite": 0,
+      "readyMs": 98.79999999981374,
+      "renderMs": 324.39999999990687,
+      "speed": 15.413070283604918,
+      "status": "ok",
+      "loudness": {
+        "integratedLufs": -18.5,
+        "rangeLu": 0.9,
+        "truePeakDb": -4.1
+      }
+    },
+    {
+      "name": "sfx-snort",
+      "dur": 3,
+      "peakDb": -5.141364511395468,
+      "rmsDb": -27.40218714817605,
+      "stRmsDb": -22.699919033693014,
+      "dc": 1.9707696345802913e-7,
+      "maxStep": 0.14890366792678833,
+      "clipped": 0,
+      "nonFinite": 0,
+      "readyMs": 182.5,
+      "renderMs": 302.79999999981374,
+      "speed": 9.907529722595262,
+      "status": "ok",
+      "loudness": {
+        "integratedLufs": -21.3,
+        "rangeLu": 20,
+        "truePeakDb": -5.1
+      }
+    },
+    {
+      "name": "sfx-stamp",
+      "dur": 3,
+      "peakDb": -4.747923948984824,
+      "rmsDb": -22.71480591667355,
+      "stRmsDb": -18.217311710779875,
+      "dc": 0.000005626239254423935,
+      "maxStep": 0.05246227979660034,
+      "clipped": 0,
+      "nonFinite": 0,
+      "readyMs": 207.1999999997206,
+      "renderMs": 143.70000000018626,
+      "speed": 20.876826722311144,
+      "status": "ok",
+      "loudness": {
+        "integratedLufs": -18.9,
+        "rangeLu": 20,
+        "truePeakDb": -4.7
+      }
+    },
+    {
+      "name": "sfx-gull",
+      "dur": 4.8,
+      "peakDb": -8.56597544418052,
+      "rmsDb": -25.92571636268684,
+      "stRmsDb": -23.037110010600376,
+      "dc": 3.595895817751524e-8,
+      "maxStep": 0.08207763731479645,
+      "clipped": 0,
+      "nonFinite": 0,
+      "readyMs": 120.6999999997206,
+      "renderMs": 297,
+      "speed": 16.161616161616163,
+      "status": "ok",
+      "loudness": {
+        "integratedLufs": -20.1,
+        "rangeLu": 1.1,
+        "truePeakDb": -8.5
+      }
+    },
+    {
+      "name": "sfx-wind",
+      "dur": 7,
+      "peakDb": -10.710728282866445,
+      "rmsDb": -28.23008716792826,
+      "stRmsDb": -25.847769590771787,
+      "dc": 8.764868514931766e-7,
+      "maxStep": 0.046381477266550064,
+      "clipped": 0,
+      "nonFinite": 0,
+      "readyMs": 149.8000000002794,
+      "renderMs": 511.20000000018626,
+      "speed": 13.693270735519267,
+      "status": "ok",
+      "loudness": {
+        "integratedLufs": -22.6,
+        "rangeLu": 2.1,
+        "truePeakDb": -10.7
+      }
+    },
+    {
+      "name": "sfx-whoosh",
+      "dur": 3.3,
+      "peakDb": -8.11654596155903,
+      "rmsDb": -28.41604347150133,
+      "stRmsDb": -26.718730152315278,
+      "dc": 2.456800655526229e-7,
+      "maxStep": 0.2172957742586732,
+      "clipped": 0,
+      "nonFinite": 0,
+      "readyMs": 107.39999999990687,
+      "renderMs": 176.5,
+      "speed": 18.69688385269122,
+      "status": "ok",
+      "loudness": {
+        "integratedLufs": -19.9,
+        "rangeLu": 20,
+        "truePeakDb": -8
+      }
+    },
+    {
+      "name": "sfx-thud",
+      "dur": 4.2,
+      "peakDb": -4.607919341856335,
+      "rmsDb": -21.22178961173384,
+      "stRmsDb": -15.48071955039035,
+      "dc": 0.000003729569267047087,
+      "maxStep": 0.011215806007385254,
+      "clipped": 0,
+      "nonFinite": 0,
+      "readyMs": 170.20000000018626,
+      "renderMs": 270.3000000002794,
+      "speed": 15.538290787997257,
+      "status": "ok",
+      "loudness": {
+        "integratedLufs": -18.8,
+        "rangeLu": 1.8,
+        "truePeakDb": -4.6
+      }
+    },
+    {
+      "name": "sfx-latch",
+      "dur": 3,
+      "peakDb": -7.377457435683335,
+      "rmsDb": -30.576904527094186,
+      "stRmsDb": -26.197681097551037,
+      "dc": 8.980621846098479e-8,
+      "maxStep": 0.21249797381460667,
+      "clipped": 0,
+      "nonFinite": 0,
+      "readyMs": 222.89999999990687,
+      "renderMs": 191.09999999962747,
+      "speed": 15.698587127189159,
+      "status": "ok",
+      "loudness": {
+        "integratedLufs": -24.1,
+        "rangeLu": 20,
+        "truePeakDb": -7.4
+      }
+    },
+    {
+      "name": "sfx-ratchet",
+      "dur": 3,
+      "peakDb": -7.4325403199783535,
+      "rmsDb": -29.175252847926707,
+      "stRmsDb": -25.643312485306993,
+      "dc": 1.0919983823340671e-7,
+      "maxStep": 0.07427366077899933,
+      "clipped": 0,
+      "nonFinite": 0,
+      "readyMs": 160.39999999990687,
+      "renderMs": 185.3000000002794,
+      "speed": 16.189962223397067,
+      "status": "ok",
+      "loudness": {
+        "integratedLufs": -24.4,
+        "rangeLu": 20,
+        "truePeakDb": -7.4
+      }
+    },
+    {
+      "name": "sfx-gate",
+      "dur": 4.5,
+      "peakDb": -7.281989602662522,
+      "rmsDb": -29.783609389172927,
+      "stRmsDb": -23.025505170569307,
+      "dc": 5.473198473703599e-8,
+      "maxStep": 0.08419948816299438,
+      "clipped": 0,
+      "nonFinite": 0,
+      "readyMs": 171.59999999962747,
+      "renderMs": 492.29999999981374,
+      "speed": 9.140767824500717,
+      "status": "ok",
+      "loudness": {
+        "integratedLufs": -24.1,
+        "rangeLu": 3.1,
+        "truePeakDb": -7.3
+      }
+    },
+    {
+      "name": "sfx-pop",
+      "dur": 2,
+      "peakDb": -10.54137171259355,
+      "rmsDb": -30.248972796314995,
+      "stRmsDb": -29.0361425508583,
+      "dc": 0.000011726089424125046,
+      "maxStep": 0.02593173086643219,
+      "clipped": 0,
+      "nonFinite": 0,
+      "readyMs": 222.8000000002794,
+      "renderMs": 115.10000000009313,
+      "speed": 17.37619461336561,
+      "status": "ok",
+      "loudness": {
+        "integratedLufs": -26.8,
+        "rangeLu": 0,
+        "truePeakDb": -10.5
+      }
+    },
+    {
+      "name": "sfx-page",
+      "dur": 3,
+      "peakDb": -10.561881146807501,
+      "rmsDb": -27.56419015348259,
+      "stRmsDb": -23.371053495103354,
+      "dc": 5.813482912344625e-7,
+      "maxStep": 0.217315211892128,
+      "clipped": 0,
+      "nonFinite": 0,
+      "readyMs": 157,
+      "renderMs": 199.8000000002794,
+      "speed": 15.015015014994018,
+      "status": "ok",
+      "loudness": {
+        "integratedLufs": -19.9,
+        "rangeLu": 20,
+        "truePeakDb": -10.3
+      }
+    },
+    {
+      "name": "sfx-pickup",
+      "dur": 3.5,
+      "peakDb": -12.703289848581473,
+      "rmsDb": -27.495233454784085,
+      "stRmsDb": -23.828221065040797,
+      "dc": 0.0000035976554777984607,
+      "maxStep": 0.0705100204795599,
+      "clipped": 0,
+      "nonFinite": 0,
+      "readyMs": 111.5,
+      "renderMs": 340,
+      "speed": 10.294117647058824,
+      "status": "ok",
+      "loudness": {
+        "integratedLufs": -23.5,
+        "rangeLu": 1,
+        "truePeakDb": -12.7
+      }
+    },
+    {
+      "name": "sfx-colorin",
+      "dur": 4.5,
+      "peakDb": -8.680367497234883,
+      "rmsDb": -27.199352223297492,
+      "stRmsDb": -22.03394222015651,
+      "dc": 0.0000028637142855182497,
+      "maxStep": 0.14957463182508945,
+      "clipped": 0,
+      "nonFinite": 0,
+      "readyMs": 226.79999999981374,
+      "renderMs": 498.29999999981374,
+      "speed": 9.03070439494618,
+      "status": "ok",
+      "loudness": {
+        "integratedLufs": -21.8,
+        "rangeLu": 3.2,
+        "truePeakDb": -8.6
+      }
+    },
+    {
+      "name": "sfx-sparkle",
+      "dur": 4,
+      "peakDb": -13.922380825693539,
+      "rmsDb": -30.018206286009704,
+      "stRmsDb": -24.824140452801856,
+      "dc": 0.000002138534250586114,
+      "maxStep": 0.036034561693668365,
+      "clipped": 0,
+      "nonFinite": 0,
+      "readyMs": 133.70000000018626,
+      "renderMs": 288.5,
+      "speed": 13.864818024263432,
+      "status": "ok",
+      "loudness": {
+        "integratedLufs": -24.1,
+        "rangeLu": 3.2,
+        "truePeakDb": -13.9
+      }
+    },
+    {
+      "name": "sfx-stopwatch",
+      "dur": 3.5,
+      "peakDb": -10.33172368069091,
+      "rmsDb": -38.28252675765732,
+      "stRmsDb": -32.28499281189794,
+      "dc": 8.717660291170302e-9,
+      "maxStep": 0.2661421373486519,
+      "clipped": 0,
+      "nonFinite": 0,
+      "readyMs": 172.20000000018626,
+      "renderMs": 195.60000000009313,
+      "speed": 17.893660531688823,
+      "status": "ok",
+      "loudness": {
+        "integratedLufs": -31.5,
+        "rangeLu": 2.6,
+        "truePeakDb": -10.2
+      }
+    },
+    {
+      "name": "sfx-write",
+      "dur": 3.6,
+      "peakDb": -11.613425264952074,
+      "rmsDb": -32.62790680223506,
+      "stRmsDb": -28.423678273270973,
+      "dc": 6.328632783455153e-8,
+      "maxStep": 0.19102445244789124,
+      "clipped": 0,
+      "nonFinite": 0,
+      "readyMs": 164.5,
+      "renderMs": 198.40000000037253,
+      "speed": 18.14516129028851,
+      "status": "ok",
+      "loudness": {
+        "integratedLufs": -25.2,
+        "rangeLu": 1.5,
+        "truePeakDb": -11.2
+      }
+    },
+    {
+      "name": "pitch-lyre",
+      "dur": 31.099999999999998,
+      "peakDb": -12.268771865310002,
+      "rmsDb": -29.437168684505654,
+      "stRmsDb": -23.038565247636885,
+      "dc": 0.000001873681490235498,
+      "maxStep": 0.036678507924079895,
+      "clipped": 0,
+      "nonFinite": 0,
+      "readyMs": 198.70000000018626,
+      "renderMs": 476.39999999990687,
+      "speed": 65.28127623846784,
+      "status": "ok"
+    },
+    {
+      "name": "pitch-shell",
+      "dur": 15.7,
+      "peakDb": -10.67126630785641,
+      "rmsDb": -32.519480925141046,
+      "stRmsDb": -26.926956017465233,
+      "dc": 0.00004190915742622076,
+      "maxStep": 0.05329157714731991,
+      "clipped": 0,
+      "nonFinite": 0,
+      "readyMs": 181.10000000009313,
+      "renderMs": 506.1999999997206,
+      "speed": 31.015408929294086,
+      "status": "ok"
+    },
+    {
+      "name": "pitch-plank",
+      "dur": 15.7,
+      "peakDb": -7.660064988306159,
+      "rmsDb": -31.25268203387893,
+      "stRmsDb": -25.674215070812494,
+      "dc": 0.00003064902317757105,
+      "maxStep": 0.1314505636692047,
+      "clipped": 0,
+      "nonFinite": 0,
+      "readyMs": 206.29999999981374,
+      "renderMs": 471,
+      "speed": 33.333333333333336,
+      "status": "ok"
+    },
+    {
+      "name": "pitch-bell-free",
+      "dur": 25.5,
+      "peakDb": -15.967056267279764,
+      "rmsDb": -28.724112240057877,
+      "stRmsDb": -23.826288743357935,
+      "dc": 0.00000333893832524398,
+      "maxStep": 0.05273258683155291,
+      "clipped": 0,
+      "nonFinite": 0,
+      "readyMs": 175.10000000009313,
+      "renderMs": 862.1000000000931,
+      "speed": 29.578935158331106,
+      "status": "ok"
+    },
+    {
+      "name": "pitch-pad",
+      "dur": 35.5,
+      "peakDb": -17.984742480618014,
+      "rmsDb": -26.31422394958325,
+      "stRmsDb": -22.897184314744283,
+      "dc": 6.889918232689166e-9,
+      "maxStep": 0.07605615630745888,
+      "clipped": 0,
+      "nonFinite": 0,
+      "readyMs": 183.29999999981374,
+      "renderMs": 1371.2999999998137,
+      "speed": 25.88784365201256,
+      "status": "ok"
+    },
+    {
+      "name": "pitch-drone",
+      "dur": 1.7,
+      "peakDb": -14.319684441819142,
+      "rmsDb": -24.143996561028395,
+      "stRmsDb": -23.23215141938253,
+      "dc": 0.00009238343776939705,
+      "maxStep": 0.006570870988070965,
+      "clipped": 0,
+      "nonFinite": 0,
+      "readyMs": 198.89999999990687,
+      "renderMs": 306.6999999997206,
+      "speed": 5.5428757743774,
+      "status": "ok"
+    }
+  ],
+  "loopRows": [
+    {
+      "name": "wind",
+      "sec": 6,
+      "wrap": 0.0037426911294460297,
+      "typical": 0.003224550746381283,
+      "p999": 0.02232426404953003,
+      "ratio": 0.16765126595628227,
+      "status": "ok"
+    },
+    {
+      "name": "under",
+      "sec": 6,
+      "wrap": 0.00007256120443344116,
+      "typical": 0.0005701929330825806,
+      "p999": 0.0029086321592330933,
+      "ratio": 0.0249468480237711,
+      "status": "ok"
+    },
+    {
+      "name": "waves",
+      "sec": 8,
+      "wrap": 0.004461260512471199,
+      "typical": 0.003637673333287239,
+      "p999": 0.07459520548582077,
+      "ratio": 0.05980626346446898,
+      "status": "ok"
+    },
+    {
+      "name": "lap",
+      "sec": 6,
+      "wrap": 0.0028781602159142494,
+      "typical": 0.00002181529998779297,
+      "p999": 0.011498060077428818,
+      "ratio": 0.2503170270926137,
+      "status": "ok"
+    }
+  ],
+  "pitchRows": [
+    {
+      "inst": "lyre",
+      "midi": 45,
+      "target": 110,
+      "f": 109.99997006981245,
+      "cents": -0.0004710560621260805,
+      "relDb": 0,
+      "subDb": -99.63764593301323,
+      "status": "ok"
+    },
+    {
+      "inst": "lyre",
+      "midi": 48,
+      "target": 130.8127826502993,
+      "f": 130.81279358730168,
+      "cents": 0.00014474510617822094,
+      "relDb": 0,
+      "subDb": -103.6055271078218,
+      "status": "ok"
+    },
+    {
+      "inst": "lyre",
+      "midi": 50,
+      "target": 146.8323839587038,
+      "f": 146.83241701535934,
+      "cents": 0.00038975599002203217,
+      "relDb": 0,
+      "subDb": -106.8379607025487,
+      "status": "ok"
+    },
+    {
+      "inst": "lyre",
+      "midi": 52,
+      "target": 164.81377845643496,
+      "f": 164.81378950104252,
+      "cents": 0.00011601457229485421,
+      "relDb": 0,
+      "subDb": -108.26949909267671,
+      "status": "ok"
+    },
+    {
+      "inst": "lyre",
+      "midi": 53,
+      "target": 174.61411571650194,
+      "f": 174.61415115067356,
+      "cents": 0.00035131660428758623,
+      "relDb": 0,
+      "subDb": -110.09570147460009,
+      "status": "ok"
+    },
+    {
+      "inst": "lyre",
+      "midi": 55,
+      "target": 195.99771799087463,
+      "f": 195.99772385809058,
+      "cents": 0.00005182470465960604,
+      "relDb": 0,
+      "subDb": -112.18078745165924,
+      "status": "ok"
+    },
+    {
+      "inst": "lyre",
+      "midi": 57,
+      "target": 220,
+      "f": 219.99999135916542,
+      "cents": -0.00006799685149651633,
+      "relDb": 0,
+      "subDb": -114.47330425926766,
+      "status": "ok"
+    },
+    {
+      "inst": "lyre",
+      "midi": 59,
+      "target": 246.94165062806206,
+      "f": 246.94160390898654,
+      "cents": -0.0003275334952298892,
+      "relDb": 0,
+      "subDb": -113.92113219949337,
+      "status": "ok"
+    },
+    {
+      "inst": "lyre",
+      "midi": 60,
+      "target": 261.6255653005986,
+      "f": 261.6255137585702,
+      "cents": -0.00034106499973516187,
+      "relDb": 0,
+      "subDb": -114.06333900034534,
+      "status": "ok"
+    },
+    {
+      "inst": "lyre",
+      "midi": 62,
+      "target": 293.6647679174076,
+      "f": 293.6647175622238,
+      "cents": -0.00029685759301309494,
+      "relDb": 0,
+      "subDb": -108.75456030750627,
+      "status": "ok"
+    },
+    {
+      "inst": "lyre",
+      "midi": 64,
+      "target": 329.6275569128699,
+      "f": 329.6275430297506,
+      "cents": -0.00007291541274002612,
+      "relDb": 0,
+      "subDb": -93.24321788583615,
+      "status": "ok"
+    },
+    {
+      "inst": "lyre",
+      "midi": 65,
+      "target": 349.2282314330039,
+      "f": 349.22821030622146,
+      "cents": -0.00010473210044004409,
+      "relDb": 0,
+      "subDb": -74.26396594531751,
+      "status": "ok"
+    },
+    {
+      "inst": "lyre",
+      "midi": 66,
+      "target": 369.9944227116344,
+      "f": 369.99438620242285,
+      "cents": -0.000170829583870875,
+      "relDb": 0,
+      "subDb": -71.5964616333593,
+      "status": "ok"
+    },
+    {
+      "inst": "lyre",
+      "midi": 67,
+      "target": 391.99543598174927,
+      "f": 391.99535513390697,
+      "cents": -0.000357061687431608,
+      "relDb": 0,
+      "subDb": -84.247988123522,
+      "status": "ok"
+    },
+    {
+      "inst": "lyre",
+      "midi": 69,
+      "target": 440,
+      "f": 439.9999280042107,
+      "cents": -0.00028327630010131717,
+      "relDb": 0,
+      "subDb": -106.9550647422329,
+      "status": "ok"
+    },
+    {
+      "inst": "lyre",
+      "midi": 71,
+      "target": 493.8833012561241,
+      "f": 493.88323183089915,
+      "cents": -0.0002433597603209726,
+      "relDb": 0,
+      "subDb": -114.41867693493664,
+      "status": "ok"
+    },
+    {
+      "inst": "lyre",
+      "midi": 72,
+      "target": 523.2511306011972,
+      "f": 523.2510030809191,
+      "cents": -0.00042191494960536826,
+      "relDb": 0,
+      "subDb": -115.89673075208651,
+      "status": "ok"
+    },
+    {
+      "inst": "lyre",
+      "midi": 74,
+      "target": 587.3295358348151,
+      "f": 587.3293807418481,
+      "cents": -0.00045715776981123383,
+      "relDb": 0,
+      "subDb": -118.51009472618054,
+      "status": "ok"
+    },
+    {
+      "inst": "lyre",
+      "midi": 76,
+      "target": 659.2551138257398,
+      "f": 659.2549530261264,
+      "cents": -0.0004222671831572269,
+      "relDb": 0,
+      "subDb": -118.31385088444067,
+      "status": "ok"
+    },
+    {
+      "inst": "lyre",
+      "midi": 77,
+      "target": 698.4564628660078,
+      "f": 698.4562767474522,
+      "cents": -0.00046132413499800376,
+      "relDb": 0,
+      "subDb": -97.9136324482652,
+      "status": "ok"
+    },
+    {
+      "inst": "lyre",
+      "midi": 79,
+      "target": 783.9908719634985,
+      "f": 783.9906466663651,
+      "cents": -0.0004975085022689611,
+      "relDb": 0,
+      "subDb": -109.45801673851753,
+      "status": "ok"
+    },
+    {
+      "inst": "lyre",
+      "midi": 81,
+      "target": 880,
+      "f": 879.999768361981,
+      "cents": -0.0004557041800548901,
+      "relDb": 0,
+      "subDb": -120.65867900447843,
+      "status": "ok"
+    },
+    {
+      "inst": "shell",
+      "midi": 62,
+      "target": 293.6647679174076,
+      "f": 293.66466630975077,
+      "cents": -0.0005990050041443184,
+      "relDb": -1.7475741982170276,
+      "subDb": -113.60174767354718,
+      "status": "ok"
+    },
+    {
+      "inst": "shell",
+      "midi": 64,
+      "target": 329.6275569128699,
+      "f": 329.6274469134534,
+      "cents": -0.000577727083283251,
+      "relDb": -1.2594527184265858,
+      "subDb": -116.01334460977348,
+      "status": "ok"
+    },
+    {
+      "inst": "shell",
+      "midi": 65,
+      "target": 349.2282314330039,
+      "f": 349.2281047401337,
+      "cents": -0.0006280564705869602,
+      "relDb": -1.0862625895676485,
+      "subDb": -117.0620754961689,
+      "status": "ok"
+    },
+    {
+      "inst": "shell",
+      "midi": 67,
+      "target": 391.99543598174927,
+      "f": 391.9952491449173,
+      "cents": -0.0008251584904227772,
+      "relDb": -0.6368207984301643,
+      "subDb": -120.28364951114982,
+      "status": "ok"
+    },
+    {
+      "inst": "shell",
+      "midi": 69,
+      "target": 440,
+      "f": 439.99976655096054,
+      "cents": -0.0009185341660745995,
+      "relDb": -0.17266383132115748,
+      "subDb": -122.71626321528171,
+      "status": "ok"
+    },
+    {
+      "inst": "shell",
+      "midi": 71,
+      "target": 493.8833012561241,
+      "f": 493.8830075623399,
+      "cents": -0.0010294999428617031,
+      "relDb": 0,
+      "subDb": -125.39124662424649,
+      "status": "ok"
+    },
+    {
+      "inst": "shell",
+      "midi": 72,
+      "target": 523.2511306011972,
+      "f": 523.2507764916909,
+      "cents": -0.0011716107354408176,
+      "relDb": 0,
+      "subDb": -124.8964361592426,
+      "status": "ok"
+    },
+    {
+      "inst": "shell",
+      "midi": 74,
+      "target": 587.3295358348151,
+      "f": 587.32907853951,
+      "cents": -0.0013479409134256794,
+      "relDb": 0,
+      "subDb": -127.35548448601645,
+      "status": "ok"
+    },
+    {
+      "inst": "shell",
+      "midi": 76,
+      "target": 659.2551138257398,
+      "f": 659.2545311297376,
+      "cents": -0.0015301870002637095,
+      "relDb": 0,
+      "subDb": -130.94085972111,
+      "status": "ok"
+    },
+    {
+      "inst": "shell",
+      "midi": 77,
+      "target": 698.4564628660078,
+      "f": 698.4557906631132,
+      "cents": -0.0016661612580427649,
+      "relDb": 0,
+      "subDb": -130.19249561408677,
+      "status": "ok"
+    },
+    {
+      "inst": "shell",
+      "midi": 79,
+      "target": 783.9908719634985,
+      "f": 783.9899885424302,
+      "cents": -0.0019508001299835475,
+      "relDb": 0,
+      "subDb": -131.78754197071666,
+      "status": "ok"
+    },
+    {
+      "inst": "plank",
+      "midi": 62,
+      "target": 293.6647679174076,
+      "f": 293.66456519366017,
+      "cents": -0.0011951122966053801,
+      "relDb": 0,
+      "subDb": -50.116360858096314,
+      "status": "ok"
+    },
+    {
+      "inst": "plank",
+      "midi": 64,
+      "target": 329.6275569128699,
+      "f": 329.62733438745374,
+      "cents": -0.0011687242137692101,
+      "relDb": 0,
+      "subDb": -71.06592305770094,
+      "status": "ok"
+    },
+    {
+      "inst": "plank",
+      "midi": 65,
+      "target": 349.2282314330039,
+      "f": 349.2279434790134,
+      "cents": -0.001427478976727855,
+      "relDb": 0,
+      "subDb": -75.59685901405015,
+      "status": "ok"
+    },
+    {
+      "inst": "plank",
+      "midi": 67,
+      "target": 391.99543598174927,
+      "f": 391.9950988538945,
+      "cents": -0.0014889139476861578,
+      "relDb": 0,
+      "subDb": -84.40299740797856,
+      "status": "ok"
+    },
+    {
+      "inst": "plank",
+      "midi": 69,
+      "target": 440,
+      "f": 439.99955103222436,
+      "cents": -0.0017665197650932243,
+      "relDb": 0,
+      "subDb": -91.68563529200068,
+      "status": "ok"
+    },
+    {
+      "inst": "plank",
+      "midi": 71,
+      "target": 493.8833012561241,
+      "f": 493.8827009399568,
+      "cents": -0.00210431982228142,
+      "relDb": 0,
+      "subDb": -92.52001502896496,
+      "status": "ok"
+    },
+    {
+      "inst": "plank",
+      "midi": 72,
+      "target": 523.2511306011972,
+      "f": 523.2504394767504,
+      "cents": -0.0022866629323734858,
+      "relDb": 0,
+      "subDb": -93.0071470672917,
+      "status": "ok"
+    },
+    {
+      "inst": "plank",
+      "midi": 74,
+      "target": 587.3295358348151,
+      "f": 587.3286591281574,
+      "cents": -0.002584214580038165,
+      "relDb": 0,
+      "subDb": -95.92058638722712,
+      "status": "ok"
+    },
+    {
+      "inst": "plank",
+      "midi": 76,
+      "target": 659.2551138257398,
+      "f": 659.2540282026131,
+      "cents": -0.0028508982782652404,
+      "relDb": 0,
+      "subDb": -94.07930765393209,
+      "status": "ok"
+    },
+    {
+      "inst": "plank",
+      "midi": 77,
+      "target": 698.4564628660078,
+      "f": 698.4552222238382,
+      "cents": -0.003075129214809775,
+      "relDb": 0,
+      "subDb": -97.14088490654493,
+      "status": "ok"
+    },
+    {
+      "inst": "plank",
+      "midi": 79,
+      "target": 783.9908719634985,
+      "f": 783.9892370613331,
+      "cents": -0.003610247705792517,
+      "relDb": 0,
+      "subDb": -99.36118542763444,
+      "status": "ok"
+    },
+    {
+      "inst": "bell-free",
+      "midi": 62,
+      "target": 293.6647679174076,
+      "f": 293.6647438393763,
+      "cents": -0.00014194657947569478,
+      "relDb": 0,
+      "subDb": -124.96433015659136,
+      "status": "ok"
+    },
+    {
+      "inst": "bell-free",
+      "midi": 64,
+      "target": 329.6275569128699,
+      "f": 329.627582350675,
+      "cents": 0.00013360167161011665,
+      "relDb": 0,
+      "subDb": -128.4290614102539,
+      "status": "ok"
+    },
+    {
+      "inst": "bell-free",
+      "midi": 65,
+      "target": 349.2282314330039,
+      "f": 349.2282711753382,
+      "cents": 0.00019701522445785195,
+      "relDb": 0,
+      "subDb": -129.2678411998852,
+      "status": "ok"
+    },
+    {
+      "inst": "bell-free",
+      "midi": 67,
+      "target": 391.99543598174927,
+      "f": 391.995408713902,
+      "cents": -0.0001204274921367588,
+      "relDb": 0,
+      "subDb": -131.69074522624956,
+      "status": "ok"
+    },
+    {
+      "inst": "bell-free",
+      "midi": 69,
+      "target": 440,
+      "f": 439.9999935662991,
+      "cents": -0.000025314186617873995,
+      "relDb": 0,
+      "subDb": -135.07220777365492,
+      "status": "ok"
+    },
+    {
+      "inst": "bell-free",
+      "midi": 71,
+      "target": 493.8833012561241,
+      "f": 493.88332089923335,
+      "cents": 0.00006885598029480352,
+      "relDb": 0,
+      "subDb": -137.4383440144685,
+      "status": "ok"
+    },
+    {
+      "inst": "bell-free",
+      "midi": 72,
+      "target": 523.2511306011972,
+      "f": 523.2510988305028,
+      "cents": -0.00010511684819580869,
+      "relDb": 0,
+      "subDb": -139.01194427654644,
+      "status": "ok"
+    },
+    {
+      "inst": "bell-free",
+      "midi": 74,
+      "target": 587.3295358348151,
+      "f": 587.3295081743079,
+      "cents": -0.00008153312605384283,
+      "relDb": 0,
+      "subDb": -140.95055480663146,
+      "status": "ok"
+    },
+    {
+      "inst": "bell-free",
+      "midi": 76,
+      "target": 659.2551138257398,
+      "f": 659.2551198960418,
+      "cents": 0.000015940890382345134,
+      "relDb": 0,
+      "subDb": -143.77761413879352,
+      "status": "ok"
+    },
+    {
+      "inst": "bell-free",
+      "midi": 77,
+      "target": 698.4564628660078,
+      "f": 698.456450812604,
+      "cents": -0.000029876254799864594,
+      "relDb": 0,
+      "subDb": -145.0595600231738,
+      "status": "ok"
+    },
+    {
+      "inst": "bell-free",
+      "midi": 78,
+      "target": 739.9888454232688,
+      "f": 739.9888530679091,
+      "cents": 0.000017884947270733178,
+      "relDb": 0,
+      "subDb": -145.93605794002417,
+      "status": "ok"
+    },
+    {
+      "inst": "bell-free",
+      "midi": 79,
+      "target": 783.9908719634985,
+      "f": 783.9908325585303,
+      "cents": -0.00008701532987298324,
+      "relDb": 0,
+      "subDb": -147.10892051090784,
+      "status": "ok"
+    },
+    {
+      "inst": "bell-free",
+      "midi": 81,
+      "target": 880,
+      "f": 879.999976120463,
+      "cents": -0.000046978486600584984,
+      "relDb": 0,
+      "subDb": -150.3999465587895,
+      "status": "ok"
+    },
+    {
+      "inst": "bell-free",
+      "midi": 83,
+      "target": 987.7666025122483,
+      "f": 987.7665705047145,
+      "cents": -0.00005609881223040451,
+      "relDb": 0,
+      "subDb": -151.79489142286013,
+      "status": "ok"
+    },
+    {
+      "inst": "bell-free",
+      "midi": 84,
+      "target": 1046.5022612023945,
+      "f": 1046.502255466518,
+      "cents": -0.000009488889982678494,
+      "relDb": 0,
+      "subDb": -153.59605114934777,
+      "status": "ok"
+    },
+    {
+      "inst": "bell-free",
+      "midi": 86,
+      "target": 1174.6590716696303,
+      "f": 1174.6590535181883,
+      "cents": -0.00002675192770066365,
+      "relDb": 0,
+      "subDb": -154.66612669208646,
+      "status": "ok"
+    },
+    {
+      "inst": "bell-free",
+      "midi": 88,
+      "target": 1318.5102276514797,
+      "f": 1318.5101573231177,
+      "cents": -0.00009234274823294239,
+      "relDb": 0,
+      "subDb": -150.85599223078006,
+      "status": "ok"
+    },
+    {
+      "inst": "bell-free",
+      "midi": 91,
+      "target": 1567.981743926997,
+      "f": 1567.9816919910184,
+      "cents": -0.00005734335653789222,
+      "relDb": 0,
+      "subDb": -154.4618556760128,
+      "status": "ok"
+    },
+    {
+      "inst": "pad",
+      "midi": 55,
+      "target": 195.99771799087463,
+      "f": 196.0007342030811,
+      "cents": 0.026641785149572345,
+      "relDb": 0,
+      "subDb": -150.009890682032,
+      "status": "ok"
+    },
+    {
+      "inst": "pad",
+      "midi": 57,
+      "target": 220,
+      "f": 219.96604171328858,
+      "cents": -0.26724672700007956,
+      "relDb": 0,
+      "subDb": -145.08871205975512,
+      "status": "ok"
+    },
+    {
+      "inst": "pad",
+      "midi": 59,
+      "target": 246.94165062806206,
+      "f": 246.89877311051998,
+      "cents": -0.30062755062817026,
+      "relDb": 0,
+      "subDb": -136.969443408275,
+      "status": "ok"
+    },
+    {
+      "inst": "pad",
+      "midi": 60,
+      "target": 261.6255653005986,
+      "f": 261.64842298970683,
+      "cents": 0.15124776150872207,
+      "relDb": 0,
+      "subDb": -138.60480362180223,
+      "status": "ok"
+    },
+    {
+      "inst": "pad",
+      "midi": 62,
+      "target": 293.6647679174076,
+      "f": 294.62554208022794,
+      "cents": 5.6547809633871085,
+      "relDb": 0,
+      "subDb": -137.8564450717402,
+      "status": "ok"
+    },
+    {
+      "inst": "pad",
+      "midi": 64,
+      "target": 329.6275569128699,
+      "f": 330.4920120765333,
+      "cents": 4.534254516984497,
+      "relDb": 0,
+      "subDb": -141.27840338085812,
+      "status": "ok"
+    },
+    {
+      "inst": "pad",
+      "midi": 65,
+      "target": 349.2282314330039,
+      "f": 348.40896123891156,
+      "cents": -4.066151066230378,
+      "relDb": 0,
+      "subDb": -142.92953125118186,
+      "status": "ok"
+    },
+    {
+      "inst": "pad",
+      "midi": 66,
+      "target": 369.9944227116344,
+      "f": 369.18533205132326,
+      "cents": -3.7899464921538444,
+      "relDb": 0,
+      "subDb": -141.06513597240573,
+      "status": "ok"
+    },
+    {
+      "inst": "pad",
+      "midi": 67,
+      "target": 391.99543598174927,
+      "f": 391.13453596099913,
+      "cents": -3.806315892740695,
+      "relDb": 0,
+      "subDb": -143.33500123432395,
+      "status": "ok"
+    },
+    {
+      "inst": "pad",
+      "midi": 69,
+      "target": 440,
+      "f": 438.91225913769125,
+      "cents": -4.285148965093124,
+      "relDb": 0,
+      "subDb": -146.56148365345555,
+      "status": "ok"
+    },
+    {
+      "inst": "pad",
+      "midi": 71,
+      "target": 493.8833012561241,
+      "f": 495.1256724596866,
+      "cents": 4.349478149696997,
+      "relDb": 0,
+      "subDb": -146.84153527598036,
+      "status": "ok"
+    },
+    {
+      "inst": "pad",
+      "midi": 72,
+      "target": 523.2511306011972,
+      "f": 524.6040057520036,
+      "cents": 4.470359967405404,
+      "relDb": 0,
+      "subDb": -149.09523627504348,
+      "status": "ok"
+    },
+    {
+      "inst": "pad",
+      "midi": 74,
+      "target": 587.3295358348151,
+      "f": 588.7048299891326,
+      "cents": 4.0491285323081945,
+      "relDb": 0,
+      "subDb": -148.1043056293984,
+      "status": "ok"
+    },
+    {
+      "inst": "pad",
+      "midi": 76,
+      "target": 659.2551138257398,
+      "f": 660.7114919862536,
+      "cents": 3.8202973799915343,
+      "relDb": 0,
+      "subDb": -151.65320537722303,
+      "status": "ok"
+    },
+    {
+      "inst": "pad",
+      "midi": 77,
+      "target": 698.4564628660078,
+      "f": 696.9070738700094,
+      "cents": -3.84466988982956,
+      "relDb": 0,
+      "subDb": -156.20061808682306,
+      "status": "ok"
+    },
+    {
+      "inst": "pad",
+      "midi": 79,
+      "target": 783.9908719634985,
+      "f": 786.0168164650179,
+      "cents": 4.467985826015702,
+      "relDb": 0,
+      "subDb": -150.93737976701783,
+      "status": "ok"
+    },
+    {
+      "inst": "drone",
+      "midi": 38,
+      "target": 73.41619197935188,
+      "f": 73.29149394550676,
+      "cents": -2.943016007266094,
+      "relDb": -1.4673345961528648,
+      "subDb": -90.20980473200483,
+      "status": "ok"
+    }
+  ],
+  "busRows": [
+    {
+      "bus": "music",
+      "muted": {
+        "peakDb": -240,
+        "rmsDb": -240,
+        "stRmsDb": -240,
+        "dc": 0,
+        "maxStep": 0,
+        "clipped": 0,
+        "nonFinite": 0
+      },
+      "audible": {
+        "peakDb": -5.042692047663548,
+        "rmsDb": -21.483751917929474,
+        "stRmsDb": -16.561687466466704,
+        "dc": 0.00006610468338446177,
+        "maxStep": 0.10325968265533447,
+        "clipped": 0,
+        "nonFinite": 0
+      },
+      "status": "ok"
+    },
+    {
+      "bus": "sfx",
+      "muted": {
+        "peakDb": -240,
+        "rmsDb": -240,
+        "stRmsDb": -240,
+        "dc": 0,
+        "maxStep": 0,
+        "clipped": 0,
+        "nonFinite": 0
+      },
+      "audible": {
+        "peakDb": -8.623174567878639,
+        "rmsDb": -31.27229208887384,
+        "stRmsDb": -22.467532721124023,
+        "dc": 7.417055191278148e-7,
+        "maxStep": 0.2255452200770378,
+        "clipped": 0,
+        "nonFinite": 0
+      },
+      "status": "ok"
+    },
+    {
+      "bus": "voice",
+      "muted": {
+        "peakDb": -240,
+        "rmsDb": -240,
+        "stRmsDb": -240,
+        "dc": 0,
+        "maxStep": 0,
+        "clipped": 0,
+        "nonFinite": 0
+      },
+      "audible": {
+        "peakDb": -4.126004806047642,
+        "rmsDb": -21.489678955017112,
+        "stRmsDb": -12.562642696011778,
+        "dc": 3.517784062707852e-7,
+        "maxStep": 0.1486489102244377,
+        "clipped": 0,
+        "nonFinite": 0
+      },
+      "status": "ok"
+    }
+  ],
+  "pageErrors": [],
+  "failures": []
+}

@@ -37,6 +37,9 @@
 
   <h2>Area (setArea)</h2>
   <div class="row" id="areas"></div>
+  <h2>Place ambience (independent of the arrangement)</h2>
+  <div class="row" id="environments"></div>
+  <p class="note">For ambience alone set music to zero. Beach = distant wash, steppe = wind, kelp = underwater hush, bay = soft lapping. “follow area” restores the arrangement's default.</p>
 
   <h2>Motion (setMotion, sent every frame like the game)</h2>
   <div class="row">
@@ -55,6 +58,8 @@
 
   <h2>Effects (sfx)</h2>
   <div class="row" id="effects"></div>
+  <div class="row" id="notebook" style="margin-top:8px"></div>
+  <p class="note">crabvoice, neigh, blubb and snort follow voice; the physical crabclick follows sfx. Page and notebook cues follow sfx.</p>
   <div class="row" style="margin-top:8px">
     <fieldset><legend>hoof</legend><div class="row"><select id="hoofSurface"></select><label>speed01 <input id="hoofSpeed" type="range" min="0" max="1" step="0.05" value="0.6"></label><button id="hoofBtn">hoof</button></div></fieldset>
     <fieldset><legend>splash</legend><div class="row"><label>size <input id="splashSize" type="range" min="0" max="1" step="0.05" value="0.6"><span class="val" id="splashVal">0.60</span></label><button id="splashBtn">splash</button></div></fieldset>
@@ -75,7 +80,7 @@
   <div id="status">not started</div>
 </main>
 <script type="module">
-import { createAudio, AREAS, STINGERS, SFX, SURFACES, INSTRUMENTS, THEME } from '../src/audio.mjs';
+import { createAudio, AREAS, STINGERS, SFX, SURFACES, ENVIRONMENTS, INSTRUMENTS, THEME } from '../src/audio.mjs';
 
 const QA = new URLSearchParams(location.search).has('qa');
 const $ = (id) => document.getElementById(id);
@@ -96,8 +101,10 @@ for (const s of SURFACES) for (const sel of ['hoofSurface', 'gaitSurface']) { co
 
 const areaButtons = {};
 for (const a of AREAS) areaButtons[a] = button($('areas'), a, () => { audio.setArea(a); area = a; for (const k in areaButtons) areaButtons[k].classList.toggle('on', k === a); });
+for (const place of [null, ...ENVIRONMENTS]) button($('environments'), place || 'follow area', () => audio.setEnvironment(place));
 for (const s of STINGERS) button($('stingers'), s, () => audio.stinger(s));
-for (const e of SFX) if (!['hoof', 'splash', 'pencil'].includes(e)) button($('effects'), e, () => audio.sfx(e));
+for (const e of SFX) if (!['hoof', 'splash', 'pencil', 'ui'].includes(e)) button($('effects'), e, () => audio.sfx(e));
+for (const kind of ['open', 'close', 'tab', 'confirm']) button($('notebook'), `notebook ${kind}`, () => audio.sfx('ui', { kind }));
 $('hoofBtn').onclick = () => audio && audio.sfx('hoof', { surface: $('hoofSurface').value, speed01: +$('hoofSpeed').value });
 $('splashSize').oninput = () => { $('splashVal').textContent = (+$('splashSize').value).toFixed(2); };
 $('splashBtn').onclick = () => audio && audio.sfx('splash', { size: +$('splashSize').value });
@@ -149,11 +156,12 @@ function frame(ts) {
     if ($('gait').checked && motion.speed01 > 0.05 && !motion.hidden) {
       // stride rate grows with speed; gallop = 4 beats with a gap (suspension)
       const stride = 1.05 - 0.55 * motion.speed01;
-      const beats = motion.speed01 > 0.7 ? [0, 0.1, 0.19, 0.3] : [0, 0.25, 0.5, 0.75];
+      const beats = motion.speed01 > 0.7 ? [0, 0.19, 0.34, 0.53] : motion.speed01 > 0.38 ? [0, 0.04, 0.5, 0.54] : [0, 0.25, 0.5, 0.75];
       if (ts >= nextHoof) {
-        audio.sfx('hoof', { surface: $('gaitSurface').value, speed01: motion.speed01 });
         const k = foot % 4;
-        const gap = k === 3 ? stride - beats[3] : beats[k + 1] - beats[k];
+        if (motion.underwater) { if (k === 0 || k === 2) audio.sfx('swim'); }
+        else audio.sfx('hoof', { surface: $('gaitSurface').value, speed01: motion.speed01, foot: k });
+        const gap = k === 3 ? 1 - beats[3] : beats[k + 1] - beats[k];
         foot++;
         nextHoof = ts + gap * stride * 1000;
       }
@@ -161,7 +169,7 @@ function frame(ts) {
     const c = audio.ctx;
     const d = audio._debug;
     $('status').textContent = `ctx ${c.state}  ${c.sampleRate} Hz  baseLatency ${((c.baseLatency || 0) * 1000).toFixed(1)} ms  outputLatency ${((c.outputLatency || 0) * 1000).toFixed(1)} ms\n` +
-      `area ${d.area}  bar ${d.bar + 1}/16  voices ${d.voices}  frozen ${d.frozen}  players ${JSON.stringify(d.players().map((p) => p.area + (p.fading ? '(fading)' : '')))}`;
+      `area ${d.area}  environment ${d.environment || 'follow area'}  bar ${d.bar + 1}/16  voices ${d.voices}  frozen ${d.frozen}  players ${JSON.stringify(d.players().map((p) => p.area + (p.fading ? '(fading)' : '')))}`;
   }
   requestAnimationFrame(frame);
 }
