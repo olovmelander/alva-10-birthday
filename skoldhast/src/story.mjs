@@ -772,8 +772,11 @@ export function createStory(G, io) {
         const key = objective();
         const g = GOALS[key];
         if (typeof g !== 'function') return g || '';
-        if (key === 'p7') return g(['shutter1', 'shutter2', 'shutter3'].filter((f) => F.has(f)).length);
-        return g((F.has('mark_land') ? 1 : 0) + (F.has('mark_sea') ? 1 : 0));
+        const count = (...fs) => fs.filter((f) => F.has(f)).length;
+        if (key === 'p7') return g(count('shutter1', 'shutter2', 'shutter3'));
+        if (key === 'p3' || key === 'p3b') return g(count('p3_t1', 'p3_t2', 'p3_t3'));
+        if (key === 'p2') return g((G.puz.stone === G.scenes.land.rail.target ? 1 : 0) + count('p2_plank'));
+        return g(count('mark_land', 'mark_sea'));
     }
 
     const HINT_SPOTS = {
@@ -850,6 +853,9 @@ export function createStory(G, io) {
         if (e.reason === 'slow' && e.id === 'sprang-p4') hintOnce('leap', STORY.k2.leapHint);
     });
     G.on('push', (e) => { if (e.notch === G.sceneDef.rail?.target) hintOnce('stone', STORY.k1.stoneDone); });
+    // fluff that found no tuft: the sköldhäst wonders (twice at most, so it never nags)
+    let fluffMisses = 0;
+    G.on('fluffMiss', (e) => { if (fluffMisses++ < 2) io.guide?.think(e.dir > 0 ? STORY.k1.fluffWrongWay : STORY.k1.fluffMiss); });
     G.on('grow', (e) => {
         if (e.decor) hintOnce('fluff', STORY.k1.teachFluff);
         else hintOnce('ramp', STORY.k1.rampGrew);
@@ -859,6 +865,11 @@ export function createStory(G, io) {
         const p = P();
         if (!G.story || G.busy) return;
         if (inScene('land') && F.has('rule_demo') && !F.has('p2_seen') && Math.abs(p.x - h(102)) < h(3.2)) hintOnce('pool', STORY.k1.poolHint);
+        // standing on the cliff side of the stone, where Knuffa would push it the wrong way
+        if (inScene('land') && F.has('p2_seen') && !F.has('p2_open') && p.mode === 'ground') {
+            const rail = G.sceneDef.rail, sx = rail.x0 + G.puz.stone * rail.step, want = Math.sign(rail.target - G.puz.stone);
+            if (want && Math.abs(p.x - sx) < h(1.6) && Math.sign(sx - p.x) === -want) hintOnce('stoneSide', STORY.k1.stoneSide);
+        }
         if (inScene('kelp') && F.has('ch2_open') && !F.has('p5_lit') && !p.hidden) {
             const home = G.sceneDef.school.home;
             if (Math.hypot(p.x - home.x, p.y - home.y) < h(5)) hintOnce('lykt', STORY.k2.lyktHint);

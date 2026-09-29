@@ -337,13 +337,14 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
         for (const ds of def.dashed || []) {
             const pts = resamplePts(ds.pts, 30);
             const c = new PIXI.Container();
-            const glow = ds.glow ? rope('stroke-glow', pts, { color: 0xffd27a, width: 16, alpha: 0.7 }) : null;
+            const glow = rope('stroke-glow', pts, { color: 0xffd27a, width: 16, alpha: 0.7 });
+            if (!ds.glow) glow.alpha = 0;
             const dash = rope('stroke-dash', pts, { color: 0x3b3530, width: 5, scale: 1 });
             const ink = rope('stroke-graphite', pts.slice(0, 2), { width: 6 });
             if (glow) c.addChild(glow);
             c.addChild(dash, ink);
             (ds.decal ? L.mid : L.objects).addChild(c);
-            d.dashed.push({ ds, c, glow, dash, ink, pts, len: lineLength(pts) });
+            d.dashed.push({ ds, c, glow, dash, ink, pts, len: lineLength(pts), x0: Math.min(ds.pts[0][0], ds.pts[ds.pts.length - 1][0]), x1: Math.max(ds.pts[0][0], ds.pts[ds.pts.length - 1][0]), y: ds.pts[0][1] });
         }
         // lanes: motes that show the flow; dashed lanes as blue dashes
         d.lanes = [];
@@ -412,6 +413,32 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
             // P2 stone on its rail
             O.rail = spr('rail-groove'); O.rail.x = def.rail.x0 + def.rail.step * def.rail.notches / 2; O.rail.y = def.rail.y + 8; O.rail.anchor?.set?.(0.5, 0.5); L.mid.addChild(O.rail);
             O.stone = spr('rail-stone'); O.stone.y = def.rail.y; L.objects.addChild(O.stone);
+            // the notches in the sand, and (after the reflection) a ghost of the stone where it belongs
+            O.railMarks = new PIXI.Graphics();
+            for (let i = 0; i <= def.rail.notches; i++) { const x = def.rail.x0 + i * def.rail.step; O.railMarks.moveTo(x, def.rail.y + 2).lineTo(x + 2, def.rail.y + 16); }
+            O.railMarks.stroke({ width: 3, color: 0x3b3530, alpha: 0.45, cap: 'round' });
+            L.mid.addChild(O.railMarks);
+            O.ghostStone = spr('rail-stone'); O.ghostStone.x = def.rail.x0 + def.rail.target * def.rail.step; O.ghostStone.y = def.rail.y; O.ghostStone.alpha = 0; O.ghostStone.tint = 0xfff2d8;
+            L.mid.addChild(O.ghostStone);
+            O.pushArrow = new PIXI.Graphics();
+            O.pushArrow.moveTo(-30, 0).lineTo(22, 0).stroke({ width: 7, color: 0xe0782a, cap: 'round' });
+            O.pushArrow.moveTo(8, -15).lineTo(26, 0).lineTo(8, 15).stroke({ width: 7, color: 0xe0782a, cap: 'round', join: 'round' });
+            O.pushArrow.alpha = 0; L.hints.addChild(O.pushArrow);
+            // where each backsippa's fluff will fly: a few seeds drifting along the arc to its dotted tuft
+            O.fluffPaths = [];
+            for (const c of def.clumps || []) {
+                const tx = c.x - h(5);
+                const t = (def.tussocks || []).filter((q) => Math.abs(q.x - tx) < h(1.5)).sort((a, b) => Math.abs(a.x - tx) - Math.abs(b.x - tx))[0];
+                if (!t) continue;
+                const at = (u) => [lerp(c.x, t.x, u), lerp(c.y - h(0.5), t.y - h(0.15), u) - Math.sin(u * Math.PI) * h(1.1)];
+                // a faint dotted trail (dots, not dashes: dashes mean a line to draw) and seeds drifting along it
+                const trail = new PIXI.Graphics();
+                for (let u = 0.04; u < 0.97; u += 0.045) { const [x, y] = at(u); trail.circle(x, y, 5).fill({ color: 0x7d6aa8, alpha: 0.55 }); }
+                trail.alpha = 0; L.mid.addChild(trail);
+                const motes = [];
+                for (let i = 0; i < 7; i++) { const m = spr('p-fluff'); m.anchor?.set?.(0.5); m.alpha = 0; m.scale.set(1.6); m.tint = 0xb7a3e0; L.fx.addChild(m); motes.push({ m, u: i / 7 }); }
+                O.fluffPaths.push({ c, t, at, trail, motes, vis: 0 });
+            }
             // backsippa clumps and tussocks
             O.clumps = (def.clumps || []).map((c) => { const s = spr('backsippa'); s.x = c.x; s.y = c.y; L.mid.addChild(s); const b = spr('backsippa-bare'); b.x = c.x; b.y = c.y; b.visible = false; L.mid.addChild(b); return { c, s, b }; });
             O.tussocks = (def.tussocks || []).map((t) => { const s = spr('tussock-dotted'); s.x = t.x; s.y = t.y; L.objects.addChild(s); return { t, s }; });
@@ -440,6 +467,18 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
             O.chains = (def.chains || []).map((c) => { const pts = []; for (let i = 0; i <= 16; i++) { const t = i / 16; pts.push([lerp(c.from.x, c.to.x, t), lerp(c.from.y, c.to.y, t) + Math.sin(t * Math.PI) * 60]); } const r = rope('stroke-chain', pts, { color: 0x6b635a, width: 4, scale: 1 }); r.alpha = 0.5; L.mid.addChild(r); return { c, r }; });
             O.map = spr('map-closed'); O.map.visible = false; L.objects.addChild(O.map);
             O.ratchet = d.items.find((q) => q.it.ratchet)?.s;
+            // progress rings: the pier drum (gallop steps) and the seabed plate (seconds resting on it)
+            const ring = () => { const g = new PIXI.Graphics(); g._frac = -1; L.hints.addChild(g); return g; };
+            if (O.ratchet && def.drums?.[0]) {
+                const s = O.ratchet, ax = s.anchor?.x ?? 0.5, ay = s.anchor?.y ?? 0.5;
+                O.drumRing = ring(); O.drumRing.x = s.x + (0.5 - ax) * s.width; O.drumRing.y = s.y + (0.5 - ay) * s.height;
+                O.drumRing._r = Math.max(s.width, s.height) / 2 + 18; O.drumRing._drum = def.drums[0];
+            }
+            if (def.plates?.[0]) {
+                const pl = def.plates[0];
+                O.plateRing = ring(); O.plateRing.x = pl.x; O.plateRing.y = pl.y - 14; O.plateRing._rx = pl.w / 2 + 14; O.plateRing._ry = 26; O.plateRing._plate = pl;
+                O.plateGlow = spr('p-glow'); O.plateGlow.anchor?.set?.(0.5); O.plateGlow.x = pl.x; O.plateGlow.y = pl.y - 16; O.plateGlow.alpha = 0; L.hints.addChild(O.plateGlow);
+            }
         }
         // pencils and props to colour
         O.pencils = (def.pencils || []).map((pc) => {
@@ -595,7 +634,7 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
                 else { s.scale.y = 1; }
                 if (F.has('plask')) s.visible = false;
             }
-            if (it.ratchet) s.rotation = (G.puz.drums[it.ratchet] || (F.has(it.ratchet) ? 40 : 0)) * 0.35;
+            if (it.ratchet) { const n = def.drums?.find((q) => q.id === it.ratchet)?.notches || 24; s.rotation = (F.has(it.ratchet) ? n : (G.puz.drums[it.ratchet] || 0)) * (8.4 / n); }
         }
         // dynamic thin surfaces and ramps
         for (const it of S.dyn) { if (it.c) it.c.visible = cond(it.s.when, F); }
@@ -639,7 +678,14 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
             const done = F.has(dl.ds.flag);
             const inkT = done ? 1 : (dl.ds._ink ?? 0) * (G.player.mode === 'streck' && G.player.streck?.d === dl.ds ? 1 : 0);
             dl.dash.visible = !done;
-            if (dl.glow) dl.glow.alpha = done ? 0.25 : 0.45 + Math.sin(time * 3) * 0.2;
+            if (dl.ds.glow) dl.glow.alpha = done ? 0.25 : 0.45 + Math.sin(time * 3) * 0.2;
+            else {
+                // an unfinished line you could draw now breathes when you come near
+                const p = G.player;
+                const near = !done && cond(dl.ds.inkWhen, F) && p.x > dl.x0 - h(7) && p.x < dl.x1 + h(7) && Math.abs(p.y - dl.y) < h(2);
+                dl.glow.alpha = damp(dl.glow.alpha, near ? 0.5 + Math.sin(time * 3.2) * 0.2 : 0, 3, dt);
+                dl.dash.alpha = near ? 0.78 + Math.sin(time * 3.2 + 1) * 0.22 : 1;
+            }
             const n = Math.max(2, Math.round(dl.pts.length * inkT));
             updateRopePoints(dl.ink, done ? dl.pts : (G.player.streck?.dir < 0 ? dl.pts.slice(dl.pts.length - n) : dl.pts.slice(0, n)));
             dl.ink.visible = inkT > 0.02;
@@ -726,6 +772,40 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
         if (def.id === 'land') {
             const target = def.rail.x0 + Z.stone * def.rail.step;
             O.stone.x = damp(O.stone.x || target, target, 6, dt);
+            // the stone's cues: only while the puzzle is open and the reflection has shown the answer
+            const railOpen = !F.has('p2_open');
+            O.railMarks.visible = railOpen;
+            const want = Math.sign(def.rail.target - Z.stone);
+            const showGhost = railOpen && F.has('p2_seen') && want !== 0;
+            O.ghostStone.alpha = damp(O.ghostStone.alpha, showGhost ? 0.45 + Math.sin(time * 2.4) * 0.12 : 0, 3, dt);
+            O.ghostStone.visible = O.ghostStone.alpha > 0.01;
+            const nearStone = showGhost && Math.abs(snap.x - O.stone.x) < h(4) && snap.mode === 'ground';
+            O.pushArrow.alpha = damp(O.pushArrow.alpha, nearStone ? 0.9 : 0, 4, dt);
+            O.pushArrow.visible = O.pushArrow.alpha > 0.01;
+            if (O.pushArrow.visible) {
+                O.pushArrow.scale.x = want || 1;
+                O.pushArrow.x = O.stone.x + (want || 1) * (Math.sin(time * 4) * 8 + 10);
+                O.pushArrow.y = def.rail.y - h(0.62);
+            }
+            // fluff paths near a backsippa whose tuft still waits
+            for (const fp of O.fluffPaths) {
+                const bare = (Z.clumps[fp.c.id] || 0) > 0;
+                const on = !F.has(fp.t.flag) && !bare && Math.abs(snap.x - fp.c.x) < h(7) && Math.abs(snap.y - fp.c.y) < h(1.2) && !G.busy;
+                fp.vis = damp(fp.vis, on ? 1 : 0, 2.5, dt);
+                fp.trail.alpha = fp.vis * (0.55 + Math.sin(time * 2.2) * 0.15);
+                fp.trail.visible = fp.vis > 0.02;
+                for (const mo of fp.motes) {
+                    mo.m.visible = fp.vis > 0.02;
+                    if (!mo.m.visible) continue;
+                    mo.u = (mo.u + dt * 0.3) % 1;
+                    const [x, y] = fp.at(mo.u);
+                    mo.m.x = x; mo.m.y = y + Math.sin(time * 3 + mo.u * 9) * 8;
+                    mo.m.alpha = fp.vis * 0.95 * Math.sin(mo.u * Math.PI);
+                    mo.m.rotation += dt * 1.5;
+                }
+                const tu = O.tussocks.find((q) => q.t === fp.t);
+                if (tu) tu.s.scale.set(1 + fp.vis * 0.07 * Math.sin(time * 4));
+            }
             for (const c of O.clumps) { const bare = (Z.clumps[c.c.id] || 0) > 0; c.s.visible = !bare; c.b.visible = bare; }
             for (const t of O.tussocks) { t.s.visible = !F.has(t.t.flag) || t.t.decor; if (t.t.decor && F.has(t.t.flag)) setTex(t.s, 'feathergrass-2'); }
             for (const pw of O.pinwheels) { pw.a += (Z.pinwheels[pw.pw.id] || 0.3) * dt * 2; pw.hd.rotation = pw.a; }
@@ -768,6 +848,34 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
         }
         if (def.id === 'viken') {
             O.shutters.forEach((o) => setTex(o.s, F.has(o.sh.flag) ? 'shutter-open' : 'shutter-closed'));
+            // a ring (or a flat ellipse on the seabed) that fills as the progress grows
+            const drawRing = (g, frac, on) => {
+                g.alpha = damp(g.alpha, on ? 1 : 0, 3, dt);
+                g.visible = g.alpha > 0.01;
+                if (!g.visible || Math.abs(frac - g._frac) < 0.004) return;
+                g._frac = frac;
+                g.clear();
+                const rx = g._rx || g._r, ry = g._ry || g._r, w = g._ry ? 7 : 9;
+                const path = (f) => { const n = Math.max(2, Math.ceil(48 * f)); for (let i = 0; i <= n; i++) { const a = -Math.PI / 2 + (i / n) * f * Math.PI * 2; const x = Math.cos(a) * rx, y = Math.sin(a) * ry; if (i) g.lineTo(x, y); else g.moveTo(x, y); } };
+                path(1); g.stroke({ width: w, color: 0x3b3530, alpha: 0.28 });
+                if (frac > 0) { path(frac); g.stroke({ width: w, color: frac >= 1 ? 0xf6c14a : 0xe0782a, alpha: 0.95, cap: 'round', join: 'round' }); }
+            };
+            if (O.drumRing) {
+                const dr = O.drumRing._drum, done = F.has(dr.flag);
+                if (done && !O.drumRing._doneAt) O.drumRing._doneAt = time;
+                const n = Z.drums[dr.id] || 0;
+                drawRing(O.drumRing, done ? 1 : n / dr.notches, F.has('viken_arrived') && (!done ? n > 0 || Math.abs(snap.x - O.drumRing.x) < h(9) : time - O.drumRing._doneAt < 1.6));
+            }
+            if (O.plateRing) {
+                const pl = O.plateRing._plate, done = F.has(pl.flag);
+                if (done && !O.plateRing._doneAt) O.plateRing._doneAt = time;
+                const held = Z.plates[pl.id] || 0;
+                const nearPlate = !done && F.has('viken_arrived') && snap.mode === 'swim' && Math.hypot(snap.x - pl.x, snap.y - pl.y) < h(5);
+                drawRing(O.plateRing, done ? 1 : Math.min(1, held / pl.hold), done ? time - O.plateRing._doneAt < 1.6 : held > 0 || nearPlate);
+                O.plateGlow.alpha = damp(O.plateGlow.alpha, nearPlate ? 0.5 + Math.sin(time * 3) * 0.2 : 0, 3, dt);
+                O.plateGlow.visible = O.plateGlow.alpha > 0.01;
+                O.plateGlow.scale.set(1.8 + Math.sin(time * 2) * 0.2, 0.7);
+            }
             O.lamp.alpha = damp(O.lamp.alpha, F.has('lamp_lit') ? 0.95 + Math.sin(time * 2) * 0.05 : 0, 1.2, dt);
             O.chains.forEach((c) => { const on = F.has(def.shutters[c.c.shutter].flag); c.r.alpha = on ? 0.95 : 0.45; c.r.tint = on ? 0xffe08a : 0xffffff; });
             const kv = G.actors.kv;

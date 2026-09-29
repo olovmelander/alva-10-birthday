@@ -220,6 +220,7 @@ export function createPlayer(spawn = {}) {
         skid: 0, balkCooldown: 0, lockInput: 0,
         still: 0, moveNoise: 0,
         auto: null, // scripted run: { dir, speed }
+        nudge: null, // a short scripted step: { x, t } (after Knuffa the sköldhäst follows the stone)
         inLane: null, inVortex: null, anchored: false, resting: false
     };
 }
@@ -255,6 +256,12 @@ export function stepPlayer(p, input, world, dt, events) {
     let ix = p.lockInput > 0 ? 0 : (input.x || 0);
     let iy = p.lockInput > 0 ? 0 : (input.y || 0);
     if (p.auto) { ix = p.auto.dir; iy = 0; }
+    if (p.nudge) {
+        p.nudge.t -= dt;
+        const ndx = p.nudge.x - p.x;
+        if (p.nudge.t <= 0 || Math.abs(ndx) < 6 || p.mode !== 'ground' || p.hidden) p.nudge = null;
+        else { ix = Math.sign(ndx) * Math.min(0.6, Math.max(0.15, Math.abs(ndx) / 150)); iy = 0; } // slows down as it arrives
+    }
 
     // --- Göm dig toggle -------------------------------------------------------
     if (input.hide && p.lockInput <= 0 && !p.auto) {
@@ -620,7 +627,7 @@ function stepSwim(p, ix, iy, input, world, dt, events) {
     const hidden = p.hidden && p.hide > 0.5;
     let drift = false, whirl = false;
     // the nearest lane in reach carries the swimmer (dashed lanes carry only a hidden shell)
-    let lane = null, ln = null;
+    let lane = null, ln = null, held = false;
     for (const l of T.lanes) {
         if (l.dashed && !hidden) continue;
         const n = nearestOnLine(l.pts, p.x, p.y);
@@ -628,11 +635,20 @@ function stepSwim(p, ix, iy, input, world, dt, events) {
         if (n.s >= l._len - 6) {
             // the calm pool at its end; a lane with endHold keeps the shell there
             if (hidden) events.push({ type: 'laneEnd', id: l.id });
-            if (l.endHold) { lane = null; ln = null; break; }
+            if (l.endHold) { lane = null; ln = null; held = true; break; }
             continue;
         }
         const pr = l.priority || 0, best = lane?.priority || 0;
         if (!ln || pr > best || (pr === best && n.d < ln.d)) { lane = l; ln = n; }
+    }
+    // a lane with a mouth (`suck`) draws in a hidden shell that sank close to where it starts
+    if (!lane && !held && hidden) {
+        for (const l of T.lanes) {
+            if (!l.suck) continue;
+            const [sx, sy] = l.pts[0];
+            const d = Math.hypot(sx - p.x, sy - p.y);
+            if (d > 1 && d < l.suck) { fx += (sx - p.x) / d * 260; fy += (sy - p.y) / d * 260; drift = true; p.inLane = l; break; }
+        }
     }
     for (const l of lane ? [lane] : []) {
         const n = ln;

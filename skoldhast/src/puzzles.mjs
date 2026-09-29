@@ -134,14 +134,17 @@ export function stepPuzzles(G, events, dt) {
         const dir = Math.sign(p.x - p.px);
         S.clumps[c.id] = 4;
         const tx = c.x + dir * h(5);
+        // the fluff drifts to the nearest dotted tuft around where it comes down (forgiving: 1.5 HL either way)
         let target = null;
         for (const t of sc.tussocks || []) {
             if (F.has(t.flag)) continue;
-            if (Math.abs(t.x - tx) < h(0.85) && t.y <= c.y + h(0.3) && t.y >= c.y - h(1.45)) { target = t; break; }
+            if (Math.abs(t.x - tx) < h(1.5) && t.y <= c.y + h(0.3) && t.y >= c.y - h(1.45) && (!target || Math.abs(t.x - tx) < Math.abs(target.x - tx))) target = t;
         }
         const ty = target ? target.y : c.y - h(0.2);
         S.fluff.push({ x: c.x, y: c.y - h(0.5), tx: target ? target.x : tx, ty, t: 0, dur: 1.3, target: target?.id });
-        G.emit('fluff', { id: c.id, dir });
+        G.emit('fluff', { id: c.id, dir, target: target?.id || null });
+        // no dotted tuft where it lands: tell the story, so the sköldhäst can wonder why
+        if (!target && !c.teach && (sc.tussocks || []).some((t) => !F.has(t.flag) && !t.decor)) G.emit('fluffMiss', { id: c.id, dir });
         if (target) {
             // the fluff lands a moment later
             G.later(1.25, () => {
@@ -206,7 +209,11 @@ export function stepPuzzles(G, events, dt) {
     // --- pressure plates ------------------------------------------------------------
     for (const pl of sc.plates || []) {
         if (F.has(pl.flag)) continue;
-        const on = hidden && p.mode === 'swim' && p.resting && Math.abs(p.x - pl.x) < pl.w / 2 && Math.abs(p.y - pl.y) < h(0.4);
+        // a shell resting close by slides onto the plate (it is a little lower than the sand around it)
+        if (hidden && p.mode === 'swim' && p.resting && pl.pull && Math.abs(p.x - pl.x) < pl.pull && Math.abs(p.x - pl.x) > h(0.1) && Math.abs(p.y - pl.y) < h(0.6)) {
+            p.x += Math.sign(pl.x - p.x) * Math.min(Math.abs(pl.x - p.x) - h(0.1), h(1.2) * dt);
+        }
+        const on = hidden && p.mode === 'swim' && p.resting && Math.abs(p.x - pl.x) < pl.w / 2 && Math.abs(p.y - pl.y) < h(0.5);
         S.plates[pl.id] = on ? (S.plates[pl.id] || 0) + dt : 0;
         if (on && S.plates[pl.id] >= pl.hold) { F.add(pl.flag); G.emit('latch', { id: pl.id, flag: pl.flag }); }
     }
@@ -329,10 +336,13 @@ export function contextAction(G) {
         // P2 stone: Knuffa one notch in the facing direction
         if (sc.rail && !F.has('p2_open')) {
             const sx = sc.rail.x0 + S.stone * sc.rail.step;
-            const d = (sx - p.x) * p.facing;
-            if (d > -h(0.2) && d < h(1.1)) {
+            // measured from where the sköldhäst is stepping to, so quick presses keep up with the stone
+            const from = p.nudge ? p.nudge.x : p.x;
+            const d = (sx - from) * p.facing;
+            if (d > -h(0.2) && d < h(1.5)) {
                 const next = S.stone + p.facing;
-                if (next >= 0 && next <= sc.rail.notches) add(Math.abs(d) / HL, { id: 'knuffa', label: 'Knuffa', run: () => { S.stone = next; G.emit('push', { notch: next }); } });
+                // the sköldhäst follows the stone one notch, so the next Knuffa is right there
+                if (next >= 0 && next <= sc.rail.notches) add(Math.abs(d) / HL, { id: 'knuffa', label: 'Knuffa', run: () => { S.stone = next; p.nudge = { x: from + p.facing * sc.rail.step, t: 1.2 }; G.emit('push', { notch: next, target: sc.rail.target }); } });
             }
         }
         // ropes (P4 plank) and pull ropes (P7 shutter 3)

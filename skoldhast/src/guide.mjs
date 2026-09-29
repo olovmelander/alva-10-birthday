@@ -84,15 +84,14 @@ export function createGuide(root, { img, heroScreen, onGoalTap } = {}) {
 
     let shown = true, thinking = false;
     const box = () => layer.getBoundingClientRect();
-    /** how far down the goal note and the hint reach (px from the top of the layer) */
+    /** how far down the goal note and the hint reach (px from the top of the layer; layout boxes, so
+     *  the note's drop-in animation can't make it look shorter than it is) */
     function stackBottom() {
         if (!shown) return 0;
-        const r = box();
         let b = 0;
         for (const n of [goalEl, hintEl]) {
             if (n === hintEl && !n.classList.contains('on')) continue;
-            const q = n.getBoundingClientRect();
-            if (q.height) b = Math.max(b, q.bottom - r.top);
+            if (n.offsetHeight) b = Math.max(b, top.offsetTop + n.offsetTop + n.offsetHeight);
         }
         return b;
     }
