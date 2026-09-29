@@ -258,7 +258,8 @@ export function createGame({ host = document.body, assetBase = './skoldhast/', r
         const hasSave = !!loaded?.data;
         if (loaded?.data?.settings) settings = { ...DEFAULT_SETTINGS, ...loaded.data.settings };
         applySettings();
-        if (window.innerHeight > window.innerWidth) ui.toast(UI.rotate, 3500);
+        // Both phone orientations are playable. A timed rotation note would
+        // spill over the title and cover the opening's first drawing prompt.
         ui.title({
             hasSave, slots,
             onBegin: () => { resumeAudio(); newGame(); },

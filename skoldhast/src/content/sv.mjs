@@ -60,6 +60,7 @@ export const UI = {
     chapter1: 'Kapitel 1: Stranden och stäppen', chapter2: 'Kapitel 2: Udden och djupet', chapter3: 'Kapitel 3: Pappersfyren',
     prologue: 'Ett streck till', finale: 'Havet hittar hem',
     theEnd: 'Slut – men forskningen fortsätter.', playOn: 'Utforska vidare',
+    drawWake: 'Dra pennan längs skalets båge!',
     drawGull: 'Rita en mås!', drawCloud: 'Rita ett moln!', drawShore: 'Rita strandkanten vidare – ut på det vita papperet!',
     drawLast: 'Förena strandkantens två ändar!',
     choiceWhat: 'Vad hände?', choiceWho: 'Vem gjorde så?'
@@ -71,18 +72,20 @@ export const UI = {
 export const STORY = {
     prolog: {
         captionFull: null, // HER_TEXT.lastTwo when allowed
+        wakeCaption: 'Alvas sköldhäst. Alldeles stilla – än så länge.',
+        awake: ['horse', 'Alva? Det kittlas i hovarna!'],
         captionFallback: 'Häst eller sköldpadda? Ingen vet. Det behövs en forskare!',
-        klo1: ['klo', 'Forskare? Här! Professor Klo – expert på allt som bor både på land och i vatten.'],
-        klo1Fallback: ['klo', 'Behöver någon en forskare? Här! Professor Klo – expert på land och vatten.'],
+        klo1: ['klo', 'Plask! Forskare på plats! Professor Klo – expert på land och vatten.'],
+        klo1Fallback: ['klo', 'Plask i min forskargrop! Professor Klo – expert på land och vatten.'],
         klo2: ['klo', 'Hittills mest krabbor.'],
         shoreInvite: ['horse', 'Rita stranden vidare, Alva. Jag vill känna nästa våg på hovarna!'],
         stuck: ['horse', 'Alva … vågen har fastnat.'],
         fold: ['horse', 'Havet veks undan! Och ditt streck tog slut vid vecket.'],
         foldCaption: 'Havet viks in under papperet.',
         afterFreezeCaption: 'Vågen stannar mitt i sitt plask.',
-        choiceWhatAnswer: ['klo', 'Vecket stängde vägen för vågen. Under ytan kan vattnet fortfarande röra sig.'],
-        choiceWhoAnswer: ['klo', 'Jag såg en linjal. Någon vek undan havet, rakt över ditt streck.'],
-        promise: ['horse', 'Jag vill ha tillbaka plasket på hovarna. Vi hittar vägen till andra sidan!'],
+        choiceWhatAnswer: ['klo', 'Havet hamnade under papperet. Vecket stoppade både vågen och ditt streck.'],
+        choiceWhoAnswer: ['klo', 'Jag såg en skugga vid tornet och en linjal. Men vem höll i den?'],
+        promise: ['horse', 'Jag vill ha tillbaka plasket på hovarna. Vi följer spåren!'],
         mystery: ['klo', 'Äntligen ett riktigt mysterium!'],
         research: ['horse', 'Då får vi forska på det.']
     },

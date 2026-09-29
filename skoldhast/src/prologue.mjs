@@ -10,6 +10,8 @@
 import { HL } from './sim.mjs';
 import { STORY, UI, HER_TEXT, FAMILY, CAPTIONS, DRAWING } from './content/sv.mjs';
 import { createOpeningFold } from './opening-fold.mjs';
+import { createOpeningKlo } from './opening-klo.mjs';
+import { createOpeningCanvas } from './opening-canvas.mjs';
 import { CLOUD_PENCILS, createUserCloud, paintUserCloud } from './user-cloud.mjs';
 
 const h = (v) => v * HL;
@@ -36,7 +38,9 @@ export function createTable({ PIXI, app, view, G, ui, audio, assets, makeHero })
     paperLayer.addChild(sheet, onPaper);
     const extras = new PIXI.Container(); // window, pencils lying around
     table.addChildAt(extras, 1);
-    let picHero = null, picKlo = null, splash = null, sun = null;
+    let picHero = null, picKlo = null, splash = null;
+    let canvasLife = null, heroAwake = true, closeFrame = 0;
+    const wakeStroke = new PIXI.Graphics(); wakeStroke.label = 'opening-wake-stroke';
     let t = 0;
     let frozen = false;
     const drops = [];
@@ -59,9 +63,12 @@ export function createTable({ PIXI, app, view, G, ui, audio, assets, makeHero })
     function layout() {
         const W = app.screen.width, H = app.screen.height;
         desk.width = W; desk.height = H;
-        const s = Math.min((W - 24) / PW, (H - 24) / PH);
+        const wide = Math.min((W - 24) / PW, (H - 24) / PH);
+        const close = Math.min((W - 40) / 510, (H - 100) / 360);
+        const s = lerp(wide, close, closeFrame);
         paperLayer.scale.set(s);
-        paperLayer.x = (W - PW * s) / 2; paperLayer.y = (H - PH * s) / 2;
+        paperLayer.x = W / 2 - lerp(PW / 2, 420, closeFrame) * s;
+        paperLayer.y = H / 2 - lerp(PH / 2, 410, closeFrame) * s;
         paper.clear();
         const pt = T('mat-paper');
         if (pt) paper.rect(0, 0, PW, PH).fill({ texture: pt, textureSpace: 'global' }); else paper.rect(0, 0, PW, PH).fill({ color: 0xfbf8f1 });
@@ -86,6 +93,11 @@ export function createTable({ PIXI, app, view, G, ui, audio, assets, makeHero })
         const c = pictureCam();
         return [PIC.x + PIC.w / 2 + (wx - c.x) * c.zoom, PIC.y + PIC.h / 2 + (wy - c.y) * c.zoom];
     }
+    function lookAtPaper(x, y) {
+        const c = pictureCam();
+        picHero._look = { x: c.x + (x - PIC.x - PIC.w / 2) / c.zoom,
+            y: c.y + (y - PIC.y - PIC.h / 2) / c.zoom };
+    }
 
     function takePicture({ withSplash = false } = {}) {
         const c = pictureCam();
@@ -103,16 +115,21 @@ export function createTable({ PIXI, app, view, G, ui, audio, assets, makeHero })
         const [x, y] = worldToPaper(st.x, st.y);
         picHero.view.x = x; picHero.view.y = y;
         picHero.view.scale.set(pictureCam().zoom);
+        picHero.view.label = 'opening-hero';
         picHero._evening = evening;
     }
 
     function start(evening = false) {
-        frozen = false; dropT = 0; table.alpha = 1;
+        frozen = false; dropT = 0; table.alpha = 1; t = 0;
+        heroAwake = true; closeFrame = 0; table.openingAwake = true;
         openingFold?.destroy(); openingFold = null; shore.clear();
+        canvasLife?.destroy(); canvasLife = null;
+        picKlo?.destroy(); picKlo = null;
+        wakeStroke.removeFromParent(); wakeStroke.clear();
         table.visible = true;
         ui.root.classList.add('table-mode');
         layout();
-        extras.removeChildren();
+        for (const child of extras.removeChildren()) child.destroy({ children: true });
         if (evening) {
             const win = sprite('window-dusk'); win.x = app.screen.width * 0.5; win.y = app.screen.height * 0.13; win.scale.set(0.55); win.alpha = 0.95; extras.addChild(win);
             if (FAMILY.stars) for (let i = 0; i < 3; i++) { const st = sprite('star-1'); st.x = win.x - 60 + i * 38; st.y = win.y - 30 + (i === 1 ? -14 : 0); st.scale.set(0.5); extras.addChild(st); st._tw = i; }
@@ -125,9 +142,12 @@ export function createTable({ PIXI, app, view, G, ui, audio, assets, makeHero })
         table.visible = false;
         ui.root.classList.remove('table-mode');
         openingFold?.destroy(); openingFold = null; shore.clear();
+        canvasLife?.destroy(); canvasLife = null;
+        picKlo?.destroy(); picKlo = null;
+        wakeStroke.removeFromParent(); wakeStroke.clear();
         picHero?.destroy?.(); picHero = null;
         for (const child of onPaper.removeChildren()) if (!child.destroyed) child.destroy({ children: true });
-        picKlo = null; splash = null; sun = null;
+        splash = null;
         pic.texture = PIXI.Texture.EMPTY; pictureTexture?.destroy(true); pictureTexture = null;
         drops.length = 0; falling.length = 0;
         running = false;
@@ -136,13 +156,13 @@ export function createTable({ PIXI, app, view, G, ui, audio, assets, makeHero })
 
     function tick(dt) {
         t += dt;
-        if (picHero) {
+        if (picHero && heroAwake) {
             const st = G.scenes.land.spots.start;
             picHero.update(dt, { x: st.x, y: st.y, facing: 1, gait: 'stand', mode: 'ground', speed: 0, time: t, hide: 0,
                 action: picHero._action || null, actionT: picHero._actionT || 0, lookAt: picHero._look || null, groundAt: () => st.y, emote: picHero._emote || null });
             if (picHero._action) { picHero._actionT = Math.min(1, (picHero._actionT || 0) + dt / 0.9); if (picHero._actionT >= 1) picHero._action = null; }
         }
-        if (splash && !frozen) {
+        if (splash && heroAwake && !frozen) {
             splash.scale.y = splash._base * (1 + Math.sin(t * 6) * 0.07);
             // her droplets fall, so the freeze is visible later
             if ((dropT -= dt) <= 0) {
@@ -158,7 +178,11 @@ export function createTable({ PIXI, app, view, G, ui, audio, assets, makeHero })
             f.t += dt; f.vy += 260 * dt; f.s.y += f.vy * dt; f.s.alpha = Math.max(0, 1 - f.t / 0.9);
             if (f.t > 0.9) { f.s.destroy(); falling.splice(i, 1); }
         }
-        if (sun && !frozen) sun.rotation = Math.sin(t * 0.8) * 0.05;
+        canvasLife?.update({ time: t, alive: heroAwake, frozen });
+        if (picKlo) {
+            const [x, y] = worldToPaper(G.scenes.land.spots.start.x, G.scenes.land.spots.start.y);
+            picKlo.update({ time: t, dt, hero: { x, y }, talking: !!ui.root.querySelector('.sk-dialogue.on.who-klo') });
+        }
         for (const d of drops) { d.t += dt; d.s.y = d.y0 - d.t * 22; d.s.alpha = Math.max(0, 1 - d.t / 3.4); }
         for (const s of extras.children) if (s._tw !== undefined) s.alpha = 0.6 + 0.4 * Math.sin(t * 2 + s._tw);
     }
@@ -195,35 +219,75 @@ export function createTable({ PIXI, app, view, G, ui, audio, assets, makeHero })
         start(false);
         takePicture();
         placeHero(false);
-        // her splash and sun, alive until the freeze
+        // A finished drawing is still a drawing until Alva gives it one last mark.
+        // Sample the real rig once, in real world coordinates, then hold every
+        // part (including world-space hair) absolutely still until the gesture.
+        heroAwake = false; table.openingAwake = false; closeFrame = 1; layout();
+        picHero.update(1 / 60, { ...snapStand(), emote: 'sleepy', action: 'lookdown', actionT: .45 });
+        const startPoint = G.scenes.land.spots.start;
+        const [, waterY] = worldToPaper(startPoint.x, G.scenes.land.surfaces.find(q => q.id === 'beach').pts.at(-1)[1] - 6);
+        canvasLife = createOpeningCanvas(PIXI, { parent: sheet, texture: T, picture: PIC, waterY, lessMotion: () => !!G.lessMotion });
+        sheet.setChildIndex(shore, sheet.children.length - 1);
         const sp = G.scenes.land.spots.splash;
         const [sx, sy] = worldToPaper(sp.x, sp.y);
         splash = sprite('frozen-splash', 0.5, 1); splash.x = sx; splash.y = sy + 20; splash._base = pictureCam().zoom; splash.scale.set(splash._base); onPaper.addChild(splash);
+        splash.label = 'opening-splash'; splash.alpha = 0;
         audio?.setArea('table');
         running = true;
+        ui.caption(STORY.prolog.wakeCaption);
+        setPhase('drawing-wake');
+        const shellArc = [[-63, -143], [-42, -171], [-10, -183], [21, -174], [45, -149]];
+        const wakeGeometry = () => ({ anchors: shellArc.map(([x, y]) => toCss(...worldToPaper(startPoint.x + x, startPoint.y + y))) });
+        const wake = await ui.draw({ prompt: UI.drawWake, ...wakeGeometry(), getGeometry: wakeGeometry,
+            allowReverse: true, color: '#86a254', width: 4 });
+        const pigment = wake.map(([x, y]) => [(x - paperLayer.x) / paperLayer.scale.x, (y - paperLayer.y) / paperLayer.scale.y]);
+        wakeStroke.clear().moveTo(...pigment[0]);
+        for (const p of pigment.slice(1)) wakeStroke.lineTo(...p);
+        wakeStroke.stroke({ width: 3, color: 0xc4cb77, alpha: .85, cap: 'round' });
+        wakeStroke.alpha = 1; onPaper.addChild(wakeStroke);
+        setPhase('waking');
+        heroAwake = true; table.openingAwake = true;
+        picHero._emote = 'happy'; picHero._action = 'nod'; picHero._actionT = 0;
+        audio?.sfx('snort', { gain: .5 });
+        await tween(G.lessMotion ? .55 : 1.2, u => { wakeStroke.alpha = 1 - u; });
+        picHero._action = 'stamp'; picHero._actionT = 0;
+        await wait(.45);
+        audio?.sfx('splash', { size: .6, gain: .6 });
+        await tween(.4, u => { splash.alpha = u; });
         setPhase('alive');
-        await wait(0.9);
-        // her words (only as far as Pappa allows)
-        await ui.say([['caption', HER_TEXT.lastTwo || STORY.prolog.captionFallback]]);
-        // a tiny crab climbs out of the drawn sand
-        const kb = G.scenes.land.spots.kloBeach;
-        const [kx, ky] = worldToPaper(kb.x + h(2.2), kb.y);
-        picKlo = sprite('klo-idle-1', 0.5, 1); picKlo.x = kx; picKlo.y = ky; picKlo.scale.set(pictureCam().zoom); onPaper.addChild(picKlo);
+        await ui.say([STORY.prolog.awake]);
+        // The first splash disturbs a real hole. Klo anticipates, climbs and
+        // scuttles on separate parts; none of his anatomy stretches into view.
+        const kloX = startPoint.x + h(1.12);
+        const kloY = G.terrain.groundNear(kloX, startPoint.y, 90) ?? startPoint.y;
+        const [kx, ky] = worldToPaper(kloX, kloY);
+        picKlo = createOpeningKlo(PIXI, { parent: onPaper, texture: T, x: kx, y: ky,
+            scale: pictureCam().zoom, reducedMotion: () => !!G.lessMotion });
+        picHero._look = { x: kloX, y: kloY - 50 };
+        setPhase('klo-entrance');
+        audio?.sfx('rustle', { gain: .25 });
+        await tween(G.lessMotion ? 1.5 : 2.7, u => { picKlo.setEntrance(u); });
         audio?.sfx('crabclick');
-        await tween(0.5, (u) => { picKlo.scale.y = pictureCam().zoom * u; });
+        setPhase('klo-ready');
         await ui.say([HER_TEXT.lastTwo ? STORY.prolog.klo1 : STORY.prolog.klo1Fallback, STORY.prolog.klo2]);
-        picKlo.texture = T('klo-point') || picKlo.texture;
+        picKlo.setPose('point'); picHero._look = null;
+        await tween(G.lessMotion ? .2 : 1.2, u => { closeFrame = 1 - u * u * (3 - 2 * u); layout(); });
         // three strokes in the margin, outside her finished picture
         const gullGeometry = () => ({
             ghost: ghostM(880, 150, 0.9).map(([x, y]) => toCss(x, y)),
             bounds: paperBounds(790, 70, 190, 160)
         });
+        setPhase('drawing-gull');
         const gullPts = await ui.draw({ prompt: UI.drawGull, ...gullGeometry(), getGeometry: gullGeometry, color: '#4d6e8c' });
         const gull = strokeTexture(gullPts, { color: '#4d6e8c' });
         G.userGull = gull.texture; G.userStrokes = { gull: gull.pts };
         const gs = new PIXI.Sprite(gull.texture); gs.x = gull.box.x; gs.y = gull.box.y; gs.scale.set(0.5); onPaper.addChild(gs);
         audio?.sfx('gull');
-        tween(2.2, (u) => { gs.x = gull.box.x - u * 260; gs.y = gull.box.y - u * 120 + Math.sin(u * 12) * 10; gs.alpha = 1 - Math.max(0, u - 0.7) / 0.3; });
+        await tween(G.lessMotion ? .4 : 1.8, (u) => {
+            gs.x = gull.box.x - u * 260; gs.y = gull.box.y - u * 120 + (G.lessMotion ? 0 : Math.sin(u * 12) * 10);
+            gs.alpha = 1 - Math.max(0, u - 0.7) / 0.3;
+            lookAtPaper(gs.x, gs.y);
+        });
         // The cloud is authored in paper units, just like the gull. Applying
         // the paper transform to every point keeps its start inside a portrait
         // phone and prevents an oversized cloud in the finished picture.
@@ -232,6 +296,7 @@ export function createTable({ PIXI, app, view, G, ui, audio, assets, makeHero })
             bounds: paperBounds(790, 250, 190, 160)
         });
         let cloudColor = 'sky';
+        setPhase('drawing-cloud');
         const cloudPts = await ui.draw({ prompt: UI.drawCloud, ...cloudGeometry(), getGeometry: cloudGeometry,
             palette: CLOUD_PENCILS.map(p => ({ ...p, label: DRAWING.cloudColors[p.id] })), selectedColor: cloudColor,
             onColor: value => { cloudColor = value; }, paintDraft: paintUserCloud });
@@ -247,7 +312,9 @@ export function createTable({ PIXI, app, view, G, ui, audio, assets, makeHero })
             cs.position.set(G.lessMotion ? cloudHome.x : lerp(cloud.box.x, cloudHome.x, e),
                 G.lessMotion ? cloudHome.y : lerp(cloud.box.y, cloudHome.y, e));
             cs.alpha = G.lessMotion ? e : 1;
+            lookAtPaper(cs.x + cs.width / 2, cs.y + cs.height / 2);
         });
+        picHero._look = null;
         // the shoreline, traced along generous anchors from the picture's edge; the crease cuts it short
         await ui.say([STORY.prolog.shoreInvite]);
         const st = G.scenes.land.spots.start;
@@ -265,6 +332,8 @@ export function createTable({ PIXI, app, view, G, ui, audio, assets, makeHero })
         const d = sprite('p-drop'); d.x = sx + 30; d.y = sy - 60; d.scale.set(0.9); onPaper.addChild(d); drops.push({ s: d, y0: sy - 60, t: 0 });
         await wait(G.lessMotion ? .6 : 1.0);
         picHero._emote = 'surprised'; picHero._look = { x: G.scenes.land.spots.splash.x, y: G.scenes.land.spots.splash.y };
+        picHero._action = 'stamp'; picHero._actionT = 0;
+        picKlo.setPose('stopwatch');
         audio?.sfx('snort');
         await wait(0.7);
         setPhase('frozen');
@@ -279,6 +348,11 @@ export function createTable({ PIXI, app, view, G, ui, audio, assets, makeHero })
         await dive();
         running = false;
         stop();
+        // The crab we just met steps onto this same beach. The first gameplay
+        // beat can lead him inland without replaying his entrance.
+        Object.assign(G.actors.klo, { scene: 'land', visible: true, x: kloX, y: kloY,
+            pose: 'stopwatch', facing: -1, pop: 0, inHole: false, walk: null,
+            vx: 0, holding: null, talking: false });
         G.flag('intro_done');
     }
 
@@ -289,15 +363,22 @@ export function createTable({ PIXI, app, view, G, ui, audio, assets, makeHero })
 
     async function crease(endpoint) {
         setPhase('fold-anticipation');
-        // A ruler slides in from beyond the page. Its owner stays a mystery;
-        // the same precise graphite edge will be found throughout the journey.
+        // A distant measuring glint settles on the new stroke before the same
+        // ruler edge approaches. The gesture is visible; its motive is not.
+        await tween(G.lessMotion ? .5 : 1.15, u => canvasLife?.setMeasure(u * u * (3 - 2 * u)));
         const front = PIXI.RenderTexture.create({ width: PW, height: PH, resolution: 1 });
         // Render an unattached copy: promoting the live sheet to a render root
         // would invalidate its inherited transform and the mask added next.
         const copy = new PIXI.Container();
         const printed = new PIXI.Sprite(pic.texture); printed.position.set(PIC.x, PIC.y);
-        copy.addChild(new PIXI.Graphics(paper.context), printed, new PIXI.Graphics(shore.context));
+        copy.addChild(new PIXI.Graphics(paper.context), printed);
+        // Move this unmasked child just for the synchronous capture, before
+        // installing the sheet mask; never promote the live sheet to a root.
+        const canvasIndex = canvasLife ? sheet.getChildIndex(canvasLife.container) : -1;
+        if (canvasLife) copy.addChild(canvasLife.container);
+        copy.addChild(new PIXI.Graphics(shore.context));
         app.renderer.render({ container: copy, target: front, clear: true });
+        if (canvasLife) sheet.addChildAt(canvasLife.container, canvasIndex);
         copy.destroy({ children: true });
         openingFold = createOpeningFold(PIXI, { parent: paperLayer, sheet, front,
             paper: T('mat-paper'), width: PW, height: PH, endpoint });
@@ -310,9 +391,11 @@ export function createTable({ PIXI, app, view, G, ui, audio, assets, makeHero })
         ruler.rotation = -Math.atan2(openingFold.crease.b[0] - openingFold.crease.a[0], PH);
         const rulerX = endpoint[0] - (openingFold.crease.b[0] - openingFold.crease.a[0]) / PH * 90;
         onPaper.addChild(ruler);
-        await tween(G.lessMotion ? .15 : .65, (u) => {
+        const from = canvasLife?.landmarks.light || { x: rulerX + 220, y: endpoint[1] - 90 };
+        await tween(G.lessMotion ? .25 : .9, (u) => {
             const e = u * u * (3 - 2 * u);
-            ruler.position.set(rulerX + (1 - e) * 220, endpoint[1] - 90);
+            ruler.position.set(lerp(from.x, rulerX, e), lerp(from.y, endpoint[1] - 90, e));
+            ruler.scale.set(G.lessMotion ? 1 : lerp(.08, 1, e));
             ruler.alpha = e;
         });
         ui.caption(STORY.prolog.foldCaption);
@@ -427,7 +510,7 @@ export function createTable({ PIXI, app, view, G, ui, audio, assets, makeHero })
             destroyed = true;
             for (const cancel of pending) cancel();
             pending.clear();
-            running = false; stop(); table.destroy({ children: true });
+            running = false; stop(); wakeStroke.destroy(); table.destroy({ children: true });
         }
     };
 }

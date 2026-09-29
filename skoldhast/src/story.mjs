@@ -172,7 +172,16 @@ export function createStory(G, io) {
         when: () => inScene('land') && F.has('intro_done') && !F.has('ended') && !done('k1_enter'),
         lock: false,
         async run(s) {
-            s.appear('klo', { scene: 'land', x: G.sceneDef.spots.kloBeach.x, y: G.sceneDef.spots.kloBeach.y, pose: 'stopwatch', facing: 1 });
+            const klo = G.actors.klo, beach = G.sceneDef.spots.kloBeach;
+            if (klo.visible && klo.scene === 'land') {
+                // The prologue hands over the same crab. Let him scuttle into
+                // position while controls and the original lesson timing run.
+                klo.pose = 'stopwatch';
+                s.walk('klo', beach.x, 430);
+            } else {
+                // Saves and the robot may begin after the table has closed.
+                s.appear('klo', { scene: 'land', x: beach.x, y: beach.y, pose: 'stopwatch', facing: 1 });
+            }
             s.checkpoint('start');
             await s.wait(1.2);
             tipOnce('gallop');
