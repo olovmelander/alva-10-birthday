@@ -43,3 +43,20 @@ export function terrainShape(surfaces) {
     }
     return { runs, outlines };
 }
+
+/** The part of a left-to-right outline between x0 and x1, cut exactly at both
+ * (vertical faces are kept whole when they lie inside the range). */
+export function clipX(pts, x0, x1) {
+    const out = [];
+    const cut = (a, b, x) => [x, a[1] + (b[1] - a[1]) * ((x - a[0]) / ((b[0] - a[0]) || 1))];
+    for (let i = 0; i < pts.length; i++) {
+        const p = pts[i], prev = pts[i - 1];
+        if (prev) {
+            if (prev[0] < x0 && p[0] > x0) out.push(cut(prev, p, x0));
+            if (prev[0] < x1 && p[0] > x1 && out.length) { out.push(cut(prev, p, x1)); break; }
+        }
+        if (p[0] >= x0 && p[0] <= x1) out.push(p.slice());
+        else if (p[0] > x1) break;
+    }
+    return out;
+}

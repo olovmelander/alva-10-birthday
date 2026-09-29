@@ -12,6 +12,8 @@
  */
 import { PENCILS as P, hashSeed, rng, mix, smooth, resample, ellipse, transform, pressureMap, edgeBand, unionMasks } from './pencil.mjs';
 import { PX, spriteSheet, addSolid, finish, ribbon, lighten, dotted, fmap, smoothstep, clamp01, withTooth, voronoiT } from './materials.mjs';
+import { runupShape, surfaceGround, SPLASH_BASE } from '../../skoldhast/src/stuck-wave-shape.mjs';
+import { SCENES } from '../../skoldhast/src/content/world.mjs';
 
 // ---------------------------------------------------------------------------
 // Pencils only the props need
@@ -622,7 +624,7 @@ function waterHatch(S, m, pdeep, { angle = -0.35, dark = 1 } = {}) {
  * right-hand side of travel): a scalloped outer edge, a wavy inner edge, and
  * the white band between them. Returns { top, inner, cap }.
  */
-function foamCrest(base, r, { scallop = 4.5, period = 16, capW = 11, taper = 0 } = {}) {
+function foamCrest(base, r, { scallop = 4.5, period = 16, capW = 11, taper = 0, ends = null } = {}) {
     const q = resample(base, 2);
     const L = q.length;
     const top = [], inner = [];
@@ -635,7 +637,7 @@ function foamCrest(base, r, { scallop = 4.5, period = 16, capW = 11, taper = 0 }
         const nx = -ty, ny = tx; // points into the water
         if (i) acc += Math.hypot(q[i][0] - q[i - 1][0], q[i][1] - q[i - 1][1]);
         const u = i / (L - 1);
-        const end = taper ? smoothstep(0, taper, u) * smoothstep(0, taper, 1 - u) : 1;
+        const end = ends ? ends(q[i], u) : taper ? smoothstep(0, taper, u) * smoothstep(0, taper, 1 - u) : 1;
         const per = period * (1 + 0.25 * Math.sin(acc * 0.031 + ph));
         const sc = Math.pow(Math.abs(Math.sin(Math.PI * acc / per)), 0.6) * scallop * end;
         top.push([q[i][0] - nx * sc, q[i][1] - ny * sc]);
@@ -764,10 +766,8 @@ item('props', 'foam-edge', [0.5, 1], () => {
     pen(S, P.skyBlue, wm, { angle: -0.02, gap: 2, len: [20, 70], grain: 0.45, pmap: pressureMap(W, H, (x, y) => (0.55 + 0.45 * smoothstep(30, H, y)) * fadeX[y * W + x]) });
     pen(S, P.seaBlue, wm, { angle: 0.01, gap: 3, len: [20, 60], grain: 0.5, pmap: pressureMap(W, H, (x, y) => 0.5 * smoothstep(34, H, y) * fadeX[y * W + x]) });
     soft(S, P.skyBlue, capM, { angle: -0.4, gap: 2.6, len: [5, 12], pressure: 0.3 });
-    // little holes in the foam show the blue through
+    // her little foam loops: paper white, outlined in dark-blue pencil (no solid blue dots, plan §2.3)
     for (const h of holes) {
-        const hm = S.mask(h);
-        pen(S, P.seaBlue, hm, { angle: 0, gap: 1.6, len: [3, 8], pressure: 0.8, grain: 0.3 });
         ink(S, h, { color: P.foamLine, width: 1.2, pressure: 0.8, passes: 1, wobble: 0.2 });
     }
     const edgeFade = (x) => smoothstep(4, 40, x) * (1 - smoothstep(W - 40, W - 4, x));
@@ -2531,3 +2531,90 @@ export async function build(api) {
     for (const [name, a] of Object.entries(ATLASES)) api.atlas(name, { scale: 1, bundle: a.bundle, quality: a.quality || 82 });
     for (const it of ITEMS) api.frame(it.atlas, it.name, it.draw(), it.anchor);
 }
+
+// ---------------------------------------------------------------------------
+// The stuck wave's run-up (props-land): the splash's own water carried on
+// down Alva's beach to the waterline, drawn on the playable beach's profile.
+// Appended last so no earlier prop's tooth roll (rollN) changes.
+// ---------------------------------------------------------------------------
+item('props-land', 'frozen-runup', [0, 0], () => {
+    const land = SCENES.land, it = land.decor.find((d) => d.frozen);
+    const G = runupShape({ ground: surfaceGround(land.surfaces), x: it.x, y: it.y });
+    const { x: X0, y: Y0, w: W, h: H } = G.frame;
+    const S = spriteSheet(W, H, 'frozen-runup');
+    const px = (wx) => wx - X0, py = (wy) => wy - Y0;
+    const exP = px(G.ex), span = G.span, shoreP = px(G.shoreX);
+    const gy = new Float32Array(W), cy = new Float32Array(W);
+    for (let x = 0; x < W; x++) { gy[x] = py(G.groundAt(X0 + x + 0.5)); cy[x] = py(G.crestAt(X0 + x + 0.5)); }
+    const col = (x) => Math.max(0, Math.min(W - 1, Math.round(x)));
+    // 1. the crest: the splash's own base curve and seed, so the scallops line up
+    //    under the splash's fading right end, then the run-up to the sea level
+    const base = SPLASH_BASE.map(([sx, sy]) => G.at(sx, sy)).map(([wx, wy]) => [px(wx), py(wy)]);
+    for (let wx = G.ex + 12; wx < G.shoreX - 6; wx += 12) base.push([px(wx), py(G.crestAt(wx))]);
+    base.push([shoreP, py(0)], [W + 4, py(0)]);
+    const capEnd = (p) => 1 - smoothstep(exP + 0.2 * span, exP + 0.66 * span, p[0]);
+    const crest = foamCrest(smooth(base, { closed: false, steps: 8 }), rng(31), { scallop: 4, period: 13, capW: 10, ends: capEnd });
+    const topY = new Float32Array(W).fill(H);
+    for (let i = 1; i < crest.top.length; i++) {
+        const [ax, ay] = crest.top[i - 1], [bx, by] = crest.top[i];
+        for (let x = Math.max(0, Math.ceil(Math.min(ax, bx))); x <= Math.min(W - 1, Math.floor(Math.max(ax, bx))); x++) topY[x] = Math.min(topY[x], ay + (by - ay) * ((x - ax) / ((bx - ax) || 1)));
+    }
+    const ground = [];
+    for (let x = W + 4; x >= -4; x -= 3) ground.push([x, Math.min(H + 2, gy[col(x)] + 6)]);
+    const bodyM = S.mask(crest.top.concat(ground));
+    addSolid(S, bodyM);
+    const capM = fmap(S.mask(crest.cap), (v, i) => v * bodyM[i]);
+    // 2. her little white loops, lying in the water's slope where it is deep enough
+    const rr = rng(37), patches = [];
+    for (let k = 0; k < 80 && patches.length < 15; k++) {
+        const x = exP - 40 + rr() * (0.7 * span + 40), c = col(x), d = gy[c] - cy[c];
+        if (d < 22) continue;
+        const y = cy[c] + 13 + rr() * (d - 22), k2 = Math.min(1, d / 50);
+        const slope = Math.atan2(cy[col(x + 6)] - cy[col(x - 6)], 12);
+        patches.push(blob(x, y, (5 + rr() * 8) * k2, (2.4 + rr() * 2.6) * k2, rr, { n: 9, j: 0.3, rot: -0.3 + rr() * 0.25 + slope * 0.7 }));
+    }
+    const pm = patches.map((q) => S.mask(q));
+    for (const m of pm) addSolid(S, m);
+    const white = unionMasks(capM, ...pm);
+    const wm = fmap(bodyM, (v, i) => v * (1 - white[i]));
+    // 3. the splash's hatching, turning into her sea's long level strokes towards the shore
+    const toSea = (x) => smoothstep(exP + 0.2 * span, exP + 0.85 * span, x);
+    const pdeep = pressureMap(W, H, (x, y) => {
+        const c = cy[x], g = gy[x], rel = clamp01((y - c) / Math.max(8, g - c));
+        return (0.55 + 0.4 * rel + 0.15) * (0.5 + 0.5 * smoothstep(4, 30, g - c));
+    });
+    waterHatch(S, fmap(wm, (v, i) => v * (1 - toSea(i % W))), pdeep, { angle: -0.2 });
+    const seaPart = fmap(wm, (v, i) => v * toSea(i % W));
+    soft(S, P.skyBlue, seaPart, { angle: -0.012, gap: 1.8, len: [40, 130], width: 2, pressure: 0.95 });
+    pen(S, P.seaBlue, seaPart, { angle: 0.008, gap: 1.8, len: [30, 120], width: 1.9, grain: 0.6, pmap: pdeep });
+    pen(S, P.seaBlue, seaPart, { angle: -0.025, gap: 2.6, len: [20, 70], width: 1.7, pressure: 0.5, grain: 0.6 });
+    S.burnish(wm, 1, 0.25);
+    soft(S, P.skyBlue, capM, { angle: -0.6, gap: 2.4, len: [5, 14], pressure: 0.3 });
+    for (let k = 0; k < patches.length; k++) soft(S, P.skyBlue, rim(S, patches[k], pm[k], 0, -2, 1), { angle: -0.4, gap: 2.4, len: [4, 10], pressure: 0.4 });
+    // 4. the envelope: melts into the sand, fades in under the splash, thins at the shore;
+    //    the waterline itself stays at full strength to the sea's own line
+    const lineFrom = exP + 0.5 * span;
+    const fade = pressureMap(W, H, (x, y) => {
+        const i = y * W + x, g = gy[x], d = g - cy[x];
+        const bottom = 1 - smoothstep(g - 10, g + 5, y) * (1 - white[i] * 0.4);
+        const ends = smoothstep(0, 24, x) * (1 - smoothstep(shoreP + 2, W - 1, x));
+        const thin = 0.45 + 0.55 * smoothstep(3, 28, d);
+        const line = smoothstep(lineFrom - 24, lineFrom + 10, x) * (1 - smoothstep(1.5, 3.5, Math.abs(y - topY[x] - 0.7)));
+        return Math.max(bottom * Math.min(1, thin + white[i] * 0.3), line) * ends;
+    });
+    // 5. pencil: the foam's outline as on the splash, then the sea's two pencils to the shore
+    for (const c of contours(capM, W, H, { step: 2.5 })) {
+        if (c.length < 4) continue;
+        const pts = smooth(c, { closed: true, steps: 2 });
+        const runs = [];
+        let cur = [];
+        for (const p of pts) { const f = fade[col(p[1]) * 0 + Math.min(H - 1, Math.max(0, Math.floor(p[1]))) * W + col(p[0])]; if (p[0] > lineFrom + 10 || f < 0.2) { if (cur.length > 2) runs.push(cur); cur = []; } else cur.push(p); }
+        if (cur.length > 2) runs.push(cur);
+        for (const run of runs) ink(S, run, { closed: false, color: P.foamLine, width: 1.9, pressure: 0.95, wobble: 0.5 });
+    }
+    const wl = crest.top.filter(([x]) => x >= lineFrom - 24 && x <= W + 2);
+    ink(S, wl, { closed: false, color: P.foamLine, width: 2.6, pressure: 1, wobble: 0.5, passes: 2 });
+    ink(S, wl.map(([x, y]) => [x, y + 1.5]), { closed: false, color: P.seaBlue, width: 2, pressure: 0.35, wobble: 0.8, passes: 1 });
+    for (const q of patches) ink(S, q, { color: P.foamLine, width: 1.5, pressure: 0.9, wobble: 0.4 });
+    return doneFade(S, fade);
+});

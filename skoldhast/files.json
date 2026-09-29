@@ -33,6 +33,8 @@
   "src/scenery.mjs",
   "src/sim.mjs",
   "src/story.mjs",
+  "src/stuck-wave-shape.mjs",
+  "src/stuck-wave.mjs",
   "src/terrain-shape.mjs",
   "src/ui.mjs",
   "src/user-cloud.mjs",

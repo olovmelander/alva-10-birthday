@@ -26,8 +26,11 @@ async function start(page, lessMotion = false) {
             const nodes = all(table), find = name => nodes.find(n => n.label === name);
             const hero = find('opening-hero'), splash = find('opening-splash'), ink = find('opening-wake-stroke');
             const klo = find('opening-klo'), parts = find('opening-klo-parts');
+            const question = find('opening-klo-mark-question'), exclaim = find('opening-klo-mark-exclaim');
             return {
                 at: performance.now(), phase: table.storyPhase, awake: table.openingAwake,
+                caption: document.querySelector('.sk-caption.on')?.textContent || '',
+                line: document.querySelector('.sk-dialogue.on .sk-dlg-text')?.textContent || '',
                 // Local sprite transforms exclude the intentional camera pullback.
                 hero: hero ? all(hero).filter(n => ['torso', 'shell', 'head', 'neck', 'eye'].includes(n.label))
                     .map(n => [n.label, n.x, n.y, n.rotation, n.scale.x, n.scale.y, n.visible, n.texture?.uid]) : [],
@@ -35,7 +38,8 @@ async function start(page, lessMotion = false) {
                 ink: ink ? ink.context.instructions.length : 0,
                 klo: klo ? { stage: klo.openingKloStage, progress: klo.openingKloProgress,
                     sx: klo.scale.x, sy: klo.scale.y, x: parts?.x, y: parts?.y,
-                    partSx: parts?.scale.x, partSy: parts?.scale.y } : null
+                    partSx: parts?.scale.x, partSy: parts?.scale.y,
+                    mark: question?.visible ? '?' : exclaim?.visible ? '!' : '' } : null
             };
         };
         const watch = () => {
@@ -139,9 +143,17 @@ try {
             await page.waitForFunction(() => {
                 const d = window.__skoldhast.debug;
                 if (d.ui.dialogueOpen()) d.ui.advance();
+                return window.__awakeningState()?.phase === 'klo-wonder';
+            });
+            // He stops, mesmerised, and whispers his first (wrong) guess.
+            await readableDialogue(page, STORY.prolog.kloWonder[1]);
+            await page.screenshot({ path: path.join(out, `${stem}-klo-wonder.png`) });
+            await page.waitForFunction(() => {
+                const d = window.__skoldhast.debug;
+                if (d.ui.dialogueOpen()) d.ui.advance();
                 return window.__awakeningState()?.phase === 'klo-ready';
             });
-            await readableDialogue(page, STORY.prolog.klo1Fallback[1]);
+            await readableDialogue(page, STORY.prolog.kloResearch[1]);
             await page.screenshot({ path: path.join(out, `${stem}-klo-ready.png`) });
             await page.waitForFunction(() => {
                 const d = window.__skoldhast.debug;
@@ -149,12 +161,26 @@ try {
                 return window.__awakeningState()?.phase === 'drawing-gull';
             });
             const recorded = await page.evaluate(() => ({ phases: window.__awakening.phases, samples: window.__awakening.samples }));
-            const expected = ['drawing-wake', 'waking', 'alive', 'klo-entrance', 'klo-ready', 'drawing-gull'];
+            const expected = ['drawing-wake', 'waking', 'alive', 'klo-entrance', 'klo-wonder', 'klo-take', 'klo-ready', 'drawing-gull'];
             for (const [i, phase] of expected.entries()) {
                 assert.ok(recorded.phases.includes(phase), `observed ${phase}`);
                 if (i) assert.ok(recorded.phases.indexOf(phase) > recorded.phases.indexOf(expected[i - 1]), `${phase} follows its cause`);
             }
-            const emerging = recorded.samples.filter(s => s.phase === 'klo-entrance' && s.klo).map(s => s.klo);
+            const emerging = recorded.samples.filter(s => (s.phase === 'klo-entrance' || s.phase === 'klo-take') && s.klo).map(s => s.klo);
+            // Her question sets the scene before the researcher's eyes come up.
+            assert.ok(recorded.samples.some(s => s.phase === 'klo-entrance' && (!s.klo || ['hidden', 'drop'].includes(s.klo.stage))
+                && s.caption === STORY.prolog.captionFallback), 'the caption asks "Häst eller sköldpadda?" before Klo appears');
+            const lines = [];
+            let reading = false;
+            for (const s of recorded.samples) {
+                if (s.phase === 'alive') reading = true;
+                if (s.phase === 'drawing-gull') break;
+                if (reading && s.line && lines.at(-1) !== s.line) lines.push(s.line);
+            }
+            assert.deepEqual(lines, [STORY.prolog.awake[1], STORY.prolog.kloWonder[1], STORY.prolog.kloResearch[1]], 'three boxes before the first drawing');
+            const wonder = recorded.samples.filter(s => s.phase === 'klo-wonder' && s.klo).map(s => s.klo);
+            assert.ok(wonder.length && wonder.every(k => k.stage === 'awe' && k.mark === '?'), 'he holds his wide-eyed stare with a question while he whispers');
+            assert.ok(recorded.samples.some(s => s.phase === 'klo-take' && s.klo?.mark === '!'), 'the double take ends in an exclamation');
             const final = recorded.samples.findLast(s => s.klo?.stage === 'ready')?.klo;
             assert.ok(emerging.length >= 2 && final, 'Klo physically emerges across real rendered frames');
             assert.ok(emerging.every(k => Math.abs(k.sx - final.sx) < 1e-8 && Math.abs(k.sy - final.sy) < 1e-8), 'Klo never stretches from a flattened sprite');

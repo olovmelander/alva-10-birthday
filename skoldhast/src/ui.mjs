@@ -198,12 +198,12 @@ export function createUI(host, { assetBase, handlers }) {
         setTimeout(() => { t.classList.remove('on'); setTimeout(() => t.remove(), 500); }, ms);
     }
     let capTimer = 0;
-    function captionShow(text) {
+    function captionShow(text, ms = 1600) {
         if (!text) return;
         caption.textContent = text;
         caption.classList.add('on');
         clearTimeout(capTimer);
-        capTimer = setTimeout(() => caption.classList.remove('on'), 1600);
+        capTimer = setTimeout(() => caption.classList.remove('on'), ms);
     }
 
     function pulse(which) {

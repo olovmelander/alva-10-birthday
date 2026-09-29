@@ -36,16 +36,44 @@ async function inspect(page) {
         const air = view.layers.far.children.find(c => c.label === 'water-air');
         const airRects = air?.context.instructions.flatMap(i => i.data.path?.instructions || [])
             .filter(i => i.action === 'rect').map(i => i.data.slice(0, 4)) || [];
+        // the highest solid ground at x (thin planks and drawn-only tails excluded)
+        const ground = x => {
+            let best = null;
+            for (const s of G.sceneDef.surfaces) {
+                if (s.thin || x < s.pts[0][0] || x > s.pts.at(-1)[0]) continue;
+                for (let i = 1; i < s.pts.length; i++) if (x <= s.pts[i][0]) {
+                    const [ax, ay] = s.pts[i - 1], [bx, by] = s.pts[i];
+                    const y = bx === ax ? Math.min(ay, by) : ay + (by - ay) * (x - ax) / (bx - ax);
+                    if (best === null || y < best) best = y;
+                    break;
+                }
+            }
+            return best;
+        };
+        // A body may be drawn as several stretches: an open-sky sea only where
+        // the ground really dips below its surface.
         const bodies = G.sceneDef.waters.filter(w => w.kind !== 'pipe').map(w => {
-            const rope = ropes.find(r => Math.abs(r._pts[0].x - w.x0) < .001);
-            return { id: w.id, x0: w.x0, x1: w.x1, top: w.top,
-                first: rope ? { x: rope._pts[0].x, y: rope._pts[0].y } : null,
-                last: rope ? { x: rope._pts.at(-1).x, y: rope._pts.at(-1).y } : null };
+            const lines = ropes.filter(r => r._pts[0].x >= w.x0 - .001 && r._pts.at(-1).x <= w.x1 + .001
+                && Math.abs(r._pts[0].y - w.top) <= 14.001).sort((a, b) => a._pts[0].x - b._pts[0].x);
+            const spans = lines.map(r => ({
+                first: { x: r._pts[0].x, y: r._pts[0].y, ground: ground(r._pts[0].x) },
+                last: { x: r._pts.at(-1).x, y: r._pts.at(-1).y, ground: ground(r._pts.at(-1).x) },
+                dry: r._pts.filter(p => { const g = ground(p.x); return g !== null && g < w.top - 2; }).length
+            }));
+            return { id: w.id, x0: w.x0, x1: w.x1, top: w.top, spans,
+                first: spans[0]?.first || null, last: spans.at(-1)?.last || null };
         });
         const find = (node, label) => node.label === label ? node : node.children?.map(c => find(c, label)).find(Boolean);
         const head = find(view.layers.hero, 'head')?.getBounds();
         const goal = document.querySelector('.sk-goal:not(.empty)')?.getBoundingClientRect();
-        return { scene: G.sceneId, x: p.x, y: p.y, vx: p.vx, vy: p.vy,
+        // her dark-blue waterline along the beach (land only)
+        const all = node => [node, ...(node.children || []).flatMap(all)];
+        const blue = all(view.layers.terrainBack).find(c => c.label === 'her-waterline');
+        const herLine = blue ? { first: blue._pts[0].x, last: blue._pts.at(-1).x,
+            off: blue._pts.map(q => [Math.round(q.x), Math.round(q.y * 10) / 10, ground(q.x)])
+                .filter(([x, y, g]) => g === null || Math.abs(g - y) > 1.01 || y > .5),
+            shore: view.stuckWave?.shoreX ?? null } : null;
+        return { scene: G.sceneId, underwater: !!G.sceneDef.underwater, herLine, x: p.x, y: p.y, vx: p.vx, vy: p.vy,
             water: p.water?.id, waterTop: p.water?.top,
             depth: p.water ? p.y - p.water.top : null,
             camera: { x: view.cam.x, y: view.cam.y, zoom: view.cam.zoom },
@@ -58,12 +86,29 @@ async function inspect(page) {
 }
 
 function assertSurface(state) {
+    // At a bank the line ends either at the body's authored edge or exactly
+    // where the ground rises through its surface; it never crosses dry ground.
+    const atBank = (end, edge, top) => end.x === edge || (end.ground !== null && Math.abs(end.ground - top) < 1);
     for (const w of state.bodies) {
         assert.ok(w.first && w.last, `${w.id} has a rendered waterline`);
-        assert.equal(w.first.x, w.x0, `${w.id}: waterline starts exactly at its bank`);
-        assert.equal(w.last.x, w.x1, `${w.id}: waterline reaches its far bank`);
-        assert.ok(Math.abs(w.first.y - w.top) <= 14.001 && Math.abs(w.last.y - w.top) <= 14.001,
-            `${w.id}: pencil waves remain around the physical surface`);
+        for (const s of w.spans) {
+            assert.ok(atBank(s.first, w.x0, w.top), `${w.id}: waterline starts exactly at its bank (${JSON.stringify(s.first)})`);
+            assert.ok(atBank(s.last, w.x1, w.top), `${w.id}: waterline reaches its far bank (${JSON.stringify(s.last)})`);
+            if (!state.underwater) assert.equal(s.dry, 0, `${w.id}: the waterline never runs across dry ground`);
+            assert.ok(Math.abs(s.first.y - w.top) <= 14.001 && Math.abs(s.last.y - w.top) <= 14.001,
+                `${w.id}: pencil waves remain around the physical surface`);
+        }
+    }
+    if (state.scene === 'land') {
+        const shallows = state.bodies.find(w => w.id === 'shallows');
+        assert.ok(shallows.first.x > shallows.x0 && Math.abs(shallows.first.ground - shallows.top) < 1,
+            'the beach sea begins where the sand meets it, not inside the sand');
+        const her = state.herLine;
+        assert.ok(her, 'her dark-blue waterline is drawn along the beach');
+        assert.ok(Math.abs(her.first - 105.25 * 200) <= 1, 'it starts by the shells');
+        assert.ok(Math.abs(her.last - shallows.first.x) <= 1, 'it runs straight into the sea surface line');
+        assert.ok(her.shore === null || Math.abs(her.last - her.shore) <= 4, 'where the stuck wave also meets the sea');
+        assert.deepEqual(her.off, [], 'it lies on the sand, never below the sea level');
     }
     if (state.scene === 'kelp') {
         const cave = state.bodies.find(w => w.id === 'cave'), sea = state.bodies.find(w => w.id === 'sea');

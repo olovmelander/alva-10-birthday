@@ -41,7 +41,8 @@ async function open(page, lessMotion = false) {
                 const paper = table.children.find(c => c.label === 'story-paper');
                 if (paper && (phase === 'klo-ready' || phase === 'drawing-gull')) r.framing.push({ phase, scale: paper.scale.x });
                 const flap = paper?.children.find(c => /^opening-sea-/.test(c.label || ''));
-                const splash = paper?.children.flatMap(c => c.children || []).find(c => c._base !== undefined);
+                const all = node => [node, ...(node.children || []).flatMap(all)];
+                const splash = paper ? all(paper).find(c => c.label === 'opening-splash') : null;
                 if (phase === 'folding' && flap && splash) r.samples.push({
                     at: performance.now(), splash: splash.scale.y,
                     vertices: Array.from(flap.children[0].geometry.getBuffer('aPosition').data)
@@ -158,7 +159,7 @@ async function verifyFold(page, lessMotion) {
     const persisted = actual.shorePaths.find(p => p.action === 'stroke')?.path.map(p => p.data.slice(0, 2));
     assert.equal(persisted?.length, actual.points.length, 'all shoreline points persist after the drawing overlay closes');
     assert.ok(persisted.every((p, i) => Math.hypot(p[0] - actual.points[i][0], p[1] - actual.points[i][1]) < .001), 'the exact authored shoreline survives');
-    const expectedPhases = ['drawing-wake', 'waking', 'alive', 'klo-entrance', 'klo-ready', 'drawing-gull', 'drawing-cloud', 'shoreline', 'fold-anticipation', 'folding', 'folded', 'frozen'];
+    const expectedPhases = ['drawing-wake', 'waking', 'alive', 'klo-entrance', 'klo-wonder', 'klo-take', 'klo-ready', 'drawing-gull', 'drawing-cloud', 'shoreline', 'fold-anticipation', 'folding', 'folded', 'frozen'];
     for (const [index, name] of expectedPhases.entries()) {
         assert.ok(actual.phases.includes(name), `observed ${name}`);
         if (index) assert.ok(actual.phases.indexOf(name) > actual.phases.indexOf(expectedPhases[index - 1]), `${name} follows its visible cause`);

@@ -23,7 +23,11 @@ function opening() {
 test('the opening crab continues onto the beach without a second entrance or locked controls', async () => {
     const { G, sounds, step } = opening();
     const start = G.sceneDef.spots.start, beach = G.sceneDef.spots.kloBeach;
-    const from = start.x + 1.12 * HL;
+    // He comes up in the dry sand just behind the horse, never inside the stuck wave.
+    const from = start.x - 0.86 * HL;
+    const wave = G.sceneDef.decor.find(it => it.frozen);
+    assert.ok(from + 0.25 * HL < wave.x - 116, 'the opening crab stands clear of the wave');
+    assert.ok(G.terrain.groundNear(from, start.y, 90) < 0, 'on dry sand above the sea');
     Object.assign(G.actors.klo, {
         scene: 'land', visible: true, x: from,
         y: G.terrain.groundNear(from, start.y, 90),

@@ -92,7 +92,19 @@ export function sampleKlo(actor, { time = 0, underwater = false, talking = false
     };
 }
 
-/** Return one container; the scene owns and destroys it along with the other actors. */
+/**
+ * Return one container; the scene owns and destroys it along with the other actors.
+ * Optional actor fields for staged moments (all off when undefined):
+ *   eyeAim [l, r]   stalk angles in radians (− leans back/up, + forward/down); replaces the automatic gaze
+ *   eyeLift [l, r]  raise (+) or sink (−) each stalk, local units, −8 … 3.5
+ *   eyeWide 0…1     wonder: slightly larger eyeballs
+ *   eyeFrame        'open' | 'blink' holds the eyes; any value stops the automatic blink
+ *   tremble 0…1     awestruck quiver of the stalks
+ *   crouch 0…1      anticipation: body low, legs splayed, claws in
+ *   scribble 0…1    in the notebook pose, the pencil arm races
+ *   mouth 'o'       an amazed open mouth instead of his smile
+ * The pose 'awe' lets the claws hang open. No part is ever scaled except the eyeballs.
+ */
 export function createKlo(PIXI, { texture }) {
     const container = new PIXI.Container();
     const shadow = new PIXI.Graphics();
@@ -115,6 +127,7 @@ export function createKlo(PIXI, { texture }) {
     for (const i of [2, 5, 1, 4, 0, 3]) legs[i] = joint('klo-part-leg-' + i, ...legDefs[i]);
     art.addChild(torso);
     const eyes = [-1, 1].map((s) => joint('klo-part-eye-' + (s < 0 ? 'l' : 'r'), s * 7.5, -41, torso));
+    eyes.forEach((eye, i) => { eye.c.label = 'klo-eye-' + (i ? 'r' : 'l'); });
     const body = sprite('klo-part-body', torso);
     // Eye stalks start behind the shell; the eyeballs are well above its silhouette.
     const arms = [-1, 1].map((s) => joint('klo-part-arm-' + (s < 0 ? 'l' : 'r'), s * 21.5, -22, torso));
@@ -152,21 +165,33 @@ export function createKlo(PIXI, { texture }) {
         const emerge = actor.pop || 0;
         art.alpha = 1 - emerge * 0.5;
         art.scale.y = 1 - emerge * 0.35;
-        torso.y = m.bob + hole * 41 * SIZE;
+        const crouch = reducedMotion ? 0 : clamp(actor.crouch || 0, 0, 1);
+        const tremble = reducedMotion ? 0 : clamp(actor.tremble || 0, 0, 1);
+        const scribble = clamp(actor.scribble || 0, 0, 1) * (reducedMotion ? 0.35 : 1);
+        setFrame(body, actor.mouth === 'o' ? 'klo-part-body-o' : 'klo-part-body');
+        torso.y = m.bob + hole * 41 * SIZE + crouch * 5 * SIZE;
         torso.rotation = reducedMotion ? 0 : Math.sin(time * 3.4) * (m.speak ? 0.013 : 0.004);
         body.alpha = 1 - hole;
         legs.forEach((leg, i) => {
             const ph = m.phase + (i % 2) * Math.PI + (i % 3) * 0.18;
-            leg.c.rotation = reducedMotion ? 0 : Math.sin(ph) * 0.26 * m.activity;
+            leg.c.rotation = (reducedMotion ? 0 : Math.sin(ph) * 0.26 * m.activity) + (i < 3 ? -1 : 1) * 0.14 * crouch;
             leg.c.y = leg.y - Math.max(0, Math.cos(ph)) * 5 * m.activity;
             leg.c.x = leg.x + Math.cos(ph) * 2 * m.activity;
             leg.c.alpha = 1 - hole;
         });
+        const aim = actor.eyeAim, lift = actor.eyeLift, wide = clamp(actor.eyeWide || 0, 0, 1);
         eyes.forEach((eye, i) => {
             const side = i ? 'r' : 'l';
-            setFrame(eye.s, 'klo-part-eye-' + side + (m.blink ? '-blink' : ''));
+            const shut = actor.eyeFrame ? actor.eyeFrame === 'blink' : m.blink;
+            setFrame(eye.s, 'klo-part-eye-' + side + (shut ? '-blink' : ''));
             const look = hero ? clamp((hero.y - actor.y - 80) / 600, -0.18, 0.18) : 0;
-            eye.c.rotation = (i ? 1 : -1) * look + (facing - poseFacing) * 0.055 + (reducedMotion ? 0 : Math.sin(time * 2.2 + i * 0.7) * 0.045);
+            const gaze = aim ? aim[i] : (i ? 1 : -1) * look;
+            const quiver = tremble ? Math.sin(time * 57 + i * 1.3) * 0.02 * tremble : 0;
+            eye.c.rotation = gaze + (facing - poseFacing) * 0.055 + quiver + (reducedMotion || aim ? 0 : Math.sin(time * 2.2 + i * 0.7) * 0.045);
+            eye.c.y = eye.y - (lift ? clamp(lift[i], -8, 3.5) * SIZE : 0);
+            // wider eyes grow from the stalk's base, which stays tucked under the shell
+            const k = 1 + 0.14 * wide;
+            eye.s.scale.set(k); eye.s.position.set(eye.x * (1 - k), eye.y * (1 - k));
         });
         arms.forEach((arm, i) => {
             const side = i ? 1 : -1;
@@ -175,9 +200,11 @@ export function createKlo(PIXI, { texture }) {
             if (m.wave && i) angle += Math.sin(time * 17) * 0.24;
             if (actor.pose === 'point' && i) angle += 0.58;
             if (actor.pose === 'whisper' && i) angle -= 0.5;
+            if (actor.pose === 'awe') angle += side * 0.32;
             if (m.fidget === 'stopwatch' && i) angle -= 0.54 + Math.sin(time * 4) * 0.035;
-            if (m.fidget === 'notebook') angle += i ? -0.25 + Math.sin(time * 13) * 0.035 : 0.45;
+            if (m.fidget === 'notebook') angle += i ? -0.25 + Math.sin(time * (13 + 12 * scribble)) * (0.035 + 0.06 * scribble) : 0.45;
             if (underwater) angle += side * Math.sin(time * 2.3 + i) * 0.12;
+            angle += side * 0.35 * crouch;
             arm.c.rotation = reducedMotion ? angle * 0.35 : angle;
             arm.c.alpha = 1 - hole;
         });
