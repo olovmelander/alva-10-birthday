@@ -36,6 +36,8 @@ export function createTable({ PIXI, app, view, G, ui, audio, assets, makeHero })
     const falling = [];
     let dropT = 0;
     let running = false;
+    let destroyed = false;
+    const pending = new Set();
 
     const sprite = (name, ax = 0.5, ay = 0.5) => {
         const tx = T(name);
@@ -306,14 +308,29 @@ export function createTable({ PIXI, app, view, G, ui, audio, assets, makeHero })
     let journalState = () => ({});
 
     // --- small helpers ------------------------------------------------------------------------
-    function wait(s) { return new Promise((r) => setTimeout(r, s * 1000)); }
+    // Cancellation stops the suspended script here. Resolving a cancelled wait
+    // would let an abandoned prologue keep working on the destroyed table.
+    function wait(s) {
+        return new Promise((resolve) => {
+            if (destroyed) return;
+            const cancel = () => clearTimeout(timer);
+            const timer = setTimeout(() => { pending.delete(cancel); if (!destroyed) resolve(); }, s * 1000);
+            pending.add(cancel);
+        });
+    }
     function tween(dur, fn) {
         return new Promise((resolve) => {
+            if (destroyed) return;
             const t0 = performance.now();
+            let raf = 0;
+            const cancel = () => cancelAnimationFrame(raf);
+            pending.add(cancel);
             const step = () => {
+                if (destroyed) return;
                 const u = Math.min(1, (performance.now() - t0) / (dur * 1000));
                 fn(u);
-                if (u < 1) requestAnimationFrame(step); else resolve();
+                if (u < 1) raf = requestAnimationFrame(step);
+                else { pending.delete(cancel); resolve(); }
             };
             step();
         });
@@ -327,6 +344,12 @@ export function createTable({ PIXI, app, view, G, ui, audio, assets, makeHero })
         get active() { return table.visible; },
         /** true while the table covers the whole screen (the game world need not be drawn) */
         get opaque() { return table.visible && table.alpha >= 0.999; },
-        destroy() { running = false; stop(); table.destroy({ children: true }); }
+        destroy() {
+            if (destroyed) return;
+            destroyed = true;
+            for (const cancel of pending) cancel();
+            pending.clear();
+            running = false; stop(); table.destroy({ children: true });
+        }
     };
 }
