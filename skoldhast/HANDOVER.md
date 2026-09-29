@@ -1,6 +1,6 @@
 # Sköldhästen – handover
 
-Last updated: 28 September 2026. The branch is `ccr-c498dbd6-rfd39d`. The design is in `docs/skoldhast-game-plan.md` (v2); the working rules are in `skoldhast/CLAUDE.md`.
+Last updated: 29 September 2026. The branch is `ccr-c498dbd6-rfd39d`. The design is in `docs/skoldhast-game-plan.md` (v2); the working rules are in `skoldhast/CLAUDE.md`.
 
 ## State
 
@@ -23,13 +23,48 @@ The whole game is built in one pass:
 | Audio (`audio.mjs`) | Done. The theme "Sköldhästens visa" in D dorian in five arrangements, eight stingers, 28 effects, and adaptive layers for speed, underwater and hiding. It still needs a human listen (`dev/audio.html`). |
 | Ticket integration (`index.html`) | Done. A hidden fourth button, a loading overlay that prefetches `files.json`, Avbryt and retry, and Mira's launch-race guard. |
 
+## Polish round (29 September): understandable, forgiving, springier
+
+After the first playtest ("it is very unclear what to do", "I am a bit stuck sometimes"):
+
+- **Guidance layer** (`src/guide.mjs`, words in `sv.mjs` `GOALS`, `TIPS`, `BALK`, new `STORY` lines).
+  - A goal note ("Mål") at the top shows the nearest unfinished task, with counters. Tapping it opens the journal.
+  - Klo's hint bubble speaks up after 30 and 75 seconds without progress. It also fires at the moments that used to pass in silence, and after three identical refusals in a row.
+  - Every refusal shows a thought bubble beside the sköldhäst's head.
+  - One-time tips point at the control they explain.
+  - `story.objective()` picks the nearest unfinished puzzle, and Kapitel 3 has its own steps.
+  - Layout rules:
+    - the note and the hint share one column at the top;
+    - on short landscape phones the hint briefly replaces the note, and speech moves to the bottom so the sköldhäst stays in view;
+    - toasts start below the column (`--sk-guide-free`).
+- **Forgiving puzzles:**
+  - P2: Knuffa reaches 1.5 HL, and the sköldhäst steps after the stone. After the reflection, a ghost stone and an arrow show where the stone belongs.
+  - P3: a dotted arc of drifting seeds shows where the fluff will fly. Fluff finds a tuft within 1.5 HL. The sköldhäst wonders aloud when the fluff flies the wrong way.
+  - Dashed lines you can draw glow when you are near.
+  - The vault current is wider.
+  - P7:
+    - the drum needs 24 gallop steps (was 40), with a progress ring;
+    - the plate is 1.6 HL wide and needs 1.2 s. It pulls a resting shell onto it, and a ring on the sand marks it;
+    - the pipe mouth draws in a hidden shell within 2.2 HL (`suck`).
+- **Physics:**
+  - acceleration 1350 (was 1000);
+  - full gallop at 72 % stick deflection, and the knob glows;
+  - pencil speed lines at full gallop;
+  - higher hops, and Hoppa pressed just before landing still hops;
+  - the camera no longer bobs on small hops;
+  - swimming is a little quicker.
+- **New checks:**
+  - `node tests/browser/skoldhast-guide.mjs [--out dir]` plays a new game into Kapitel 1 and checks every guidance step;
+  - sim tests for the pipe mouth, the plate pull and Knuffa from one spot.
+
 ## How to check it
 
 - `npm test`: the pure tests, including a robot that plays the whole game (about 3 s).
 - `node tests/browser/skoldhast-launch.mjs`: the launcher (no requests before the click, the loader, Avbryt, close and reopen, the Mira race).
 - `node tests/browser/skoldhast-finale.mjs --out <dir>`: the ending through the real UI, from word code 2 to the table at dusk.
 - `node tests/browser/skoldhast-tour.mjs --out <dir> [--viewport 390x844] [--sheet]`: photographs every place; `--sheet` composes one contact sheet per viewport.
-- `node tests/browser/skoldhast-save.mjs` and `node tests/browser/skoldhast-touch.mjs [390x844]`: saving and continuing, and touch play (stick, Hoppa, Göm dig, a tap for Gnägg).
+- `node tests/browser/skoldhast-save.mjs` and `node tests/browser/skoldhast-touch.mjs [390x844]`: saving and continuing, and touch play (stick, Hoppa, Göm dig, a tap for Gnägg). The touch check stamps its CDP touch events, so a slow software frame can't stretch a tap into a long press.
+- `node tests/browser/skoldhast-guide.mjs`: the first minutes of a new game, with the goal note, tips, Klo's hints and a thought bubble.
 - `skoldhast/dev/play.html?debug`: the game without the ticket page, with an fps overlay. `window.__skoldhast.debug` exposes `G`, `view`, `ui` and more.
 - `skoldhast/dev/hero.html`: the hero's gaits and actions. `skoldhast/dev/audio.html`: every sound.
 - `npm run build:skoldhast`: rebuilds all art (`--only hero,npcs,…` for one module) and checks the 3 MB first-playable budget.
