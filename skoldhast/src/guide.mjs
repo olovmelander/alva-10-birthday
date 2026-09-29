@@ -6,6 +6,7 @@
  *   guide.hint(text, who)       // a non-blocking speech bubble (Klo's hint when you are stuck)
  *   guide.think(text)           // a thought bubble beside the sköldhäst's head (why it refused)
  *   guide.tip(text, { at })     // a one-off tip card; at = 'stick' | 'act' | 'hide' | 'journal' points at that control
+ *   guide.context(cue)         // current task instruction and progress, from guidance-state.mjs
  *   guide.update()              // each frame: keeps the bubbles in place
  *   guide.show(on)              // hide everything during cutscenes and the table
  *
@@ -70,6 +71,49 @@ export function createGuide(root, { img, heroScreen, onGoalTap } = {}) {
     tipEl.append(el('span', 'sk-tip-icon', '✎'), tipText);
     layer.appendChild(tipEl);
     let tipAt = null;
+
+    // Persistent contextual help sits beside the controls. Its visibility is
+    // derived each frame, never a saved tip flag or a timer. Updating text and
+    // progress does not measure layout or announce every progress increment.
+    const contextEl = el('div', 'sk-context-guide');
+    contextEl.hidden = true;
+    const contextText = el('span', 'sk-context-text');
+    contextText.setAttribute('role', 'status');
+    contextText.setAttribute('aria-live', 'polite');
+    const contextControl = el('span', 'sk-context-control');
+    const contextProgress = el('div', 'sk-context-progress');
+    const contextLabel = el('span', 'sk-context-progress-label');
+    const contextMeter = el('progress', 'sk-context-meter');
+    contextProgress.append(contextLabel, contextMeter);
+    contextEl.append(contextText, contextControl, contextProgress);
+    layer.appendChild(contextEl);
+    let contextNow = '', progressNow = '';
+    function context(cue) {
+        const show = !!cue?.instruction && (!!cue.action || !!cue.progress);
+        contextEl.hidden = !show;
+        if (!show) { contextNow = ''; progressNow = ''; contextText.textContent = ''; return; }
+        const key = [cue.key, cue.instruction, cue.controlText].join('|');
+        if (key !== contextNow) {
+            contextNow = key;
+            contextEl.dataset.action = cue.action || '';
+            contextEl.dataset.state = cue.state;
+            if (contextText.textContent !== cue.instruction) contextText.textContent = cue.instruction;
+            contextControl.textContent = cue.controlText;
+            contextControl.hidden = !cue.controlText;
+        }
+        const pr = cue.progress;
+        contextProgress.hidden = !pr;
+        if (pr) {
+            const value = Math.round(clamp(pr.value / pr.total, 0, 1) * 100);
+            const key = [value, pr.label].join('|');
+            if (key !== progressNow) {
+                progressNow = key;
+                contextLabel.textContent = pr.label;
+                contextMeter.max = 100; contextMeter.value = value;
+                contextMeter.setAttribute('aria-label', pr.label);
+            }
+        } else progressNow = '';
+    }
 
     const timers = new Map();
     function showFor(node, ms, after) {
@@ -208,6 +252,7 @@ export function createGuide(root, { img, heroScreen, onGoalTap } = {}) {
     }
 
     return {
+        context,
         goal(text) {
             const t = text || '';
             if (t === goalNow) return;
@@ -255,7 +300,7 @@ export function createGuide(root, { img, heroScreen, onGoalTap } = {}) {
             layer.classList.toggle('off', !on);
             freeTop();
         },
-        clear() { hide(hintEl); hide(thinkEl); hide(tipEl); thinking = false; },
+        clear() { hide(hintEl); hide(thinkEl); hide(tipEl); thinking = false; context(null); },
         destroy() { topSize?.disconnect(); for (const t of timers.values()) clearTimeout(t); root.style.removeProperty('--sk-guide-free'); layer.remove(); }
     };
 }

@@ -14,7 +14,9 @@
  */
 import { HL } from './sim.mjs';
 import { beginKloWalk, stepKloWalk, createKloReactions } from './klo.mjs';
-import { STORY, HINTS, JOURNAL, BALK, HER_TEXT, FAMILY, UI, GOALS, TIPS, KLO_JOKES, CONTEXT_LABELS } from './content/sv.mjs';
+import { p8Progress } from './puzzles.mjs';
+import { describeGuidance, controlTip } from './guidance-state.mjs';
+import { STORY, HINTS, JOURNAL, BALK, HER_TEXT, FAMILY, UI, KLO_JOKES, CONTEXT_LABELS } from './content/sv.mjs';
 
 const h = (v) => v * HL;
 
@@ -617,13 +619,19 @@ export function createStory(G, io) {
 
     beat('k3_window', {
         on: 'windowReached',
+        filter: () => !F.has('p8_done'),
+        when: () => inScene('viken') && F.has('p8_sea') && !F.has('p8_done') && G.checkpoint === 'lineWindow',
         async run(s) {
             const win = G.sceneDef.spots.window;
+            io.save(); // preserve the completed sea half before opening the final drawing
             await s.cam({ x: win.x, y: win.y, zoom: 1.2, t: 0.8, hold: 0.9 });
             // Alva's pencil joins the two half-marks across the window (tap or trace the anchors; it can't fail)
-            const anchors = [];
-            for (let i = 0; i < 4; i++) { const q = io.toScreen?.(win.x - h(0.9) + i * h(0.6), win.y); if (q) anchors.push([q.x, q.y]); }
-            await io.ui.draw({ prompt: UI.drawLast, anchors: anchors.length ? anchors : null, width: 6, color: '#3b3530' });
+            const getGeometry = () => {
+                const anchors = [];
+                for (let i = 0; i < 4; i++) { const q = io.toScreen?.(win.x - h(0.9) + i * h(0.6), win.y); if (q) anchors.push([q.x, q.y]); }
+                return { anchors: anchors.length ? anchors : null };
+            };
+            await io.ui.draw({ prompt: UI.drawLast, ...getGeometry(), getGeometry, allowReverse: true, width: 6, color: '#3b3530' });
             G.flag('p8_done');
             s.stinger('aha');
             // Kartväktaren chooses
@@ -898,39 +906,12 @@ export function createStory(G, io) {
         if (!F.has('p3_done')) return 'p3';
         return 'kelp';
     }
-    /** The goal line for the note at the top of the screen. */
-    function goal() {
+    /** The goal note, help ladder and world cue share this one current task. */
+    function guidance() {
         const key = objective();
-        const g = GOALS[key];
-        if (typeof g !== 'function') return g || '';
-        const count = (...fs) => fs.filter((f) => F.has(f)).length;
-        if (key === 'p7') return g(count('shutter1', 'shutter2', 'shutter3'));
-        if (key === 'p3' || key === 'p3b') return g(count('p3_t1', 'p3_t2', 'p3_t3'));
-        if (key === 'p2') return g((G.puz.stone === G.scenes.land.rail.target ? 1 : 0) + count('p2_plank'));
-        if (key === 'p4' || key === 'toSea') return g(count('mark_land', 'mark_sea'));
-        return g(0);
+        return describeGuidance(G, { objective: key, touch: io.touch, ...io.settings?.(), p8: key === 'p8' ? p8Progress(G) : undefined });
     }
-
-    const HINT_SPOTS = {
-        explore: () => inScene('land') && G.actors.klo.visible && { x: G.actors.klo.x, y: G.actors.klo.y },
-        hide: () => inScene('land') && { x: G.sceneDef.spots.kloHole.x, y: G.sceneDef.spots.kloHole.y },
-        pool: () => inScene('land') && { x: h(102.4), y: h(-0.3) },
-        p1: () => inScene('land') && { x: h(80.1), y: h(-0.66) },
-        p3: () => inScene('land') && { x: h(52.3), y: h(-0.8) },
-        p3b: () => inScene('land') && { x: h(44.6), y: h(-1.9) },
-        p2: () => inScene('land') && (G.puz.stone !== G.sceneDef.rail.target ? { x: G.sceneDef.rail.x0 + G.puz.stone * G.sceneDef.rail.step, y: h(-0.1) } : { x: h(104.5), y: h(-0.43) }),
-        kelp: () => inScene('land') && { x: h(101.9), y: h(-0.3) },
-        hook: () => inScene('kelp') && { x: h(20.8), y: h(3.4) },
-        p4: () => inScene('land') && (F.has('p4_leap') ? { x: G.sceneDef.spots.landmark.x, y: G.sceneDef.spots.landmark.y } : { x: h(27.5), y: h(-6.4) }),
-        toSea: () => inScene('land') && { x: h(101.9), y: h(-0.3) },
-        p5: () => inScene('kelp') && { x: h(22.8), y: h(7.8) },
-        p6: () => inScene('kelp') && { x: h(36), y: h(8.4) },
-        toViken: () => inScene('kelp') && { x: h(36.5), y: h(8.4) },
-        p7: () => inScene('viken') && (!F.has('shutter2') ? { x: h(14.2), y: h(6.8) } : !F.has('shutter3') ? { x: h(26.4), y: h(5.0) } : { x: h(13), y: h(-0.62) }),
-        talk: () => inScene('viken') && { x: G.actors.kv.x, y: G.actors.kv.y },
-        p8: () => inScene('viken') && { x: h(24.1), y: h(-0.62) },
-        signe: () => inScene('land') && G.actors.signe.visible && { x: G.actors.signe.x, y: G.actors.signe.y }
-    };
+    function goal() { return guidance().goal; }
     const PROGRESS = new Set(['inked', 'grow', 'opened', 'latch', 'lit', 'mark', 'flattened', 'push', 'reflectionSeen', 'scene', 'bigLanding', 'streckDone', 'ratchet', 'taste', 'pickup', 'colorin']);
     G.on('*', (type) => { if (PROGRESS.has(type)) { hintState.t = 0; hintState.level = 0; hintState.said = 0; } });
     G.on('pickup', () => { if (objective() === 'freeComplete') io.guide?.hint(HINTS.freeComplete.note); });
@@ -940,12 +921,12 @@ export function createStory(G, io) {
      * then the plain answer with a mark on the spot and Alva's gull circling it. Help level scales the waits.
      */
     function hints(dt) {
-        const key = objective();
+        const cue = guidance(), key = cue.key;
         if (key !== hintState.key) { hintState.key = key; hintState.t = 0; hintState.level = 0; hintState.said = 0; }
         if (G.busy || running) return;
         hintState.t += dt;
         const mult = G.helpLevel === 'easy' ? 0.6 : G.helpLevel === 'hard' ? 2 : 1;
-        const H = HINTS[key];
+        const H = cue.hint;
         if (!H) return;
         const first = 30 * mult, second = 75 * mult, again = 60 * mult;
         if (hintState.said === 0 && hintState.t > first) {
@@ -965,9 +946,10 @@ export function createStory(G, io) {
     // which control a tip points at on a touch screen (with keys only the journal has a place to point)
     const TIP_AT = { gallop: 'stick', swim: 'stick', dashed: 'stick', act: 'act', hide: 'hide', journal: 'journal' };
     function tipOnce(id) {
-        if (F.has('tip_' + id) || !TIPS[id]) return;
+        const text = controlTip(id, { touch: io.touch, ...io.settings?.() });
+        if (F.has('tip_' + id) || !text) return;
         F.add('tip_' + id);
-        io.guide?.tip(io.touch ? TIPS[id].touch : TIPS[id].keys, { at: io.touch || id === 'journal' ? TIP_AT[id] : null });
+        io.guide?.tip(text, { at: io.touch || id === 'journal' ? TIP_AT[id] : null });
     }
     /** a one-off hint from Klo (remembered in the save) */
     function hintOnce(id, text, who = 'klo') {
@@ -991,8 +973,11 @@ export function createStory(G, io) {
         if (key !== balks.key || G.time - balks.t > 25) { balks.key = key; balks.n = 0; }
         balks.n++; balks.t = G.time;
         if (balks.n === 3 && e.reason !== 'paper' && e.reason !== 'fold' && e.reason !== 'gate') {
-            const H = HINTS[objective()];
-            if (H) G.later(1.2, () => io.guide?.hint(H.sketch || H.note, 'klo', 9000));
+            const cue = guidance();
+            if (cue.hint) G.later(1.2, () => {
+                const current = guidance();
+                if (current.key === cue.key) io.guide?.hint(current.hint.sketch || current.hint.note, 'klo', 9000);
+            });
         }
     });
     G.on('push', (e) => { if (e.notch === G.sceneDef.rail?.target) hintOnce('stone', STORY.k1.stoneDone); });
@@ -1034,11 +1019,10 @@ export function createStory(G, io) {
     return {
         step(dt) { step(dt); watch(); },
         actions,
-        objective, goal, tipOnce, hintOnce, tapKlo,
+        objective, goal, guidance, tipOnce, hintOnce, tapKlo,
         hintInfo() {
-            const key = hintState.key || objective();
-            const spot = HINT_SPOTS[key]?.();
-            return { key, level: hintState.level, spot: spot || null, text: HINTS[key] };
+            const cue = guidance();
+            return { key: cue.objective, level: hintState.level, spot: cue.target, text: cue.hint };
         },
         running: () => !!running,
         herText: HER_TEXT, family: FAMILY, balkText: BALK

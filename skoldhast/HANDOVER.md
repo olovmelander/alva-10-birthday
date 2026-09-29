@@ -316,3 +316,9 @@ or additional chapter release is part of this branch.
 - Kartväktaren has articulated paper limbs, blinks, breathing, hem movement, walking, talking gestures and smooth pose changes. His window glimpse correctly shows his head and hands. Map lettering is never mirrored; reduced motion removes idle movement.
 - Signe's foot cycle follows actual travel distance, including her newly gentle race speed.
 - Checks: five guardian pure tests; 18 guardian poses across both phone aspects; 22 focused scene captures plus two reveal states; the full ink-mesh regression. No game browser errors. Run `tests/browser/skoldhast-guardian.mjs` and `tests/browser/skoldhast-polish-scenes.mjs` (headers document options).
+
+### Deeper polish: honest puzzle progress and recovery
+
+- The goal note, notebook hint and world target share one semantic guidance selector. Context cards name the actual next action and distinguish approach, hiding, waiting, sinking/drifting and emergence. Control wording follows hold/toggle and follow-finger settings; progress comes from the puzzle state.
+- P2 commits the stone independently of the plank, including old saves. P5 refreshes collision when the lanternfish light the passage. P8 arrives once, holds the shell still, saves the sea half and resumes the final drawing after reload. Emerging always releases the hold.
+- Tests cover puzzle ordering, save/reload, deterministic P8 schedules and eleven guidance situations. The integrated pure suite currently passes117 tests, including drawing/map work in progress. Focused context shots cover eighteen states at both phone sizes.

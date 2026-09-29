@@ -762,7 +762,7 @@ function stepSwim(p, ix, iy, input, world, dt, events) {
         if (n.s >= l._len - 6) {
             // the calm pool at its end; a lane with endHold keeps the shell there
             if (hidden) events.push({ type: 'laneEnd', id: l.id });
-            if (l.endHold) { lane = null; ln = null; held = true; break; }
+            if (l.endHold) { lane = null; ln = null; held = l; break; }
             continue;
         }
         const pr = l.priority || 0, best = lane?.priority || 0;
@@ -820,6 +820,7 @@ function stepSwim(p, ix, iy, input, world, dt, events) {
 
     if (hidden) {
         if (p.anchored) { p.vx *= Math.exp(-6 * dt); p.vy *= Math.exp(-6 * dt); }
+        else if (held) { p.vx = 0; p.vy = 0; p.inLane = held; p.resting = true; }
         else if (whirl) { p.vx = fx; p.vy = fy; } // the whirl steers the shell directly (a lagging velocity would fling it outward)
         else if (drift) { p.vx += (fx - p.vx) * Math.min(1, dt * 4); p.vy += (fy - p.vy) * Math.min(1, dt * 4); }
         else {

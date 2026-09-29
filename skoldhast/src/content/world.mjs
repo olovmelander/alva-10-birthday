@@ -481,6 +481,7 @@ export const CHECKPOINTS = {
     viken: { scene: 'viken', spot: 'fromKelp' },
     pier: { scene: 'viken', at: { x: h(12), y: h(-0.62), facing: 1 } },
     pierEnd: { scene: 'viken', at: { x: h(21.5), y: h(-0.62), facing: 1 } },
+    lineWindow: { scene: 'viken', at: { x: h(26.35), y: h(2.6), facing: 1, mode: 'swim', hidden: true } },
     beachEnd: { scene: 'land', spot: 'start' }
 };
 

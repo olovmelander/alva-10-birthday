@@ -169,7 +169,7 @@ export function createGame({ host = document.body, assetBase = './skoldhast/', r
         });
         await loadAudio();
         story = createStory(G, {
-            ui, audio, guide, touch: !!window.matchMedia?.('(pointer: coarse)').matches,
+            ui, audio, guide, settings: () => settings, touch: !!window.matchMedia?.('(pointer: coarse)').matches,
             fx: (n, d) => view.fx(n, d), save: () => saveNow(),
             toScreen: (x, y) => ({ x: view.world.position.x + x * view.world.scale.x, y: view.world.position.y + y * view.world.scale.y })
         });
@@ -446,11 +446,13 @@ export function createGame({ host = document.body, assetBase = './skoldhast/', r
                     });
                 }
             }
+            G.guidance = story.guidance();
             const snap = snapshot(G.player, acc / STEP, G.terrain, G.time);
             view.render(snap, dt);
             ui.setContext(G.context?.label, G.player.hidden);
             guide.show(!ui.dialogueOpen() && !ui.panelOpen() && !G.busy && !G.vista);
-            guide.goal(story.goal());
+            guide.goal(G.guidance.goal);
+            guide.context(G.guidance);
             guide.update();
             if (audio) {
                 const p = G.player;
@@ -562,7 +564,7 @@ export function createGame({ host = document.body, assetBase = './skoldhast/', r
         if (G.flags.has('kelp_entered')) visited.add('kelp');
         if (G.flags.has('viken_arrived')) visited.add('viken');
         visited.add('land');
-        return { flags: G.flags, objective: story.objective(), tally: G.puz.tally, note, pencils: countPencils(G), pencilsTotal: totalPencils(G), pencilRegions: pencilProgress(G).filter(r => visited.has(r.id)), visited };
+        return { flags: G.flags, objective: story.objective(), hint: story.guidance().hint, tally: G.puz.tally, note, pencils: countPencils(G), pencilsTotal: totalPencils(G), pencilRegions: pencilProgress(G).filter(r => visited.has(r.id)), visited };
     }
     function openJournal() { if (mode !== 'play' || ui.panelOpen()) return; pause(); audio?.sfx('page'); ui.journal({ ...journalState(), onClose: () => resume() }); }
     function openPause() { if (mode !== 'play' || ui.panelOpen()) return; pause(); ui.pauseMenu(); }

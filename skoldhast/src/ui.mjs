@@ -283,7 +283,7 @@ export function createUI(host, { assetBase, handlers }) {
             (c) => {
                 c.classList.add('sk-j-known');
                 c.append(el('h3', '', JOURNAL.known));
-                const hint = HINTS[state.objective] || HINTS.explore;
+                const hint = state.hint || HINTS[state.objective] || HINTS.explore;
                 c.append(el('p', 'sk-j-question', hint.q));
                 const note = el('p', 'sk-j-margin');
                 note.style.backgroundImage = `url("${img('ui-claw')}")`;

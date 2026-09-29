@@ -835,3 +835,29 @@ html.skoldhast-lock, html.skoldhast-lock body { overflow: hidden !important; ove
 
 /* --- the stick asks for a full gallop (input.mjs toggles .gallop) --- */
 .sk-stick-base.gallop .sk-stick-knob { filter: drop-shadow(0 0 7px rgba(246, 193, 74, 0.95)) drop-shadow(0 0 2px rgba(224, 120, 42, 0.9)); }
+
+/* The current action shares its state with the world marker and notebook hint. */
+.sk-context-guide { position: absolute; right: max(18px, env(safe-area-inset-right));
+    top: max(110px, var(--sk-guide-free, 110px)); bottom: auto; width: min(294px, calc(100% - 36px));
+    box-sizing: border-box; padding: 9px 12px; background: var(--sk-paper) #faf3dc; background-size: 256px;
+    color: #3b3931; border: 1px solid #b9af93; border-radius: 4px 8px 5px 7px;
+    box-shadow: 0 3px 7px #46372524; pointer-events: none; font: 17px/1.2 var(--sk-hand); }
+.sk-context-text, .sk-context-control { display: block; }
+.sk-context-control { margin-top: 4px; color: #52653d; font-size: 15px; }
+.sk-context-guide[data-action="hide"], .sk-context-guide[data-action="emerge"] { border-left: 4px solid #758960; }
+.sk-context-progress { display: flex; align-items: center; gap: 9px; margin-top: 6px; font-size: 14px; }
+.sk-context-progress-label { flex: 1; }
+.sk-context-meter { flex: none; width: 76px; height: 7px; border: 0; border-radius: 6px; overflow: hidden; background: #ded8bf; color: #758960; appearance: none; }
+.sk-context-meter::-webkit-progress-bar { background: #ded8bf; }
+.sk-context-meter::-webkit-progress-value { background: #758960; }
+.sk-context-meter::-moz-progress-bar { background: #758960; }
+.sk-context-guide[hidden], .sk-context-guide [hidden] { display: none !important; }
+.sk-guide:has(.sk-tip.on) .sk-context-guide { visibility: hidden; }
+.big-text .sk-context-guide { font-size: 20px; }
+.big-text .sk-context-control { font-size: 17px; }
+@media (orientation: landscape) {
+    .sk-context-guide { top: auto; right: max(18px, env(safe-area-inset-right));
+        bottom: calc(max(18px, env(safe-area-inset-bottom)) + 188px); width: min(276px, calc(100% - 36px)); }
+}
+
+.sk-guide:has(.sk-hintbubble.on) .sk-context-guide, .sk-ui:has(.sk-toast.on) .sk-context-guide { visibility: hidden; }

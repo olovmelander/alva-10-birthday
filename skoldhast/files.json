@@ -7,6 +7,7 @@
   "src/content/world.mjs",
   "src/game.mjs",
   "src/guardian.mjs",
+  "src/guidance-state.mjs",
   "src/guide.mjs",
   "src/hero.mjs",
   "src/input.mjs",
