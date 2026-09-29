@@ -378,13 +378,16 @@ export function contextAction(G) {
         for (const pc of sc.pencils || []) {
             if (!F.has('penna_' + pc.id) || F.has('color_' + pc.id)) continue;
             const at = pc.propAt;
-            if (Math.abs(p.x - at.x) < h(1.1) && Math.abs(p.y - at.y) < h(0.8)) add(Math.abs(p.x - at.x) / HL, { id: 'farglagg', label: CONTEXT_LABELS.color, run: () => { F.add('color_' + pc.id); G.emit('colorin', { id: pc.id, prop: pc.prop }); } });
+            // An unfinished drawing wins a close tie with a chat. In
+            // particular, Signe stands beside the grey bucket after the end.
+            if (Math.abs(p.x - at.x) < h(1.1) && Math.abs(p.y - at.y) < h(0.8)) add(Math.abs(p.x - at.x) / HL - 0.25, { id: 'farglagg', label: CONTEXT_LABELS.color, run: () => { F.add('color_' + pc.id); G.emit('colorin', { id: pc.id, prop: pc.prop }); } });
         }
         // Skaka: wet and standing still, out of the water (in a pool it would only flicker between Skaka and Hoppa)
         // (not on the pier, where the button offers Hoppa i instead)
-        const unfinishedShell = !F.has('shells_tune') && (sc.shells || []).some(s => !S.shells[s.id] && Math.abs(s.x - p.x) < h(0.7));
+        const shellDistance = !F.has('shells_tune') ? Math.min(...(sc.shells || []).filter(s => !S.shells[s.id]).map(s => Math.abs(s.x - p.x))) : Infinity;
+        const unfinishedShell = shellDistance < h(0.7);
         const stillEnough = Math.abs(p.vx) < (G.context?.id === 'skaka' ? 65 : 40);
-        if ((p.wet > 0 || unfinishedShell || p.action === 'shake') && p.submerge < 0.05 && stillEnough && !p.surface?.dropIn) add(1.5, { id: 'skaka', label: CONTEXT_LABELS.shake, run: () => { if (p.action !== 'shake') G.shake(); } });
+        if ((p.wet > 0 || unfinishedShell || p.action === 'shake') && p.submerge < 0.05 && stillEnough && !p.surface?.dropIn) add(p.action === 'shake' ? 0 : unfinishedShell ? shellDistance / HL + 0.15 : 1.5, { id: 'skaka', label: CONTEXT_LABELS.shake, run: () => { if (p.action !== 'shake') G.shake(); } });
         // Hoppa i: off the pier into the bay (where there is water under it)
         if (p.surface?.dropIn) {
             const col = G.terrain.waterColumn(p.x + p.facing * 60);

@@ -13,7 +13,8 @@
  *   audio.* (see audio.mjs), save()
  */
 import { HL } from './sim.mjs';
-import { STORY, HINTS, JOURNAL, BALK, HER_TEXT, FAMILY, UI, GOALS, TIPS } from './content/sv.mjs';
+import { beginKloWalk, stepKloWalk, createKloReactions } from './klo.mjs';
+import { STORY, HINTS, JOURNAL, BALK, HER_TEXT, FAMILY, UI, GOALS, TIPS, KLO_JOKES, CONTEXT_LABELS } from './content/sv.mjs';
 
 const h = (v) => v * HL;
 
@@ -32,7 +33,26 @@ export function createStory(G, io) {
     let lastTaste = 'grass';
     G.on('taste', (e) => { lastTaste = e.kind; });
 
-    const say = (lines) => io.ui.say(Array.isArray(lines[0]) ? lines : [lines]);
+    const reactions = createKloReactions(KLO_JOKES);
+    const say = async (lines) => {
+        const list = Array.isArray(lines[0]) ? lines : [lines];
+        G.actors.klo.talking = list.some(([who]) => who === 'klo');
+        try { return await io.ui.say(list); }
+        finally { G.actors.klo.talking = false; }
+    };
+    function tapKlo({ visible = false } = {}) {
+        const actor = G.actors.klo;
+        const reaction = reactions.tap({ actor, time: G.time, scene: G.sceneId, visible,
+            busy: G.busy || io.ui.panelOpen?.(), running: !!running, dialogue: io.ui.dialogueOpen?.() });
+        if (!reaction) return false;
+        actor.reactAt = G.time;
+        actor.talkUntil = G.time + Math.min(3.8, 1.2 + reaction.line.length / 34);
+        actor.facing = Math.sign(G.player.x - actor.x) || actor.facing;
+        io.audio?.sfx('crabclick');
+        io.guide?.hint(reaction.line, 'klo', 5200);
+        G.emit('kloTap', { count: reaction.count, line: reaction.line });
+        return true;
+    }
     const api = {
         G, F,
         say,
@@ -56,7 +76,10 @@ export function createStory(G, io) {
         walk(id, x, speed = 260) {
             const a = G.actors[id];
             a.facing = Math.sign(x - a.x) || a.facing;
-            return new Promise((resolve) => { a.walk = { x, speed, resolve }; });
+            return new Promise((resolve) => {
+                if (id === 'klo') beginKloWalk(a, x, speed, resolve);
+                else a.walk = { x, speed, resolve };
+            });
         },
         clue(key, { quiet = false } = {}) {
             if (F.has('clue_' + key)) return;
@@ -122,8 +145,10 @@ export function createStory(G, io) {
             s.sfx('stamp');
             await s.wait(0.35);
             const hole = G.sceneDef.spots.kloHole;
-            G.actors.klo.x = hole.x; G.actors.klo.y = hole.y; G.actors.klo.pose = 'peek'; G.actors.klo.inHole = true;
+            await s.walk('klo', hole.x, 430);
+            G.actors.klo.y = hole.y; G.actors.klo.pose = 'peek'; G.actors.klo.inHole = true;
             s.sfx('crabclick');
+            await s.wait(0.32);
             s.camFree();
             G.flag('klo_hidden');
             tipOnce('hide');
@@ -674,19 +699,19 @@ export function createStory(G, io) {
         if (inScene('viken') && kv.visible && F.has('talk1') && !F.has('talk_done')) {
             const d = Math.abs(p.x - kv.x);
             if (d < h(1.6)) {
-                if (!F.has('talk2')) out.push({ id: 'talk2', label: 'Prata', dist: d / HL, run: () => start(beats.find((b) => b.id === '_talk2')) });
-                else out.push({ id: 'talk3', label: 'Prata', dist: d / HL, run: () => start(beats.find((b) => b.id === '_talk3')) });
+                if (!F.has('talk2')) out.push({ id: 'talk2', label: CONTEXT_LABELS.talk, dist: d / HL, run: () => start(beats.find((b) => b.id === '_talk2')) });
+                else out.push({ id: 'talk3', label: CONTEXT_LABELS.talk, dist: d / HL, run: () => start(beats.find((b) => b.id === '_talk3')) });
             }
         }
         const sg = G.actors.signe;
         if (inScene('land') && F.has('signe_met') && sg.visible && sg.scene === 'land' && !race.active && !sg.walk) {
             const d = Math.abs(p.x - sg.x);
-            if (d < h(1.4)) out.push({ id: 'race', label: 'Prata', dist: d / HL, run: () => start(beats.find((b) => b.id === '_race')) });
+            if (d < h(1.4)) out.push({ id: 'race', label: CONTEXT_LABELS.talk, dist: d / HL, run: () => start(beats.find((b) => b.id === '_race')) });
         }
         if (inScene('land')) {
             const n = G.sceneDef.spots.note1;
             const d = Math.abs(p.x - n.x);
-            if (d < h(0.9) && F.has('note1_read')) out.push({ id: 'read', label: 'Läs', dist: d / HL + 0.3, run: () => say([STORY.k1.note1]) });
+            if (d < h(0.9) && F.has('note1_read')) out.push({ id: 'read', label: CONTEXT_LABELS.read, dist: d / HL + 0.3, run: () => say([STORY.k1.note1]) });
         }
         return out;
     }
@@ -742,6 +767,12 @@ export function createStory(G, io) {
         // actors walking
         for (const a of Object.values(G.actors)) {
             if (a.pop > 0) a.pop = Math.max(0, a.pop - dt * 2);
+            if (a.id === 'klo') {
+                const wet = G.sceneDef.underwater || (G.sceneId === 'viken' && a.y > 0);
+                stepKloWalk(a, dt, !wet && a.scene === G.sceneId ? (x, y, down) => G.terrain.groundNear(x, y, down) : null);
+                if (!a.walk && !a.inHole && a.scene === G.sceneId && Math.abs(P().x - a.x) > 35) a.facing = Math.sign(P().x - a.x);
+                continue;
+            }
             if (!a.walk) continue;
             const d = a.walk.x - a.x, st = a.walk.speed * dt;
             if (Math.abs(d) <= st) { a.x = a.walk.x; const r = a.walk.resolve; a.walk = null; r(); }
@@ -929,7 +960,7 @@ export function createStory(G, io) {
     return {
         step(dt) { step(dt); watch(); },
         actions,
-        objective, goal, tipOnce, hintOnce,
+        objective, goal, tipOnce, hintOnce, tapKlo,
         hintInfo() {
             const key = hintState.key || objective();
             const spot = HINT_SPOTS[key]?.();

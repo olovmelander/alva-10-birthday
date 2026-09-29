@@ -8,7 +8,7 @@ export function createInput(root, ui, opts) {
     const ac = new AbortController();
     const sig = { signal: ac.signal };
     const keys = new Set();
-    const edges = { act: false, hide: false, hideUp: false, tapHero: false, neigh: false };
+    const edges = { act: false, hide: false, hideUp: false, tapHero: false, tapKlo: false, neigh: false };
     const stick = { id: null, ox: 0, oy: 0, x: 0, y: 0, latched: 0 };
     const finger = { id: null, x: 0, y: 0 };
     let hopHeld = false;
@@ -16,6 +16,14 @@ export function createInput(root, ui, opts) {
     const R = 58; // stick radius, CSS px
     let stickTap = null;
     let lastTap = null; // for tests
+
+    // Klo's small, explicit target wins over the hero's generous tap circle.
+    // A drag stays a stick gesture, even when it began over either character.
+    function tapActor(x, y, allowHero = true) {
+        if (opts.kloHit?.(x, y)) { edges.tapKlo = true; return 'klo'; }
+        if (allowHero && opts.heroHit(x, y)) { edges.tapHero = true; return 'hero'; }
+        return null;
+    }
 
     // --- the stick --------------------------------------------------------------
     const zone = ui.stickZone;
@@ -49,7 +57,7 @@ export function createInput(root, ui, opts) {
     }, sig);
     const endStick = (e) => {
         if (e && e.pointerId !== stick.id) return;
-        if (e && e.type === 'pointerup' && stickTap && !stickTap.moved && e.timeStamp - stickTap.t < 350 && opts.heroHit(stickTap.x, stickTap.y)) edges.tapHero = true;
+        if (e && e.type === 'pointerup' && stickTap && !stickTap.moved && e.timeStamp - stickTap.t < 350) tapActor(stickTap.x, stickTap.y);
         stickTap = null;
         // Håll kvar galoppen: letting go at full gallop keeps galloping
         if (opts.settings().holdGallop && opts.isGalloping() && Math.abs(stick.x) > 0.7) stick.latched = Math.sign(stick.x);
@@ -73,10 +81,9 @@ export function createInput(root, ui, opts) {
     canvasArea.addEventListener('pointermove', (e) => { if (e.pointerId === finger.id) { finger.x = e.clientX; finger.y = e.clientY; } }, sig);
     const endFinger = (e) => {
         if (tapStart && e.pointerId === tapStart.id) {
-            const quick = e.timeStamp - tapStart.t < 350 && Math.hypot(e.clientX - tapStart.x, e.clientY - tapStart.y) < 14;
-            const hit = quick && !opts.settings().followFinger && opts.heroHit(e.clientX, e.clientY);
-            if (hit) edges.tapHero = true;
-            lastTap = { dt: Math.round(e.timeStamp - tapStart.t), quick, hit };
+            const quick = e.type === 'pointerup' && e.timeStamp - tapStart.t < 350 && Math.hypot(e.clientX - tapStart.x, e.clientY - tapStart.y) < 14;
+            const target = quick ? tapActor(e.clientX, e.clientY, !opts.settings().followFinger) : null;
+            lastTap = { dt: Math.round(e.timeStamp - tapStart.t), quick, hit: target === 'hero', target };
             if (quick && opts.onTap) opts.onTap(e.clientX, e.clientY);
             tapStart = null;
         }
@@ -117,6 +124,7 @@ export function createInput(root, ui, opts) {
             e.preventDefault(); edges.act = true;
         } else if (e.key === 'g' || e.key === 'G') { edges.hide = true; }
         else if (e.key === 'n' || e.key === 'N') { edges.neigh = true; }
+        else if (e.key === 'k' || e.key === 'K') { edges.tapKlo = true; }
         else if (e.key === 'j' || e.key === 'J') { opts.onKey?.('journal'); }
         else if (e.key === 'Escape' || e.key === 'p' || e.key === 'P') { opts.onKey?.('pause'); }
     }, sig);
@@ -127,7 +135,9 @@ export function createInput(root, ui, opts) {
     }, sig);
     const releaseAll = () => {
         keys.clear(); hopHeld = false; stick.id = null; stick.x = stick.y = 0; stick.latched = 0; finger.id = null;
-        ui.stickBase.classList.remove('on'); moveKnob();
+        stickTap = tapStart = null;
+        for (const key of Object.keys(edges)) edges[key] = false;
+        ui.stickBase.classList.remove('on', 'gallop'); moveKnob();
         ui.actBtn.classList.remove('down'); ui.hideBtn.classList.remove('down');
     };
     window.addEventListener('blur', releaseAll, sig);
@@ -159,7 +169,7 @@ export function createInput(root, ui, opts) {
         /** One-shot presses since the last call */
         consume() {
             const out = { ...edges };
-            edges.act = edges.hide = edges.hideUp = edges.tapHero = edges.neigh = false;
+            edges.act = edges.hide = edges.hideUp = edges.tapHero = edges.tapKlo = edges.neigh = false;
             return out;
         },
         release: releaseAll,

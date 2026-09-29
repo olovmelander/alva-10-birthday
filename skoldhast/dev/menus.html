@@ -51,7 +51,7 @@ const ui = createUI(host, {
         openJournal: () => ui.journal(journalState()), openPause: () => ui.pauseMenu(), resume: () => log('resume'),
         stuck: () => log('stuck'), quit: () => log('quit'), getSettings: () => settings,
         setSetting: (k, v) => { settings[k] = v; log('setting', k, v); if (k === 'bigText') ui.setBigText(v); if (k === 'lessMotion') ui.root.classList.toggle('less-motion', v); },
-        setNote: (v) => log('note', v), nextChapterOpen: (n) => n < 2, onSay: () => {}, onPencil: () => {}
+        setNote: (v) => log('note', v), nextChapterOpen: (n) => n < 2, onSay: () => {}, onPencil: () => {}, onMenuSound: (kind) => log('menu-sound', kind)
     }
 });
 ui.setBigText(settings.bigText);
@@ -70,7 +70,7 @@ const titleOpts = () => ({
     onBegin: () => log('begin'), onContinue: () => log('continue'), onSwitch: (done) => ui.slotPicker([{ id: 'alva', label: 'Alva', note: 'Mer forskning!' }, { id: 'r-signe', label: 'Signe' }], (id) => { done(); log('pick', id); }, (name) => { done(); log('new', name); }),
     onCode: (t) => /kelp|fyr/i.test(t)
 });
-const play = () => { ui.showControls(true); guide.show(true); guide.goal(GOALS.p5(0)); };
+const play = () => { ui.showControls(true); guide.show(true); guide.goal(GOALS.p5); };
 
 switch (m) {
     case 'title': ui.showControls(false); ui.title(titleOpts()); break;

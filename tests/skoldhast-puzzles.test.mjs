@@ -48,6 +48,25 @@ test('nearby actions stay stable across small speed changes without enabling the
     assert.equal(contextAction(G), null, 'hidden shells cannot shake');
 });
 
+test('Signe does not hide the unfinished shell tune, and can still be spoken to up close', () => {
+    const G = beach(106.35);
+    G.storyActions = () => [{ id: 'race', label: 'Prata', dist: Math.abs(G.player.x / HL - 106.9), run() {} }];
+    assert.equal(contextAction(G)?.id, 'skaka', 'the nearby unfinished shell wins');
+    G.player.x = 106.9 * HL;
+    assert.equal(contextAction(G)?.id, 'race', 'standing beside Signe offers her race');
+});
+
+test('the grey bucket can be coloured even when Signe stands beside it', () => {
+    const G = beach(106.9);
+    G.flags.add('penna_p-bucket');
+    G.storyActions = () => [{ id: 'race', label: 'Prata', dist: 0, run() {} }];
+    const color = contextAction(G);
+    assert.equal(color?.id, 'farglagg');
+    color.run();
+    assert.ok(G.flags.has('color_p-bucket'));
+    assert.equal(contextAction(G)?.id, 'race');
+});
+
 test('Spången note order is identical across display schedules and silent while standing still', () => {
     const sequences = [];
     for (const fps of [30, 60, 120, 144]) {
