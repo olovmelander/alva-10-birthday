@@ -1,0 +1,172 @@
+<!doctype html>
+<html lang="sv">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sköldhästen – ljudlabb</title>
+<style>
+  :root { --bg: #f7f3ea; --ink: #2c2a26; --soft: #6d665b; --line: #d9d0bf; --btn: #fffdf8; --on: #2f6f8f; --onink: #fff; --warn: #a4462f; }
+  @media (prefers-color-scheme: dark) { :root { --bg: #1d1c1a; --ink: #eee8dc; --soft: #aaa293; --line: #3b3833; --btn: #2a2825; --on: #5ea3c4; --onink: #111; --warn: #e08a6f; } }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 15px/1.4 system-ui, -apple-system, 'Segoe UI', sans-serif; }
+  main { max-width: 980px; margin: 0 auto; padding: 16px; }
+  h1 { font-size: 22px; margin: 4px 0 2px; }
+  h2 { font-size: 13px; letter-spacing: .06em; text-transform: uppercase; color: var(--soft); margin: 18px 0 6px; }
+  p.note { color: var(--soft); margin: 2px 0 10px; font-size: 13px; }
+  .row { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+  button { font: inherit; padding: 7px 11px; border-radius: 8px; border: 1px solid var(--line); background: var(--btn); color: var(--ink); cursor: pointer; min-height: 38px; }
+  button:hover { border-color: var(--on); }
+  button.on { background: var(--on); color: var(--onink); border-color: var(--on); }
+  button.big { font-size: 17px; padding: 10px 18px; }
+  label { display: inline-flex; gap: 6px; align-items: center; color: var(--ink); }
+  input[type=range] { width: 180px; accent-color: var(--on); }
+  select { font: inherit; padding: 6px; border-radius: 8px; border: 1px solid var(--line); background: var(--btn); color: var(--ink); }
+  #status { font: 12px/1.5 ui-monospace, Menlo, Consolas, monospace; color: var(--soft); white-space: pre-wrap; background: var(--btn); border: 1px solid var(--line); border-radius: 8px; padding: 8px; margin-top: 8px; }
+  .val { font-variant-numeric: tabular-nums; min-width: 3.2em; display: inline-block; }
+  .grid { display: grid; grid-template-columns: 90px 1fr; gap: 6px 10px; align-items: center; }
+  .warn { color: var(--warn); }
+  fieldset { border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px 10px; margin: 0; }
+  legend { color: var(--soft); font-size: 13px; padding: 0 4px; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Sköldhästen – ljudlabb</h1>
+  <p class="note">Every sound in <code>skoldhast/src/audio.mjs</code>, synthesized in the browser. Start first (browsers only allow sound after a tap).</p>
+  <div class="row"><button id="start" class="big">▶ Starta ljudet</button><span id="readyInfo" class="note"></span></div>
+
+  <h2>Area (setArea)</h2>
+  <div class="row" id="areas"></div>
+
+  <h2>Motion (setMotion, sent every frame like the game)</h2>
+  <div class="row">
+    <label>speed01 <input id="speed" type="range" min="0" max="1" step="0.01" value="0"><span class="val" id="speedVal">0.00</span></label>
+    <label><input id="under" type="checkbox"> underwater</label>
+    <label><input id="hidden" type="checkbox"> hidden</label>
+    <label><input id="gait" type="checkbox"> hoofbeats follow speed on</label>
+    <select id="gaitSurface"></select>
+  </div>
+
+  <h2>Time (freeze)</h2>
+  <div class="row"><button id="freeze">freeze(true)</button><button id="unfreeze">freeze(false)</button><span class="note">The freeze stinger swells and stops dead; plask starts time again.</span></div>
+
+  <h2>Stingers</h2>
+  <div class="row" id="stingers"></div>
+
+  <h2>Effects (sfx)</h2>
+  <div class="row" id="effects"></div>
+  <div class="row" style="margin-top:8px">
+    <fieldset><legend>hoof</legend><div class="row"><select id="hoofSurface"></select><label>speed01 <input id="hoofSpeed" type="range" min="0" max="1" step="0.05" value="0.6"></label><button id="hoofBtn">hoof</button></div></fieldset>
+    <fieldset><legend>splash</legend><div class="row"><label>size <input id="splashSize" type="range" min="0" max="1" step="0.05" value="0.6"><span class="val" id="splashVal">0.60</span></label><button id="splashBtn">splash</button></div></fieldset>
+    <fieldset><legend>pencil</legend><div class="row"><label>len <input id="pencilLen" type="range" min="0.05" max="3" step="0.05" value="0.5"><span class="val" id="pencilVal">0.50</span> s</label><button id="pencilBtn">pencil</button></div></fieldset>
+  </div>
+
+  <h2>The theme on toys (phrase / note)</h2>
+  <div class="row" id="phrases"></div>
+  <div class="grid" id="notes" style="margin-top:8px"></div>
+
+  <h2>Volumes (setVolumes)</h2>
+  <div class="row">
+    <label>music <input id="volMusic" type="range" min="0" max="1" step="0.01" value="0.8"></label>
+    <label>sfx <input id="volSfx" type="range" min="0" max="1" step="0.01" value="0.9"></label>
+    <label>voice <input id="volVoice" type="range" min="0" max="1" step="0.01" value="1"></label>
+    <button id="suspend">suspend()</button><button id="resume">resume()</button><button id="dispose">dispose()</button>
+  </div>
+  <div id="status">not started</div>
+</main>
+<script type="module">
+import { createAudio, AREAS, STINGERS, SFX, SURFACES, INSTRUMENTS, THEME } from '../src/audio.mjs';
+
+const QA = new URLSearchParams(location.search).has('qa');
+const $ = (id) => document.getElementById(id);
+let audio = null;
+let area = null;
+const motion = { speed01: 0, underwater: false, hidden: false };
+
+function button(parent, label, fn, cls = '') {
+  const b = document.createElement('button');
+  b.textContent = label;
+  if (cls) b.className = cls;
+  b.addEventListener('click', () => { if (!audio) return flash(); fn(b); });
+  parent.appendChild(b);
+  return b;
+}
+function flash() { $('start').animate([{ transform: 'scale(1)' }, { transform: 'scale(1.08)' }, { transform: 'scale(1)' }], 300); }
+for (const s of SURFACES) for (const sel of ['hoofSurface', 'gaitSurface']) { const o = document.createElement('option'); o.textContent = s; $(sel).appendChild(o); }
+
+const areaButtons = {};
+for (const a of AREAS) areaButtons[a] = button($('areas'), a, () => { audio.setArea(a); area = a; for (const k in areaButtons) areaButtons[k].classList.toggle('on', k === a); });
+for (const s of STINGERS) button($('stingers'), s, () => audio.stinger(s));
+for (const e of SFX) if (!['hoof', 'splash', 'pencil'].includes(e)) button($('effects'), e, () => audio.sfx(e));
+$('hoofBtn').onclick = () => audio && audio.sfx('hoof', { surface: $('hoofSurface').value, speed01: +$('hoofSpeed').value });
+$('splashSize').oninput = () => { $('splashVal').textContent = (+$('splashSize').value).toFixed(2); };
+$('splashBtn').onclick = () => audio && audio.sfx('splash', { size: +$('splashSize').value });
+$('pencilLen').oninput = () => { $('pencilVal').textContent = (+$('pencilLen').value).toFixed(2); };
+$('pencilBtn').onclick = () => audio && audio.sfx('pencil', { len: +$('pencilLen').value });
+for (const n of [1, 3, 5, 8, 12, 15, 22, 30]) button($('phrases'), `phrase(${n})`, () => audio.phrase(n));
+button($('phrases'), 'phrase(8) on shells', () => audio.phrase(8, { inst: 'shell' }));
+button($('phrases'), 'planks: the tune note by note', () => {
+  let t = 0;
+  THEME.degrees.slice(0, 12).forEach((d, k) => { setTimeout(() => audio.note(d, { inst: 'plank' }), t); t += THEME.eighths[k] * 240; });
+});
+for (const inst of INSTRUMENTS) {
+  const lab = document.createElement('div'); lab.textContent = inst; lab.className = 'note';
+  const row = document.createElement('div'); row.className = 'row';
+  $('notes').append(lab, row);
+  for (let d = -3; d <= 11; d++) button(row, String(d), () => audio.note(d, { inst }));
+}
+$('freeze').onclick = () => audio && audio.freeze(true);
+$('unfreeze').onclick = () => audio && audio.freeze(false);
+$('suspend').onclick = () => audio && audio.suspend();
+$('resume').onclick = () => audio && audio.resume();
+$('dispose').onclick = () => { if (audio) { audio.dispose(); audio = null; $('start').disabled = false; $('start').textContent = '▶ Starta ljudet'; } };
+const vols = () => audio && audio.setVolumes({ music: +$('volMusic').value, sfx: +$('volSfx').value, voice: +$('volVoice').value });
+for (const id of ['volMusic', 'volSfx', 'volVoice']) $(id).oninput = vols;
+$('speed').oninput = () => { motion.speed01 = +$('speed').value; $('speedVal').textContent = motion.speed01.toFixed(2); };
+$('under').onchange = () => { motion.underwater = $('under').checked; };
+$('hidden').onchange = () => { motion.hidden = $('hidden').checked; };
+
+$('start').onclick = async () => {
+  if (audio) return;
+  $('start').disabled = true;
+  $('start').textContent = 'renderar …';
+  const t0 = performance.now();
+  audio = createAudio({ lifecycle: true });
+  audio.resume();
+  await audio.ready;
+  $('readyInfo').textContent = `ready in ${Math.round(performance.now() - t0)} ms`;
+  $('start').textContent = 'igång';
+  vols();
+  areaButtons.table.click();
+};
+
+// The game calls setMotion every frame; so does this page. Hoofbeats follow the gait when enabled.
+let nextHoof = 0;
+let foot = 0;
+function frame(ts) {
+  if (audio) {
+    audio.setMotion(motion);
+    if ($('gait').checked && motion.speed01 > 0.05 && !motion.hidden) {
+      // stride rate grows with speed; gallop = 4 beats with a gap (suspension)
+      const stride = 1.05 - 0.55 * motion.speed01;
+      const beats = motion.speed01 > 0.7 ? [0, 0.1, 0.19, 0.3] : [0, 0.25, 0.5, 0.75];
+      if (ts >= nextHoof) {
+        audio.sfx('hoof', { surface: $('gaitSurface').value, speed01: motion.speed01 });
+        const k = foot % 4;
+        const gap = k === 3 ? stride - beats[3] : beats[k + 1] - beats[k];
+        foot++;
+        nextHoof = ts + gap * stride * 1000;
+      }
+    }
+    const c = audio.ctx;
+    const d = audio._debug;
+    $('status').textContent = `ctx ${c.state}  ${c.sampleRate} Hz  baseLatency ${((c.baseLatency || 0) * 1000).toFixed(1)} ms  outputLatency ${((c.outputLatency || 0) * 1000).toFixed(1)} ms\n` +
+      `area ${d.area}  bar ${d.bar + 1}/16  voices ${d.voices}  frozen ${d.frozen}  players ${JSON.stringify(d.players().map((p) => p.area + (p.fading ? '(fading)' : '')))}`;
+  }
+  requestAnimationFrame(frame);
+}
+if (!QA) requestAnimationFrame(frame);
+window.__audioLab = { get audio() { return audio; } };
+</script>
+</body>
+</html>

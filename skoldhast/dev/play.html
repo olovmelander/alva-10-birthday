@@ -1,0 +1,18 @@
+<!doctype html>
+<html lang="sv">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Sköldhästen – dev</title>
+<link rel="stylesheet" href="../skoldhast.css">
+<style>html, body { margin: 0; background: #333; }</style>
+</head>
+<body>
+<!-- Development page: opens the game directly (no ticket page). ?debug shows the fps overlay. -->
+<script type="module">
+import { createGame } from '../src/main.mjs';
+const game = createGame({ host: document.body, assetBase: '../' });
+game.open();
+</script>
+</body>
+</html>
