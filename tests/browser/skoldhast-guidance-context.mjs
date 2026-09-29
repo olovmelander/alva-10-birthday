@@ -65,7 +65,10 @@ try {
                 G.camHint = { x:x * 200, y:(y - .8) * 200, zoom:1 }; view.setScene(scene); view.cam.snap = true;
                 const cue = story.guidance(); guide.clear(); guide.goal(cue.goal); guide.context(cue); guide.show(true); guide.update();
                 ui.setContext(null, hidden);
-                for (let i=0;i<8;i++) view.render(window.__contextSim.snapshot(G.player,1,G.terrain,G.time),1/60);
+                for (let i=0;i<8;i++) {
+                    view.render(window.__contextSim.snapshot(G.player,1,G.terrain,G.time),1/60);
+                    guide.update(); // same order as main: camera first, then DOM guidance
+                }
                 app.render();
                 return { name, cue };
             }, name);
@@ -108,6 +111,68 @@ try {
             return {action:next.action,text:document.querySelector('.sk-context-text').textContent};
         });
         assert.notEqual(cleared.action,'emerge');
+        if (width > height) {
+            // Exercise the real camera and heroScreen callback, rather than
+            // mocking screen positions or assigning the note's side directly.
+            await pg.evaluate(() => {
+                const {G,view,guide}=window.__skoldhast.debug;
+                for (const f of ['shutter1','shutter2','shutter3','lamp_lit','talk_done']) G.flags.add(f);
+                for (const f of ['p8_s1','p8_s2','p8_s3','p8_land','p8_sea','p8_done']) G.flags.delete(f);
+                G.goto('viken',{x:12*200,y:-.62*200,facing:1},{silent:true});
+                Object.assign(G.player,{hidden:false,hide:0,resting:false,gait:'stand',speed:0,vx:0,vy:0});
+                view.setScene('viken');guide.clear();
+                window.__placeGuidedHero=({fraction,facing,natural=false})=>{
+                    const {G,view,guide,story,app,ui,heroScreen}=window.__skoldhast.debug;
+                    G.player.facing=facing;
+                    const zoom=Math.min(160,Math.max(120,app.screen.height*.36))/200;
+                    G.camHint=natural?null:{x:G.player.x+(app.screen.width/2-fraction*app.screen.width)/zoom,y:G.player.y-app.screen.height/zoom*.12,zoom:1};
+                    view.cam.snap=true;
+                    const cue=story.guidance();G.guidance=cue;guide.goal(cue.goal);guide.context(cue);guide.show(true);ui.setContext(G.context?.label,G.player.hidden);
+                    for(let i=0;i<30;i++){
+                        view.render(window.__contextSim.snapshot(G.player,1,G.terrain,G.time),1/60);
+                        guide.update();
+                    }
+                    app.render();
+                    const note=document.querySelector('.sk-context-guide'),r=note.getBoundingClientRect();
+                    // Body container includes the actual head, legs and hair but
+                    // excludes the soft shadow below the hooves.
+                    const hero=view.layers.hero.children.find(c=>c.label==='hero');
+                    const b=hero.children[0].children[1].getBounds();
+                    return {fraction,facing,natural,side:note.dataset.side||'right',heroScreen:heroScreen(),
+                        visibility:getComputedStyle(note).visibility,
+                        panel:{x:r.x,y:r.y,right:r.right,bottom:r.bottom},
+                        hero:{x:b.minX,y:b.minY,right:b.maxX,bottom:b.maxY}};
+                };
+            });
+            for(const config of [
+                {name:'natural-right-facing',facing:1,natural:true},
+                {name:'natural-left-facing',facing:-1,natural:true},
+                {name:'left-camera-right-facing',fraction:.3,facing:1},
+                {name:'left-camera-left-facing',fraction:.3,facing:-1},
+                {name:'right-camera-right-facing',fraction:.7,facing:1},
+                {name:'right-camera-left-facing',fraction:.7,facing:-1}
+            ]){
+                const placed=await pg.evaluate(config=>window.__placeGuidedHero(config),config);
+                const expected=placed.heroScreen.x<width*.45?'right':placed.heroScreen.x>width*.55?'left':placed.side;
+                assert.equal(placed.side,expected,`${config.name}: help stays on the spare camera side`);
+                assert.equal(placed.visibility,'visible');
+                assert.ok(Object.values(placed.hero).every(Number.isFinite)&&placed.hero.right>placed.hero.x&&placed.hero.bottom>placed.hero.y,'the rendered hero has real silhouette bounds');
+                await pg.screenshot({path:path.join(out,`${config.name}-${size}.png`)});
+                assert.ok(!overlap(placed.panel,placed.hero),`${config.name}: help leaves the whole hero silhouette clear: ${JSON.stringify(placed)}`);
+                records.push({viewport:size,name:config.name,placement:placed});
+            }
+            const sequence=[.3,.49,.51,.54,.56,.51,.49,.46,.44];
+            const expected=['right','right','right','right','left','left','left','left','right'];
+            const turns=[];
+            for(let i=0;i<sequence.length;i++){
+                const placed=await pg.evaluate(config=>window.__placeGuidedHero(config),{fraction:sequence[i],facing:i%2?1:-1});
+                assert.ok(Math.abs(placed.heroScreen.x/width-sequence[i])<.001,'camera places the actual hero at the requested fraction');
+                assert.equal(placed.side,expected[i],`small turn-around at ${sequence[i]} does not flip the help card`);
+                turns.push(placed);
+            }
+            records.push({viewport:size,name:'camera-hysteresis',turns});
+            console.log(`${size}: both facings and camera sides leave the hero clear; centre hysteresis is stable`);
+        }
         console.log(`${size}: nine contextual states fit and track the current task`);
         await pg.close();
     }

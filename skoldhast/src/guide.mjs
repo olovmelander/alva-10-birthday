@@ -87,7 +87,17 @@ export function createGuide(root, { img, heroScreen, onGoalTap } = {}) {
     contextProgress.append(contextLabel, contextMeter);
     contextEl.append(contextText, contextControl, contextProgress);
     layer.appendChild(contextEl);
-    let contextNow = '', progressNow = '';
+    let contextNow = '', progressNow = '', contextSide = 'right';
+    function placeContext() {
+        if (contextEl.hidden || window.innerWidth <= window.innerHeight) return;
+        const x = heroScreen?.()?.x, width = window.innerWidth;
+        if (!Number.isFinite(x)) return;
+        // Keep the note on the spare side of the camera. Hysteresis prevents
+        // side flicker during small turn-arounds; no DOM measurements per frame.
+        const next = contextSide === 'right' && x > width * .55 ? 'left'
+            : contextSide === 'left' && x < width * .45 ? 'right' : contextSide;
+        if (next !== contextSide) { contextSide = next; contextEl.dataset.side = next; }
+    }
     function context(cue) {
         const show = !!cue?.instruction && (!!cue.action || !!cue.progress);
         contextEl.hidden = !show;
@@ -289,6 +299,7 @@ export function createGuide(root, { img, heroScreen, onGoalTap } = {}) {
         /** each frame while playing */
         update() {
             if (!shown) return;
+            placeContext();
             if (thinking) placeThink();
             if (tipEl.classList.contains('on')) placeTip();
             if (hintEl.classList.contains('on')) placeHint();

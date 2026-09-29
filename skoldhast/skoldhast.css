@@ -940,3 +940,23 @@ html.skoldhast-lock, html.skoldhast-lock body { overflow: hidden !important; ove
 }
 
 .sk-guide:has(.sk-hintbubble.on) .sk-context-guide, .sk-ui:has(.sk-toast.on) .sk-context-guide { visibility: hidden; }
+
+@media (orientation: landscape) {
+    .sk-context-guide[data-side="left"] { left: max(18px, env(safe-area-inset-left)); right: auto; }
+}
+@media (orientation: landscape) and (max-height: 520px) {
+    .sk-j-page:has(.sk-mapbook) > h3 { display: none; }
+    .sk-mapbook-workspace { display: grid; grid-template-columns: minmax(0, 1fr) minmax(200px, .7fr); gap: 6px 14px; align-items: start; }
+    .sk-mapbook-heading { margin-bottom: 6px; }
+    .sk-mapbook-stage { grid-column: 1; grid-row: 1 / span 3; position: sticky; top: 0; margin: 0; }
+    .sk-mapbook-stage svg { height: min(176px, calc(100vh - 214px)); max-height: none; aspect-ratio: auto; }
+    .sk-mapbook-pieces, .sk-mapbook-tools, .sk-mapbook-pan { grid-column: 2; margin: 0; }
+    .sk-mapbook-piece-icon { display: none; }
+    .sk-mapbook-tool.overview { flex-basis: 100%; }
+    .sk-mapbook-detail { margin-top: 4px; }
+}
+
+@media (max-width: 420px) {
+    .sk-mapbook-piece-icon { display: none; }
+    .big-text .sk-mapbook-pieces { grid-template-columns: 1fr; }
+}

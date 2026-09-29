@@ -135,7 +135,9 @@ export function createMapBook(state, { paperUrl, onSound } = {}) {
     const detail = node('div', 'sk-mapbook-detail'); detail.setAttribute('aria-live', 'polite'); detail.setAttribute('aria-atomic', 'true');
     const name = node('strong'), where = node('span', 'sk-mapbook-found'), description = node('p');
     detail.append(name, where, description);
-    root.append(head, stage, choices, controls, pan, detail);
+    const workspace = node('div', 'sk-mapbook-workspace');
+    workspace.append(stage, choices, controls, pan);
+    root.append(head, workspace, detail);
     function choose(id) { selected = id; zoom = 1; panX = panY = .5; render(); onSound?.('ui'); }
     function render() {
         const piece = MAP_FRAGMENTS.find(p => p.id === selected), box = piece?.box || [0, 0, 640, 420];
@@ -155,6 +157,10 @@ export function createMapBook(state, { paperUrl, onSound } = {}) {
         where.textContent = copy?.foundAt || MAP.detailHint;
         description.textContent = copy?.detail || MAP.legend;
         root.dataset.selected = selected || 'all';
+        // Selection/reset can collapse controls above the current scroll offset.
+        // Keep the paper in view once per interaction, never in a render loop.
+        if (root.isConnected && window.matchMedia?.('(orientation: landscape) and (max-height: 520px)').matches)
+            stage.scrollIntoView({ block: 'nearest', inline: 'nearest' });
     }
     render();
     return root;

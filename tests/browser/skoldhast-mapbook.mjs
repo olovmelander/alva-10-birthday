@@ -24,7 +24,26 @@ try {
         pg.on('pageerror',e=>errors.push(`${size}/${input}: ${e.message}`));
         pg.on('console',e=>{if(e.type()==='error')errors.push(`${size}/${input}: ${e.text()}`);});
         const activate=async locator=>{
-            await locator.scrollIntoViewIfNeeded();
+            // Native nearest-edge scrolling keeps the drawing beside the control;
+            // Playwright's forced centering can overscroll into the notes below.
+            await locator.evaluate(button=>button.scrollIntoView({block:'nearest',inline:'nearest'}));
+            if(width>height&&height<=450) {
+                const shared=await locator.evaluate(button=>{
+                    const root=button.closest('.sk-mapbook');
+                    if(!root||!button.closest('.sk-mapbook-tools,.sk-mapbook-pan'))return null;
+                    const stage=root.querySelector('.sk-mapbook-stage').getBoundingClientRect(),page=root.closest('.sk-j-page').getBoundingClientRect(),b=button.getBoundingClientRect();
+                    const detail=root.querySelector('.sk-mapbook-detail').getBoundingClientRect();
+                    const visible=(r)=>Math.max(0,Math.min(r.bottom,page.bottom)-Math.max(r.top,page.top))*Math.max(0,Math.min(r.right,page.right)-Math.max(r.left,page.left))/(r.width*r.height);
+                    return {stageVisible:visible(stage),buttonVisible:visible(b),stageHeight:stage.height,text:button.textContent,
+                        detailOverlap:Math.max(0,Math.min(stage.bottom,detail.bottom)-Math.max(stage.top,detail.top)),
+                        stage:[stage.top,stage.bottom],page:[page.top,page.bottom],button:[b.top,b.bottom]};
+                });
+                if(shared) {
+                    if((shared.stageVisible<=.95||shared.buttonVisible<=.95||shared.detailOverlap>1)&&out)await pg.screenshot({path:path.join(out,`control-visibility-${size}-${input}.png`)});
+                    assert.ok(shared.stageVisible>.95&&shared.buttonVisible>.95,`${size}: map stays visible while using controls ${JSON.stringify(shared)}`);
+                    assert.ok(shared.detailOverlap<=1,`${size}: sticky map never obscures discovery details ${JSON.stringify(shared)}`);
+                }
+            }
             if(input==='touch')await locator.tap();else {await locator.focus();await pg.keyboard.press('Enter');}
         };
         const waitBook=()=>pg.waitForFunction(()=>document.querySelector('.sk-mapbook')&&!document.querySelector('.sk-j-flip'));

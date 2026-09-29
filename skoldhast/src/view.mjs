@@ -545,9 +545,11 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
             O.glimpse = heroFactory({ mini: true });
             O.glimpse.view.scale.set(0.34);
             O.glimpseRidge = new PIXI.Container();
-            const ridge = [[-1050, 350], [-740, 180], [-390, 55], [-90, 0], [100, 0], [480, 90], [1030, 320]];
+            // Bury the outer ends beneath the foreground: otherwise a narrow
+            // portrait camera exposes a vertical edge where the fill closes.
+            const ridge = [[-1800, 1100], [-1050, 350], [-740, 180], [-390, 55], [-90, 0], [100, 0], [480, 90], [1030, 320], [1800, 1100]];
             const ridgeFill = new PIXI.Graphics();
-            fillPoly(ridgeFill, [...ridge, [1030, 1600], [-1050, 1600]], 'grass', .27);
+            fillPoly(ridgeFill, [...ridge, [1800, 1600], [-1800, 1600]], 'grass', .27);
             O.glimpseRidge.addChild(ridgeFill, rope('stroke-graphite', resamplePts(ridge, 45), { alpha: .2 }));
             L.far.addChild(O.glimpseRidge);
             L.far.addChild(O.glimpse.view);

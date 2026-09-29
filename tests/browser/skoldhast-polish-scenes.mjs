@@ -27,7 +27,8 @@ const stages = [
     { name: '10-evening-bay', scene: 'viken', x: 20.5, y: -.62, phase: 'p8', evening: true },
     { name: '11-kelp-silhouette', scene: 'kelp', x: 12, y: 3.4, mode: 'swim', phase: 'kelp' },
     { name: '12-steppe-ridge', scene: 'land', x: 58, y: -.82, phase: 'p8' },
-    { name: '13-lit-lamp-gallery', scene: 'viken', x: 28, y: -7.3, phase: 'p8', hideHero: true, focusX: 29.8 }
+    { name: '13-lit-lamp-gallery', scene: 'viken', x: 28, y: -7.3, phase: 'p8', hideHero: true, focusX: 29.8 },
+    { name: '14-left-facing-land', scene: 'land', x: 58, y: -.82, phase: 'p8', facing: -1, naturalCamera: true }
 ];
 const revision = execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim();
 const server = await serve(), browser = await launch(), records = [], errors = [];
@@ -74,7 +75,7 @@ try {
                 if (stage.phase === 'plate') G.flags.add('shutter1');
                 G.time = 12; G.busy = 0; G.evening = !!stage.evening; G.lessMotion = false;
                 G.hideHero = !!stage.peek || !!stage.hideHero; G.vista = false; G.finalRun = false; G.freeze = false;
-                G.goto(stage.scene, { x: stage.x * 200, y: stage.y * 200, facing: 1, mode: stage.mode || 'ground' }, { silent: true });
+                G.goto(stage.scene, { x: stage.x * 200, y: stage.y * 200, facing: stage.facing ?? 1, mode: stage.mode || 'ground' }, { silent: true });
                 Object.assign(G.player, { x: stage.x * 200, y: stage.y * 200, px: stage.x * 200, py: stage.y * 200,
                     vx: 0, vy: 0, speed: 0, gait: 'stand', gaitPhase: .2, hidden: !!stage.hidden, hide: stage.hidden ? 1 : 0 });
                 for (const actor of Object.values(G.actors)) Object.assign(actor, { visible: false, talking: false, walk: null, pop: 0 });
@@ -83,7 +84,7 @@ try {
                 if (stage.peek) Object.assign(G.actors.figure, { visible: true, scene: 'viken', x: G.sceneDef.lamp.x,
                     y: G.sceneDef.lamp.y + 45, facing: -1, pose: 'kv-peek' });
                 G.puz.plates.plate = stage.hidden ? .6 : 0;
-                G.camHint = stage.peek ? { x: 29.8 * 200, y: -7.7 * 200, zoom: 1 } : { x: (stage.focusX ?? stage.x) * 200, y: (stage.y - .8) * 200, zoom: 1 };
+                G.camHint = stage.naturalCamera ? null : stage.peek ? { x: 29.8 * 200, y: -7.7 * 200, zoom: 1 } : { x: (stage.focusX ?? stage.x) * 200, y: (stage.y - .8) * 200, zoom: 1 };
                 // Scene decor uses randomness only at construction: fixed seed gives
                 // the same fronds and particles in before and after captures.
                 const random = Math.random; let seed = 6021;
@@ -98,6 +99,7 @@ try {
                 // A fixed number of visual frames settles hair/alpha; it does not
                 // step puzzles, move the player or trigger a story beat.
                 for (let i = 0; i < 12; i++) view.render(snapshot(G.player, 1, G.terrain, G.time), 1 / 60);
+                guide.update(); // context placement follows the settled hero screen position
                 app.render();
                 return { ...stage, flags: [...G.flags].sort(), player: { x: G.player.x, y: G.player.y, mode: G.player.mode,
                     hidden: G.player.hidden, hide: G.player.hide }, cam: { ...view.cam }, goal: story.goal(),

@@ -71,10 +71,15 @@ export function createPencilBeam(PIXI) {
     const container = new PIXI.Container();
     container.label = 'lighthouse-pencil-beam';
     const edge = new PIXI.Graphics();
+    // Reserved paper and graphite keep the shaft readable in the gold evening
+    // sky, including the small full-tower finale view. Geometry stays static.
+    edge.poly([0, -9, -770, -84, -770, 84, 0, 9]).fill({ color: 0xfffbea, alpha: .22 });
     edge.moveTo(0, -9).lineTo(-770, -84).moveTo(0, 9).lineTo(-770, 84)
-        .stroke({ width: 3, color: 0x485764, alpha: .25 });
+        .stroke({ width: 6, color: 0x485764, alpha: .6 });
     edge.moveTo(-16, 0).lineTo(-340, 2).lineTo(-724, 5)
-        .stroke({ width: 7, color: 0xfffbe9, alpha: .55 });
+        .stroke({ width: 24, color: 0x485764, alpha: .18 });
+    edge.moveTo(-16, 0).lineTo(-340, 2).lineTo(-724, 5)
+        .stroke({ width: 20, color: 0xfffbe9, alpha: .86 });
     edge.moveTo(-24, 4).lineTo(-346, 5).lineTo(-718, 8)
         .stroke({ width: 1.4, color: 0xcbb779, alpha: .45 });
     container.addChild(edge);
