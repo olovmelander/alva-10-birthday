@@ -28,6 +28,22 @@ try {
     await page.waitForFunction(() => window.__drawResults.includes('current'));
     assert.deepEqual(await page.evaluate(() => window.__drawResults), ['current'], 'replaced drawing cannot complete');
 
+    // Repeated confirmation must not debounce forever (e.g. a held Enter key or
+    // fast taps while the anchored shoreline is finishing its short animation).
+    const confirmed = await page.evaluate(async () => {
+        const { ui } = window.__menus;
+        let completed = 0, whileRepeating = false;
+        ui.draw({ anchors: [[80, 80], [160, 80]] }).then(() => { completed++; whileRepeating = !!repeats; });
+        const enter = () => window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', repeat: true, cancelable: true }));
+        let repeats = setInterval(enter, 50);
+        enter();
+        // Completion is intentionally delayed300ms; keep repeating past that deadline.
+        await new Promise(resolve => setTimeout(resolve, 550));
+        clearInterval(repeats); repeats = null;
+        return { completed, whileRepeating };
+    });
+    assert.deepEqual(confirmed, { completed: 1, whileRepeating: true }, 'repeated Enter completes once without requiring a release');
+
     // Anchor confirmation has a short visual delay. Destroy must cancel that pending callback.
     const canceled = await page.evaluate(async () => {
         const { ui } = window.__menus;

@@ -780,7 +780,8 @@ export function createUI(host, { assetBase, handlers }) {
                 cancel();
                 resolve(pts.length > 1 ? pts.slice() : (opts.ghost ? opts.ghost.slice() : anchors ? anchors.slice() : []));
             };
-            const finishAfter = (ms) => { clearTimeout(finishTimer); finishTimer = setTimeout(finish, ms); };
+            // Repeated taps/key repeats must not keep postponing a confirmed drawing.
+            const finishAfter = (ms) => { if (finishTimer === null) finishTimer = setTimeout(finish, ms); };
             const hitAnchor = (x, y) => {
                 if (!anchors) return;
                 while (anchorsHit < anchors.length && Math.hypot(anchors[anchorsHit][0] - x, anchors[anchorsHit][1] - y) < 46) {
