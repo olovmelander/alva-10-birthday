@@ -1,0 +1,83 @@
+{
+  "date": "2026-09-29",
+  "branch": "codex/skoldhast-living-opening",
+  "baseline": "3896886dcb56b6d7d1525775e7bfa61276c745e9",
+  "baselineUnitTests": 141,
+  "finalUnitTests": 145,
+  "unitFailures": 0,
+  "firstPlayableBytes": 2777181,
+  "budgetBytes": 3000000,
+  "browserChecks": [
+    {
+      "name": "awakening",
+      "exitCode": 0
+    },
+    {
+      "name": "opening",
+      "exitCode": 0
+    },
+    {
+      "name": "launch",
+      "exitCode": 0
+    },
+    {
+      "name": "cloud-color",
+      "exitCode": 0
+    },
+    {
+      "name": "finale-normal",
+      "exitCode": 0
+    },
+    {
+      "name": "finale-reduced",
+      "exitCode": 0
+    },
+    {
+      "name": "opening-reduced-camera",
+      "exitCode": 0
+    },
+    {
+      "name": "save",
+      "exitCode": 0
+    },
+    {
+      "name": "touch-844x390",
+      "exitCode": 0
+    },
+    {
+      "name": "touch-390x844",
+      "exitCode": 0
+    },
+    {
+      "name": "guide",
+      "exitCode": 0
+    },
+    {
+      "name": "pages",
+      "exitCode": 0
+    }
+  ],
+  "tours": [
+    {
+      "viewport": "844x390",
+      "places": 27,
+      "capturedErrors": 0
+    },
+    {
+      "viewport": "390x844",
+      "places": 27,
+      "capturedErrors": 0
+    },
+    {
+      "viewport": "1440x900",
+      "places": 27,
+      "capturedErrors": 0
+    }
+  ],
+  "reducedOpeningCameraScales": 2,
+  "notes": [
+    "Browser results describe the harnesses’ captured errors; some legacy checks assert page errors only.",
+    "Screenshots and automated checks do not establish fresh-player comprehension or physical-phone frame pacing.",
+    "Desktop contact sheet is downsampled for review; capture viewport remains 1440x900."
+  ]
+}

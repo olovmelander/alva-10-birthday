@@ -187,6 +187,20 @@ stages without the hop. The folded paper keeps the same before/after geometry.
   stillness before input, visible response after it, constant-scale crab
   emergence, causal phase order and no toast covering the drawing toolbar.
 
+- Full opening checks pass at both phone sizes and with reduced motion, including
+  the exact crease endpoint, stopped wave during the fold, retained paper,
+  distinct answers, rotation and close/reopen during folding. The targeted
+  reduced-motion check observes exactly two framing scales: close and wide.
+- All required browser gates pass: launch, save, touch at both phone sizes,
+  guide, pages and finale. Both normal landscape and reduced-motion portrait
+  finales pass, exercising the shared tabletop renderer again.
+- Cloud-colour checks pass on both phones: palette controls, draft cancellation,
+  rotation, saved shape/colour after close/reopen, and legacy outline saves.
+- The launch lifecycle harness now completes the real awakening gesture before
+  checking queued dialogue input; its former initial-caption wait was obsolete.
+- No captured browser errors on the passing runs. The compact machine-readable
+  record is [living-opening-checks.json](living-opening-checks.json).
+
 No automated check establishes a child's comprehension or physical-phone frame
 pacing. A human review should follow the four acceptance questions above. The
 original sun remains part of the static picture; this pass does not claim a

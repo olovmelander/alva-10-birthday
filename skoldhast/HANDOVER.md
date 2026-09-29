@@ -44,8 +44,11 @@ The awakening check covers native touch and keyboard at both phone sizes,
 reduced motion, a still rig before input, visible wake reactions, full-size crab
 emergence and closing/reopening during the wake. The fold check covers the
 full causal phase order, actual tracing, retained paper, choices, rotation and
-closing/reopening during folding. Final regression and contact-sheet results
-are recorded in the review.
+closing/reopening during folding. Required launch, save, touch at both phone sizes, guide, pages and finale
+checks all pass. Both normal/reduced finales and cloud-colour persistence pass.
+The three refreshed 27-place contact sheets and six before/after comparisons
+are under `docs/skoldhast/shots/k3/`, with no captured browser errors. Exact
+results and remaining human review are recorded in the review.
 
 Remaining human review: does a fresh player understand what their stroke woke,
 what the fold interrupted and what the Sköldhäst wants back? The distant figure
