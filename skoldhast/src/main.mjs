@@ -121,8 +121,16 @@ export function createGame({ host = document.body, assetBase = './skoldhast/', r
         el.appendChild(app.canvas);
         // WebGL context loss (plan §8.2): Pixi restores its textures itself; if the context has not come
         // back 2 s after the tab is visible, save and offer a clean restart behind one tap
-        app.canvas.addEventListener('webglcontextlost', () => { glLostAt = performance.now(); }, { signal: listeners.signal });
-        app.canvas.addEventListener('webglcontextrestored', () => { glLostAt = 0; }, { signal: listeners.signal });
+        app.canvas.addEventListener('webglcontextlost', () => {
+            glLostAt = performance.now();
+            presses.clear(); input?.release();
+        }, { signal: listeners.signal });
+        app.canvas.addEventListener('webglcontextrestored', () => {
+            glLostAt = 0;
+            glPrompt?.remove(); glPrompt = null;
+            last = performance.now(); acc = 0;
+            presses.clear(); input?.release();
+        }, { signal: listeners.signal });
         assets = createAssets(PIXI, assetBase);
         try {
             await assets.init();
@@ -624,7 +632,12 @@ export function createGame({ host = document.body, assetBase = './skoldhast/', r
         const sig = { signal: listeners.signal };
         document.addEventListener('visibilitychange', () => {
             if (document.hidden) { saveNow(); audio?.suspend(); pause({ reason: 'visibility' }); }
-            else { resume(); }
+            else {
+                // Hidden tabs may receive no frames, so start the recovery window
+                // at the visibility event rather than the last hidden frame.
+                if (glLostAt) glLostAt = performance.now();
+                resume();
+            }
         }, sig);
         window.addEventListener('pagehide', () => saveNow(), sig);
         const onResize = () => {

@@ -234,6 +234,10 @@ or additional chapter release is part of this branch.
 - Renderer fades, fold demonstrations and page turns stop on close as well;
   destroying a lighthouse glimpse cannot rebuild the abandoned scene.
   `tests/browser/skoldhast-view-lifecycle.mjs` covers each interruption.
+- WebGL recovery grants two visible seconds after a backgrounded tab returns,
+  and removes a stale restart prompt when restoration succeeds. The real
+  `WEBGL_lose_context` browser check preserves mid-P1 progress, ink pixels and
+  Sandpapperet hoofprints, then verifies that P1 still finishes.
 - Collection foundations now allow colouring while swimming, keep hidden or
   fast-moving players out of contextual colouring, and share chapter/clue gates
   between pickup, props and rendering. The HUD counts the current region; the
