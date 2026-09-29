@@ -10,6 +10,7 @@
  * The view never changes game state; it reads G every frame.
  */
 import { HL, cond, heightOn, lineLength, pointAt } from './sim.mjs';
+import { createPage, createScreenTurn } from './pageturn.mjs';
 
 const h = (v) => v * HL;
 const lerp = (a, b, t) => a + (b - a) * t;
@@ -36,7 +37,8 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
     const skyLayer = new PIXI.Container();      // parallax sky props (sun, clouds, gulls)
     const world = new PIXI.Container();         // camera transform
     const overlay = new PIXI.Container();       // screen space: tooth, darkness, fades
-    root.addChild(bgLayer, skyLayer, world, overlay);
+    const turnLayer = new PIXI.Container();     // screen space: pages turning away (scene changes, the unfold)
+    root.addChild(bgLayer, skyLayer, world, overlay, turnLayer);
     const L = {};
     for (const name of ['far', 'terrainBack', 'mid', 'objects', 'actors', 'hero', 'waterFront', 'fore', 'fx', 'cover', 'hints']) {
         L[name] = new PIXI.Container();
@@ -421,7 +423,10 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
             const edge = rope('stroke-graphite', edgePts, { width: 4, alpha: 0.7 });
             const c = new PIXI.Container(); c.addChild(g, edge);
             L.cover.addChild(c);
-            d.paper.push({ pc, c });
+            // covered → (the chapter is out) waiting → turning (peels away like a page) → gone
+            const state = !G.flags.has(pc.until) ? 'covered' : G.flags.has('peeled_' + pc.id) ? 'gone' : 'waiting';
+            if (state === 'gone') c.visible = false;
+            d.paper.push({ pc, c, state, wait: 0 });
         }
         // darkness (Mörka valvet)
         d.dark = [];
@@ -567,6 +572,7 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
 
     function clearScene() {
         if (!S) return;
+        dropPeels();
         for (const layer of Object.values(L)) {
             for (const ch of layer.removeChildren()) if (ch !== hero.view && !particles.some((p) => p.s === ch)) ch.destroy({ children: true });
         }
@@ -578,7 +584,9 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
         S = null;
     }
 
-    function setScene(id, { keepCam = false } = {}) {
+    function setScene(id, { keepCam = false, turn = null } = {}) {
+        // the old picture becomes a page that turns away over the new one
+        const rt = turn && S ? capture() : null;
         clearScene();
         S = buildScene(G.scenes[id]);
         S.id = id;
@@ -586,6 +594,123 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
         L.hero.addChild(hero.view);
         cam.snap = !keepCam;
         makeTooth();
+        if (rt) return startTurn(rt, { hinge: turn });
+        return null;
+    }
+
+    // --- pages turning (src/pageturn.mjs) ---------------------------------------------------------------
+    /** The view as it looks now, as a texture the size of the screen. */
+    function capture() {
+        const W = app.screen.width, H = app.screen.height;
+        if (!W || !H) return null;
+        const rt = PIXI.RenderTexture.create({ width: W, height: H, resolution: app.renderer.resolution });
+        const was = turnLayer.visible;
+        turnLayer.visible = false;
+        app.renderer.render({ container: root, target: rt, clear: true });
+        turnLayer.visible = was;
+        return rt;
+    }
+    const turns = [];
+    let held = null;
+    /** Show `rt` over the screen and turn it away (hinge: the edge it turns about). hold: wait for release(). */
+    function startTurn(rt, { hinge = 'left', duration = 1.05, hold = false } = {}) {
+        if (!rt) return null;
+        let show, destroy;
+        if (G.lessMotion) {
+            // reduced motion: a short crossfade instead of a turning page
+            const s = new PIXI.Sprite(rt); s.width = app.screen.width; s.height = app.screen.height;
+            turnLayer.addChild(s);
+            show = (k) => { s.alpha = 1 - k * k * (3 - 2 * k); };
+            destroy = () => s.destroy();
+            duration = Math.min(0.45, duration * 0.4);
+        } else {
+            const turn = createScreenTurn(PIXI, app, { texture: rt, hinge, parent: turnLayer });
+            show = (k) => turn.at(k);
+            destroy = () => turn.destroy();
+        }
+        const T = { rt, k: 0, dur: duration, hold, show, destroy, resolve: null };
+        T.done = new Promise((r) => { T.resolve = r; });
+        show(0);
+        turns.push(T);
+        onFx?.('sfx', 'page');
+        return T;
+    }
+    function stepTurns(dt) {
+        for (let i = turns.length - 1; i >= 0; i--) {
+            const T = turns[i];
+            if (T.hold) continue;
+            T.k = Math.min(1, T.k + dt / T.dur);
+            T.show(T.k);
+            if (T.k >= 1) { turns.splice(i, 1); T.destroy(); T.rt.destroy(true); T.resolve(); }
+        }
+    }
+    function endTurns() {
+        for (const T of turns.splice(0)) { T.destroy(); T.rt.destroy(true); T.resolve(); }
+        held = null;
+    }
+
+    /** A white paper cover peels away like a page, from the edge you see toward the far end of the scene. */
+    function peelCover(pc) {
+        if (pc.state === 'turning' || pc.state === 'gone') return pc.done || Promise.resolve();
+        pc.state = 'turning';
+        const d = pc.pc, H = app.screen.height / cam.zoom, Wv = app.screen.width / cam.zoom;
+        const top = cam.y - H / 2 - h(4), height = H + h(8);
+        const camL = cam.x - Wv / 2, camR = cam.x + Wv / 2;
+        // the sheet that turns is the part of the cover you can see (at least 5 HL), hinged just beyond it,
+        // so the whole turn happens in view; the rest of the cover is off screen and simply goes
+        const width = clamp((d.under ? camR - d.x0 : d.x1 - camL) + h(0.3), Math.min(h(2), d.x1 - d.x0), d.x1 - d.x0);
+        const x0 = d.under ? d.x0 : d.x1 - width;
+        const paper = T('mat-paper');
+        const finish = () => {
+            pc.state = 'gone'; pc.c.visible = false;
+            G.flags.add('peeled_' + d.id); // cosmetic: a saved game does not peel it again
+        };
+        if (!paper || G.lessMotion) {
+            // no paper texture or reduced motion: fade the cover out
+            pc.done = new Promise((resolve) => {
+                const tick = () => {
+                    if (!S || !S.paper.includes(pc)) { resolve(); return; }
+                    pc.c.alpha = Math.max(0, pc.c.alpha - 1 / 30);
+                    if (pc.c.alpha <= 0) { finish(); resolve(); } else requestAnimationFrame(tick);
+                };
+                tick();
+            });
+            return pc.done;
+        }
+        // the far edge is the hinge; the edge facing the player lifts first
+        const hinge = d.under ? 'right' : 'left';
+        const page = createPage(PIXI, {
+            front: paper, tile: true, width, height, columns: Math.max(24, Math.min(96, Math.ceil(width / h(0.35)))), rows: 8,
+            edges: 'free', hinge, curl: 0.5, perspective: 1, lift: 0.04,
+            eye: { x: clamp(cam.x - x0, 0, width), y: cam.y - top }
+        });
+        page.view.x = x0; page.view.y = top;
+        L.cover.addChild(page.view);
+        pc.c.visible = false;
+        const band = [clamp(camL - x0, 0, width), clamp(camR - x0, 0, width)];
+        const clock = page.timeline(band[0], band[1]);
+        const dur = 1.7;
+        let k = 0;
+        onFx?.('sfx', 'page');
+        pc.done = new Promise((resolve) => {
+            pc.resolve = resolve;
+            pc.step = (dt) => {
+                k = Math.min(1, k + dt / dur);
+                page.set(clock(k));
+                if (k >= 1) { page.destroy(); pc.page = null; pc.step = null; finish(); resolve(); }
+            };
+            pc.page = page;
+        });
+        return pc.done;
+    }
+    /** Stop a cover mid-peel (the scene is going away): free the page, count it as peeled, let awaiters go on. */
+    function dropPeels() {
+        for (const pc of S?.paper || []) {
+            if (pc.state !== 'turning') continue;
+            pc.page?.destroy(); pc.page = null; pc.step = null;
+            pc.state = 'gone'; G.flags.add('peeled_' + pc.pc.id);
+            pc.resolve?.();
+        }
     }
     /** true when the scene was built with all of its art (no placeholders) */
     function countPlaceholders() {
@@ -753,12 +878,18 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
                 m.m.x = vx.v.x + Math.cos(m.a) * m.r; m.m.y = vx.v.y + Math.sin(m.a) * m.r;
             }
         }
-        // paper covers
+        // paper covers: once the chapter is out, the white page peels away when you first see it
         for (const pc of S.paper) {
-            const released = F.has(pc.pc.until);
-            if (released && pc.c.alpha > 0) pc.c.alpha = Math.max(0, pc.c.alpha - dt * 0.8);
-            pc.c.visible = pc.c.alpha > 0.01;
-            if (!released) pc.c.alpha = 1;
+            if (!F.has(pc.pc.until)) { pc.state = 'covered'; pc.c.visible = true; pc.c.alpha = 1; continue; }
+            if (pc.state === 'covered') { pc.state = 'waiting'; pc.wait = 0; }
+            if (pc.state === 'waiting') {
+                // peel when a good part of it is in view (so the whole turn can be seen), and nothing else is on
+                const halfW = W / cam.zoom / 2;
+                const seen = Math.max(0, Math.min(pc.pc.x1, cam.x + halfW) - Math.max(pc.pc.x0, cam.x - halfW)) / (2 * halfW);
+                pc.wait = seen > 0.3 && !G.busy ? pc.wait + dt : 0;
+                if (pc.wait > 0.4) peelCover(pc);
+            }
+            if (pc.state === 'turning') pc.step?.(dt);
         }
         for (const dk of S.dark) { const lit = F.has(dk.dk.until); dk.g.alpha = damp(dk.g.alpha, lit ? 0 : 1, 1.5, dt); }
         updateObjects(dt, snap, frozen);
@@ -766,6 +897,7 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
         stepMinis(dt, snap);
         stepSpeedLines(dt, snap);
         stepParticles(dt);
+        stepTurns(dt);
         // tooth overlay follows the screen
         if (tooth) { tooth.width = W; tooth.height = H; }
         fade.clear();
@@ -1130,10 +1262,20 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
                 emit('glow', def.spots.arch.x, def.spots.arch.y - h(1), 6, { g: 0, speed: 80, life: 1.4 });
                 await G.wait(1.2);
                 break;
-            case 'paperFill':
-                for (const pc of S.paper) emit('star', (pc.pc.x0 + pc.pc.x1) / 2, cam.y, 1, { g: 0, speed: 0 });
-                await G.wait(1.0);
+            case 'paperFill': {
+                // the white page over the next chapter: look at it, then it turns away. A cover far off (the
+                // other end of the scene) waits and peels by itself when the player first comes to it.
+                const Wv = app.screen.width / cam.zoom;
+                const pc = S.paper.find((q) => G.flags.has(q.pc.until) && q.state === 'waiting' && Math.abs((q.pc.under ? q.pc.x0 : q.pc.x1) - cam.x) < Wv * 1.6);
+                if (!pc) { await G.wait(0.6); break; }
+                const edge = pc.pc.under ? pc.pc.x0 : pc.pc.x1;
+                const before = G.camHint;
+                G.camHint = { x: edge + (pc.pc.under ? 1 : -1) * Wv * 0.24, y: cam.y, t0: G.time };
+                await G.wait(1.2);
+                await peelCover(pc);
+                G.camHint = before;
                 break;
+            }
             case 'lamp':
                 emit('glow', def.lamp.x, def.lamp.y, 10, { g: 0, speed: 120, life: 1.6 });
                 emit('star', def.lamp.x, def.lamp.y, 16, { g: 0, speed: 300 });
@@ -1146,13 +1288,18 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
                 emit('drop', data.x, data.y, 14, { speed: 380 });
                 await G.wait(0.2);
                 break;
-            case 'unfold':
-                await fadeTo(0.9, 0.8, 0xfbf8f1);
-                await G.wait(0.4);
+            case 'unfold': {
+                // the page is lifted: the picture lies over the screen until cutToPicture turns it away
+                endTurns();
+                held = startTurn(capture(), { hinge: 'right', duration: 1.6, hold: true });
+                if (!held) await fadeTo(0.9, 0.8, 0xfbf8f1);
+                await G.wait(0.5);
                 break;
+            }
             case 'cutToPicture':
                 cam.snap = true;
-                await fadeTo(0, 0.9);
+                if (held) { const T = held; held = null; T.hold = false; await T.done; }
+                else await fadeTo(0, 0.9);
                 break;
             case 'plask': {
                 const sp = def.spots.splash;
@@ -1165,16 +1312,16 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
                 break;
             }
             case 'vista': {
-                // show another scene for a moment (the lighthouse at the end of Kapitel 2)
-                await fadeTo(1, 0.4, 0xfbf8f1);
+                // turn to another page for a moment (the lighthouse at the end of Kapitel 2), then back
                 const back = S.id;
                 const save = { x: cam.x, y: cam.y, zoom: cam.zoom };
-                setScene(data.scene);
+                const hintBefore = G.camHint;
+                G.vista = true;
+                const t1 = setScene(data.scene, { turn: 'left' });
                 G.hideHero = true;
                 cam.x = data.x; cam.y = data.y; cam.zoom = (data.zoom || 1) * 0.6; cam.snap = false;
                 G.camHint = { x: data.x, y: data.y, zoom: data.zoom || 1 };
-                G.vista = true;
-                await fadeTo(0, 0.4);
+                if (t1) await t1.done; else await fadeTo(0, 0.4);
                 if (data.peek) {
                     const fig = G.actors.figure;
                     Object.assign(fig, { scene: data.scene, x: data.x, y: data.y - h(1.0), visible: true, pose: 'kv-peek', facing: -1 });
@@ -1183,11 +1330,11 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
                     onFx?.('sfx', 'latch');
                 }
                 await G.wait(Math.max(0.5, (data.t || 2) - 1.6));
-                await fadeTo(1, 0.4);
+                const t2 = setScene(back, { turn: 'right' });
                 G.vista = false; G.hideHero = false;
-                setScene(back);
-                Object.assign(cam, save);
-                await fadeTo(0, 0.4);
+                G.camHint = hintBefore; // back to what the story was looking at on this page
+                Object.assign(cam, save); cam.snap = false;
+                if (t2) await t2.done; else { fadeAlpha = 0; }
                 break;
             }
             case 'epilogue':
@@ -1205,6 +1352,7 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
 
     function destroy() {
         offs.forEach((o) => o());
+        endTurns();
         clearScene();
         hero.destroy?.();
         root.destroy({ children: true });
@@ -1212,6 +1360,8 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
 
     return {
         setScene, render, fx, resize, destroy, cam, emit, fadeTo,
+        /** a page is lying over the screen, waiting to turn (the unfold): scene changes should not turn another */
+        get holding() { return !!held; },
         get sceneId() { return S?.id; },
         built(id) { return S?.id === id && S.placeholders === 0; },
         replaceHero(newHero) { L.hero.removeChild(hero.view); hero.destroy?.(); hero = newHero; L.hero.addChild(hero.view); },

@@ -27,6 +27,8 @@ import { CHECKPOINTS } from './content/world.mjs';
 
 // the art bundle each scene draws from (boot holds the hero, Klo, the table and the UI)
 const SCENE_BUNDLES = { land: ['land'], kelp: ['sea', 'bay'], viken: ['bay', 'sea'] };
+// the notebook's page order: going on turns the page forward, going back turns it back
+const PAGE = { land: 1, kelp: 2, viken: 3 };
 
 const DEFAULT_SETTINGS = { help: 'normal', holdGallop: false, followFinger: false, holdToHide: false, bigText: false, lessMotion: false, music: 0.8, sfx: 0.9, voice: 1 };
 
@@ -410,8 +412,9 @@ export function createGame({ host = document.body, assetBase = './skoldhast/', r
             }
             if (steps >= 10) acc = 0;
             if (G.sceneId !== view.sceneId && !G.vista) {
-                const id = G.sceneId;
-                view.setScene(id);
+                const id = G.sceneId, from = view.sceneId;
+                const turn = from && !view.holding ? ((PAGE[id] || 0) >= (PAGE[from] || 0) ? 'left' : 'right') : null;
+                view.setScene(id, { turn });
                 audio?.setArea(G.finalRun ? 'final' : areaFor(id));
                 // art still arriving (slow network): redraw the scene when it is here
                 const missing = (SCENE_BUNDLES[id] || []).filter((b) => assets.bundles().includes(b) && !assets.loaded(b));
