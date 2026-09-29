@@ -110,7 +110,10 @@ async function main() {
         }
     };
     walk(path.join(ROOT, 'skoldhast', 'src'));
-    const files = ['vendor/pixi-8.21.0.min.mjs', ...src.sort(), 'skoldhast.css', 'assets/manifest.json', ...(bundles.boot?.files || []), ...(bundles.land?.files || [])];
+    // the menus' handwriting (skoldhast.css @font-face): prefetched and counted like the rest
+    const fontDir = path.join(ROOT, 'skoldhast', 'fonts');
+    const fonts = fs.existsSync(fontDir) ? fs.readdirSync(fontDir).filter((n) => n.endsWith('.woff2')).sort().map((n) => `fonts/${n}`) : [];
+    const files = ['vendor/pixi-8.21.0.min.mjs', ...src.sort(), 'skoldhast.css', ...fonts, 'assets/manifest.json', ...(bundles.boot?.files || []), ...(bundles.land?.files || [])];
     fs.writeFileSync(path.join(ROOT, 'skoldhast', 'files.json'), JSON.stringify({ files }, null, 1));
 
     // budget: JS/CSS/JSON counted gzipped (GitHub Pages compresses text), images as-is

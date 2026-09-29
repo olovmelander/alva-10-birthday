@@ -19,6 +19,7 @@
   "src/ui.mjs",
   "src/view.mjs",
   "skoldhast.css",
+  "fonts/patrick-hand-latin.woff2",
   "assets/manifest.json",
   "assets/hero.json",
   "assets/hero.webp",
