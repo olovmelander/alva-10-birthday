@@ -236,6 +236,11 @@ or additional chapter release is part of this branch.
   between pickup, props and rendering. The HUD counts the current region; the
   notebook lists visited regions. Counts use authored IDs, preserving existing
   collected/coloured pencils while ignoring stray save flags.
+- The finale now revisits the distant lighthouse view introduced in Kapitel 2:
+  the real lamp and its reflection both glow in evening light, followed by a
+  quiet 1.8-second hold. Klo stands beside the hero for his conclusion. Focused
+  finale checks pass in landscape and reduced-motion portrait, preserving the
+  player's scene, checkpoint, flags and camera across the glimpse.
 - Order next: finish close-during-drawing cleanup; enable regional collection
   and underwater colouring; add the remaining ten pencils; complete the lit
   lighthouse view at the finale. The clipping remains excluded by the privacy
@@ -247,7 +252,6 @@ or additional chapter release is part of this branch.
   - O7 Flytbryggan (stretch);
   - the Kapitel 2–3 färgpennor (5 of about 15 exist, all in Kapitel 1);
   - the "Publicerad!" clipping;
-  - the lit lighthouse seen from Klippudden in the final (the camera just holds on the sea).
 - **Design changes the robot forced (worth knowing):**
   - Klo's hole moved east among the shells (106.2 HL), so the pool's reflection and Klo's "Ja" don't fire together.
   - The P2 plank inks only after the reflection has been seen.

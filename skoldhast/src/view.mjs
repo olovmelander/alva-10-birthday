@@ -586,6 +586,7 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
             const lh = spr('lighthouse'); lh.x = def.spots.lighthouse.x; lh.y = w.top + (w.top - def.spots.lighthouse.y); lh.scale.set(k, -k); inner.addChild(lh);
             for (const sh of def.shutters) { const s = spr('shutter-open'); s.anchor?.set?.(0.5); s.x = sh.x; s.y = w.top + (w.top - sh.y); s.scale.y = -1; inner.addChild(s); }
             const lamp = spr('lamp-lit'); lamp.anchor?.set?.(0.5); lamp.x = def.lamp.x; lamp.y = w.top + (w.top - def.lamp.y); inner.addChild(lamp);
+            c._lamp = lamp;
             mask.clear().rect(w.x0, w.top, w.x1 - w.x0, h(9)).fill({ color: 0xffffff });
         }
         c._inner = inner;
@@ -611,6 +612,7 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
         // the old picture becomes a page that turns away over the new one
         const rt = turn && S ? capture() : null;
         clearScene();
+        for (const layer of Object.values(L)) layer.visible = true;
         S = buildScene(G.scenes[id]);
         S.id = id;
         S.placeholders = countPlaceholders();
@@ -619,6 +621,35 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
         makeTooth();
         if (rt) return startTurn(rt, { hinge: turn });
         return null;
+    }
+
+    /** A distant view across the water, made from the same tower and reflection as the playable bay. */
+    function lighthouseVista() {
+        const { def, obj: O } = S;
+        const bay = S.waters.find(wb => wb.w.id === 'bay');
+        const tower = S.items.find(({ it }) => it.lighthouse)?.s;
+        if (!tower || !bay?.refl) return null;
+        const c = new PIXI.Container();
+        c.label = 'lighthouse-vista';
+        L.far.addChild(c);
+        // At this distance the little puzzle mechanisms and the underwater rock face
+        // would obscure the reflection. The page keeps just the island and lighthouse.
+        for (const [name, layer] of Object.entries(L)) layer.visible = name === 'far';
+        const island = new PIXI.Graphics();
+        const x = def.spots.lighthouse.x, y = bay.w.top;
+        const shore = [[x - h(3.5), y + 8], [x - h(2.4), y - h(0.45)], [x + h(2.4), y - h(0.45)], [x + h(3.5), y + 8]];
+        fillPoly(island, shore, 'rock');
+        c.addChild(island, rope('stroke-graphite', shore, { width: 4 }), tower, ...O.shutters.map(o => o.s), O.lamp, O.figure);
+        const sea = new PIXI.Graphics();
+        fillPoly(sea, [[x - h(100), y], [x + h(100), y], [x + h(100), y + h(100)], [x - h(100), y + h(100)]], 'mat-water', 0.2);
+        c.addChild(bay.refl, sea, bay.light.view);
+        // The lens is only a few pixels wide in the landscape postcard. Keep the
+        // familiar pencil halo readable without filters or a separate distant asset.
+        O.lamp.scale.set(1.7); bay.refl._lamp.scale.set(1.7);
+        bay.refl.mask.height = h(10.4);
+        O.lamp.alpha = G.flags.has('lamp_lit') ? 1 : 0;
+        S.vista = { c, tower, lamp: O.lamp, reflection: bay.refl, phase: 'entering' };
+        return { x0: x - h(6), x1: x + h(6), y0: y - h(10.4), y1: y + h(10.4) };
     }
 
     // --- pages turning (src/pageturn.mjs) ---------------------------------------------------------------
@@ -778,6 +809,11 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
             b.scale.set(sc);
             b.x = (W - tw * sc) / 2 - ((cam.x % h(40)) / h(40) - 0.5) * W * 0.03;
             b.y = (H - th * sc) / 2 + clamp(-(cam.y - h(-1)) * cam.zoom * 0.05, -H * 0.04, H * 0.04);
+            if (S.vista) {
+                // The bay backdrop's horizon is at 60%; align it with the real waterline.
+                const vistaScale = Math.max(W / tw, H / (th * 0.8)) * 1.08;
+                b.scale.set(vistaScale); b.x = (W - tw * vistaScale) / 2; b.y = H / 2 - th * 0.6 * vistaScale;
+            }
             if (bb.image === 'bg-steppe') b.y -= H * 0.08;
             let a = 1;
             if (S.bg.length > 1) {
@@ -847,7 +883,7 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
         // water surfaces and reflections
         for (const wb of S.waters) {
             const P = wb.surf._pts;
-            const calm = wb.refl ? (G.puz.pools[wb.w.id]?.ripple ?? 1) : 1;
+            const calm = S.vista ? 0.08 : wb.refl ? (G.puz.pools[wb.w.id]?.ripple ?? 1) : 1;
             const amp = frozen && def.id === 'land' && wb.w.kind === 'sea' ? 0 : (wb.w.kind === 'pool' ? 6 : 10) * Math.max(0.15, calm);
             for (let i = 0; i < P.length; i++) {
                 const bx = wb.surfBase[i][0];
@@ -856,7 +892,7 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
             refreshRope(wb.surf);
             wb.light?.update({ time, cam, width: W, height: H, frozen: frozen && def.id === 'land' && wb.w.kind === 'sea', evening: G.evening, lessMotion: G.lessMotion, ripple: calm });
             if (wb.refl) {
-                const r = G.puz.pools[wb.w.id]?.ripple ?? 1;
+                const r = S.vista ? 0.08 : G.puz.pools[wb.w.id]?.ripple ?? 1;
                 const vis = clamp(1 - r * 1.6, 0, 1);
                 wb.refl._inner.alpha = 0.12 + 0.62 * vis;
                 wb.refl._inner.x = Math.sin(time * 7) * 18 * r;
@@ -1201,6 +1237,15 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
         if (L0 && L0.pan) { tx = lerp(L0.from.x, L0.to.x, 0.75); ty = Math.min(L0.from.y, L0.to.y) - h(1.2); zoom *= 0.85; }
         const hint = G.camHint;
         if (hint) { if (hint.x !== undefined) tx = hint.x; if (hint.y !== undefined) ty = hint.y; if (hint.zoom) zoom = (hint.zoom * restPx) / HL; }
+        if (hint?.frame) {
+            // Both the lamp and its reflection fit in landscape and portrait. This is
+            // a distant view, so it is independent of the playable page's edge clamps.
+            const f = hint.frame;
+            cam.x = (f.x0 + f.x1) / 2; cam.y = (f.y0 + f.y1) / 2;
+            cam.zoom = Math.min(W * 0.9 / (f.x1 - f.x0), H * 0.9 / (f.y1 - f.y0));
+            cam.snap = false;
+            return;
+        }
         // keep inside the scene
         const b = S.def.bounds;
         const hw = W / zoom / 2, hh = H / zoom / 2;
@@ -1344,26 +1389,35 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
                 // turn to another page for a moment (the lighthouse at the end of Kapitel 2), then back
                 const back = S.id;
                 const save = { x: cam.x, y: cam.y, zoom: cam.zoom };
-                const hintBefore = G.camHint;
+                const hintBefore = G.camHint, hiddenBefore = G.hideHero, vistaBefore = G.vista;
+                const figureBefore = { ...G.actors.figure };
                 G.vista = true;
                 const t1 = setScene(data.scene, { turn: 'left' });
                 G.hideHero = true;
-                cam.x = data.x; cam.y = data.y; cam.zoom = (data.zoom || 1) * 0.6; cam.snap = false;
-                G.camHint = { x: data.x, y: data.y, zoom: data.zoom || 1 };
-                if (t1) await t1.done; else await fadeTo(0, 0.4);
-                if (data.peek) {
-                    const fig = G.actors.figure;
-                    Object.assign(fig, { scene: data.scene, x: data.x, y: data.y - h(1.0), visible: true, pose: 'kv-peek', facing: -1 });
-                    await G.wait(1.2);
-                    fig.visible = false;
-                    onFx?.('sfx', 'latch');
+                const frame = data.lighthouse ? lighthouseVista() : null;
+                G.camHint = frame ? { frame } : { x: data.x, y: data.y, zoom: data.zoom || 1 };
+                if (!frame) { cam.x = data.x; cam.y = data.y; cam.zoom = (data.zoom || 1) * 0.6; }
+                cam.snap = false;
+                try {
+                    if (t1) await t1.done; else await fadeTo(0, 0.4);
+                    if (S.vista) S.vista.phase = 'holding';
+                    if (data.peek) {
+                        const fig = G.actors.figure, lamp = S.def.lamp;
+                        Object.assign(fig, { scene: data.scene, x: lamp?.x ?? data.x, y: lamp ? lamp.y + 45 : data.y - h(1.0), visible: true, pose: 'kv-peek', facing: -1 });
+                        await G.wait(1.2);
+                        fig.visible = false;
+                        onFx?.('sfx', 'latch');
+                    }
+                    await G.wait(data.hold ?? Math.max(0.5, (data.t || 2) - 1.6));
+                } finally {
+                    if (S.vista) S.vista.phase = 'leaving';
+                    Object.assign(G.actors.figure, figureBefore);
+                    const t2 = setScene(back, { turn: 'right' });
+                    G.vista = vistaBefore; G.hideHero = hiddenBefore;
+                    G.camHint = hintBefore;
+                    Object.assign(cam, save); cam.snap = false;
+                    if (t2) await t2.done; else fadeAlpha = 0;
                 }
-                await G.wait(Math.max(0.5, (data.t || 2) - 1.6));
-                const t2 = setScene(back, { turn: 'right' });
-                G.vista = false; G.hideHero = false;
-                G.camHint = hintBefore; // back to what the story was looking at on this page
-                Object.assign(cam, save); cam.snap = false;
-                if (t2) await t2.done; else { fadeAlpha = 0; }
                 break;
             }
             case 'epilogue':
@@ -1392,6 +1446,7 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
         /** a page is lying over the screen, waiting to turn (the unfold): scene changes should not turn another */
         get holding() { return !!held; },
         get sceneId() { return S?.id; },
+        get vista() { return S?.vista || null; },
         kloBounds() { return S?.obj?.klo?.visible ? S.obj.klo.getBounds() : null; },
         built(id) { return S?.id === id && S.placeholders === 0; },
         replaceHero(newHero) { L.hero.removeChild(hero.view); hero.destroy?.(); hero = newHero; L.hero.addChild(hero.view); },

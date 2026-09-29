@@ -61,7 +61,13 @@ export function createStory(G, io) {
         wait: (s) => G.wait(s),
         flag: (f) => G.flag(f),
         has: (f) => F.has(f),
-        fx: (name, data) => io.fx(name, data || {}),
+        async fx(name, data) {
+            if (name !== 'vista') return io.fx(name, data || {});
+            const controlsOn = !io.ui.controls?.classList.contains('off');
+            io.ui.showControls?.(false);
+            try { return await io.fx(name, data || {}); }
+            finally { io.ui.showControls?.(controlsOn); }
+        },
         sfx: (n, o) => io.audio?.sfx(n, o),
         stinger: (n) => io.audio?.stinger(n),
         cam(opts) { G.camHint = { ...opts, t0: G.time }; return G.wait(opts.hold ?? opts.t ?? 1); },
@@ -458,7 +464,7 @@ export function createStory(G, io) {
             await s.say(STORY.k2.bothHalves);
             if (inScene('kelp')) await s.cam({ x: h(43), y: h(3.5), zoom: 0.8, t: 1.6, hold: 1.2 });
             // a glimpse of the lighthouse: the paper figure peeks and snaps a shutter shut
-            await s.fx('vista', { scene: 'viken', x: h(29.8), y: h(-7.2), zoom: 0.9, t: 3.2, peek: true });
+            await s.fx('vista', { scene: 'viken', lighthouse: true, t: 3.2, peek: true });
             await s.say(STORY.k2.end);
             s.camFree();
             G.flag('ch2_end');
@@ -618,9 +624,11 @@ export function createStory(G, io) {
         G.auto = null; G.finalRun = false;
         await s.wait(1.2);
         io.audio?.setArea('quiet');
-        await s.cam({ x: h(9), y: h(-6.5), zoom: 0.6, t: 1.5, hold: 2.0, lookSea: true });
+        // The same distant page as Kapitel 2: the real lamp now matches its reflection.
+        // Keep the player on Klippudden while the view visits the bay.
+        await s.fx('vista', { scene: 'viken', lighthouse: true, hold: 1.8 });
         io.audio?.setArea('final');
-        await s.appear('klo', { scene: 'land', x: G.sceneDef.spots.kloUdden.x, y: G.sceneDef.spots.kloUdden.y, pose: 'sign-folded', facing: 1 });
+        await s.appear('klo', { scene: 'land', x: G.player.x - h(1.7), y: G.sceneDef.spots.kloUdden.y, pose: 'sign-folded', facing: 1 });
         s.camFree();
         await s.say(STORY.final.conclusion);
         G.flag('conclusion');
