@@ -848,9 +848,18 @@ export function createStory(G, io) {
         if (e.id === 'teach-step') { hintOnce('teach', STORY.k1.teachStreck); tipOnce('dashed'); }
         if (e.id === 'p2-plank' && !F.has('p2_open')) hintOnce('plank', STORY.k1.plankDone);
     });
+    // the same refusal again and again: Klo steps in with the plain answer for what you are doing now
+    const balks = { key: '', n: 0, t: 0 };
     G.on('balk', (e) => {
         if (e.reason === 'thin' && !F.has('p1_inked')) hintOnce('thin', STORY.k1.firstThin);
         if (e.reason === 'slow' && e.id === 'sprang-p4') hintOnce('leap', STORY.k2.leapHint);
+        const key = e.reason + ':' + (e.id || '');
+        if (key !== balks.key || G.time - balks.t > 25) { balks.key = key; balks.n = 0; }
+        balks.n++; balks.t = G.time;
+        if (balks.n === 3 && e.reason !== 'paper' && e.reason !== 'fold' && e.reason !== 'gate') {
+            const H = HINTS[objective()];
+            if (H) G.later(1.2, () => io.guide?.hint(H.sketch || H.note, 'klo', 9000));
+        }
     });
     G.on('push', (e) => { if (e.notch === G.sceneDef.rail?.target) hintOnce('stone', STORY.k1.stoneDone); });
     // fluff that found no tuft: the sköldhäst wonders (twice at most, so it never nags)
