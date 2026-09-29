@@ -216,6 +216,19 @@ or additional chapter release is part of this branch.
 
 ## Known issues and next steps
 
+### Continued implementation, small pushed steps (29 September)
+
+- Baseline for this continuation: 66 passing tests; fresh before contact sheets
+  at all three viewports. Continue on `codex/skoldhast-polish`, pushing each
+  verified outcome before starting the next integration step.
+- Asset cleanup now waits for background bundles before unloading them. Late
+  atlas, image and data responses cannot repopulate a closed session. Three
+  regression tests cover delayed loads, shared-cache reopen and failed requests.
+- Order next: finish close-during-drawing cleanup; enable regional collection
+  and underwater colouring; add the remaining ten pencils; complete the lit
+  lighthouse view at the finale. The clipping remains excluded by the privacy
+  rules, and Flytbryggan remains stretch work.
+
 - **Performance on a real phone is unmeasured.** Headless Chromium renders WebGL in software, so its frame rate is not a device benchmark. Measure with `?debug` on Alva's device and lower the resolution cap in `main.mjs` `sizes()` if needed.
 - **Audio** has passed automatic checks (levels, seams, tuning) but needs a listen.
 - **Not built** (optional in the plan):
