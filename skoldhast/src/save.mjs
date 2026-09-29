@@ -17,7 +17,9 @@ const K1_END = ['intro_done', 'b:k1_enter', 'b:k1_stopwatch', 'klo_hidden', 'b:k
     'ch1_end', 'clue_map_corner', 'clue_note1', 'clue_wave_marks', 'clue_reflection', 'clue_fold', 'clue_figure', 'clue_glimpse', 'exp_fart', 'exp_fart_logged', 'spangen_flag'];
 const K2_END = [...K1_END, 'ch2_open', 'b:k2_open', 'b:k2_note2', 'clue_note2', 'p5_lit', 'b:k2_lit', 'b:k2_lanterns', 'p4_leap', 'b:k2_leap', 'exp_sprang',
     'exp_sprang_logged', 'mark_land', 'b:k2_mark_land', 'clue_mark_land', 'clue_lighthouse', 'p6_flat', 'mark_sea', 'b:k2_mark_sea', 'clue_mark_sea',
-    'marks_both', 'b:k2_end', 'ch2_end', 'p4_plank'];
+    'marks_both', 'b:k2_end', 'ch2_end', 'p4_plank',
+    // Kapitel 2 is done: its white pages have long turned away (they must not peel again)
+    'peeled_udden-paper', 'peeled_trench-paper'];
 export const CODE_RESTORE = {
     1: { flags: K1_END, checkpoint: 'overlook' },
     2: { flags: K2_END, checkpoint: 'viken' }
