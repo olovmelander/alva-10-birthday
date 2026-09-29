@@ -145,7 +145,9 @@ export function createKlo(PIXI, { texture }) {
             lettered.rotation = reducedMotion ? 0 : Math.sin(time * 2.5) * (m.speak ? 0.018 : 0.006);
             return;
         }
-        art.scale.x = facing;
+        // A crab turns its gaze while keeping its broad shell silhouette.
+        // Interpolating horizontal scale through zero made him disappear edge-on.
+        art.scale.x = poseFacing;
         art.rotation = m.tilt;
         const emerge = actor.pop || 0;
         art.alpha = 1 - emerge * 0.5;
@@ -164,7 +166,7 @@ export function createKlo(PIXI, { texture }) {
             const side = i ? 'r' : 'l';
             setFrame(eye.s, 'klo-part-eye-' + side + (m.blink ? '-blink' : ''));
             const look = hero ? clamp((hero.y - actor.y - 80) / 600, -0.18, 0.18) : 0;
-            eye.c.rotation = (i ? 1 : -1) * look + (reducedMotion ? 0 : Math.sin(time * 2.2 + i * 0.7) * 0.045);
+            eye.c.rotation = (i ? 1 : -1) * look + (facing - poseFacing) * 0.055 + (reducedMotion ? 0 : Math.sin(time * 2.2 + i * 0.7) * 0.045);
         });
         arms.forEach((arm, i) => {
             const side = i ? 1 : -1;
