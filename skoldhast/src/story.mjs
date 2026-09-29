@@ -246,6 +246,7 @@ export function createStory(G, io) {
             s.clue('map_corner');
             G.flag('rule_demo');
             G.actors.klo.pose = 'idle';
+            hintOnce('mapPurpose', STORY.k1.mapPurpose);
         }
     });
 
@@ -273,7 +274,12 @@ export function createStory(G, io) {
     beat('k1_p1', {
         on: 'inked', filter: (e) => e.id === 'p1-arch',
         lock: false,
-        async run(s) { s.stinger('aha'); s.checkpoint('steppe'); }
+        async run(s) { s.stinger('aha'); s.checkpoint('steppe'); await s.remark(STORY.k1.bridgeDone); }
+    });
+    beat('k1_boardwalk', {
+        on: 'latch', filter: (e) => e.flag === 'spangen_flag',
+        lock: false,
+        async run(s) { await s.remark(STORY.k1.boardwalkLesson); }
     });
 
     beat('k1_glimpse', {
@@ -308,6 +314,7 @@ export function createStory(G, io) {
             s.clue('wave_marks');
             G.flag('p3_done');
             s.checkpoint('ledge');
+            hintOnce('waveRoute', F.has('p2_open') ? STORY.k1.wavesToSea : STORY.k1.wavesToPool);
         }
     });
 
@@ -343,6 +350,7 @@ export function createStory(G, io) {
             await s.wait(0.6);
             s.camFree();
             s.checkpoint('pool');
+            await s.remark(STORY.k1.archDone);
         }
     });
 
@@ -385,6 +393,11 @@ export function createStory(G, io) {
             s.experiment('djup', 'skoldpadda');
         }
     });
+    beat('k1_flap', {
+        on: 'flattened', filter: (e) => e.id === 'flap',
+        lock: false,
+        async run(s) { await s.remark(STORY.k1.flapLesson); }
+    });
 
     // Smaktestet (O1): grass on land and kelp in the sea
     beat('taste', {
@@ -403,14 +416,19 @@ export function createStory(G, io) {
     });
 
     let waitCool = 0;
-    beat('k1_hook', {
-        when: () => inScene('kelp') && inArea('overlook') && !F.has('ch1_end'),
-        repeat: true,
+    beat('k1_hook_wait', {
+        when: () => inScene('kelp') && inArea('overlook') && !F.has('ch1_end')
+            && (!F.has('p3_done') || !F.has('p2_open')) && G.time >= waitCool,
+        repeat: true, lock: false,
         async run(s) {
-            if (!F.has('p3_done') || !F.has('p2_open')) {
-                if (G.time > waitCool) { waitCool = G.time + 20; await s.say(F.has('p3_done') ? STORY.k1.waitPool : STORY.k1.waitWaves); }
-                return;
-            }
+            waitCool = G.time + 20;
+            await s.remark(F.has('p3_done') ? STORY.k1.waitPool : STORY.k1.waitWaves);
+        }
+    });
+    beat('k1_hook', {
+        when: () => inScene('kelp') && inArea('overlook') && !F.has('ch1_end')
+            && F.has('p3_done') && F.has('p2_open'),
+        async run(s) {
             const vk = G.sceneDef.spots.veckmuren;
             await s.cam({ x: vk.x - h(4), y: h(4.5), zoom: 0.7, t: 1.4, hold: 1.8 });
             s.stinger('reveal');
@@ -459,10 +477,11 @@ export function createStory(G, io) {
     });
     beat('k2_lit', {
         on: 'lit', filter: (e) => e.id === 'vault',
+        lock: false,
         async run(s) {
             s.stinger('aha');
             await s.wait(0.6);
-            await s.say(STORY.k2.lanterns);
+            await s.remark(STORY.k2.lanterns);
             s.checkpoint('trench');
         }
     });
@@ -496,6 +515,7 @@ export function createStory(G, io) {
         async run(s) {
             s.stinger('discovery');
             s.clue('mark_sea');
+            await s.say(STORY.k2.seaFound);
             if (!F.has('mark_land')) await s.say(STORY.k2.half);
         }
     });
@@ -503,6 +523,7 @@ export function createStory(G, io) {
     beat('k2_end', {
         on: 'marksBoth',
         async run(s) {
+            await s.fx('mapAssemble', {});
             await s.say(STORY.k2.bothHalves);
             if (inScene('kelp')) await s.cam({ x: h(43), y: h(3.5), zoom: 0.8, t: 1.6, hold: 1.2 });
             // a glimpse of the lighthouse: the paper figure peeks and snaps a shutter shut
@@ -624,6 +645,7 @@ export function createStory(G, io) {
             const win = G.sceneDef.spots.window;
             io.save(); // preserve the completed sea half before opening the final drawing
             await s.cam({ x: win.x, y: win.y, zoom: 1.2, t: 0.8, hold: 0.9 });
+            await s.say(STORY.k3.lastStroke);
             // Alva's pencil joins the two half-marks across the window (tap or trace the anchors; it can't fail)
             const getGeometry = () => {
                 const anchors = [];
@@ -893,7 +915,15 @@ export function createStory(G, io) {
         // Kapitel 1
         if (!F.has('klo_hidden')) return 'explore';
         if (!F.has('klo_ja')) return 'hide';
-        if (inScene('kelp')) return 'hook';
+        // Going through the pool first is a valid choice. If the land evidence
+        // is still missing, guide back to it rather than into the chapter gate.
+        if (inScene('kelp')) {
+            if (!F.has('p3_done')) {
+                if (!F.has('p1_inked')) return 'p1';
+                return F.has('p3_t1') && !(F.has('p3_t2') && F.has('p3_t3')) ? 'p3b' : 'p3';
+            }
+            return 'hook';
+        }
         if (F.has('p2_open') && F.has('p3_done')) return 'kelp';
         // the nearest unfinished puzzle: the pool by her beach, the arch in the west, the steppe beyond it
         const x = P().x / HL;

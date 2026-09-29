@@ -1,6 +1,59 @@
 # Sköldhästen – handover
 
-## Latest continuation: deeper visual/mechanics polish
+## Latest continuation: connected story, coloured cloud and aligned cave water
+
+Review branch: `codex/skoldhast-story-flow`, based on merged main `b24ee42`.
+The earlier polish was merged in PR #8. Ask before merging this continuation.
+
+Story audit and paired screenshots:
+[`docs/skoldhast/story-flow-review.md`](../docs/skoldhast/story-flow-review.md).
+The opening now keeps Alva's drawn shoreline, folds the painted sea at its exact
+endpoint and freezes the splash during that movement. The two questions have
+different answers. Klo demonstrates the map changing first and the beach
+following it; collected fragments then join into a visible route to the keeper.
+P1–P8 refer back to those discoveries and the final line resumes the interrupted
+shore. Guidance covers either fragment order, the grown-ramp ledge and return
+routes. Repeated reminders and the fish success no longer unnecessarily lock play.
+
+The cloud drawing has five pencils and a translucent coloured-pencil fill. Its
+shape and colour survive closing/reopening. Legacy drawings stay outline-only.
+The cloud settles inside the retained opening sky and uses bounded distant drift
+in play, clear of the sun, lettering and terrain. Picture snapshots restore their
+temporary transforms immediately. Round and wide freehand shapes are checked.
+
+The cave and sea now share one water level, removing a 180-unit swimming snap at
+their join. Entry keeps its previous immersion. Air/light use the authored water
+level, water strokes include both exact endpoints, and the entrance artwork's
+painted water meets the pool. See
+[`docs/skoldhast/water-alignment-review.md`](../docs/skoldhast/water-alignment-review.md).
+Underwater camera framing now follows the torso so the head stays below the goal
+note and inside the screen near the surface.
+
+Current pure suite: **141/141 passed**, including the full-game robot and
+deterministic frame-rate replays. First playable: **2,769,354 bytes**, below the
+3,000,000-byte limit. Focused commands for this continuation:
+
+```sh
+node tests/browser/skoldhast-opening.mjs --out /tmp/opening
+node tests/browser/skoldhast-fold-demo.mjs --out /tmp/fold-demo
+node tests/browser/skoldhast-cloud-color.mjs --out /tmp/cloud-color
+node tests/browser/skoldhast-cloud-sky.mjs --out /tmp/cloud-sky
+node tests/browser/skoldhast-water-alignment.mjs --out /tmp/water-alignment
+```
+
+Required browser launch, save, touch at both phone sizes, guide, pages and normal
+finale pass on this continuation. Reduced-motion finale and view cancellation also
+pass; save and context recovery were rechecked after the cloud changes. The
+opening passes both phone sizes in normal/reduced motion. Four keyboard/touch
+journeys cover all puzzles and extras; see the review for the order of checks.
+No captured browser errors. The updated full contact sheets cover all 27 places
+at 844×390, 390×844 and 1440×900, alongside matched opening, cloud and water views.
+
+No new chapters, TTS, external art or sound files. The privacy rules are unchanged.
+Human understanding of the story and physical-phone smoothness still need a
+human playtest; previous audio listening limitations remain.
+
+## Previous continuation: deeper visual/mechanics polish (merged)
 
 The deeper audit and implemented changes are documented in
 [`docs/skoldhast/polish-round3.md`](../docs/skoldhast/polish-round3.md), with
@@ -14,10 +67,10 @@ Start review with the clearer lighthouse line, P7's visible mirror comparison,
 Signe's much slower race, the current hide/wait/emerge prompts, the drawing draft
 controls and individual map pieces in Ledtrådar. Physical-phone smoothness and
 human listening remain unmeasured. Text-to-speech was explicitly deferred.
-All work stays on `codex/skoldhast-polish`; ask before merging main.
+That work was merged from `codex/skoldhast-polish` in PR #8.
 
 
-Last updated: 29 September 2026. The review branch is `codex/skoldhast-polish`, based on `main` at `1af945b`. The design is in `docs/skoldhast-game-plan.md` (v2); the working rules are in `skoldhast/CLAUDE.md`.
+Last updated: 29 September 2026. The current review branch is `codex/skoldhast-story-flow`, based on `main` at `b24ee42`. The design is in `docs/skoldhast-game-plan.md` (v2); the working rules are in `skoldhast/CLAUDE.md`.
 
 ## State
 
@@ -103,7 +156,7 @@ save through the real title/prologue and sends DOM/CDP input, then accelerates
 the fixed simulation to cover P1–P8 and the implemented extras. It is an
 automated playthrough, not a human usability or physical-device performance test.
 
-The current first-playable bundle is **2,723,140 bytes (2.723 MB)**, below the
+At that earlier polish gate, the first-playable bundle was **2,723,140 bytes (2.723 MB)**, below the
 strict **3,000,000-byte** build gate. Human listening and performance/feel on Alva's actual device remain
 unverified. Foreground kelp can still briefly soften/overlap the hero; no new
 missing scenery or terrain seams were found in the 27-place review.

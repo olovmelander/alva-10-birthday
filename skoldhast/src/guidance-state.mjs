@@ -51,9 +51,18 @@ export function describeGuidance(G, settings = {}) {
     }
     function calm(id) { return clamp((1 - (S.pools[id]?.ripple ?? 1)) / .94); }
 
+    const returnRope = scenes.land.ropes[0];
+    const cliffEdge = scenes.land.edges.find(e => e.id === 'klipp-edge');
+    const needsCliffExit = ['toSea', 'toViken'].includes(objective) && scene === 'land'
+        && F.has('p4_leap') && !F.has('p4_plank') && p.x <= cliffEdge.x && p.y < cliffEdge.y + HL;
+
     if (hidden && F.has('klo_ja') && !F.has('rule_demo') && scene === 'land') {
         step('afterKlo', point('land', scenes.land.spots.kloHole), 'emerge', 'ready', W.afterKlo);
         cue.goal = W.afterKlo;
+    } else if (needsCliffExit) {
+        // Finding the mark changes the objective immediately. Keep the physical
+        // way home visible before directing either puzzle order toward the sea.
+        step('returnRope', point('land', returnRope), 'act');
     } else if (objective === 'hide') {
         const target = point('land', scenes.land.spots.kloHole);
         hiding('hide', target, scene === 'land' && Math.abs(p.x - target.x) < 3 * HL);
@@ -74,8 +83,15 @@ export function describeGuidance(G, settings = {}) {
         const tuft = scenes.land.tussocks.find(t => !t.decor && !F.has(t.flag));
         const clump = tuft && scenes.land.clumps.find(c => !c.teach && Math.abs(c.x - 5 * HL - tuft.x) < 1.5 * HL);
         const flying = tuft && S.fluff.some(f => f.target === tuft.id);
-        step(flying ? 'rampWait' : 'ramp', point('land', flying ? tuft : clump), flying ? null : 'move', flying ? 'working' : 'approach');
-        control = flying ? null : 'gallop'; progress(n, 3, W.progress.ramps(n));
+        if (!tuft) {
+            // Growing the last ramp does not yet inspect the evidence: the
+            // chapter beat needs the player on the ledge above all three ramps.
+            step('waveLedge', point('land', scenes.land.spots.kloLedge));
+        } else {
+            step(flying ? 'rampWait' : 'ramp', point('land', flying ? tuft : clump), flying ? null : 'move', flying ? 'working' : 'approach');
+            control = flying ? null : 'gallop';
+        }
+        progress(n, 3, W.progress.ramps(n));
     } else if (objective === 'p4') {
         if (F.has('mark_land') && !F.has('p4_plank')) step('returnRope', point('land', scenes.land.ropes[0]), 'act');
         else if (F.has('p4_leap')) step('landmark', point('land', scenes.land.spots.landmark));
@@ -145,12 +161,18 @@ export function describeGuidance(G, settings = {}) {
 
     // A mark on another page is useless: point to this page's route instead.
     if (cue.target && cue.target.scene !== scene) {
-        let target, instruction;
-        if (scene === 'land') { target = point('land', scenes.land.spots.arch); instruction = W.route.kelp; }
-        else if (scene === 'kelp' && cue.target.scene === 'viken' && F.has('marks_both')) { target = at('kelp', 46.8, 1.8); instruction = W.route.viken; }
+        let target, instruction, action = 'move';
+        if (scene === 'land' && cue.target.scene === 'viken' && F.has('gate_open')) {
+            const exit = scenes.land.exits.find(e => e.to === 'viken');
+            target = point('land', { x: (exit.x0 + exit.x1) / 2, y: scenes.land.spots.fromViken.y });
+            instruction = W.route.bay;
+        } else if (scene === 'land') {
+            target = point('land', scenes.land.spots.arch); instruction = W.route.kelp;
+            if (F.has('p2_open')) action = 'act';
+        } else if (scene === 'kelp' && cue.target.scene === 'viken' && F.has('marks_both')) { target = at('kelp', 46.8, 1.8); instruction = W.route.viken; }
         else if (scene === 'kelp') { target = at('kelp', 0, 2.3); instruction = W.route.land; }
         else { target = point('viken', scenes.viken.spots.fromLand); instruction = W.route.bayExit; }
-        step('route-' + cue.target.scene, target, 'move', 'approach', instruction); cue.progress = null;
+        step('route-' + cue.target.scene, target, action, 'approach', instruction); cue.progress = null;
     }
     if (hidden && cue.action && !['hide', 'emerge'].includes(cue.action)) emerge();
     if (control === 'hide') control = hidden && !holdToHide ? 'stay' : holdToHide ? 'hideHold' : 'hide';

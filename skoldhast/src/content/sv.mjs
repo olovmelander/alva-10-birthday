@@ -61,7 +61,7 @@ export const UI = {
     prologue: 'Ett streck till', finale: 'Havet hittar hem',
     theEnd: 'Slut – men forskningen fortsätter.', playOn: 'Utforska vidare',
     drawGull: 'Rita en mås!', drawCloud: 'Rita ett moln!', drawShore: 'Rita strandkanten vidare – ut på det vita papperet!',
-    drawLast: 'Rita det sista strecket!',
+    drawLast: 'Förena strandkantens två ändar!',
     choiceWhat: 'Vad hände?', choiceWho: 'Vem gjorde så?'
 };
 
@@ -75,8 +75,14 @@ export const STORY = {
         klo1: ['klo', 'Forskare? Här! Professor Klo – expert på allt som bor både på land och i vatten.'],
         klo1Fallback: ['klo', 'Behöver någon en forskare? Här! Professor Klo – expert på land och vatten.'],
         klo2: ['klo', 'Hittills mest krabbor.'],
+        shoreInvite: ['horse', 'Rita stranden vidare, Alva. Jag vill känna nästa våg på hovarna!'],
         stuck: ['horse', 'Alva … vågen har fastnat.'],
-        fold: ['horse', 'Titta – ett veck. Någon har vikt sidan.'],
+        fold: ['horse', 'Havet veks undan! Och ditt streck tog slut vid vecket.'],
+        foldCaption: 'Havet viks in under papperet.',
+        afterFreezeCaption: 'Vågen stannar mitt i sitt plask.',
+        choiceWhatAnswer: ['klo', 'Vecket stängde vägen för vågen. Under ytan kan vattnet fortfarande röra sig.'],
+        choiceWhoAnswer: ['klo', 'Jag såg en linjal. Någon vek undan havet, rakt över ditt streck.'],
+        promise: ['horse', 'Jag vill ha tillbaka plasket på hovarna. Vi hittar vägen till andra sidan!'],
         mystery: ['klo', 'Äntligen ett riktigt mysterium!'],
         research: ['horse', 'Då får vi forska på det.']
     },
@@ -92,25 +98,31 @@ export const STORY = {
             ['klo', '… Jag behöver tänka en stund.']
         ],
         mapCorner: [
-            ['klo', 'Den här låg i sanden. En bit av en karta – och i hörnet står det /K.'],
-            ['klo', 'Titta nu!'],
-            ['klo', 'Det som händer med kartan händer med världen!']
+            ['klo', 'En kartbit, signerad /K. Samma strand som här – men någon har vikt resten.'],
+            ['klo', 'Jag viker bara den här sanddynan på kartan. Håll ögonen på stranden!'],
+            ['klo', 'Den vek sig också! Och när kartan vecklas ut, kommer sanddynan tillbaka.']
         ],
-        clouds: [['klo', 'Varför är molnen inte färglagda?'], ['horse', 'Moln är vita, Klo.']],
+        mapPurpose: 'Vi följer spåren på land och under vattnet. De måste leda till havets veck.',
+        mapDemoLabels: { map: 'Kartbiten', world: 'Stranden' },
+        clouds: [['klo', 'Varför är de andra molnen inte färglagda?'], ['horse', 'De har inte lånat Alvas färgpennor.']],
         note1: ['note', 'OBS! Ofärdigt streck. Rör ej! /K'],
         noteKlo: [
             ['klo', 'K? Det är inte jag! Jag kan inte ens hålla i en linjal.'],
-            ['klo', 'Men vem skriver så prydligt? Med linjal, dessutom!']
+            ['klo', 'Vecket har brutit vägen till stäppen. Men dina hovar kan rita ihop strecken!']
         ],
-        noteKlo2: ['klo', 'Det här är ju Alvas streck. Då får vi väl rita vidare?'],
+        noteKlo2: ['klo', 'I full galopp ritar hovarna klart vägen. Då når vi spåren uppe på stäppen.'],
+        bridgeDone: ['klo', 'Vägen håller! Nu kan vi följa havets spår uppe på branten.'],
+        boardwalkLesson: ['klo', 'Hovslagen driver hjulet – och upp går flaggan! En brygga som arbetar till musik.'],
         glimpse: ['horse', 'Det finns fler!'],
-        wavemarksSeen: ['klo', 'Vågmärken – högt uppe på branten! Hur kom havet dit upp?'],
-        wavemarks: ['klo', 'Havet har varit här uppe!'],
-        mirror: ['klo', 'Spegelbilden visar hur sidan ska se ut!'],
+        wavemarksSeen: ['klo', 'Vågmärken här uppe? Vi måste se var stranden tog vägen när sidan vek sig.'],
+        wavemarks: ['klo', 'Havet och stäppen har hängt ihop här! Spåren fortsätter mot Klippudden.'],
+        wavesToPool: 'Nu har vi spåret på land. Pölen vid stranden kan visa vägen under vattnet.',
+        wavesToSea: 'Vi har spåret på land och en väg under vattnet. Nu kan vi följa vecket i havet!',
+        mirror: ['klo', 'I blankt vatten syns sidan utan vecket. Där är vägen till havet öppen!'],
         whisper: ['klo', 'Du gömmer dig jättebra. Förutom manen. Den syns ända upp till ytan.'],
         fishRock: ['klo', 'Fiskarna tror att du är en sten!'],
         deep: ['klo', 'Djupare än alla hästar jag har mätt!'],
-        enterHint: 'Forskning, steg ett: hur snabb är du? Galoppera förbi mig, så tar jag tid!',
+        enterHint: 'Vi ska hitta havets veck! Galoppera förbi mig först, så ser vi vad dina hovar kan.',
         holeHint: 'Jag kommer inte ut förrän det är lugnt. Göm dig, så tittar jag fram …',
         poolHint: 'Pölen krusar sig så fort du rör dig. Om du står alldeles stilla – göm dig – blir den blank som en spegel.',
         mirrorStone: ['klo', 'Titta noga! I spegelbilden ligger stenen alldeles vid klippan.'],
@@ -120,50 +132,54 @@ export const STORY = {
         fluffWrongWay: 'Fjunet flög åt fel håll … det flyger dit jag springer!',
         fluffMiss: 'Fjunet landade inte på någon prickig tuva …',
         plankDone: 'Plankan är hel – precis som i spegeln!',
+        archDone: ['klo', 'Vattenporten! Här kan vi simma under den stillastående vågen.'],
         teachStreck: 'Såg du? Hovarna ritade klart strecket när du galopperade!',
         firstThin: 'Strecket är ofärdigt. I full galopp ritar dina hovar klart det!',
         teachFluff: 'Fjunet flög åt samma håll som du sprang – och tuvan växte!',
         brantenTufts: 'Tuvorna där uppe är prickiga, som om de väntar på något …',
         rampGrew: 'En ramp av gräs! Nu kommer vi upp en bit.',
-        swimTip: 'Här nere kan du simma åt alla håll. Göm dig i en ström, så driver du med den.',
+        swimTip: 'Här under vågen rör sig vattnet ännu! Simma fritt, eller göm dig och följ en ström.',
+        flapLesson: ['klo', 'Ditt tunga skal plattade till pappershörnet. Bra att veta om vi hittar fler veck!'],
         tasteGrass: ['horse', 'Mums. Stäppgräs.'],
         tasteKelp: ['horse', 'Kelp! Salt och krispigt.'],
         smak: [['klo', 'Gräs på land och kelp i havet?'], ['klo', 'Jag antecknar: äter både och. Det avgör ingenting!']],
-        waitWaves: ['klo', 'Vänta! Först måste vi mäta vågmärkena uppe på stäppen.'],
-        waitPool: ['klo', 'Vänta! Vi har inte undersökt pölen vid klippan än.'],
+        waitWaves: ['klo', 'Här ser vi bara havssidan. Vågmärkena på branten visar var vecket går på land.'],
+        waitPool: ['klo', 'Pölen på stranden visar sidan utan vecket. Vi behöver jämföra med den också.'],
         hook: [
-            ['horse', 'Någon har vikt det här.'],
-            ['klo', 'Med linjal.'],
+            ['horse', 'Samma veck som stoppade mitt plask. Det fortsätter ända ner hit!'],
+            ['klo', 'Och spåren på land leder mot samma vikta sida. Någon har stängt vägen.'],
             ['horse', 'Vem var det där?!']
         ],
         paper: 'Nästa sida kommer snart.'
     },
     k2: {
         open: [
-            ['klo', 'Titta på kartbiten. Märket i hörnet är rivet i två delar.'],
-            ['klo', 'Hitta märkets två halvor – en på land och en i havet.']
+            ['klo', 'Kartan visar en väg runt vecket. Men märket som visar vägen är rivet mitt itu.'],
+            ['klo', 'En halva finns på Klippudden, en i havet. Med båda kan vi hitta fram!']
         ],
         record: ['klo', 'Fem hästlängder! Nytt rekord för sköldpaddor. Och för krabbor.'],
         lighthouse: ['horse', 'Fyren lyser – men bara i spegelbilden.'],
         note2: ['note', 'Snälla, rör inte strecken. Det är för teckningens skull. /K'],
-        lanterns: ['klo', 'Lyktfiskar! De är blyga … och de lyser.'],
+        lanterns: ['klo', 'De följde ditt skal och lyste upp vägen! Nu når vi kartbiten längre in.'],
         half: ['klo', 'Halva märket fattas. Den andra halvan ligger nog högt upp – bland vågmärkena.'],
-        halfSea: ['klo', 'Den andra halvan måste finnas i havet.'],
-        bothHalves: ['klo', 'Två halvor av samma märke!'],
-        end: ['klo', 'Nu vet han att vi kommer.'],
-        lyktHint: 'Lyktfiskar! De gömmer sig för simmare. Men för en sten … kanske inte?',
-        whirlHint: 'Strömmen går bara runt och runt. Man kan inte simma emot – släpp taget och göm dig!',
+        halfSea: ['klo', 'Den andra halvan finns i havet. Tillsammans visar de vägen till fyren.'],
+        bothHalves: ['klo', 'Bitarna passar! Kartans väg blir hel – och strömmen öppnar sig mot fyren!'],
+        mapAssemble: 'Kartbitarna passar ihop',
+        end: ['klo', 'Där är figuren med linjalen! Vi följer strömmen till fyren och frågar om vecket.'],
+        lyktHint: 'Valvet skymmer vägen till kartbiten. Lyktfiskarna kan lysa upp det – om du gömmer dig!',
+        whirlHint: 'Ett vikt karthörn mitt i virveln! Göm dig, så bär strömmen ditt skal dit.',
+        seaFound: ['klo', 'Skalet plattade ut hörnet. Där låg havshalvan av kartans märke!'],
         leapHint: 'För lite fart vid kanten. Backen är lång – börja högst uppe och galoppera hela vägen!',
         afterEnd: 'Virveln har vänt sig ut åt höger. Den nya strömmen leder till nästa sida!',
         laneHide: 'Fiskarna följer dig! Men här ligger du still. Göm dig i strömmen ovanför, så driver ni in i valvet tillsammans.',
         ropeHint: 'Ett rep! Ställ dig vid det och tryck Dra, så fälls plankan ner över klyftan.'
     },
     k3: {
-        arrive: ['klo', 'Spegelviken! Och där ute – Pappersfyren.'],
-        mirror: ['klo', 'Spegelbilden visar tre öppna luckor och en tänd lampa. Så ska fyren se ut!'],
+        arrive: ['klo', 'Här gömde sig figuren! Öppnar vi fyrens luckor kanske han vågar titta ut.'],
+        mirror: ['klo', 'Som i pölen! Tre öppna luckor i spegeln. Följ kedjorna, så får vi fram ljuset.'],
         talk1: [
-            ['kv', 'Strandkanten blir aldrig färdig. Och ett ofärdigt streck kan bli en reva.'],
-            ['kv', 'Så jag vek bort havet. Det var för teckningens skull!']
+            ['kv', 'Jag såg strandkanten växa ut över papperet. Jag blev rädd att sidan skulle gå sönder.'],
+            ['kv', 'Så jag vek undan havet med min linjal. Jag ville skydda teckningen.']
         ],
         talk2: [
             ['kv', 'Här står LAND. Och här står HAV. Var ska jag skriva dig?'],
@@ -174,15 +190,16 @@ export const STORY = {
             ['horse', 'Strandkanten ska inte vara färdig. Den flyttar sig med varje våg.'],
             ['horse', 'Det är där jag bor – precis i mitten.']
         ],
-        line: ['klo', 'Linjen! Den går hela vägen längs bryggan – och sedan ner i vattnet.'],
+        line: ['klo', 'Alvas avbrutna strandkant! Rita vidare med hovarna på land och skalet i havet.'],
+        lastStroke: ['horse', 'Nu når våra streck varandra, Alva. Du kan förena dem med din penna!'],
         chains: 'Tre kedjor går från luckorna: en ner till botten, en till röret och en till bryggan.',
-        drumHint: 'Bryggan är ihålig. Galoppera fram och tillbaka på den!',
-        plateHint: 'Göm dig ovanför plattan. Då sjunker skalet ner och håller den nere!',
-        pipeHint: 'Göm dig vid rörets mynning. Då bär strömmen ditt skal hela vägen upp!',
+        drumHint: 'Som på Spången! Hovslagen driver hjulet som öppnar luckan. Galoppera på bryggan!',
+        plateHint: 'Tungt skal, precis som på karthörnet. Göm dig över plattan och låt skalet sjunka!',
+        pipeHint: 'Som med lyktfiskarna: göm dig och följ strömmen. Här går den upp genom röret!',
         diveHint: 'Göm dig nu – låt strömmen ta dig till fönstret!',
         sorry: [
-            ['kv', 'Förlåt, Alva. Det var inget fel på ditt streck. Det var bara inte färdigt än.'],
-            ['kv', 'Jag ritar strandkanten i blyerts. Då kan vågorna flytta den.']
+            ['kv', 'Förlåt, Alva. Ditt streck var inte trasigt. Det behövde få fortsätta.'],
+            ['kv', 'Jag vecklar ut havet. Och ritar i blyerts, så att strandkanten får röra sig.']
         ]
     },
     final: {
@@ -228,21 +245,21 @@ export const BALK = {
 export const HINTS = {
     explore: { q: 'Vad vill Klo?', note: 'Klo har ett stoppur. Visa hur fort du kan springa – galoppera förbi honom!', sketch: 'Håll spaken ända ut (eller pilen inne) i några sekunder nära Klo.' },
     hide: { q: 'Hur får man en blyg krabba att komma fram?', note: 'Blyga djur kommer fram när ingen syns. Göm dig nära hålet!', sketch: 'Stå still nära hålet och tryck Göm dig.' },
-    pool: { q: 'Vad döljer pölen?', note: 'Göm dig vid pölen. Under skalet blir du så stilla att vattnet blir en spegel.', sketch: 'Gå fram till pölen och göm dig. Stanna gömd tills spegelbilden syns.' },
+    pool: { q: 'Hur kommer vi under den stillastående vågen?', note: 'Pölen kan visa sidan utan vecket. Göm dig, så blir vattnet blankt nog att se vägen.', sketch: 'Gå fram till pölen och göm dig. Stanna gömd tills spegelbilden syns.' },
     p2: { q: 'Vad skiljer spegelbilden från stranden?', note: 'I spegelbilden ligger stenen vid klippan, och plankan över sprickan är hel.', sketch: 'Ställ dig bakom stenen och tryck Knuffa tills den ligger vid klippan. Galoppera sedan över den streckade plankan.' },
     p1: { q: 'Hur kommer man över valvet?', note: 'Streckade linjer är ofärdiga. I full galopp ritar hovarna klart dem!', sketch: 'Ta sats på plankorna till höger om valvet och galoppera hela vägen över.' },
-    p3: { q: 'Hur kommer man upp på branten?', note: 'Backsippornas fjun flyger åt samma håll som du springer. De prickiga tuvorna vill ha fjun.', sketch: 'Galoppera förbi backsippan på slätten mot branten. Vänta tills rampen har växt och gå upp.' },
+    p3: { q: 'Vart leder havets spår på land?', note: 'Vi behöver nå vågmärkena. Fjun till de prickiga tuvorna får gräset att växa till ramper.', sketch: 'Galoppera förbi backsippan på slätten mot branten. Vänta tills rampen har växt och gå upp.' },
     p3b: { q: 'Hur når fjunet de övre tuvorna?', note: 'Två backsippor står på den nedre avsatsen. Spring förbi dem i full fart!', sketch: 'Ta sats på slätten, galoppera upp för rampen och vidare förbi backsipporna.' },
     kelp: { q: 'Vart leder Vattenporten?', note: 'Valvet vid pölen är öppet nu!', sketch: 'Ställ dig i valvet och tryck Simma in.' },
     hook: { q: 'Vad finns längre ut i havet?', note: 'Simma österut, mot det ljusa vattnet. Strömmen hjälper dig.', sketch: 'Följ bubbelströmmen åt höger tills Klo säger till.' },
     p4: { q: 'Hur kommer man över klyftan?', note: 'Du behöver full fart ända fram till kanten. Backen är lång …', sketch: 'Gå upp på toppen av backen och galoppera nerför hela vägen till kanten.' },
     toSea: { q: 'Var är märkets andra halva?', note: 'Den ligger någonstans i havet, långt nere i djupet.', sketch: 'Simma in genom valvet vid pölen och följ diket nedåt åt höger.' },
-    p5: { q: 'Hur blir det ljust i Mörka valvet?', note: 'Lyktfiskarna är blyga. De följer en sten – men aldrig en simmare.', sketch: 'Simma till strömmen ovanför fiskarnas kelp och göm dig där. Strömmen bär dig in i valvet.' },
-    p6: { q: 'Vad finns mitt i strömkarusellen?', note: 'Man kan inte simma emot. Släpp taget!', sketch: 'Göm dig i strömmen, så drar den dig in till mitten.' },
+    p5: { q: 'Hur når vi kartbiten bortom Mörka valvet?', note: 'Lyktfiskarna kan lysa upp vägen. De följer en gömd sköldhäst – men aldrig en simmare.', sketch: 'Simma till strömmen ovanför fiskarnas kelp och göm dig där. Strömmen bär dig in i valvet.' },
+    p6: { q: 'Hur vecklar vi ut hörnet mitt i virveln?', note: 'Skalet är tungt nog att platta till papper. Låt strömmen bära det in till hörnet.', sketch: 'Göm dig i strömmen, så drar den dig in till mitten.' },
     toViken: { q: 'Vart leder strömmen?', note: 'Virveln har vänt sig ut åt höger.', sketch: 'Simma till virveln längst in i diket och låt den nya strömmen ta dig vidare.' },
     p7: { q: 'Hur tänds fyren?', note: 'Tre luckor, tre kedjor. Följ varje kedja till sin maskin.', sketch: 'Göm dig över bottenplattan. Göm dig vid röret, åk upp och dra i repet. Galoppera på bryggan för den sista luckan.' },
     talk: { q: 'Vem bor i Pappersfyren?', note: 'Kartväktaren väntar vid bryggans slut.', sketch: 'Gå fram till honom och tryck Prata.' },
-    p8: { q: 'Var fortsätter linjen?', note: 'Linjen går längs bryggan och sedan ner i vattnet.', sketch: 'Galoppera längs linjen från stranden, hoppa i vattnet och göm dig där.' },
+    p8: { q: 'Hur fortsätter Alvas strandkant?', note: 'Hovarna ritar på land. Skalet följer strecket i havet. Alvas penna förenar dem.', sketch: 'Galoppera längs linjen från stranden, hoppa i vattnet och göm dig där.' },
     signe: { q: 'Vem är snabbast?', note: 'Signe väntar vid snäckorna.', sketch: 'Gå fram till Signe och tryck Prata.' },
     free: { q: 'Snabbaste sköldpaddan eller långsammaste hästen?', note: 'Forskningen fortsätter. Leta efter färgpennor!', sketch: '' },
     freeComplete: { q: 'Vad vill du upptäcka nu?', note: 'Du har hittat alla färgpennor! Havet är öppet för nya upptäckter.', sketch: 'Ta en simtur, galoppera över stäppen eller hälsa på Signe igen.' }
@@ -252,23 +269,23 @@ export const HINTS = {
 // The goal note at the top of the screen (src/guide.mjs): one short line for each objective
 // ---------------------------------------------------------------------------
 export const GOALS = {
-    explore: 'Galoppera förbi Klo – han vill ta tid på dig!',
+    explore: 'Visa Klo din galopp – ni ska hitta havets veck!',
     hide: 'Göm dig nära Klos hål, så vågar han komma fram.',
-    pool: 'Undersök pölen vid klippan.',
+    pool: 'Hitta vägen under vågen i pölen vid klippan.',
     p2: (n) => `Gör stranden lik spegelbilden i pölen. (${n}/2)`,
-    p1: 'Kom över det streckade valvet längre till vänster.',
-    p3: (n) => `Ta dig upp på branten med vågmärkena. (${n}/3)`,
-    p3b: (n) => `Ta dig upp till nästa avsats. (${n}/3)`,
+    p1: 'Rita klart valvet – följ havets spår till vänster.',
+    p3: (n) => `Följ havets spår upp till vågmärkena. (${n}/3)`,
+    p3b: (n) => `Få ramperna att växa upp till vågmärkena. (${n}/3)`,
     kelp: 'Simma in genom valvet vid pölen.',
     hook: 'Utforska kelpskogen österut.',
     p4: (n) => `Hitta märkets halva på land, bortom klyftan. (${n}/2)`,
     toSea: (n) => `Hitta märkets andra halva i havet. (${n}/2)`,
-    p5: 'Ta dig in i det mörka valvet.',
-    p6: 'Ta dig in till mitten av virveln.',
+    p5: 'Lys upp vägen till kartbiten i djupet.',
+    p6: 'Veckla ut karthörnet mitt i virveln.',
     toViken: 'Följ den nya strömmen från virveln till nästa sida.',
-    p7: (n) => `Öppna fyrens tre luckor. (${n}/3)`,
+    p7: (n) => `Öppna luckorna – locka fram fyrens väktare. (${n}/3)`,
     talk: 'Prata med Kartväktaren på bryggan.',
-    p8: 'Följ den lysande linjen – hela vägen!',
+    p8: 'Fortsätt Alvas strandkant – på land och i havet!',
     signe: 'Tävla mot Sköldpaddan Signe till pölen!',
     free: 'Utforska fritt – och leta färgpennor!',
     freeComplete: 'Alla färgpennor är hittade – utforska fritt!'
@@ -320,7 +337,8 @@ export const GUIDANCE = {
         land: 'Simma tillbaka genom grottan till stranden.',
         kelp: 'Gå till Vattenporten vid pölen och välj Simma in.',
         viken: 'Följ strömmen åt höger, till nästa sida.',
-        bayExit: 'Följ stranden åt vänster för att komma tillbaka.'
+        bayExit: 'Följ stranden åt vänster för att komma tillbaka.',
+        bay: 'Följ stranden åt höger genom den öppna grinden till Spegelviken.'
     },
     steps: {
         hideApproach: 'Gå nära Klos hål. Där kan han se ditt tomma skal.',
@@ -334,6 +352,7 @@ export const GUIDANCE = {
         bridge: 'Ta sats till höger om valvet. Galoppera hela vägen åt vänster.',
         ramp: 'Galoppera åt vänster förbi backsippan. Fjunet flyger till tuvan.',
         rampWait: 'Fjunet är på väg! Vänta tills rampen har vuxit fram.',
+        waveLedge: 'Ramperna är klara! Följ dem upp till vågmärkena på den översta avsatsen.',
         leapRunup: 'Gå upp på Galoppbacken. Där finns plats att få full fart.',
         leap: 'Galoppera ner åt vänster och fortsätt hela vägen till kanten.',
         landmark: 'Du är över! Fortsätt till märket på Klippudden.',
@@ -396,21 +415,21 @@ export const JOURNAL = {
         smak: 'Smaktestet: äter både gräs och kelp.'
     },
     clueText: {
-        map_corner: 'En kartbit i sanden, signerad /K. Det som händer med kartan händer med världen.',
+        map_corner: 'En kartbit signerad /K. När Klo vek en sanddyna på kartan, vek sig sanddynan på stranden. Den vecklades ut igen med kartan.',
         note1: 'En lapp vid Streckbron: ”OBS! Ofärdigt streck. Rör ej! /K”',
-        wave_marks: 'Vågmärken högt uppe på branten. Havet har varit där uppe.',
-        reflection: 'Spegelbilden visar hur sidan ska se ut.',
+        wave_marks: 'Havets spår går högt uppe på branten, vidare mot Klippudden. Land och hav har hängt ihop där.',
+        reflection: 'I stilla vatten syns sidan utan vecket. Där ligger stenen vid klippan, plankan är hel och Vattenporten öppen.',
         fold: 'Ett veck genom havet – rakt som en linjal.',
         figure: 'Någon smal, av papper, med en linjal.',
         glimpse: 'Det finns fler sköldhästar!',
-        lighthouse: 'Pappersfyren lyser bara i spegelbilden.',
+        lighthouse: 'Pappersfyren lyser bara i spegelbilden. Någon har stängt dess luckor.',
         note2: 'En lapp i djupet: ”Snälla, rör inte strecken. Det är för teckningens skull. /K”',
-        mark_land: 'Märkets landhalva, uppe på Klippudden.',
-        mark_sea: 'Märkets havshalva, mitt i strömkarusellen.'
+        mark_land: 'Märkets landhalva låg på Klippudden, dit vågmärkena ledde. Den hör ihop med en kartbit från havet.',
+        mark_sea: 'Märkets havshalva låg under det vikta hörnet i virveln. Två kartbitar visar hela vägen till Pappersfyren.'
     },
     reports: {
-        1: ['Galopperar över stäpperna: bekräftat.', 'Gömmer sig i kelpskogen: bekräftat.', 'Fart: 42,7 km/h – helt okej för en häst.', 'Sköldpadda eller häst? Det står lika. Forskningen fortsätter …'],
-        2: ['Hoppar fem hästlängder: bekräftat.', 'Sjunker som en sten: bekräftat.', 'Två halvor av samma märke – hittade!', 'Nästa: Pappersfyren.']
+        1: ['Vecket stänger havet både ovanför och under ytan.', 'Vågmärkena leder mot Klippudden. Spegeln visade vägen ner i havet.', 'Hovar ritar. Skal stillar vatten. Två talanger – fortfarande ett djur!', 'Nästa: hitta kartans två halvor och vägen runt vecket.'],
+        2: ['Språnget nådde landhalvan. Skalet vecklade ut havshalvan.', 'Lyktfiskarna lyser upp djupet. De tog oss för en sten. Jag sa inget.', 'Kartans väg är hel! Strömmen leder till Pappersfyren.', 'Där finns figuren med linjalen. Varför stängde han havet?']
     }
 };
 
@@ -429,6 +448,8 @@ export const CONTEXT_LABELS = { talk: 'Prata', read: 'Läs', swimIn: 'Simma in',
 
 // Drawing actions remain available without a precise trace or a keyboard.
 export const DRAWING = {
+    paletteLabel: name => `Molnfärg: ${name}`,
+    cloudColors: { sky: 'Himmelsblå', lavender: 'Lavendel', peach: 'Persika', rose: 'Ros', paper: 'Pappersvit' },
     freeHint: 'Rita med fingret eller musen. Du bestämmer formen.',
     traceHint: 'Följ prickarna med fingret eller musen.',
     previewHint: 'Vill du behålla teckningen eller rita om?',
@@ -452,8 +473,8 @@ export const MAP = {
     legend: 'Streck visar vägar. Rivna kanter visar var bitarna möts.',
     pieces: {
         corner: { name: 'Karthörnet', foundAt: 'Hos Klo på stranden', detail: 'Klo hittade ett karthörn i sanden. När kartan viks, viks världen också. Vem har skrivit /K?' },
-        land: { name: 'Märket från land', foundAt: 'På Klippudden', detail: 'Ena halvan låg bortom klyftan. Vågmärkena visar att havet en gång nådde högt upp på land.' },
-        sea: { name: 'Märket från havet', foundAt: 'I Kelphjärtats virvel', detail: 'Den andra halvan låg under det vikta hörnet. Tillsammans visar märket vägen vidare mot Pappersfyren.' }
+        land: { name: 'Märket från land', foundAt: 'På Klippudden', detail: 'Vi följde vågmärkena och tog språnget till udden. Här låg landhalvan av vägen runt vecket. Havshalvan passar i den rivna kanten.' },
+        sea: { name: 'Märket från havet', foundAt: 'I Kelphjärtats virvel', detail: 'Lyktfiskarna lyste upp vägen. Skalet plattade till hörnet och hittade havshalvan. Med båda bitarna blir strömmen till Pappersfyren fri.' }
     },
     places: { steppe: 'Stäppen', cliff: 'Klippudden', beach: 'Stranden', bridge: 'Streckbron', gate: 'Vattenporten', kelp: 'Kelpskogen', vault: 'Mörka valvet', heart: 'Kelphjärtat', bay: 'Spegelviken', tower: 'Pappersfyren', fold: 'Vecket' }
 };

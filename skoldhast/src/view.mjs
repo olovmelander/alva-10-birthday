@@ -18,6 +18,10 @@ import { createWaterLight, createAtmosphere } from './scenery.mjs';
 import { pencilAvailable } from './puzzles.mjs';
 import { createRouteCue, createPencilBeam } from './route-cue.mjs';
 import { createActionCue } from './action-cue.mjs';
+import { createFoldDemo } from './fold-demo.mjs';
+import { createMapAssemble } from './map-assemble.mjs';
+import { cloudSkyLayout } from './cloud-sky.mjs';
+import { STORY } from './content/sv.mjs';
 
 const h = (v) => v * HL;
 const lerp = (a, b, t) => a + (b - a) * t;
@@ -39,6 +43,8 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
     let destroyed = false;
     const pendingFrames = new Set();
     const comparisonObservers = new Set();
+    let foldDemo = null;
+    let mapAssembly = null;
     function nextFrame(callback) {
         if (destroyed) return;
         const id = requestAnimationFrame((time) => {
@@ -325,8 +331,9 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
             fillPoly(wb.g, [[w.x0, w.top], [w.x1, w.top], [w.x1, yb], [w.x0, yb]], def.underwater ? 'mat-deep' : 'mat-water', alpha);
             if (!T('mat-water')) { wb.g.clear(); wb.g.rect(w.x0, w.top, w.x1 - w.x0, yb - w.top).fill({ color: 0x5b9bd0, alpha: alpha * 0.8 }); }
             L.waterFront.addChild(wb.g);
-            const pts = [];
-            for (let x = w.x0; x <= w.x1 + 1; x += 50) pts.push([Math.min(x, w.x1), w.top]);
+            // Include both exact bank endpoints, including widths not divisible
+            // by the pencil segment length. Connected bodies share their join.
+            const pts = resamplePts([[w.x0, w.top], [w.x1, w.top]], 50);
             wb.surfBase = pts.map((p) => p.slice());
             wb.surf = rope('stroke-blue', pts, { color: 0x244f8f, width: 4 });
             L.waterFront.addChild(wb.surf);
@@ -336,9 +343,19 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
             L.waterFront.addChild(wb.light.view);
         }
         if (def.underwater) {
-            // the air above the surface in an underwater scene
+            // Air, tint, pencil line and buoyancy use the same authored surface.
+            // A separate hardcoded y=0 edge used to put air 180 units above the
+            // cave's water and created a second, apparently disconnected horizon.
             const sky = new PIXI.Graphics();
-            sky.rect(def.bounds.x0 - h(20), def.bounds.y0 - h(10), def.bounds.x1 - def.bounds.x0 + h(40), -def.bounds.y0 + h(10)).fill({ color: 0xd6e8f2 });
+            const bodies = d.waters.map(wb => wb.w).sort((a, b) => a.x0 - b.x0);
+            const airTop = def.bounds.y0 - h(10);
+            for (const [i, w] of bodies.entries()) {
+                const x0 = i === 0 ? def.bounds.x0 - h(20) : w.x0;
+                const x1 = i === bodies.length - 1 ? def.bounds.x1 + h(20) : w.x1;
+                sky.rect(x0, airTop, x1 - x0, w.top - airTop);
+            }
+            sky.fill({ color: 0xd6e8f2 }); sky.label = 'water-air';
+            d.waterTop = bodies[0]?.top ?? 0;
             L.far.addChild(sky);
             d.skyBand = sky;
         }
@@ -382,12 +399,12 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
             (it.layer === 'fore' ? L.fore : it.layer === 'far' ? L.far : L.mid).addChild(s);
             d.items.push({ s, it });
         }
-        // her own cloud from the prologue drifts over Stranden (plan §3.4)
+        // Her own pencil cloud stays in the distant land sky, at a readable size.
         if (def.id === 'land' && G.userCloud) {
             const s = new PIXI.Sprite(G.userCloud);
-            s.anchor.set(0.5); s._baseScale = 1.5; s.alpha = 0.9;
+            s.anchor.set(0.5); s.alpha = 0.94; s.label = 'user-cloud';
             skyLayer.addChild(s);
-            d.sky.push({ kind: 'sky', s, x: def.spots.start.x - h(1.5), y: def.spots.start.y - h(5.2), par: 0.18, anim: 'cloud', it: { user: true } });
+            d.userCloud = s;
         }
         // hoofprints (old ones in the kelp sand)
         for (const [x, y] of def.hoofprints || []) {
@@ -647,6 +664,8 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
 
     function clearScene() {
         if (!S) return;
+        endFoldDemo(false);
+        endMapAssembly(false);
         dropPeels();
         for (const layer of Object.values(L)) {
             for (const ch of layer.removeChildren()) if (ch !== hero.view && !particles.some((p) => p.s === ch)) ch.destroy({ children: true });
@@ -663,12 +682,20 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
         if (destroyed) return null;
         // the old picture becomes a page that turns away over the new one
         const rt = turn && S ? capture() : null;
+        // A late atlas bundle can rebuild this same scene. Keep an already
+        // awaited experiment alive; only leaving the scene abandons its story.
+        const carryFold = id === S?.id ? foldDemo : null;
+        const carryMap = id === S?.id ? mapAssembly : null;
+        if (carryFold) { carryFold.effect.container.parent?.removeChild(carryFold.effect.container); foldDemo = null; }
+        if (carryMap) mapAssembly = null;
         clearScene();
         for (const layer of Object.values(L)) layer.visible = true;
         S = buildScene(G.scenes[id]);
         S.id = id;
         S.placeholders = countPlaceholders();
         L.hero.addChild(hero.view);
+        if (carryFold) { foldDemo = carryFold; L.fx.addChild(foldDemo.effect.container); }
+        if (carryMap) mapAssembly = carryMap;
         cam.snap = !keepCam;
         makeTooth();
         if (rt) return startTurn(rt, { hinge: turn });
@@ -836,6 +863,18 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
         return n;
     }
 
+    function placeUserCloud(width, height, picture = false) {
+        if (!S?.userCloud) return;
+        const sun = S.sky.find(it => it.anim === 'sun')?.s;
+        const b = sun?.getBounds();
+        const cloud = S.userCloud;
+        const p = cloudSkyLayout({ width, height, textureWidth: cloud.texture.width,
+            textureHeight: cloud.texture.height, cameraX: cam.x, originX: S.def.spots.start.x,
+            time, lessMotion: G.lessMotion, picture,
+            sun: b ? { x: b.x, y: b.y, width: b.width, height: b.height } : null });
+        cloud.position.set(p.x, p.y); cloud.scale.set(p.scale);
+    }
+
     // --- per-frame update -------------------------------------------------------------------------
     let time = 0;
     function render(snap, dt) {
@@ -845,6 +884,20 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
         const frozen = def.id === 'land' ? (!F.has('plask') || G.freeze) : false;
         const W = app.screen.width, H = app.screen.height;
         const scenicTime = G.lessMotion ? 0 : time;
+        if (mapAssembly) {
+            const previous = mapAssembly.elapsed;
+            mapAssembly.elapsed += dt;
+            mapAssembly.state = mapAssembly.effect.update(mapAssembly.elapsed);
+            mapAssembly.effect.fit(W, H);
+            if (previous < 1.15 && mapAssembly.elapsed >= 1.15) onFx?.('sfx', 'pencil');
+            if (mapAssembly.state.done) endMapAssembly(true);
+        }
+        if (foldDemo) {
+            foldDemo.elapsed += dt;
+            foldDemo.state = foldDemo.effect.update(foldDemo.elapsed);
+            frameFoldDemo();
+            if (foldDemo.state.done) endFoldDemo(true);
+        }
 
         // hero
         hero.update(dt, snap);
@@ -853,12 +906,13 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
 
         // camera
         updateCamera(dt, snap, W, H);
+        foldDemo?.effect.fit(cam.zoom);
         world.scale.set(cam.zoom);
         if (G.lessMotion) cam.shake = 0; // reduced motion: no shaking, gentler camera, fewer particles
         const shx = cam.shake > 0 ? (Math.random() - 0.5) * cam.shake : 0;
         cam.shake = Math.max(0, cam.shake - dt * 30);
         world.position.set(W / 2 - cam.x * cam.zoom + shx, H / 2 - cam.y * cam.zoom);
-        S.atmosphere.update({ cam, width: W, height: H, time: scenicTime, lessMotion: G.lessMotion, evening: G.evening });
+        S.atmosphere.update({ cam, width: W, height: H, time: scenicTime, lessMotion: G.lessMotion, evening: G.evening, waterTop: S.waterTop ?? 0 });
 
         // backdrops (cover the screen, crossfade by camera x)
         for (const b of S.bg) {
@@ -899,14 +953,14 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
                 }
                 const fr = frozen && it.her && it.scatter === undefined ? 1 : 1 + (Math.floor(it.phase * 3) % 4);
                 setTex(it.s, 'gull-m-' + fr);
-            } else if (it.anim === 'cloud' && (!frozen || it.it?.user) && !G.lessMotion) {
+            } else if (it.anim === 'cloud' && !frozen && !G.lessMotion) {
                 it.x += dt * 6;
-                if (it.it?.user && it.x > def.spots.start.x + h(14)) it.x -= h(30);
             }
             else if (it.anim === 'sun' && !frozen) { it.s.rotation = G.lessMotion ? 0 : Math.sin(time * 0.2) * 0.02; }
             it.s.x = sx + ox * cam.zoom; it.s.y = sy + oy * cam.zoom;
             it.s.scale.set(cam.zoom * (it.s._baseScale || 1) * (it.s.scale.x < 0 ? -1 : 1), cam.zoom * (it.s._baseScale || 1));
         }
+        placeUserCloud(W, H);
         // decor conditions and label fade
         for (const { s, it } of S.items) {
             let vis = cond(it.when, F);
@@ -1328,7 +1382,9 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
         const J = G.player.jump;
         const baseY = J && (J.kind === 'hop' || J.kind === 'buck') && J.fromY !== undefined ? Math.max(snap.y, J.fromY - h(0.2)) : snap.y;
         let ty = baseY - (H / zoom) * (portrait ? 0.08 : 0.12);
-        if (snap.mode === 'swim') ty = snap.y + (S.def.underwater ? h(0.3) : -h(0.2));
+        // The swim origin is at the feet. Frame the torso in the underwater
+        // page so the head stays visible above the surface and below the HUD.
+        if (snap.mode === 'swim') ty = snap.y - (S.def.underwater ? h(0.8) : h(0.2));
         // the big leap: pan to the landing
         const L0 = G.player.leap;
         if (L0 && L0.pan) { tx = lerp(L0.from.x, L0.to.x, 0.75); ty = Math.min(L0.from.y, L0.to.y) - h(1.2); zoom *= 0.85; }
@@ -1415,22 +1471,65 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
     }
 
     // --- effects the story asks for -------------------------------------------------------------------
+    function endMapAssembly(completed) {
+        if (!mapAssembly) return;
+        const effect = mapAssembly; mapAssembly = null;
+        effect.effect.destroy();
+        if (completed && !destroyed) effect.resolve();
+    }
+    function frameFoldDemo() {
+        if (!foldDemo) return;
+        const W = app.screen.width, H = app.screen.height;
+        // Labels, actors and the lifted patch stay above the touch controls. The
+        // same authored frame is refitted on rotation, never a cached pixel crop.
+        foldDemo.hint.frame.insets = { left: 38, right: 38, top: H > W ? 100 : 26, bottom: H > W ? 150 : 90 };
+    }
+    function endFoldDemo(completed) {
+        if (!foldDemo) return;
+        const demo = foldDemo; foldDemo = null;
+        demo.effect.destroy();
+        if (G.camHint === demo.hint) G.camHint = demo.before;
+        cam.snap = !completed;
+        // An abandoned scene must not resume its dialogue in a different scene.
+        if (completed && !destroyed) demo.resolve();
+    }
     async function fx(name, data) {
         if (destroyed) return new Promise(() => {});
         const def = S?.def;
         switch (name) {
+            case 'mapAssemble': {
+                endMapAssembly(false);
+                const effect = createMapAssemble(PIXI, { texture: T, caption: STORY.k2.mapAssemble, lessMotion: G.lessMotion });
+                overlay.addChild(effect.container);
+                effect.fit(app.screen.width, app.screen.height);
+                onFx?.('sfx', 'rustle');
+                await new Promise((resolve) => { mapAssembly = { effect, elapsed: 0, state: effect.update(0), resolve }; });
+                break;
+            }
             case 'foldDemo': {
-                // a patch of beach folds up like paper and unfolds again
-                const s = spr('rock-1'); s.x = data.x; s.y = data.y; L.objects.addChild(s);
-                if (G.lessMotion) { await G.wait(.3); if (!s.destroyed) s.destroy(); break; }
-                const t0 = time;
-                await new Promise((r) => {
-                    const tick = () => {
-                        const u = (time - t0) / 1.6;
-                        s.scale.y = u < 0.5 ? 1 - Math.sin(u * Math.PI) * 1.8 : Math.max(-0.8, 1 - Math.sin(u * Math.PI) * 1.8);
-                        if (u >= 1) { s.destroy(); r(); } else nextFrame(tick);
-                    };
-                    tick();
+                endFoldDemo(false);
+                const x = data.x, y = G.terrain.groundNear(x, data.y, 120) ?? data.y;
+                const k = G.actors.klo;
+                const kx = k?.visible && Math.abs(k.x - x) < h(5) ? k.x : x + h(1.6), ky = k?.y ?? y;
+                const effect = createFoldDemo(PIXI, {
+                    texture: T, x, y,
+                    leftY: G.terrain.groundNear(x - 110, y, 120) ?? y,
+                    rightY: G.terrain.groundNear(x + 110, y, 120) ?? y,
+                    mapX: kx + 60, mapY: ky - 330, clawX: kx + 29, clawY: ky - 65,
+                    labels: STORY.k1.mapDemoLabels, lessMotion: G.lessMotion
+                });
+                L.fx.addChild(effect.container);
+                const frame = { ...effect.bounds };
+                if (Math.abs(G.player.x - x) < h(5)) {
+                    frame.x0 = Math.min(frame.x0, G.player.x - h(.8));
+                    frame.x1 = Math.max(frame.x1, G.player.x + h(.8));
+                    frame.y0 = Math.min(frame.y0, G.player.y - h(1.8));
+                }
+                const before = G.camHint, hint = { frame };
+                G.camHint = hint;
+                await new Promise((resolve) => {
+                    foldDemo = { effect, elapsed: 0, state: effect.update(0), before, hint, resolve };
+                    frameFoldDemo();
                 });
                 break;
             }
@@ -1569,6 +1668,8 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
     function resize() {
         if (tooth) { tooth.width = app.screen.width; tooth.height = app.screen.height; }
         cam.snap = true;
+        frameFoldDemo();
+        mapAssembly?.effect.fit(app.screen.width, app.screen.height);
     }
 
     function destroy() {
@@ -1591,6 +1692,8 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
         get holding() { return !!held; },
         get sceneId() { return S?.id; },
         get vista() { return S?.vista || null; },
+        get foldDemo() { return foldDemo ? { ...foldDemo.state, elapsed: foldDemo.elapsed, bounds: { ...foldDemo.hint.frame } } : null; },
+        get mapAssembly() { return mapAssembly ? { ...mapAssembly.state, elapsed: mapAssembly.elapsed } : null; },
         kloBounds() { return S?.obj?.klo?.visible ? S.obj.klo.getBounds() : null; },
         built(id) { return S?.id === id && S.placeholders === 0; },
         replaceHero(newHero) { L.hero.removeChild(hero.view); hero.destroy?.(); hero = newHero; L.hero.addChild(hero.view); },
@@ -1600,11 +1703,14 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
             const rt = PIXI.RenderTexture.create({ width, height, resolution: 1 });
             const save = { x: cam.x, y: cam.y, zoom: cam.zoom };
             const sw = app.screen.width, sh = app.screen.height;
+            const backdropState = [...S.bg, ...S.sky.map(it => it.s), ...(S.userCloud ? [S.userCloud] : [])]
+                .map(s => ({ s, x: s.x, y: s.y, sx: s.scale.x, sy: s.scale.y }));
             cam.x = x; cam.y = y; cam.zoom = zoom;
             world.scale.set(zoom);
             world.position.set(width / 2 - x * zoom, height / 2 - y * zoom);
             for (const b of S.bg) { const tw = b.texture.width, th = b.texture.height; const sc = Math.max(width / tw, height / th); b.scale.set(sc); b.x = (width - tw * sc) / 2; b.y = (height - th * sc) / 2; }
             for (const it of S.sky) { it.s.x = width / 2 + (it.x - x) * zoom * it.par; it.s.y = height / 2 + (it.y - y) * zoom * (skyFactor ?? Math.max(0.5, it.par * 2.5)); it.s.scale.set(zoom * (it.s._baseScale || 1)); }
+            placeUserCloud(width, height, true);
             const vis = { root: root.visible, hero: hero.view.visible, actors: L.actors.visible, hints: L.hints.visible, fx: L.fx.visible };
             root.visible = true;
             hero.view.visible = !G.hideHero;
@@ -1618,6 +1724,7 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
             for (const q of splashes) q.s.visible = true;
             root.visible = vis.root; hero.view.visible = vis.hero; L.actors.visible = vis.actors; L.hints.visible = vis.hints; L.fx.visible = vis.fx;
             Object.assign(cam, save);
+            for (const { s, x: bx, y: by, sx, sy } of backdropState) { s.position.set(bx, by); s.scale.set(sx, sy); }
             world.scale.set(cam.zoom);
             world.position.set(sw / 2 - cam.x * cam.zoom, sh / 2 - cam.y * cam.zoom);
             return rt;

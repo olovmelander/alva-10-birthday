@@ -280,7 +280,8 @@ SCENES.kelp = {
         { id: 'vault-dark', x: h(25.8), y: h(11.4), dy: h(2.2), dir: 1, kind: 'balk', reason: 'dark', water: true, when: '!p5_lit' }
     ],
     waters: [
-        { id: 'cave', x0: h(-1), x1: h(7), top: h(0.9), kind: 'cave' },
+        // The cave opens directly into the sea: one continuous water level.
+        { id: 'cave', x0: h(-1), x1: h(7), top: h(0), kind: 'cave' },
         { id: 'sea', x0: h(7), x1: h(50), top: h(0), kind: 'sea' }
     ],
     lanes: [
@@ -298,7 +299,8 @@ SCENES.kelp = {
         { id: 'bed-lykt', x0: h(23.35), x1: h(24.35), y0: h(10.9), y1: h(12.0), when: 'ch2_open' }
     ],
     spots: {
-        fromLand: { x: h(1.6), y: h(2.3), facing: 1, mode: 'swim' },
+        // Keep the entrance's 1.4 HL immersion below the shared waterline.
+        fromLand: { x: h(1.6), y: h(1.4), facing: 1, mode: 'swim' },
         fromViken: { x: h(46.2), y: h(2.2), facing: -1, mode: 'swim' },
         klo: { x: h(12.5), y: h(5.92) },
         kloTrench: { x: h(21.2), y: h(6.2) },

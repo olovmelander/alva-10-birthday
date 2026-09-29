@@ -24,7 +24,11 @@ export function createDrawing(root, { host = root, words, onPencil, onUiSound } 
     const progress = element('div', 'sk-draw-progress');
     progress.setAttribute('role', 'progressbar'); progress.setAttribute('aria-live', 'polite');
     const keyboard = element('p', 'sk-draw-keyboard', words.keyboardHint);
-    toolbar.append(prompt, hint, progress, keyboard);
+    const palette = element('div', 'sk-draw-palette'); palette.setAttribute('role', 'group');
+    const paletteLabel = element('span', 'sk-draw-palette-label'); paletteLabel.id = id + '-palette';
+    palette.setAttribute('aria-labelledby', paletteLabel.id);
+    const pencils = element('div', 'sk-draw-pencils'); palette.append(paletteLabel, pencils);
+    toolbar.append(prompt, hint, progress, keyboard, palette);
     layer.setAttribute('aria-labelledby', prompt.id); layer.setAttribute('aria-describedby', hint.id);
     const actions = element('div', 'sk-draw-actions');
     const button = (kind, label) => { const b = element('button', `sk-pbtn sk-draw-${kind}`, label); b.type = 'button'; return b; };
@@ -54,6 +58,27 @@ export function createDrawing(root, { host = root, words, onPencil, onUiSound } 
         let resolve;
         const promise = new Promise(r => { resolve = r; });
         const guided = !!points(opts.anchors || opts.getGeometry?.()?.anchors).length;
+        const choices = !guided && Array.isArray(opts.palette) ? opts.palette : [];
+        let selected = choices.find(p => p.id === opts.selectedColor)?.id || choices[0]?.id;
+        const paletteButtons = [];
+        palette.hidden = !choices.length; pencils.replaceChildren();
+        layer.classList.toggle('colored', !!choices.length);
+        const updatePalette = () => {
+            const choice = choices.find(p => p.id === selected);
+            paletteLabel.textContent = choice ? words.paletteLabel(choice.label) : '';
+            paletteButtons.forEach(b => b.setAttribute('aria-pressed', String(b.dataset.color === selected)));
+        };
+        for (const choice of choices) {
+            const b = button('pencil', ''); b.dataset.color = choice.id;
+            b.setAttribute('aria-label', choice.label); b.title = choice.label;
+            b.style.setProperty('--pencil-color', choice.color);
+            b.addEventListener('click', () => {
+                if (pointer !== null) return;
+                selected = choice.id; updatePalette(); opts.onColor?.(selected); sound(); render();
+            }, { signal });
+            pencils.append(b); paletteButtons.push(b);
+        }
+        updatePalette();
         prompt.textContent = opts.prompt || '';
         layer.classList.toggle('guided', guided); layer.classList.toggle('free', !guided);
         layer.classList.remove('preview', 'drawing'); layer.classList.add('on');
@@ -161,7 +186,8 @@ export function createDrawing(root, { host = root, words, onPencil, onUiSound } 
                 ctx.save(); ctx.beginPath(); ctx.rect(display.x + 2, display.y + 2, display.width - 4, display.height - 4); ctx.clip();
                 stroke(ghost.map(screen), { alpha: ready ? 0.16 : 0.28, width: 3, dashed: true, color: '#6b635a' });
                 const line = draft.map(p => fromUnit(p, display));
-                stroke(line, { width: 5, alpha: 0.19 }); stroke(line, { width: 2.6, alpha: 0.88 });
+                if (opts.paintDraft) opts.paintDraft(ctx, line, { color: selected, width: 3.4 });
+                else { stroke(line, { width: 5, alpha: 0.19 }); stroke(line, { width: 2.6, alpha: 0.88 }); }
                 ctx.restore();
             } else {
                 const path = trace.points.slice(0, trace.total).map(screen);
@@ -231,7 +257,7 @@ export function createDrawing(root, { host = root, words, onPencil, onUiSound } 
         window.addEventListener('keydown', (event) => {
             if (!active) return;
             if (event.key === 'Tab') {
-                const buttons = [redo, example, done].filter(b => !b.hidden && !b.disabled);
+                const buttons = [...paletteButtons, redo, example, done].filter(b => !b.hidden && !b.disabled);
                 const at = buttons.indexOf(document.activeElement);
                 const next = at < 0 ? event.shiftKey ? buttons.length - 1 : 0 : (at + (event.shiftKey ? -1 : 1) + buttons.length) % buttons.length;
                 event.preventDefault(); event.stopImmediatePropagation(); buttons[next]?.focus(); return;

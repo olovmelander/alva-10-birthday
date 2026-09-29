@@ -868,8 +868,10 @@ function cliff(name, open) {
         lighten(S, lip, { amount: 0.8, grain: 0.1 });
         pen(S, PP.sandstone, lip, { angle: 1.2, gap: 2, len: [8, 20], pressure: 0.95 });
         pen(S, PP.sandstoneDark, lip, { angle: 1.2, gap: 2.2, len: [8, 20], pressure: 0.7 });
-        // the water inside, lit at its near edge
-        const wl = 630;
+        // The cliff's foot is at -56 world units and the pool is at -60.
+        // Keep its baked water at that same level; a higher painted line made
+        // the entrance look like a second pool perched above the real surface.
+        const wl = H - 4;
         const wm = fmap(inner, (v, i) => (Math.floor(i / W) > wl ? v : 0));
         lighten(S, wm, { amount: 0.65, grain: 0.2 });
         waterHatch(S, wm, pressureMap(W, H, (x, yy) => 0.55 + 0.5 * smoothstep(wl, H, yy)), { angle: 0, dark: 1.2 });

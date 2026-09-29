@@ -82,7 +82,7 @@
    "images": [
     "props.webp"
    ],
-   "bytes": 407676,
+   "bytes": 407918,
    "frames": 68
   },
   "props-land": {
@@ -571,7 +571,7 @@
     "assets/ui-icons.webp",
     "assets/hero-rig.json"
    ],
-   "bytes": 1487078
+   "bytes": 1487320
   },
   "sea": {
    "files": [

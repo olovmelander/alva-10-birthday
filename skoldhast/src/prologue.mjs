@@ -4,11 +4,13 @@
  * Her picture is the real game scene at the start (rendered into a texture), on
  * a sheet of paper on the table. The player draws a gull and a cloud freely in
  * the white margin, then traces the shoreline off the picture; halfway, a
- * ruler-straight crease flicks across the page, the splash stops in mid-air,
+ * ruler folds the sea corner under the page across that stroke, the splash stops in mid-air,
  * one drop rolls upward, and the sköldhäst blinks. The camera dives into the page.
  */
 import { HL } from './sim.mjs';
-import { STORY, UI, HER_TEXT, FAMILY, CAPTIONS } from './content/sv.mjs';
+import { STORY, UI, HER_TEXT, FAMILY, CAPTIONS, DRAWING } from './content/sv.mjs';
+import { createOpeningFold } from './opening-fold.mjs';
+import { CLOUD_PENCILS, createUserCloud, paintUserCloud } from './user-cloud.mjs';
 
 const h = (v) => v * HL;
 const PW = 1000, PH = 760;                 // the paper, in paper units
@@ -17,16 +19,21 @@ const PIC = { x: 40, y: 52, w: 740, h: 560 }; // her picture on it
 export function createTable({ PIXI, app, view, G, ui, audio, assets, makeHero }) {
     const T = (n) => assets.tex(n);
     const table = new PIXI.Container();
+    table.label = 'story-table';
     table.visible = false;
     app.stage.addChild(table);
     const desk = new PIXI.TilingSprite({ texture: T('desk-wood') || PIXI.Texture.WHITE, width: 64, height: 64 });
     if (!T('desk-wood')) desk.tint = 0xc9a27a;
     const paperLayer = new PIXI.Container();
+    paperLayer.label = 'story-paper';
     table.addChild(desk, paperLayer);
+    const sheet = new PIXI.Container();
     const paper = new PIXI.Graphics();
     const pic = new PIXI.Sprite(PIXI.Texture.EMPTY);
     const onPaper = new PIXI.Container();
-    paperLayer.addChild(paper, pic, onPaper);
+    const shore = new PIXI.Graphics(); shore.label = 'opening-shoreline';
+    sheet.addChild(paper, pic, shore);
+    paperLayer.addChild(sheet, onPaper);
     const extras = new PIXI.Container(); // window, pencils lying around
     table.addChildAt(extras, 1);
     let picHero = null, picKlo = null, splash = null, sun = null;
@@ -37,6 +44,9 @@ export function createTable({ PIXI, app, view, G, ui, audio, assets, makeHero })
     let dropT = 0;
     let running = false;
     let destroyed = false;
+    let openingFold = null, pictureTexture = null;
+    let phase = 'idle';
+    const setPhase = (value) => { phase = value; table.label = 'story-table'; table.storyPhase = value; };
     const pending = new Set();
 
     const sprite = (name, ax = 0.5, ay = 0.5) => {
@@ -83,6 +93,7 @@ export function createTable({ PIXI, app, view, G, ui, audio, assets, makeHero })
         const rt = view.snapshot({ x: c.x, y: c.y, zoom: c.zoom, width: PIC.w, height: PIC.h, skyFactor: 0.33 });
         G.hideHero = false; G.snapNoSplash = false; G.hideActors = false;
         pic.texture = rt; pic.x = PIC.x; pic.y = PIC.y;
+        pictureTexture?.destroy(true); pictureTexture = rt;
         return rt;
     }
 
@@ -96,6 +107,8 @@ export function createTable({ PIXI, app, view, G, ui, audio, assets, makeHero })
     }
 
     function start(evening = false) {
+        frozen = false; dropT = 0; table.alpha = 1;
+        openingFold?.destroy(); openingFold = null; shore.clear();
         table.visible = true;
         ui.root.classList.add('table-mode');
         layout();
@@ -111,10 +124,14 @@ export function createTable({ PIXI, app, view, G, ui, audio, assets, makeHero })
     function stop() {
         table.visible = false;
         ui.root.classList.remove('table-mode');
-        onPaper.removeChildren();
-        picHero?.destroy?.(); picHero = null; picKlo = null; splash = null; sun = null;
+        openingFold?.destroy(); openingFold = null; shore.clear();
+        picHero?.destroy?.(); picHero = null;
+        for (const child of onPaper.removeChildren()) if (!child.destroyed) child.destroy({ children: true });
+        picKlo = null; splash = null; sun = null;
+        pic.texture = PIXI.Texture.EMPTY; pictureTexture?.destroy(true); pictureTexture = null;
         drops.length = 0; falling.length = 0;
         running = false;
+        setPhase('idle');
     }
 
     function tick(dt) {
@@ -184,6 +201,7 @@ export function createTable({ PIXI, app, view, G, ui, audio, assets, makeHero })
         splash = sprite('frozen-splash', 0.5, 1); splash.x = sx; splash.y = sy + 20; splash._base = pictureCam().zoom; splash.scale.set(splash._base); onPaper.addChild(splash);
         audio?.setArea('table');
         running = true;
+        setPhase('alive');
         await wait(0.9);
         // her words (only as far as Pappa allows)
         await ui.say([['caption', HER_TEXT.lastTwo || STORY.prolog.captionFallback]]);
@@ -213,33 +231,51 @@ export function createTable({ PIXI, app, view, G, ui, audio, assets, makeHero })
             ghost: ghostCloud(885, 330).map(([x, y]) => toCss(885 + (x - 885) * 0.85, 330 + (y - 330) * 0.85)),
             bounds: paperBounds(790, 250, 190, 160)
         });
-        const cloudPts = await ui.draw({ prompt: UI.drawCloud, ...cloudGeometry(), getGeometry: cloudGeometry });
-        const cloud = strokeTexture(cloudPts, { color: '#3b3530' });
-        G.userCloud = cloud.texture; G.userStrokes.cloud = cloud.pts;
-        const cs = new PIXI.Sprite(cloud.texture); cs.x = cloud.box.x; cs.y = cloud.box.y; cs.scale.set(0.5); onPaper.addChild(cs);
-        tween(4, (u) => { cs.x = cloud.box.x - u * 160; });
+        let cloudColor = 'sky';
+        const cloudPts = await ui.draw({ prompt: UI.drawCloud, ...cloudGeometry(), getGeometry: cloudGeometry,
+            palette: CLOUD_PENCILS.map(p => ({ ...p, label: DRAWING.cloudColors[p.id] })), selectedColor: cloudColor,
+            onColor: value => { cloudColor = value; }, paintDraft: paintUserCloud });
+        const cloud = createUserCloud(PIXI, cloudPts.map(([x, y]) => [(x - paperLayer.x) / paperLayer.scale.x, (y - paperLayer.y) / paperLayer.scale.y]), cloudColor);
+        G.userCloud = cloud.texture; G.userStrokes.cloud = cloud.pts; G.userStrokes.cloudColor = cloud.color;
+        const cs = new PIXI.Sprite(cloud.texture); cs.label = 'opening-user-cloud';
+        cs.scale.set(Math.min(.5, 210 / cloud.texture.width, 106 / cloud.texture.height)); onPaper.addChild(cs);
+        // The new cloud settles in the retained blue sky, below the sun's rays
+        // and to the left of the future crease. It must never hang over wood.
+        const cloudHome = { x: PIC.x + 55, y: PIC.y + 180 };
+        await tween(G.lessMotion ? .3 : 1.45, (u) => {
+            const e = u * u * (3 - 2 * u);
+            cs.position.set(G.lessMotion ? cloudHome.x : lerp(cloud.box.x, cloudHome.x, e),
+                G.lessMotion ? cloudHome.y : lerp(cloud.box.y, cloudHome.y, e));
+            cs.alpha = G.lessMotion ? e : 1;
+        });
         // the shoreline, traced along generous anchors from the picture's edge; the crease cuts it short
+        await ui.say([STORY.prolog.shoreInvite]);
         const st = G.scenes.land.spots.start;
         const [, wy] = worldToPaper(st.x + h(2.5), G.scenes.land.surfaces.find((q) => q.id === 'beach').pts.at(-1)[1] - 6);
         const shoreGeometry = () => ({ anchors: Array.from({ length: 6 }, (_, i) => toCss(PIC.x + PIC.w - 6 + i * 40, wy)) });
-        await ui.draw({ prompt: UI.drawShore, ...shoreGeometry(), getGeometry: shoreGeometry, stopAt: 3, width: 6, color: '#244f8f' });
-        // Prassel. A dead-straight crease flicks across the horizon from outside the page.
-        await crease(wy);
-        frozen = true;
-        audio?.freeze(true);
-        audio?.stinger('freeze');
-        ui.caption(CAPTIONS.rustle);
+        setPhase('shoreline');
+        const shoreline = await ui.draw({ prompt: UI.drawShore, ...shoreGeometry(), getGeometry: shoreGeometry, stopAt: 3, width: 6, color: '#244f8f' });
+        // Keep exactly the authored points after the DOM drawing overlay closes.
+        // They remain on the surviving part of the sheet, up to the new crease.
+        const line = shoreline.map(([x, y]) => [(x - paperLayer.x) / paperLayer.scale.x, (y - paperLayer.y) / paperLayer.scale.y]);
+        shore.moveTo(...line[0]); for (const point of line.slice(1)) shore.lineTo(...point);
+        shore.stroke({ width: 6, color: 0x244f8f, cap: 'round' });
+        await crease(line.at(-1));
         // one drop rolls upward over the paper
         const d = sprite('p-drop'); d.x = sx + 30; d.y = sy - 60; d.scale.set(0.9); onPaper.addChild(d); drops.push({ s: d, y0: sy - 60, t: 0 });
-        await wait(1.6);
+        await wait(G.lessMotion ? .6 : 1.0);
         picHero._emote = 'surprised'; picHero._look = { x: G.scenes.land.spots.splash.x, y: G.scenes.land.spots.splash.y };
         audio?.sfx('snort');
         await wait(0.7);
+        setPhase('frozen');
         await ui.say([STORY.prolog.stuck]);
-        await ui.choice([UI.choiceWhat, UI.choiceWho]);
+        setPhase('question');
+        const question = await ui.choice([UI.choiceWhat, UI.choiceWho]);
         picHero._emote = null;
-        await ui.say([STORY.prolog.fold, STORY.prolog.mystery, STORY.prolog.research]);
+        await ui.say([question === 1 ? STORY.prolog.choiceWhoAnswer : STORY.prolog.choiceWhatAnswer,
+            STORY.prolog.promise, STORY.prolog.mystery]);
         // dive into the page
+        setPhase('enter-picture');
         await dive();
         running = false;
         stop();
@@ -251,19 +287,52 @@ export function createTable({ PIXI, app, view, G, ui, audio, assets, makeHero })
         return { x: st.x, y: st.y, facing: 1, gait: 'stand', mode: 'ground', speed: 0, vx: 0, vy: 0, hide: 0, time: 0, groundAt: () => st.y };
     }
 
-    async function crease(wy) {
-        const tex = T('stroke-crease');
-        const y = wy - 150;
-        const pts = []; for (let i = 0; i <= 20; i++) pts.push(new PIXI.Point(PW + 60, y));
-        const line = tex ? new PIXI.MeshRope({ texture: tex, points: pts }) : null;
-        const g = new PIXI.Graphics();
-        onPaper.addChild(line || g);
-        audio?.sfx('rustle');
-        await tween(0.35, (u) => {
-            const x0 = PW + 60 - u * (PW + 120);
-            if (line) { pts.forEach((p, i) => { p.x = PW + 60 - (i / 20) * (PW + 60 - x0); p.y = y; }); }
-            else { g.clear().moveTo(PW + 60, y).lineTo(x0, y).stroke({ width: 3, color: 0x3b3530 }); g.moveTo(PW + 60, y + 4).lineTo(x0, y + 4).stroke({ width: 6, color: 0x9a948a, alpha: 0.3 }); }
+    async function crease(endpoint) {
+        setPhase('fold-anticipation');
+        // A ruler slides in from beyond the page. Its owner stays a mystery;
+        // the same precise graphite edge will be found throughout the journey.
+        const front = PIXI.RenderTexture.create({ width: PW, height: PH, resolution: 1 });
+        // Render an unattached copy: promoting the live sheet to a render root
+        // would invalidate its inherited transform and the mask added next.
+        const copy = new PIXI.Container();
+        const printed = new PIXI.Sprite(pic.texture); printed.position.set(PIC.x, PIC.y);
+        copy.addChild(new PIXI.Graphics(paper.context), printed, new PIXI.Graphics(shore.context));
+        app.renderer.render({ container: copy, target: front, clear: true });
+        copy.destroy({ children: true });
+        openingFold = createOpeningFold(PIXI, { parent: paperLayer, sheet, front,
+            paper: T('mat-paper'), width: PW, height: PH, endpoint });
+        // Live characters and droplets stay in front of the paper they inhabit.
+        paperLayer.setChildIndex(onPaper, paperLayer.children.length - 1);
+        const ruler = new PIXI.Graphics(); ruler.label = 'opening-ruler';
+        ruler.roundRect(-8, -160, 23, 330, 2).fill({ color: 0xb7ac86, alpha: .9 });
+        ruler.roundRect(-8, -160, 23, 330, 2).stroke({ width: 2, color: 0x655846, alpha: .8 });
+        for (let i = -150; i <= 150; i += 15) ruler.moveTo(-7, i).lineTo(i % 30 ? 0 : 5, i).stroke({ width: 1.5, color: 0x655846 });
+        ruler.rotation = -Math.atan2(openingFold.crease.b[0] - openingFold.crease.a[0], PH);
+        const rulerX = endpoint[0] - (openingFold.crease.b[0] - openingFold.crease.a[0]) / PH * 90;
+        onPaper.addChild(ruler);
+        await tween(G.lessMotion ? .15 : .65, (u) => {
+            const e = u * u * (3 - 2 * u);
+            ruler.position.set(rulerX + (1 - e) * 220, endpoint[1] - 90);
+            ruler.alpha = e;
         });
+        ui.caption(STORY.prolog.foldCaption);
+        audio?.sfx('rustle');
+        setPhase('folding');
+        await tween(G.lessMotion ? .6 : 2.1, (u) => {
+            const e = u * u * (3 - 2 * u);
+            openingFold.set(e, { lessMotion: !!G.lessMotion });
+            ruler.x = rulerX + Math.max(0, (u - .25) / .75) * 230;
+            ruler.alpha = Math.max(0, 1 - u * 2);
+            // The freeze happens at the visible fold, never before its cause.
+            if (u >= (G.lessMotion ? .5 : .45) && !frozen) {
+                frozen = true; audio?.freeze(true); audio?.stinger('freeze');
+            }
+        });
+        ruler.destroy();
+        shore.circle(...endpoint, 5).fill({ color: 0x244f8f });
+        ui.caption(STORY.prolog.afterFreezeCaption);
+        setPhase('folded');
+        await wait(.7);
     }
 
     async function dive() {
@@ -272,13 +341,13 @@ export function createTable({ PIXI, app, view, G, ui, audio, assets, makeHero })
         const [hx, hy] = worldToPaper(st.x, st.y - h(0.6));
         const s0 = paperLayer.scale.x, x0 = paperLayer.x, y0 = paperLayer.y;
         const W = app.screen.width, H = app.screen.height;
-        await tween(1.3, (u) => {
+        await tween(G.lessMotion ? .35 : 1.3, (u) => {
             const e = u * u * (3 - 2 * u);
-            const s = s0 * (1 + e * 3.2);
+            const s = s0 * (1 + (G.lessMotion ? 0 : e * 3.2));
             paperLayer.scale.set(s);
-            paperLayer.x = lerp(x0, W / 2 - hx * s, e);
-            paperLayer.y = lerp(y0, H / 2 - hy * s, e);
-            table.alpha = 1 - Math.max(0, (u - 0.72) / 0.28);
+            paperLayer.x = G.lessMotion ? x0 : lerp(x0, W / 2 - hx * s, e);
+            paperLayer.y = G.lessMotion ? y0 : lerp(y0, H / 2 - hy * s, e);
+            table.alpha = G.lessMotion ? 1 - e : 1 - Math.max(0, (u - 0.72) / 0.28);
         });
         table.alpha = 1;
         paperLayer.scale.set(s0); paperLayer.x = x0; paperLayer.y = y0;
