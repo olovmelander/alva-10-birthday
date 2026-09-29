@@ -332,3 +332,12 @@ export const CAPTIONS = {
 };
 
 export const CONTEXT_LABELS = { talk: 'Prata', read: 'Läs', swimIn: 'Simma in', down: 'Gå ner', taste: 'Smaka' };
+
+// ---------------------------------------------------------------------------
+// The menus' notebook (src/ui.mjs): the journal's tabs, the report's stamp, the map sketch
+// ---------------------------------------------------------------------------
+export const MENU = {
+    tabs: ['Framsida', 'Fältanteckning', 'Vad vet vi?', 'Mätningar', 'Ledtrådar', 'Rapporter', 'Din anteckning'],
+    stamp: 'Granskad',
+    map: 'Karta'
+};
