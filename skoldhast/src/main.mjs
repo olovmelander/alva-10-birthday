@@ -91,6 +91,7 @@ export function createGame({ host = document.body, assetBase = './skoldhast/', r
         if (closing) await closing;
         if (state !== 'closed') return;
         state = 'opening';
+        paused = false; acc = 0; presses.clear();
         listeners = new AbortController();
         try {
             await openInner();
@@ -418,8 +419,9 @@ export function createGame({ host = document.body, assetBase = './skoldhast/', r
             let steps = 0;
             while (acc >= STEP && steps < 10) {
                 const edges = first ? presses.consume() : {};
-                const hideEdge = first && !blocked && (settings.holdToHide ? ((edges.hide && !G.player.hidden) || (edges.hideUp && G.player.hidden)) : edges.hide);
-                G.step({ x: cont.x, y: cont.y, hopHeld: cont.hopHeld, act: first && !blocked && edges.act, hide: hideEdge, tapHero: first && !blocked && (edges.tapHero || edges.neigh) });
+                const hideEdge = first && !blocked && (settings.holdToHide ? (edges.hide && !G.player.hidden) : edges.hide);
+                const hideRelease = first && !blocked && settings.holdToHide && !!edges.hideUp;
+                G.step({ x: cont.x, y: cont.y, hopHeld: cont.hopHeld, act: first && !blocked && edges.act, hide: hideEdge, hideRelease, tapHero: first && !blocked && (edges.tapHero || edges.neigh) });
                 first = false; acc -= STEP; steps++;
             }
             if (steps >= 10) acc = 0;

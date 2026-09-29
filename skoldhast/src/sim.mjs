@@ -306,7 +306,7 @@ const FEET = { walk: [2, 3, 0, 1], trot: [2, 0], canter: [0, 2, 3], gallop: [0, 
 
 /**
  * One fixed step.
- * input: { x, y, hop, hide, auto }  (x, y in -1..1; hop/hide are "pressed this step")
+ * input: { x, y, hop, hide, hideRelease, auto }  (x, y in -1..1; hop/hide are "pressed this step")
  */
 export function stepPlayer(p, input, world, dt, events) {
     const T = world.terrain;
@@ -348,7 +348,13 @@ export function stepPlayer(p, input, world, dt, events) {
     }
 
     // --- Göm dig toggle -------------------------------------------------------
-    if (input.hide && p.lockInput <= 0 && !p.auto) {
+    // Hold-mode releases win over a press in the same fixed-step batch and also
+    // cancel a queued tuck while braking or in the air. The toggle mode never sends this.
+    if (input.hideRelease) {
+        p.hideQueued = false;
+        if (p.hidden) unhide(p, events);
+    }
+    if (input.hide && !input.hideRelease && p.lockInput <= 0 && !p.auto) {
         if (p.hidden) unhide(p, events);
         else if (p.mode === 'leap' || p.mode === 'streck' || p.mode === 'air' || p.jump) p.hideQueued = true;
         else p.hideQueued = true;

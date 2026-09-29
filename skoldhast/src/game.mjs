@@ -88,7 +88,7 @@ export function createGame({ released = RELEASED_CHAPTER } = {}) {
         context: null,
         storyActions() { return G.story ? G.story.actions() : []; },
 
-        /** One fixed step of the whole game. input: { x, y, hop, hide, act, tapHero } */
+        /** One fixed step of the whole game. input: { x, y, hop, hide, hideRelease, act, tapHero } */
         step(input) {
             const dt = STEP;
             G.time += dt; G.sceneTime += dt;
@@ -102,7 +102,7 @@ export function createGame({ released = RELEASED_CHAPTER } = {}) {
             // the context button: an action here, or Hoppa
             G.context = locked ? null : contextAction(G);
             const events = [];
-            const simInput = { x: inp.x || 0, y: inp.y || 0, hop: false, hide: !!inp.hide, hopHeld: !!inp.hopHeld };
+            const simInput = { x: inp.x || 0, y: inp.y || 0, hop: false, hide: !!inp.hide, hideRelease: !!inp.hideRelease, hopHeld: !!inp.hopHeld };
             if (inp.act) {
                 if (G.context) { const c = G.context; G.emit('context', { id: c.id }); c.run(); }
                 else simInput.hop = true;

@@ -81,6 +81,29 @@ await check('Avbryt while loading restores the ticket and never opens the game',
     await ctx.close();
 });
 
+await check('pause then close/reopen starts an advancing prologue', async () => {
+    // Use the game's dev host: the ticket's CDN-dependent splash can cover DOM
+    // clicks in the offline harness, while the separate checks cover ticket launch.
+    const { pg, ctx, errors } = await page('/skoldhast/dev/play.html');
+    await pg.waitForSelector('.sk-root .sk-title', { timeout: 30000 });
+    await pg.evaluate(async () => {
+        window.__skoldhast.pause();
+        await window.__skoldhast.close();
+        await window.__skoldhast.open();
+    });
+    await pg.waitForSelector('.sk-root .sk-title', { timeout: 30000 });
+    await pg.locator('.sk-title button', { hasText: /^Börja$/ }).click();
+    await pg.waitForSelector('.sk-dialogue.on.who-caption', { timeout: 30000 });
+    // say() has a deliberate 350 ms reading guard. Wait for that guard, then use
+    // the real queued keyboard input; a stale paused flag would discard it forever.
+    await pg.evaluate(() => { window.__prologueReadAt = performance.now() + 400; document.activeElement?.blur(); });
+    await pg.waitForFunction(() => performance.now() >= window.__prologueReadAt);
+    await pg.keyboard.press('Space');
+    await pg.waitForSelector('.sk-dialogue.on.who-klo', { timeout: 30000 });
+    assert.deepEqual(errors, []);
+    await ctx.close();
+});
+
 await check('Mira then Sköldhästen while Mira loads: only Sköldhästen opens', async () => {
     const { pg, ctx } = await page('/index.html?skoldhast');
     await pg.evaluate(() => { document.getElementById('play-mira-btn').click(); document.getElementById('play-skoldhast-btn').click(); });
