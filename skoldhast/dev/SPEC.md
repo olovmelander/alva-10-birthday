@@ -227,6 +227,10 @@ UI images for the DOM (module `ui`, `api.image`, scale 2, bundle `boot`): `ui-ti
 `ui-journal` (a pencil icon of a notebook, 96×96), `ui-pause` (two pencil strokes, 96×96), `ui-hint-mark`
 (a small wiggly pencil mark, 48×48), `ui-stick-base`, `ui-stick-knob` (the floating stick drawn in pencil,
 256×256 and 128×128), `ui-btn` (a round pencil-drawn button ring, 160×160).
+The menus' notebook adds `ui-icons` (the journal's tab icons), `ui-hatch` (pencil hatching), `ui-grunge` (paper
+wear), `ui-frame` and `ui-frame-sm` (pencil frames for cards) and `ui-tape` (a strip of tape); the header of
+`scripts/skoldhast-art/ui.mjs` describes each. The handwriting font is `skoldhast/fonts/patrick-hand-latin.woff2`
+(SIL OFL 1.1, see `OFL.txt`).
 
 ## 5. Audio (runtime `skoldhast/src/audio.mjs`)
 

@@ -64,6 +64,20 @@ After the first playtest ("it is very unclear what to do", "I am a bit stuck som
   - `node tests/browser/skoldhast-pages.mjs [--out dir]` checks a scene turn, the Kapitel 2 paper peel and the lighthouse glimpse;
   - sim tests for the pipe mouth, the plate pull and Knuffa from one spot.
 
+## Menus: a hand-made research notebook (29 September)
+
+- The title, the journal (Forskningsdagboken), pause, settings, the word-code and researcher cards, and the chapter reports are drawn as her notebook.
+  - They are built in `src/ui.mjs` and `skoldhast.css`, with the words in `sv.mjs` (`MENU` holds the journal's tab names, the stamp and the map label).
+  - New UI images (`ui-icons`, `ui-hatch`, `ui-grunge`, `ui-frame`, `ui-frame-sm`, `ui-tape`) are drawn in `scripts/skoldhast-art/ui.mjs`; its header lists them.
+- **Font:** Patrick Hand, SIL OFL 1.1, a 24 KB latin subset in `skoldhast/fonts/` with `OFL.txt`. It is prefetched and counted in the budget.
+- **Preview:** `skoldhast/dev/menus.html` shows every menu without WebGL. It takes options such as `?m=journal&page=2&hint=2`, `&big=1` and `&less=1`.
+- **Contact sheets** of the menus are in `docs/skoldhast/shots/menus/`, at 390×844, 844×390, 667×375 and 1440×900.
+- Every panel has an ✕, and a tap on the backdrop closes it (on a report it means continue). J and Esc close panels.
+- Settings opened from the pause menu keep the game paused.
+- **Known:**
+  - on a 320 px-wide phone the journal tabs are 37 px wide, under the 44 px target;
+  - only headless Chromium has been used, never a real phone.
+
 ## Fresh-eyes playtest (29 September) and what it changed
 
 An agent played for about two hours with the keyboard at 844×390. Its report, with screenshots and repro scripts, was in the session's scratchpad. Fixed:
@@ -158,4 +172,4 @@ An agent played for about two hours with the keyboard at 844×390. Its report, w
   - Signe wears a small race tag "1" (the characters agent's joke); it is a few lines in `npcs.mjs` to remove.
 - **The hero's pose is local to the feet** while its hooves and hair live in world space. Always test it with real world coordinates; a test at x = 0 hid a bug that lifted it and sent its hair far away.
 - **Headless Chromium renders WebGL in software**, so browser checks must wait for state rather than time it. A 60 ms tap can arrive as a long press at DPR 2 (`tests/browser/skoldhast-touch.mjs` runs at DPR 1 for that reason).
-- **Contact sheets** for all 27 places at 844×390, 390×844 and 1440×900 are in `docs/skoldhast/shots/k3/`.
+- **Contact sheets** for all 27 places at 844×390, 390×844 and 1440×900 are in `docs/skoldhast/shots/k3/` (refreshed after the polish round). The menus are in `docs/skoldhast/shots/menus/`.
