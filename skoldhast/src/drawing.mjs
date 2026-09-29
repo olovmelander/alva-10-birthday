@@ -54,7 +54,7 @@ export function createDrawing(root, { host = root, words, onPencil, onUiSound } 
         const session = new AbortController(), signal = session.signal;
         let active = true, pointer = null, gestureBefore = null, finishTimer = null;
         let draft = [], ready = false, gestureLength = 0;
-        let source, display, ghost = [], anchors = [], trace = null, W = 0, H = 0, rect;
+        let source, display, ghost = [], anchors = [], guide = [], trace = null, W = 0, H = 0, rect;
         let resolve;
         const promise = new Promise(r => { resolve = r; });
         const guided = !!points(opts.anchors || opts.getGeometry?.()?.anchors).length;
@@ -149,6 +149,8 @@ export function createDrawing(root, { host = root, words, onPencil, onUiSound } 
             const geometry = opts.getGeometry?.() || opts;
             ghost = points(geometry.ghost || opts.ghost);
             anchors = points(geometry.anchors || opts.anchors);
+            // An optional dense path the checkpoints lie on, e.g. a shell's rim.
+            guide = points(geometry.guide || opts.guide);
             source = geometry.bounds || opts.bounds || pointBounds(guided ? anchors : ghost.length ? ghost : [[W * 0.3, H * 0.4], [W * 0.7, H * 0.6]], guided ? 44 : 24);
             if (guided) {
                 if (!trace) trace = createTrace(anchors, { stopAt: opts.stopAt, allowReverse: !!opts.allowReverse });
@@ -191,12 +193,31 @@ export function createDrawing(root, { host = root, words, onPencil, onUiSound } 
                 ctx.restore();
             } else {
                 const path = trace.points.slice(0, trace.total).map(screen);
-                stroke(path, { width: 4, alpha: 0.35, dashed: true });
-                stroke(path.slice(0, trace.progress), { width: 5, alpha: 0.9 });
+                // With a dense guide, the dashes and the finished part follow it
+                // exactly (in the traced direction) instead of cutting corners.
+                let line = path;
+                if (guide.length > 1) {
+                    line = guide.map(screen);
+                    if (distance(path[0], line.at(-1)) < distance(path[0], line[0])) line = line.reverse();
+                    const end = path[Math.min(path.length, trace.total) - 1];
+                    let cut = line.length - 1;
+                    for (let i = 0, best = Infinity; i < line.length; i++) { const d = distance(line[i], end); if (d < best) { best = d; cut = i; } }
+                    line = line.slice(0, cut + 1);
+                }
+                const reached = (upTo) => {
+                    if (line === path) return path.slice(0, upTo);
+                    if (!upTo) return [];
+                    const target = path[upTo - 1];
+                    let cut = 0;
+                    for (let i = 0, best = Infinity; i < line.length; i++) { const d = distance(line[i], target); if (d < best) { best = d; cut = i; } }
+                    return line.slice(0, cut + 1);
+                };
+                stroke(line, { width: 4, alpha: 0.35, dashed: true });
+                stroke(reached(trace.progress), { width: 5, alpha: 0.9 });
                 stroke(draft.map(p => fromUnit(p, display)), { width: 3, alpha: 0.55 });
                 path.forEach((p, i) => {
                     const gap = i ? distance(p, path[i - 1]) : path.length > 1 ? distance(p, path[1]) : 44;
-                    const radius = Math.max(5, Math.min(16, gap * 0.35));
+                    const radius = Math.max(5, Math.min(opts.dotRadius || 16, gap * 0.35));
                     ctx.beginPath(); ctx.arc(...p, radius, 0, Math.PI * 2);
                     ctx.fillStyle = i < trace.progress ? '#668469' : '#fbf8f1'; ctx.fill();
                     ctx.lineWidth = i === trace.progress ? 3 : 1.5;

@@ -36,14 +36,16 @@ export function createHero(PIXI, { textures, rig, mini = false } = {}) {
     flip.addChild(shadows, body);
 
     // --- shadows --------------------------------------------------------------------
+    // Seated on the ground line: mostly on the sand in front of it, so the
+    // patch never smears grey over the sea or sky behind the horizon.
     const shadow = new PIXI.Sprite(tex(rig.parts.shadow.texture));
-    shadow.anchor.set(0.5, 0.5);
+    shadow.anchor.set(0.5, 0.22);
     shadows.addChild(shadow);
     const hoofShadows = {};
     if (!mini) {
         for (const leg of an.legs) {
             const sp = new PIXI.Sprite(tex(rig.parts.shadow.hoof));
-            sp.anchor.set(0.5, 0.5);
+            sp.anchor.set(0.5, 0.3);
             shadows.addChild(sp);
             hoofShadows[leg.name] = sp;
         }

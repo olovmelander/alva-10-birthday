@@ -1,9 +1,189 @@
 # Sköldhästen – handover
 
-## Latest continuation: connected story, coloured cloud and aligned cave water
+## Swedish text review and the P2 plank (29 September)
 
-Review branch: `codex/skoldhast-story-flow`, based on merged main `b24ee42`.
-The earlier polish was merged in PR #8. Ask before merging this continuation.
+Same working tree as the stuck-wave continuation below; not yet committed.
+
+- **Text:** 55 fixes in `src/content/sv.mjs` for grammar, idiom and facts after a
+  six-lens review with three judges per change. Examples: `uppför` (not `upp för`), `Alla tre strecken`,
+  `skriva in dig`, `som har bråttom`, `på himlen`. Also factual fixes: chain 3 runs to the gallery rope;
+  the missing half of the mark lies on Klippudden; the P1 bridge is called Streckbron/bron, so `valvet`
+  now means only Vattenporten and Mörka valvet.
+- **The plank by the pool:** no crack is drawn, so the lines say `plankan vid pölen` instead of
+  `plankan över sprickan`. The reflection's solid plank was drawn outside the pool's mask and never
+  showed; it now sits at the east bank (`view.mjs` `buildReflection`). Once inked, the dashed line
+  becomes a real wooden plank (`solid: 'plank-solid'` on `p2-plank` in `world.mjs`; visual only).
+- **Pappa's decisions:** the stone goes `mitt framför valvet`; Stäppen is capitalised as a place name,
+  including the scene title `Stranden och Stäppen` (the notebook browser test follows it); the field
+  note keeps generic lowercase `stäppen`/`kelpskogen`; the goal line says `sköldpaddan Signe`; the pencil counter keeps
+  `3 / 5`.
+- **Checks:** pure suite 145/145; cloud-colour, guide and notebook browser checks pass.
+
+## The tail: lying hidden, long falls, fast screens (29 September)
+
+Pappa: the tail felt glitchy when the sköldhäst lay down to hide and after long falls. All in
+`src/rig.mjs` (the verlet chains); not yet committed.
+
+- **Hidden tail flailed.** The ground was a y-only clamp after the length pass, and the DFTL term
+  handed its push to the parent as a kick every step. Contact is now part of the length pass (a
+  point lies on the ground at its segment's length), and the ground, not the parent, takes the push.
+- **Falls.** The tail collided with remembered hoof touchdowns, which froze at the hilltop and
+  stayed after landing. In the air it now uses only terrain a hoof could reach (`s.groundAt`), and
+  the memory is reseeded on landing (`f.landed`, `reseedGround`).
+- **Frame rate.** Chains stepped by the frame's own dt, but their springs and damping are per 1/60 s,
+  so 90–144 Hz screens and uneven phone frames made all hair restless. Every chain now steps at a
+  fixed 1/60 s (`advanceChain`) and draws a blend of the last two steps; at 60 Hz it is identical.
+- A tail snapped fresh while hidden (teleport, reload) is laid on the ground at once.
+- **Measured (real sim, mean °/s²):** hidden and still at Klo's hole 323,716 → 24 (60 Hz) and
+  1,028,449 → 50 (144 Hz); lying down 109,528 → 39,359; a 900 wu fall's worst in-air tip jerk
+  586 → 14 wu/frame², with no chain resets (was up to 3). `tests/skoldhast-tail.test.mjs` (7 tests)
+  fails on the old rig and passes now. Pure suite 157/157; touch (both sizes), save and launch pass.
+- **Not changed:** getting up still swings the tail forward under the belly for about 0.1 s, as
+  before (tip up to ~95 wu forward); extra drag did not help. On sloped ground the hidden tail
+  still rests on one horizontal line at hind-hoof height, so it can sink a little into an uphill slope.
+  A waterline blend and chord normals in `hero.mjs` were tried and left out (they changed swimming).
+
+## Latest continuation: one stuck wave, one waterline, and Klo's first sight
+
+Same review branch, `codex/skoldhast-living-opening`, on top of `dfc1c6d`.
+Pappa's review of the opening and the first beach: the water, the wave and the
+shoreline did not line up, and Klo just appeared. Paired views are in
+[`docs/skoldhast/wave-waterline-review.md`](../docs/skoldhast/wave-waterline-review.md).
+
+- **Klo's wonder.** First her question as a caption ("Häst eller sköldpadda?
+  Ingen vet. Det behövs en forskare!", `captionFallback`; `HER_TEXT.lastTwo` when
+  allowed) while the camera pushes in on the dry sand behind the horse (Klo at
+  107.74 HL, never inside the wave). The horse shakes; one drop from the shell
+  lands in his hole; his stalks peek, look the wrong way, climb hoof → leg →
+  shell; he floats up open-mouthed, drops his notebook flat on the sand, stars
+  twinkle, a pencil "?": *"Oj … vilket skal! En jättesköldpadda?"* The horse
+  tosses its head (new rig action `toss`); both eyes follow the mane, the horse
+  stamps and they whip between hooves and mane, then one eye on each half; he
+  crouches, leaps ("!"), snatches up the notebook and scribbles as he scuttles
+  over: *"Man och hovar?! Som en häst! Det här måste undersökas – från man till
+  hov!"* After the cloud he remembers his manners: *"Förlåt! Forskaren är här:
+  Professor Klo – expert på land och vatten." "Hittills mest krabbor."* Three
+  boxes before the first drawing. The direct "Häst eller sköldpadda?" / "Ja."
+  stays for Kapitel 1. Phases `klo-entrance`, `klo-wonder`, `klo-take`,
+  `klo-ready`; cues fire for every stage passed even when a frame is skipped.
+  New optional rig fields in `klo.mjs` (eyeAim, eyeLift, eyeWide, eyeFrame,
+  tremble, crouch, scribble, mouth 'o', pose 'awe'); new art `klo-part-body-o`.
+  Eye aims are measured from the drawn pupils. Reduced motion keeps every beat
+  without leap, tilt, crouch or tremble. The playable Klo starts where this one
+  ends (a shorter walk to his lesson).
+- **One wave, from the sea to the hooves.** `src/stuck-wave.mjs` draws the
+  frozen splash together with its run-up, which is now real art from the same
+  pencil as the splash (`frozen-runup` in `props-land`, drawn by
+  `scripts/skoldhast-art/props.mjs` on the shared geometry in
+  `src/stuck-wave-shape.mjs`): the foam cap, hatching and white loops continue
+  down the sand and thin into the sea's own surface line at the shore. In the
+  opening the stamp calls the wave up the beach and it bursts as the hoof lands.
+  At the fold it slows to a halt (no instant snap), cools slightly and glints
+  along its edge; there is no drawn outline. The playable beach shows that exact
+  frozen moment (`G.stuckWaveClock`, not saved; a restored save uses a fixed
+  still moment). At the finale's plask it goes.
+- **Her sea behind her beach.** The painted sea used to sink below the sand in
+  play; `bg-beach` now pins its first full sea row to the world (`seaRow`,
+  `seaY`), as in her picture, with an underlay for the screen's bottom edge that
+  stays out of snapshots (`seaAnchorY` in `scenery.mjs`). Her dark-blue
+  waterline (plan §2.3) replaces the graphite beach line from 105.25 HL to the
+  shore (`waterline` in `world.mjs`, `clipX` in `terrain-shape.mjs`); it runs
+  straight into the sea's surface line. The pebble at the shore lies behind the
+  wave; `foam-edge` has paper-white loops instead of solid blue dots.
+- **The run-up art is tied to the beach data.** After any change to the beach
+  points, the splash position or the sea level, rebuild it with
+  `node scripts/build-skoldhast-assets.mjs --only props`
+  (`tests/skoldhast-stuck-wave-shape.test.mjs` fails until you do).
+- **The sea ends at the shore.** Open-sky seas are split into the stretches where
+  the ground really dips below the surface (`seaSpans` in `view.mjs`). The land
+  shallows no longer paint a grey box and a blue line across the sand, and in
+  Viken the waterline no longer runs over the shore sand or the lighthouse rock.
+  The veil follows the seabed; the mirror pool no longer tints a box of sand. A drawn-only `tail` continues the shallows bed
+  under the jetty, so the page no longer ends in a vertical wall of backdrop.
+  Collision data is unchanged; the shallows' water box only reaches further.
+- **The opening margin continues the picture.** Each pencil row takes the
+  picture's own edge colour and thins out towards blank paper, with no ruled
+  edges. The sand and seabed below follow the world's real bed; kelp stands on a
+  shelf below the surface; the tower stands on a small islet with a reflection.
+- **Guided strokes.** The shell accent's dots sit on the actual shell rim (from
+  the live sprite, any pose) and the pigment follows the whole rim smoothly. The
+  shoreline dots start where the wave's crest meets the sea, at sea level (they
+  were 7 paper units low), and the result is a pencil line, not a 6-unit bar.
+- **Small things.** The hero's ground shadow sits on the sand instead of smearing
+  over the sea behind the beach line. The seaweed strand moved from under the
+  tail into the shallows. The asset build writes `files.json` with forward
+  slashes on Windows too (it wrote `src\\…` paths, which the loader cannot fetch).
+
+Pure suite: **150/150**, robot included. First playable: **2,815,239 bytes**.
+Browser checks are listed in the review. Nothing here was merged or committed on
+Pappa's behalf. Known and left alone: at 99.3 HL the dunes' sand and the pool's
+wet sand meet in a vertical seam (a terrain material boundary, older than this).
+Frågor till Pappa: does "från man till hov" make Alva laugh when read aloud? Is
+about 9.5 s of Klo's entrance plus three boxes before the gull the right pace?
+In portrait the sea band behind the beach is thin (one world anchor for all
+sizes); raise it for portrait? Her blue waterline runs from the shells to the
+shore: does that match her drawing?
+
+## Previous continuation: the painting wakes under Alva's pencil
+
+Review branch: `codex/skoldhast-living-opening`, based on merged main `3896886`.
+Ask before merging this continuation. Research, staging decisions and comparison
+images are in [`docs/skoldhast/living-opening-review.md`](../docs/skoldhast/living-opening-review.md).
+
+The opening now starts with a completely still Sköldhäst. One forgiving shell
+accent wakes the existing faithful drawing: head lift, breath, a hoof press and
+the first splash. The camera moves closer for these small reactions. The gull,
+coloured cloud and interrupted shoreline remain the next three drawing actions;
+the hero follows the flying marks with its gaze. Keyboard completion produces
+the same response as tracing. The initial rotation toast no longer covers the
+portrait drawing prompt.
+
+Klo uses the existing articulated crab rig. Sand stirs, eyes peek, a claw braces,
+then he climbs, pops sideways and catches his notebook. His feet use the real
+beach height. Dialogue moves his claws. When the camera enters the picture, the
+same crab scuttles inland while control returns; there is no second entrance.
+Saves and the robot retain a fallback introduction when no paper crab exists.
+
+Pencil ridges, submerged kelp and a distant paper tower establish one coastline.
+An anonymous measuring figure and a reflected ruler glint anticipate the fold.
+The tower lamp remains unlit for P7. The existing physical fold still crosses
+the exact last shoreline point, takes the painted sea underneath and stops the
+wave during the motion. Kelp/current details keep moving below it. Mystery
+answers describe observations; the keeper's identity and protective mistake
+remain discoveries for Kapitel 3. The hero wants its first splash back.
+
+Current pure suite: **145/145 passed**, including the robot and deterministic
+frame-rate replays. First playable: **2,777,181 bytes**; no new art atlas, audio
+sample, filter or TTS. The privacy and hidden-ticket rules are unchanged.
+
+Focused checks:
+
+```sh
+node tests/browser/skoldhast-awakening.mjs --out /tmp/awakening
+node tests/browser/skoldhast-opening.mjs --out /tmp/opening
+node tests/browser/skoldhast-cloud-color.mjs --out /tmp/cloud-color
+```
+
+The awakening check covers native touch and keyboard at both phone sizes,
+reduced motion, a still rig before input, visible wake reactions, full-size crab
+emergence and closing/reopening during the wake. The fold check covers the
+full causal phase order, actual tracing, retained paper, choices, rotation and
+closing/reopening during folding. Required launch, save, touch at both phone sizes, guide, pages and finale
+checks all pass. Both normal/reduced finales and cloud-colour persistence pass.
+The three refreshed 27-place contact sheets and six before/after comparisons
+are under `docs/skoldhast/shots/k3/`, with no captured browser errors. Exact
+results and remaining human review are recorded in the review.
+
+Remaining human review: does a fresh player understand what their stroke woke,
+what the fold interrupted and what the Sköldhäst wants back? The distant figure
+is deliberately a small clue, especially on portrait. Screenshots cannot prove
+comprehension or physical-phone smoothness. The prologue sun is still part of
+the static original picture; no new claim of rotating sun rays is made.
+
+## Previous continuation: connected story, coloured cloud and aligned cave water (merged)
+
+Merged from `codex/skoldhast-story-flow` in PR #9, main `3896886`.
+The earlier polish was merged in PR #8.
 
 Story audit and paired screenshots:
 [`docs/skoldhast/story-flow-review.md`](../docs/skoldhast/story-flow-review.md).
@@ -70,7 +250,7 @@ human listening remain unmeasured. Text-to-speech was explicitly deferred.
 That work was merged from `codex/skoldhast-polish` in PR #8.
 
 
-Last updated: 29 September 2026. The current review branch is `codex/skoldhast-story-flow`, based on `main` at `b24ee42`. The design is in `docs/skoldhast-game-plan.md` (v2); the working rules are in `skoldhast/CLAUDE.md`.
+Last updated: 29 September 2026. The current review branch is `codex/skoldhast-living-opening`, based on `main` at `3896886`. The design is in `docs/skoldhast-game-plan.md` (v2); the working rules are in `skoldhast/CLAUDE.md`.
 
 ## State
 

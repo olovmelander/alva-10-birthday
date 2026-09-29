@@ -102,22 +102,24 @@ try {
     await page.evaluate(() => window.__skoldhast.open());
     await page.waitForSelector('.sk-title', { timeout: 30000 });
     await page.locator('.sk-title button', { hasText: /^Börja$/ }).click();
-    await page.waitForSelector('.sk-dialogue.on.who-caption', { timeout: 30000 });
-    for (let line = 0; line < 3; line++) {
-        const previous = await page.locator('.sk-dlg-text').textContent();
-        // say() deliberately gives each new line a 350 ms reading guard.
-        await page.evaluate(() => { window.__readableAt = performance.now() + 400; });
-        await page.waitForFunction(() => performance.now() >= window.__readableAt);
-        await page.evaluate(() => window.__skoldhast.debug.ui.advance());
-        await page.waitForFunction((text) => document.querySelector('.sk-draw.on') ||
-            (document.querySelector('.sk-dialogue.on') && document.querySelector('.sk-dlg-text').textContent !== text), previous);
-    }
-    await page.waitForSelector('.sk-draw.on');
+    // The opening's first drawing (the shell stroke that wakes the picture)
+    // opens straight away; leave it unfinished.
+    await page.waitForSelector('.sk-draw.on', { timeout: 30000 });
+    await page.evaluate(() => { window.__abandonedDraw = document.querySelector('.sk-draw.on'); });
     await page.evaluate(() => window.__skoldhast.close());
     await page.evaluate(() => window.__skoldhast.open());
     await page.waitForSelector('.sk-title', { timeout: 30000 });
     await page.keyboard.press('Space');
-    assert.equal(await page.locator('.sk-draw.on').count(), 0, 'abandoned prologue cannot reopen its drawing');
+    // Space may legitimately start a new game, whose opening also begins with a
+    // drawing. The abandoned session's own drawing must never come back.
+    await page.evaluate(() => new Promise((resolve) => setTimeout(resolve, 600)));
+    const after = await page.evaluate(() => {
+        const table = window.__skoldhast.debug.app?.stage.children.find(c => c.label === 'story-table');
+        return { stale: window.__abandonedDraw.isConnected, open: document.querySelectorAll('.sk-draw.on').length, phase: table?.storyPhase };
+    });
+    assert.equal(after.stale, false, 'abandoned prologue cannot reopen its drawing');
+    assert.ok(after.open <= 1, 'at most the new session\'s own drawing is open');
+    if (after.open) assert.equal(after.phase, 'drawing-wake', 'an open drawing is the new opening\'s first stroke');
     assert.deepEqual(errors, []);
     await page.evaluate(() => window.__skoldhast.close());
     console.log(`drawing cleanup and lifecycle passed at ${width}x${height}`);

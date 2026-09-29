@@ -93,7 +93,9 @@ await check('pause then close/reopen starts an advancing prologue', async () => 
     });
     await pg.waitForSelector('.sk-root .sk-title', { timeout: 30000 });
     await pg.locator('.sk-title button', { hasText: /^Börja$/ }).click();
-    await pg.waitForSelector('.sk-dialogue.on.who-caption', { timeout: 30000 });
+    await pg.waitForSelector('.sk-draw.on.guided', { timeout: 30000 });
+    await pg.keyboard.press('Enter'); // the first pencil stroke awakens the still drawing
+    await pg.waitForSelector('.sk-dialogue.on.who-horse', { timeout: 30000 });
     // say() has a deliberate 350 ms reading guard. Wait for that guard, then use
     // the real queued keyboard input; a stale paused flag would discard it forever.
     await pg.evaluate(() => { window.__prologueReadAt = performance.now() + 400; document.activeElement?.blur(); });

@@ -1,5 +1,11 @@
 /* Small, camera-bounded pencil highlights. No filters, render textures or RNG. */
 const clamp = (n, a, b) => Math.max(a, Math.min(b, n));
+
+/** Screen y for a backdrop whose painted sea row `seaRow` (0…1 of its height)
+ * should sit at world height `seaY`, never uncovering the top of the screen. */
+export function seaAnchorY({ H, th, sc, seaY, seaRow, camY, zoom }) {
+    return Math.min(0, H / 2 + (seaY - camY) * zoom - seaRow * th * sc);
+}
 const hash = (n) => { const v = Math.sin(n * 127.1 + 311.7) * 43758.5453; return v - Math.floor(v); };
 
 /**

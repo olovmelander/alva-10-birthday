@@ -1246,6 +1246,8 @@ export function buildKloParts(scale = KLO_SCALE) {
     for (const part of ['body', ...Array.from({ length: 6 }, (_, i) => 'leg-' + i), 'arm-l', 'arm-r', 'eye-l', 'eye-r']) {
         addPart('klo-part-' + part, (sh) => drawKlo(sh, kloDefault(), part));
     }
+    // an amazed "o" for his first sight of the sköldhäst
+    addPart('klo-part-body-o', (sh) => { const pose = kloDefault(); pose.mouth = 'o'; drawKlo(sh, pose, 'body'); });
     for (const side of ['l', 'r']) addPart('klo-part-eye-' + side + '-blink', (sh) => {
         const pose = kloDefault(); pose.eyes.mode = 'shut';
         drawKlo(sh, pose, 'eye-' + side);

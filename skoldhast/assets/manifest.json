@@ -22,8 +22,8 @@
    "images": [
     "npcs.webp"
    ],
-   "bytes": 117848,
-   "frames": 42
+   "bytes": 119576,
+   "frames": 43
   },
   "npcs-sea": {
    "bundle": "sea",
@@ -82,7 +82,7 @@
    "images": [
     "props.webp"
    ],
-   "bytes": 407918,
+   "bytes": 408126,
    "frames": 68
   },
   "props-land": {
@@ -94,8 +94,8 @@
    "images": [
     "props-land.webp"
    ],
-   "bytes": 114704,
-   "frames": 19
+   "bytes": 131092,
+   "frames": 20
   },
   "props-sea": {
    "bundle": "sea",
@@ -571,7 +571,7 @@
     "assets/ui-icons.webp",
     "assets/hero-rig.json"
    ],
-   "bytes": 1487320
+   "bytes": 1489256
   },
   "sea": {
    "files": [
@@ -598,7 +598,7 @@
     "assets/mat-grass.webp",
     "assets/mat-earth.webp"
    ],
-   "bytes": 762358
+   "bytes": 778746
   },
   "bay": {
    "files": [

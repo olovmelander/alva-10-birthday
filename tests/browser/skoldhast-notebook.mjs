@@ -17,7 +17,7 @@ try {
         await page.locator('.sk-j-tab').nth(6).tap();
         await page.waitForFunction(() => document.querySelector('.sk-j-tab[aria-selected="true"]')?.classList.contains('t6'));
         await page.waitForFunction(() => !document.querySelector('.sk-j-flip'));
-        assert.match(await page.locator('.sk-j-pencil-regions').textContent(), /Stranden och stäppen: 2 \/ \d+/, 'journal names the region beside its collection count');
+        assert.match(await page.locator('.sk-j-pencil-regions').textContent(), /Stranden och Stäppen: 2 \/ \d+/, 'journal names the region beside its collection count');
         const regionRows = await page.locator('.sk-j-pencil-regions li').count();
         assert.ok(regionRows >= 1, 'visited regions with pencils have a visible counter');
         assert.ok(sounds.includes('page'), 'a page turn requests the paper sound');

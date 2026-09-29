@@ -11,16 +11,17 @@
  */
 import { HL, cond, heightOn, lineLength, pointAt } from './sim.mjs';
 import { createPage, createScreenTurn } from './pageturn.mjs';
-import { terrainShape } from './terrain-shape.mjs';
+import { terrainShape, clipX } from './terrain-shape.mjs';
 import { createKlo } from './klo.mjs';
 import { createGuardian } from './guardian.mjs';
-import { createWaterLight, createAtmosphere } from './scenery.mjs';
+import { createWaterLight, createAtmosphere, seaAnchorY } from './scenery.mjs';
 import { pencilAvailable } from './puzzles.mjs';
 import { createRouteCue, createPencilBeam } from './route-cue.mjs';
 import { createActionCue } from './action-cue.mjs';
 import { createFoldDemo } from './fold-demo.mjs';
 import { createMapAssemble } from './map-assemble.mjs';
 import { cloudSkyLayout } from './cloud-sky.mjs';
+import { createStuckWave, STILL_CLOCK } from './stuck-wave.mjs';
 import { STORY } from './content/sv.mjs';
 
 const h = (v) => v * HL;
@@ -263,6 +264,9 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
             s._bg = b; s._img = b.image;
             bgLayer.addChild(s);
             d.bg.push(s);
+            // A sea pinned to the world can end above the screen's bottom edge;
+            // its deepest row continues below it.
+            if (b.seaY !== undefined) { s._under = new PIXI.Graphics(); s._under.label = 'backdrop-sea-underlay'; bgLayer.addChild(s._under); }
         }
         // One exposed contour from the active collision surfaces. Ramps replace
         // buried terrace tops; they never paint a grass column over the earth.
@@ -286,15 +290,30 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
             for (const child of groundLines.removeChildren()) child.destroy({ children: true });
             const active = G.terrain?.scene === def ? G.terrain.surfaces : def.surfaces.filter(s => cond(s.when, G.flags));
             const shape = terrainShape(active);
-            for (const { s, pts } of shape.runs) {
+            for (const { s, pts: run } of shape.runs) {
+                // A drawn-only tail carries a seabed past the playable edge, so the
+                // sea never ends in a cut-off wall of backdrop under the jetty.
+                const pts = s.tail && run.at(-1)[0] === s.pts.at(-1)[0] ? [...run, ...s.tail] : run;
                 const x0 = pts[0][0], x1 = pts.at(-1)[0];
                 const baseMat = s.edgeMat || (s.ramp ? 'earth' : s.mat);
                 fillPoly(ground, [...pts, [x1, bottom], [x0, bottom]], baseMat);
                 if (baseMat !== s.mat) {
                     fillPoly(groundTop, [...pts, ...pts.slice().reverse().map(([x,y]) => [x,y+46])], s.mat);
                 }
+                if (pts !== run) groundLines.addChild(rope('stroke-graphite', resamplePts([run.at(-1), ...s.tail], 50), { width: 5 }));
             }
-            for (const pts of shape.outlines) groundLines.addChild(rope('stroke-graphite', resamplePts(pts, 50), { width: 5 }));
+            // Her dark-blue waterline where the sand meets the painted sea, ending
+            // exactly where the sea's own surface line begins. Graphite elsewhere
+            // (and under the water); it overlaps the blue a little at its start.
+            const wl = herWaterline(def);
+            for (const pts of shape.outlines) {
+                if (!wl) { groundLines.addChild(rope('stroke-graphite', resamplePts(pts, 50), { width: 5 })); continue; }
+                for (const part of [clipX(pts, -Infinity, wl.x0 + 40), clipX(pts, wl.x1, Infinity)]) {
+                    if (part.length > 1) groundLines.addChild(rope('stroke-graphite', resamplePts(part, 50), { width: 5 }));
+                }
+                const blue = clipX(pts, wl.x0, wl.x1);
+                if (blue.length > 1) { const r = rope('stroke-blue', resamplePts(blue, 50), { color: 0x244f8f, width: 4 }); r.label = 'her-waterline'; groundLines.addChild(r); }
+            }
             d.groundRevision = G.terrain.revision;
             d.groundTerrain = G.terrain;
         };
@@ -323,24 +342,30 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
         // water
         for (const w of def.waters || []) {
             if (w.kind === 'pipe') continue;
-            const wb = { w, g: new PIXI.Graphics(), surf: null, refl: null };
             const yb = w.bottom ?? bottom;
-            // A translucent pencil veil should tint the creature, not erase its
-            // legs under repeating white water hatching.
-            const alpha = def.underwater ? 0.12 : w.kind === 'pool' ? 0.36 : 0.26;
-            fillPoly(wb.g, [[w.x0, w.top], [w.x1, w.top], [w.x1, yb], [w.x0, yb]], def.underwater ? 'mat-deep' : 'mat-water', alpha);
-            if (!T('mat-water')) { wb.g.clear(); wb.g.rect(w.x0, w.top, w.x1 - w.x0, yb - w.top).fill({ color: 0x5b9bd0, alpha: alpha * 0.8 }); }
-            L.waterFront.addChild(wb.g);
-            // Include both exact bank endpoints, including widths not divisible
-            // by the pencil segment length. Connected bodies share their join.
-            const pts = resamplePts([[w.x0, w.top], [w.x1, w.top]], 50);
-            wb.surfBase = pts.map((p) => p.slice());
-            wb.surf = rope('stroke-blue', pts, { color: 0x244f8f, width: 4 });
-            L.waterFront.addChild(wb.surf);
-            if (w.mirror) wb.refl = buildReflection(def, w);
-            d.waters.push(wb);
-            wb.light = createWaterLight(PIXI, w, { underwater: def.underwater });
-            L.waterFront.addChild(wb.light.view);
+            // A sea under open sky is split into the stretches where the ground
+            // really dips below its surface; elsewhere it keeps its authored box.
+            const spans = !def.underwater && (w.kind === 'sea' || w.kind === 'pool') ? seaSpans(def, w, yb)
+                : [{ x0: w.x0, x1: w.x1, poly: [[w.x0, w.top], [w.x1, w.top], [w.x1, yb], [w.x0, yb]] }];
+            for (const [i, span] of spans.entries()) {
+                const wb = { w, span, g: new PIXI.Graphics(), surf: null, refl: null };
+                // A translucent pencil veil should tint the creature, not erase its
+                // legs under repeating white water hatching.
+                const alpha = def.underwater ? 0.12 : w.kind === 'pool' ? 0.36 : 0.26;
+                fillPoly(wb.g, span.poly, def.underwater ? 'mat-deep' : 'mat-water', alpha);
+                if (!T('mat-water')) { wb.g.clear(); wb.g.poly(span.poly.flat()).fill({ color: 0x5b9bd0, alpha: alpha * 0.8 }); }
+                L.waterFront.addChild(wb.g);
+                // Include both exact bank endpoints, including widths not divisible
+                // by the pencil segment length. Connected bodies share their join.
+                const pts = resamplePts([[span.x0, w.top], [span.x1, w.top]], 50);
+                wb.surfBase = pts.map((p) => p.slice());
+                wb.surf = rope('stroke-blue', pts, { color: 0x244f8f, width: 4 });
+                L.waterFront.addChild(wb.surf);
+                if (w.mirror && i === 0) wb.refl = buildReflection(def, w);
+                d.waters.push(wb);
+                wb.light = createWaterLight(PIXI, { ...w, x0: span.x0, x1: span.x1 }, { underwater: def.underwater });
+                L.waterFront.addChild(wb.light.view);
+            }
         }
         if (def.underwater) {
             // Air, tint, pencil line and buoyancy use the same authored surface.
@@ -387,6 +412,16 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
                 }
                 continue;
             }
+            if (it.frozen) {
+                // The wave the opening stopped: its run-up meets the sea's own
+                // waterline, and its drops hang exactly where the fold caught them.
+                const sea = (def.waters || []).find(w => w.kind === 'sea');
+                const wave = createStuckWave(PIXI, { texture: T, ground: drawnGround(def), x: it.x, y: it.y, seaTop: sea?.top ?? 0 });
+                wave.settle(G.stuckWaveClock ?? STILL_CLOCK);
+                (it.layer === 'fore' ? L.fore : L.mid).addChild(wave.view);
+                d.items.push({ s: wave.view, it, wave });
+                continue;
+            }
             const s = spr(it.sprite);
             if (it.scale) s.scale.set(it.scale);
             if (it.flip) s.scale.x = -Math.abs(s.scale.x);
@@ -426,10 +461,19 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
             for (let i = 1; i < pts.length; i++) distances.push(distances[i - 1] + Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]));
             if (glow) c.addChild(glow);
             c.addChild(dash, ink);
+            // a finished line that becomes a real object (the P2 plank, as the reflection shows it)
+            let solid = null;
+            if (ds.solid) {
+                const a = ds.pts[0], b = ds.pts[ds.pts.length - 1];
+                solid = spr(ds.solid); solid.anchor?.set?.(0.5);
+                solid.x = (a[0] + b[0]) / 2; solid.y = (a[1] + b[1]) / 2 + 6;
+                solid.scale.x = distances.at(-1) / (solid.width || distances.at(-1));
+                solid.visible = false; c.addChild(solid);
+            }
             (ds.decal ? L.mid : L.objects).addChild(c);
             const route = ds.glow ? createRouteCue(PIXI, pts, { label: ds.id }) : null;
             if (route) L.hints.addChild(route.container);
-            d.dashed.push({ ds, c, glow, dash, ink, route, pts, distances, len: distances.at(-1), x0: Math.min(ds.pts[0][0], ds.pts[ds.pts.length - 1][0]), x1: Math.max(ds.pts[0][0], ds.pts[ds.pts.length - 1][0]), y: ds.pts[0][1] });
+            d.dashed.push({ ds, c, glow, dash, ink, solid, route, pts, distances, len: distances.at(-1), x0: Math.min(ds.pts[0][0], ds.pts[ds.pts.length - 1][0]), x1: Math.max(ds.pts[0][0], ds.pts[ds.pts.length - 1][0]), y: ds.pts[0][1] });
         }
         // lanes: motes that show the flow; dashed lanes as blue dashes
         d.lanes = [];
@@ -516,6 +560,51 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
             if (y !== null && (best === null || y < best)) best = y;
         }
         return best;
+    }
+
+    /** Where her blue waterline runs: from its authored start to the named sea's shore. */
+    function herWaterline(def) {
+        const w = def.waterline && (def.waters || []).find(q => q.id === def.waterline.sea);
+        const shore = w && seaSpans(def, w, def.bounds.y1 + h(4))[0];
+        return shore ? { x0: def.waterline.x0, x1: shore.x0 } : null;
+    }
+
+    /** The drawn ground at x, including drawn-only seabed tails. */
+    function drawnGround(def) {
+        const solid = def.surfaces.filter(s => !s.thin && cond(s.when, G.flags));
+        const lines = [...solid.map(s => s.pts), ...solid.filter(s => s.tail).map(s => [s.pts.at(-1), ...s.tail])];
+        return (x) => {
+            let best = null;
+            for (const pts of lines) { const y = heightOn(pts, x); if (y !== null && (best === null || y < best)) best = y; }
+            return best;
+        };
+    }
+
+    /**
+     * A sea never paints over dry sand or rock. Each stretch starts exactly
+     * where the ground dips below the surface, so the waterline begins at the
+     * shore instead of crossing the beach, and its veil follows the bed rather
+     * than cutting a rectangle into the land below.
+     */
+    function seaSpans(def, w, yb) {
+        const groundAt = drawnGround(def);
+        const wet = (x) => { const g = groundAt(x); return g === null || g > w.top + 0.5; };
+        const edge = (dry, damp) => { for (let i = 0; i < 16; i++) { const m = (dry + damp) / 2; if (wet(m)) damp = m; else dry = m; } return damp; };
+        const found = [], step = 10;
+        let start = wet(w.x0) ? w.x0 : null;
+        for (let x = w.x0 + step; ; x += step) {
+            const at = Math.min(x, w.x1), now = wet(at);
+            if (now && start === null) start = edge(at - step, at);
+            if (!now && start !== null) { found.push([start, edge(at, at - step)]); start = null; }
+            if (at >= w.x1) break;
+        }
+        if (start !== null) found.push([start, w.x1]);
+        return found.filter(([a, b]) => b - a > 4).map(([a, b]) => {
+            const bed = [];
+            for (let x = b; x > a; x -= 20) bed.push([x, Math.max(w.top, groundAt(x) ?? yb)]);
+            bed.push([a, Math.max(w.top, groundAt(a) ?? yb)]);
+            return { x0: a, x1: b, poly: [[a, w.top], [b, w.top], ...bed] };
+        });
     }
 
     // --- scene-specific objects -------------------------------------------------------------
@@ -643,7 +732,8 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
             // the page as it should be: the arch open, the stone at its foot, the plank solid, a small fish
             const cliff = spr('cliff-open'); cliff.x = def.spots.arch.x - h(0.2); cliff.y = w.top + (w.top - def.spots.arch.y) + 20; cliff.scale.y = -1; inner.addChild(cliff);
             const st = spr('rail-stone'); st.x = def.rail.x0 + def.rail.step * def.rail.target; st.y = w.top + 30; st.scale.y = -1; inner.addChild(st);
-            const pl = spr('plank-solid'); pl.anchor?.set?.(0.5); pl.x = h(104.5); pl.y = w.top + 50; pl.scale.y = -1; inner.addChild(pl);
+            // the plank lies just past the pool, so its reflection is drawn at the east bank, inside the water
+            const pl = spr('plank-solid'); pl.anchor?.set?.(0.5); pl.x = w.x1 - h(0.62); pl.y = w.top + 50; pl.scale.y = -1; inner.addChild(pl);
             const fish = spr('fish-1'); fish.anchor?.set?.(0.5); fish.y = w.top + h(0.9); fish.scale.set(0.8, -0.8); inner.addChild(fish);
             c._fish = fish;
         }
@@ -721,6 +811,10 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
         c.addChild(island, rope('stroke-graphite', shore, { width: 4 }), O.beam, tower, ...O.shutters.map(o => o.s), O.lamp, O.figure);
         const sea = new PIXI.Graphics();
         fillPoly(sea, [[x - h(100), y], [x + h(100), y], [x + h(100), y + h(100)], [x - h(100), y + h(100)]], 'mat-water', 0.2);
+        // The postcard's sea surrounds the island, unlike the playable stretch
+        // that ends at its rock, so its light spans the whole bay.
+        bay.light.view.destroy({ children: true });
+        bay.light = createWaterLight(PIXI, bay.w, { underwater: def.underwater });
         c.addChild(bay.refl, sea, bay.light.view);
         // The lens is only a few pixels wide in the landscape postcard. Keep the
         // familiar pencil halo readable without filters or a separate distant asset.
@@ -930,6 +1024,8 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
                 b.scale.set(vistaScale); b.x = (W - tw * vistaScale) / 2; b.y = H / 2 - th * 0.6 * vistaScale;
             }
             if (bb.image === 'bg-steppe') b.y -= H * 0.08;
+            // Her painted sea stays behind her beach instead of sinking below the sand.
+            if (bb.seaY !== undefined && !S.vista) b.y = seaAnchorY({ H, th, sc, seaY: bb.seaY, seaRow: bb.seaRow, camY: cam.y, zoom: cam.zoom });
             let a = 1;
             if (S.bg.length > 1) {
                 const mid = (bb.x0 + bb.x1) / 2, half = (bb.x1 - bb.x0) / 2;
@@ -937,6 +1033,11 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
                 a = clamp(1 - dx / h(5), 0, 1);
             }
             b.alpha = a;
+            if (b._under) {
+                const end = b.y + th * b.scale.y - 2;
+                b._under.clear();
+                if (end < H && a > 0.001) b._under.rect(0, end, W, H - end).fill({ color: G.evening ? 0xb3c3c9 : 0x4c7eae, alpha: a });
+            }
         }
         // sky props: parallax
         for (const it of S.sky) {
@@ -962,7 +1063,7 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
         }
         placeUserCloud(W, H);
         // decor conditions and label fade
-        for (const { s, it } of S.items) {
+        for (const { s, it, wave } of S.items) {
             let vis = cond(it.when, F);
             if (it.chapter && !F.has('ch' + it.chapter + '_open') && it.chapter > 1) vis = vis && false;
             s.visible = vis;
@@ -972,8 +1073,7 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
                 if (G.finalLabel) s.alpha = G.finalLabel;
             }
             if (it.frozen) {
-                if (!frozen) { s.scale.y = 1 + Math.sin(time * 5) * 0.06; s.alpha = F.has('plask') ? 0.0 : 1; }
-                else { s.scale.y = 1; }
+                if (wave && G.stuckWaveClock !== undefined && wave.clock !== G.stuckWaveClock) wave.settle(G.stuckWaveClock);
                 if (F.has('plask')) s.visible = false;
             }
             if (it.ratchet) { const n = def.drums?.find((q) => q.id === it.ratchet)?.notches || 24; s.rotation = (F.has(it.ratchet) ? n : (G.puz.drums[it.ratchet] || 0)) * (8.4 / n); }
@@ -1043,7 +1143,8 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
                 dl.dash.alpha = near ? 0.78 + Math.sin(time * 3.2 + 1) * 0.22 : 1;
             }
             updateInk(dl, inkT, G.player.streck?.dir || 1);
-            dl.ink.visible = inkT > 0;
+            if (dl.solid) dl.solid.visible = done;
+            dl.ink.visible = inkT > 0 && !(done && dl.solid);
             if (inkT > 0 && inkT < 1 && Math.random() < 0.5) emit('ink', snap.x, snap.y - 10, 1, { speed: 120, g: 300, life: 0.4, tint: 0x3b3530 });
         }
         // lanes
@@ -1692,6 +1793,8 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
         get holding() { return !!held; },
         get sceneId() { return S?.id; },
         get vista() { return S?.vista || null; },
+        /** the playable beach's stuck wave (for checks) */
+        get stuckWave() { return S?.items.find(q => q.wave)?.wave || null; },
         get foldDemo() { return foldDemo ? { ...foldDemo.state, elapsed: foldDemo.elapsed, bounds: { ...foldDemo.hint.frame } } : null; },
         get mapAssembly() { return mapAssembly ? { ...mapAssembly.state, elapsed: mapAssembly.elapsed } : null; },
         kloBounds() { return S?.obj?.klo?.visible ? S.obj.klo.getBounds() : null; },
@@ -1718,9 +1821,13 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
             L.hints.visible = false; L.fx.visible = false;
             const splashes = G.snapNoSplash ? S.items.filter((q) => q.it.frozen && q.s.visible) : [];
             for (const q of splashes) q.s.visible = false;
+            // the picture fits its own backdrop; the screen's sea underlay stays out of it
+            const unders = S.bg.map(b => b._under).filter(u => u?.visible);
+            for (const u of unders) u.visible = false;
             overlay.visible = false;
             app.renderer.render({ container: root, target: rt, clear: true });
             overlay.visible = true;
+            for (const u of unders) u.visible = true;
             for (const q of splashes) q.s.visible = true;
             root.visible = vis.root; hero.view.visible = vis.hero; L.actors.visible = vis.actors; L.hints.visible = vis.hints; L.fx.visible = vis.fx;
             Object.assign(cam, save);

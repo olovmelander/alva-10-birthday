@@ -107,17 +107,20 @@ export function twoBoneIK(rx, ry, tx, ty, l1, l2, bend, out) {
  * gravity or buoyancy, drag toward the moving frame's wind, and ground collision.
  * rest: [[x, y], ...] in the parent's rest frame (body space), root first.
  * stiff: [first free point, tip] = share of the way pulled toward the rest shape
- * per 1/60 s (the first free point toward its carried rest place, the others
+ * per step of 1/60 s (the first free point toward its carried rest place, the others
  * toward their rest angle relative to the segment before them).
+ * The simulated points (sx, sy) move in steps of CHAIN_STEP and ox, oy hold them
+ * one step back; x, y are what is drawn (see advanceChain).
  */
 export function createChain(rest, { pinned = 1, stiff = [0.3, 0.05], collide = false, maxTurn = 1.2 } = {}) {
     const n = rest.length;
     const ch = {
         n, pinned, collide, maxTurn,
         restX: new Float64Array(n), restY: new Float64Array(n), len: new Float64Array(n), rel: new Float64Array(n),
-        x: new Float64Array(n), y: new Float64Array(n), vx: new Float64Array(n), vy: new Float64Array(n),
+        x: new Float64Array(n), y: new Float64Array(n), sx: new Float64Array(n), sy: new Float64Array(n),
+        vx: new Float64Array(n), vy: new Float64Array(n),
         ox: new Float64Array(n), oy: new Float64Array(n), cx: new Float64Array(n), cy: new Float64Array(n),
-        tx: new Float64Array(n), ty: new Float64Array(n), k: new Float64Array(n), fresh: true, total: 0, spread: 1
+        tx: new Float64Array(n), ty: new Float64Array(n), k: new Float64Array(n), fresh: true, ahead: 0, pinStep: 1, total: 0, spread: 1
     };
     for (let i = 0; i < n; i++) {
         ch.restX[i] = rest[i][0]; ch.restY[i] = rest[i][1];
@@ -139,89 +142,128 @@ export function createChain(rest, { pinned = 1, stiff = [0.3, 0.05], collide = f
     return ch;
 }
 
+/** The step every chain was tuned at; it is used at every frame rate (see advanceChain). */
+const CHAIN_STEP = 1 / 60;
+
 /**
- * Advance a chain. The targets ch.tx/ch.ty must hold the rest shape carried by
- * its parent (local space) before calling. env: { gx, gy (gravity, wu/s²), gyW
- * (buoyancy below the water line), water (local y of the water line; +huge for
- * none), wx, wy (air velocity relative to the frame, wu/s), drag, dragW (1/s, in
- * air and in water), ax, ay (frame acceleration, subtracted), ground (local y or
- * NaN), bend (scale of the springs) }. Integration is position-based with
- * follow-the-leader length constraints and DFTL velocity damping (Müller et al.
- * 2012), so a strand never stretches and never explodes.
+ * One step of CHAIN_STEP on the simulated points. ch.tx/ch.ty hold the rest shape carried by the
+ * parent (local space) at the end of this frame; the pinned points move ch.pinStep of the way there.
+ * env: { gx, gy (gravity, wu/s²), gyW (buoyancy under water), water (local y of the water line; +huge
+ * for none), wx, wy (air velocity relative to the frame, wu/s), drag, dragW (1/s, in air and in
+ * water), ax, ay (frame acceleration, subtracted), ground (local y or NaN), bend (scale of the
+ * springs) }. Integration is position-based with follow-the-leader length constraints and DFTL
+ * velocity damping (Müller et al. 2012), so a strand never stretches and never explodes.
  */
-export function stepChain(ch, dt, env) {
-    const n = ch.n;
+export function stepChain(ch, env) {
+    const n = ch.n, h = CHAIN_STEP, X = ch.sx, Y = ch.sy;
+    const bend = env.bend === undefined ? 1 : env.bend;
+    for (let i = 0; i < n; i++) {
+        ch.ox[i] = X[i]; ch.oy[i] = Y[i];
+        if (i < ch.pinned) {
+            // pinned points follow their carried places (spread over the frame's steps)
+            X[i] += (ch.tx[i] - X[i]) * ch.pinStep; Y[i] += (ch.ty[i] - Y[i]) * ch.pinStep;
+            continue;
+        }
+        // a point below the water line floats and drags in water; above it, gravity and air
+        const wet = Y[i] > env.water;
+        const drag = wet ? env.dragW : env.drag;
+        const ax = env.gx - env.ax + (env.wx - ch.vx[i]) * drag;
+        const ay = (wet ? env.gyW : env.gy) - env.ay + (env.wy - ch.vy[i]) * drag;
+        ch.vx[i] += ax * h; ch.vy[i] += ay * h;
+        X[i] += ch.vx[i] * h; Y[i] += ch.vy[i] * h;
+    }
+    // bending springs, root to tip
+    for (let i = ch.pinned; i < n; i++) {
+        const k = Math.min(0.95, ch.k[i] * bend);
+        let gx, gy;
+        if (i === ch.pinned || i < 2) {
+            gx = ch.tx[i] - ch.tx[i - 1] + X[i - 1]; gy = ch.ty[i] - ch.ty[i - 1] + Y[i - 1];
+        } else {
+            const a = Math.atan2(Y[i - 1] - Y[i - 2], X[i - 1] - X[i - 2]) + ch.rel[i];
+            gx = X[i - 1] + Math.cos(a) * ch.len[i]; gy = Y[i - 1] + Math.sin(a) * ch.len[i];
+        }
+        X[i] += (gx - X[i]) * k; Y[i] += (gy - Y[i]) * k;
+        // never fold: limit the turn from the previous segment's direction (relative to rest)
+        if (i >= 2) {
+            const a0 = Math.atan2(Y[i - 1] - Y[i - 2], X[i - 1] - X[i - 2]);
+            let d = Math.atan2(Y[i] - Y[i - 1], X[i] - X[i - 1]) - a0 - ch.rel[i];
+            d -= TAU * Math.round(d / TAU);
+            const m = ch.maxTurn;
+            if (d > m || d < -m) {
+                const a = a0 + ch.rel[i] + (d > 0 ? m : -m);
+                const L = ch.len[i];
+                X[i] = X[i - 1] + Math.cos(a) * L; Y[i] = Y[i - 1] + Math.sin(a) * L;
+            }
+        }
+    }
+    // length constraints: follow the leader (the child moves), exact in one pass; each correction is
+    // remembered for the DFTL velocity damping. The ground is part of the same pass: a point that would
+    // end below it lies on it, still at its segment's length from its parent and on the side it came
+    // from, so it can never pass through the ground under its parent. The ground takes that push, so
+    // none of it is handed back to the parent. (A clamp after this pass squeezed segments to nothing,
+    // and handing its push to the parent pumped energy in: a lying tail flailed.)
+    const g = ch.collide && env.ground === env.ground ? env.ground - 1.5 : Infinity;
+    for (let i = Math.max(1, ch.pinned); i < n; i++) {
+        const px = X[i - 1], py = Y[i - 1], dx = X[i] - px, dy = Y[i] - py;
+        const d = Math.sqrt(dx * dx + dy * dy) || 1e-6, k = ch.len[i] / d;
+        let nx = px + dx * k, ny = py + dy * k;
+        ch.cx[i] = nx - X[i]; ch.cy[i] = ny - Y[i];
+        if (ny > g && py <= g) { // (a ground line above the parent is not under this segment)
+            const up = g - py, r = ch.len[i] * ch.len[i] - up * up, s = r > 0 ? Math.sqrt(r) : 0;
+            const side = (ch.ox[i] - ch.ox[i - 1]) || (ch.tx[i] - ch.tx[i - 1]);
+            nx = px + (side < 0 ? -s : s); ny = g;
+            ch.cx[i] = 0; ch.cy[i] = 0;
+        }
+        X[i] = nx; Y[i] = ny;
+    }
+    for (let i = ch.pinned; i < n; i++) {
+        let vx = (X[i] - ch.ox[i]) / h, vy = (Y[i] - ch.oy[i]) / h;
+        if (i + 1 < n) { vx -= 0.9 * ch.cx[i + 1] / h; vy -= 0.9 * ch.cy[i + 1] / h; }
+        ch.vx[i] = vx; ch.vy[i] = vy;
+        if (!(Math.abs(vx) < 8000) || !(Math.abs(vy) < 8000)) { ch.vx[i] = 0; ch.vy[i] = 0; X[i] = ch.tx[i]; Y[i] = ch.ty[i]; }
+    }
+}
+
+/**
+ * Advance a chain by a frame of dt seconds, in steps of CHAIN_STEP. The springs, the damping and the
+ * speed limit act per step, so stepping by the frame's own dt made the hair and tail stiffer and
+ * livelier the higher the frame rate, and restless when frames came unevenly. The simulated points
+ * run up to one step ahead of the frame; what is drawn (ch.x, ch.y) is blended between the last two
+ * steps at the frame's time and hangs from this frame's pinned points. Set ch.tx/ch.ty first.
+ */
+export function advanceChain(ch, dt, env) {
+    const n = ch.n, H = CHAIN_STEP;
     if (ch.fresh) {
-        for (let i = 0; i < n; i++) { ch.x[i] = ch.tx[i]; ch.y[i] = ch.ty[i]; ch.vx[i] = 0; ch.vy[i] = 0; }
-        ch.fresh = false;
+        for (let i = 0; i < n; i++) {
+            ch.x[i] = ch.sx[i] = ch.ox[i] = ch.tx[i];
+            ch.y[i] = ch.sy[i] = ch.oy[i] = ch.ty[i];
+            ch.vx[i] = 0; ch.vy[i] = 0;
+        }
+        ch.fresh = false; ch.ahead = 0;
+        // snapped while lying down, the rest shape is partly inside the ground: lay it on the ground now,
+        // or the first step would do it in one visible jump
+        if (ch.collide && env.ground === env.ground) {
+            ch.pinStep = 1; stepChain(ch, env);
+            for (let i = 0; i < n; i++) { ch.x[i] = ch.ox[i] = ch.sx[i]; ch.y[i] = ch.oy[i] = ch.sy[i]; ch.vx[i] = 0; ch.vy[i] = 0; }
+        }
         return;
     }
     if (dt <= 0) return;
-    const steps = Math.min(4, Math.max(1, Math.ceil(dt * 60 - 0.01)));
-    const h = dt / steps, h60 = h * 60;
-    const bend = env.bend === undefined ? 1 : env.bend;
-    for (let st = 0; st < steps; st++) {
-        for (let i = 0; i < n; i++) {
-            ch.ox[i] = ch.x[i]; ch.oy[i] = ch.y[i];
-            if (i < ch.pinned) {
-                // pinned points follow their carried places (interpolated across substeps)
-                ch.x[i] = ch.x[i] + (ch.tx[i] - ch.x[i]) * (1 / (steps - st));
-                ch.y[i] = ch.y[i] + (ch.ty[i] - ch.y[i]) * (1 / (steps - st));
-                continue;
-            }
-            // a point below the water line floats and drags in water; above it, gravity and air
-            const wet = ch.y[i] > env.water;
-            const drag = wet ? env.dragW : env.drag;
-            const ax = env.gx - env.ax + (env.wx - ch.vx[i]) * drag;
-            const ay = (wet ? env.gyW : env.gy) - env.ay + (env.wy - ch.vy[i]) * drag;
-            ch.vx[i] += ax * h; ch.vy[i] += ay * h;
-            ch.x[i] += ch.vx[i] * h; ch.y[i] += ch.vy[i] * h;
-        }
-        // bending springs, root to tip
-        for (let i = ch.pinned; i < n; i++) {
-            const k = 1 - Math.pow(1 - Math.min(0.95, ch.k[i] * bend), h60);
-            let gx, gy;
-            if (i === ch.pinned || i < 2) {
-                gx = ch.tx[i] - ch.tx[i - 1] + ch.x[i - 1]; gy = ch.ty[i] - ch.ty[i - 1] + ch.y[i - 1];
-            } else {
-                const a = Math.atan2(ch.y[i - 1] - ch.y[i - 2], ch.x[i - 1] - ch.x[i - 2]) + ch.rel[i];
-                gx = ch.x[i - 1] + Math.cos(a) * ch.len[i]; gy = ch.y[i - 1] + Math.sin(a) * ch.len[i];
-            }
-            ch.x[i] += (gx - ch.x[i]) * k; ch.y[i] += (gy - ch.y[i]) * k;
-            // never fold: limit the turn from the previous segment's direction (relative to rest)
-            if (i >= 2) {
-                const a0 = Math.atan2(ch.y[i - 1] - ch.y[i - 2], ch.x[i - 1] - ch.x[i - 2]);
-                let d = Math.atan2(ch.y[i] - ch.y[i - 1], ch.x[i] - ch.x[i - 1]) - a0 - ch.rel[i];
-                d -= TAU * Math.round(d / TAU);
-                const m = ch.maxTurn;
-                if (d > m || d < -m) {
-                    const a = a0 + ch.rel[i] + (d > 0 ? m : -m);
-                    const L = ch.len[i];
-                    ch.x[i] = ch.x[i - 1] + Math.cos(a) * L; ch.y[i] = ch.y[i - 1] + Math.sin(a) * L;
-                }
-            }
-        }
-        // length constraints: follow the leader (the child moves), exact in one pass;
-        // remember each correction for the DFTL velocity damping (Müller et al. 2012)
-        for (let i = Math.max(1, ch.pinned); i < n; i++) {
-            const dx = ch.x[i] - ch.x[i - 1], dy = ch.y[i] - ch.y[i - 1];
-            const d = Math.sqrt(dx * dx + dy * dy) || 1e-6;
-            const k = ch.len[i] / d;
-            const nx = ch.x[i - 1] + dx * k, ny = ch.y[i - 1] + dy * k;
-            ch.cx[i] = nx - ch.x[i]; ch.cy[i] = ny - ch.y[i];
-            ch.x[i] = nx; ch.y[i] = ny;
-        }
-        if (ch.collide && env.ground === env.ground) {
-            // the tip rests and slides on the ground
-            const g = env.ground - 1.5;
-            for (let i = ch.pinned; i < n; i++) if (ch.y[i] > g) ch.y[i] = g;
-        }
-        for (let i = ch.pinned; i < n; i++) {
-            let vx = (ch.x[i] - ch.ox[i]) / h, vy = (ch.y[i] - ch.oy[i]) / h;
-            if (i + 1 < n) { vx -= 0.9 * ch.cx[i + 1] / h; vy -= 0.9 * ch.cy[i + 1] / h; }
-            ch.vx[i] = vx; ch.vy[i] = vy;
-            if (!(Math.abs(vx) < 8000) || !(Math.abs(vy) < 8000)) { ch.vx[i] = 0; ch.vy[i] = 0; ch.x[i] = ch.tx[i]; ch.y[i] = ch.ty[i]; }
-        }
+    // step until the simulation has reached this frame (at most 8 steps: a longer backlog is dropped)
+    let ahead = ch.ahead - dt;
+    for (let k = 0; ahead < -1e-7 && k < 8; k++) {
+        ch.pinStep = H < -ahead ? H / -ahead : 1; // the pinned points reach this frame's places with its last step
+        stepChain(ch, env);
+        ahead += H;
+    }
+    ch.ahead = ahead > 0 ? ahead : 0;
+    // drawn: the frame's time between the last two steps, moved to hang from this frame's pinned points
+    const a = 1 - ch.ahead / H, j = ch.pinned - 1;
+    const bx = ch.tx[j] - (ch.ox[j] + (ch.sx[j] - ch.ox[j]) * a), by = ch.ty[j] - (ch.oy[j] + (ch.sy[j] - ch.oy[j]) * a);
+    for (let i = 0; i < n; i++) {
+        if (i < ch.pinned) { ch.x[i] = ch.tx[i]; ch.y[i] = ch.ty[i]; continue; }
+        ch.x[i] = ch.ox[i] + (ch.sx[i] - ch.ox[i]) * a + bx;
+        ch.y[i] = ch.oy[i] + (ch.sy[i] - ch.oy[i]) * a + by;
     }
 }
 
@@ -299,7 +341,7 @@ export function createAnimator(rig, { mini = false } = {}) {
         settleCool: 0, wet: 0,
         legs: [], chains: [], legIndex: {},
         f: { dt: 0, x: 0, y: 0, mode: 'ground', time: 0, first: true, jumped: true, facing: 1, fvx: 0, fvy: 0, speed: 0, vLocal: 0,
-            hideT: 0, inAir: false, groundChanged: false, wGround: 1, groundW: 1, act: null, aT: 0, airT: 0, emote: null, gaitName: 'stand', moving: false },
+            hideT: 0, inAir: false, landed: false, groundChanged: false, wGround: 1, groundW: 1, act: null, aT: 0, airT: 0, emote: null, gaitName: 'stand', moving: false },
         tg: { oy: 0, ox: 0, pitch: 0, neck: 0, head: 0, mouth: 0, foreLift: 0, hindKick: 0, stampLift: 0, rearW: 0 },
         hindGround: 0, tailLift: 0, lastMode: 'ground', gsQ: 0, gsX: new Float64Array(16), gsY: new Float64Array(16), gsN: 0, gsI: 0, waterLine: 1e9, wadeLow: 0, wadeMid: 0, wadeHigh: 0,
         ctx: { x: 0, y: 0, facing: 1, liftF: 0, liftH: 0, wGround: 1, wSwim: 0, wAir: 0, wHide: 0, airT: 0, time: 0, hindKick: 0, foreLift: 0, stampLift: 0, rearW: 0, act: null, aT: 0, g: null, fvx: 0, fvy: 0 },
@@ -474,10 +516,12 @@ function frameMotion(an, s, dtIn) {
             an.bodyOY -= dy;
             for (let ci = 0; ci < an.chains.length; ci++) {
                 const ch = an.chains[ci];
-                for (let i = 0; i < ch.n; i++) ch.y[i] -= dy;
+                for (let i = 0; i < ch.n; i++) { ch.y[i] -= dy; ch.sy[i] -= dy; ch.oy[i] -= dy; }
             }
         }
     }
+    // back on the ground after a jump, a fall or a swim
+    f.landed = !f.jumped && mode === 'ground' && an.lastMode !== 'ground';
     an.lastMode = mode;
     let fvx = 0, fvy = 0;
     if (!f.jumped && dt > 0) { fvx = (x - an.lastX) / dt; fvy = (y - an.lastY) / dt; }
@@ -623,6 +667,12 @@ function poseTargets(an, s) {
         const syll = Math.sin(time * TAU * 4.2) + 0.6 * Math.sin(time * TAU * 2.9 + 2);
         const mo = (syll > 0.55 ? 0.45 : 0) * w;
         if (mo > mouthT) mouthT = mo;
+    } else if (act === 'toss') {
+        // a proud toss: chin up, mane flicked, one short snort ("a turtle?!")
+        const w = window4(aT, 0, 0.15, 0.3, 0.65);
+        neckT -= 0.24 * w; headT -= 0.32 * w;
+        const sn = window4(aT, 0.18, 0.24, 0.3, 0.42);
+        if (sn * 0.5 > mouthT) mouthT = sn * 0.5;
     } else if (act === 'nod') {
         const w = Math.sin(aT * Math.PI * 2);
         neckT += 0.16 * (w > 0 ? w : 0) + 0.06 * (w < 0 ? -w : 0); headT += 0.22 * (w > 0 ? w : 0);
@@ -742,6 +792,9 @@ function legPhases(an, s) {
     const f = an.f, g = an.g, dt = f.dt, x = f.x, y = f.y, facing = f.facing, mode = f.mode;
     const sweep = g.duty * g.stride, ph = an.phase, moving = f.moving;
     an.settleCool -= dt;
+    // the touchdowns from before a jump or a swim describe ground we have left (after a fall, a cliff top
+    // far above the body): start the memory again from the ground under the hooves now
+    if (f.landed) reseedGround(an, s);
     let swinging = 0;
     for (let li = 0; li < 4; li++) if (!an.legs[li].stance) swinging++;
     for (let i = 0; i < 4; i++) {
@@ -923,6 +976,15 @@ function pushGround(an, leg) {
     an.gsX[an.gsI] = leg.lockX; an.gsY[an.gsI] = leg.lockY;
     an.gsI = (an.gsI + 1) & 15;
     if (an.gsN < 16) an.gsN++;
+}
+/** Forget the remembered touchdowns and remember the ground under each hoof now. */
+function reseedGround(an, s) {
+    an.gsN = 0; an.gsI = 0;
+    for (let li = 0; li < 4; li++) {
+        const wx = an.legs[li].lockX;
+        an.gsX[an.gsI] = wx; an.gsY[an.gsI] = groundAtWorld(an, s, wx);
+        an.gsI = (an.gsI + 1) & 15; an.gsN++;
+    }
 }
 /** Ground (world y) nearest to world x among the remembered touchdowns; NaN when none. */
 function groundNear(an) {
@@ -1364,10 +1426,17 @@ function stepChains(an, dt, s, c) {
         const wetK = isFringe ? an.wadeLow : isTail ? an.wadeMid : an.wadeHigh;
         ENV.bend = 1 - wetK * (isFringe ? 0.3 : isTail ? 0.3 : 0.5);
         if (ch.collide) {
-            // the ground under the tail tip, from where the hooves have stood (no terrain call)
             an.gsQ = (s.x || 0) + ch.x[ch.n - 1] * an.facing;
-            const gy = an.gsN > 0 && an.hindGround === an.hindGround ? groundNear(an) : NaN;
-            ENV.ground = gy === gy ? gy - (s.y || 0) : an.hindGround;
+            if (an.f.inAir) {
+                // in the air the touchdowns describe ground we have left: only ground a hoof could
+                // reach under the tail tip counts, and high up there is none
+                const g = typeof s.groundAt === 'function' ? s.groundAt(an.gsQ) : null;
+                ENV.ground = g === null || g === undefined || g !== g ? NaN : g - (s.y || 0);
+            } else {
+                // the ground under the tail tip, from where the hooves have stood (no terrain call)
+                const gy = an.gsN > 0 && an.hindGround === an.hindGround ? groundNear(an) : NaN;
+                ENV.ground = gy === gy ? gy - (s.y || 0) : an.hindGround;
+            }
         } else ENV.ground = NaN;
         if (isTail && an.kickTail) {
             // a swish: the lower tail flicks back and forth
@@ -1376,7 +1445,7 @@ function stepChains(an, dt, s, c) {
         if (ch.group === 'forelock' && an.kickForelock) {
             for (let i = 1; i < ch.n; i++) { ch.vy[i] -= 90 * (i / (ch.n - 1)); ch.vx[i] += 40 * (i / (ch.n - 1)); }
         }
-        stepChain(ch, dt, ENV);
+        advanceChain(ch, dt, ENV);
         // spread: the tail fans and the fringe flares under water
         ch.spread = 1 + wetK * (isTail ? 0.35 : isFringe ? 0.18 : 0.1);
     }

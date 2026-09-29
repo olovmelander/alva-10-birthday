@@ -9,6 +9,7 @@ import { STORY, UI } from '../../skoldhast/src/content/sv.mjs';
 
 const outAt = process.argv.indexOf('--out');
 const out = outAt >= 0 ? process.argv[outAt + 1] : '/tmp/skoldhast-opening';
+const lessOnly = process.argv.includes('--less-motion');
 await fs.mkdir(out, { recursive: true });
 const server = await serve(), browser = await launch();
 const base = `http://127.0.0.1:${server.address().port}`;
@@ -17,13 +18,16 @@ const results = [];
 async function open(page, lessMotion = false) {
     await page.goto(`${base}/skoldhast/dev/play.html`);
     await page.waitForSelector('.sk-title');
-    await page.evaluate(() => {
+    await page.evaluate(shorePrompt => {
         const ui = window.__skoldhast.debug.ui, draw = ui.draw.bind(ui);
-        window.__opening = { phases: [], samples: [], shore: null, geometry: null, collecting: true };
+        window.__opening = { phases: [], samples: [], framing: [], shore: null, geometry: null, collecting: true, drawCount: 0, completedDraw: 0 };
         ui.draw = opts => {
-            if (opts.stopAt === 3) window.__opening.geometry = opts.getGeometry?.() || opts;
+            const id = ++window.__opening.drawCount;
+            window.__opening.activeDraw = opts;
+            if (opts.prompt === shorePrompt) window.__opening.geometry = opts.getGeometry?.() || opts;
             return draw(opts).then(points => {
-                if (opts.stopAt === 3) window.__opening.shore = points;
+                window.__opening.completedDraw = id;
+                if (opts.prompt === shorePrompt) window.__opening.shore = points;
                 return points;
             });
         };
@@ -35,8 +39,10 @@ async function open(page, lessMotion = false) {
                 const phase = table.storyPhase;
                 if (r.phases.at(-1) !== phase) r.phases.push(phase);
                 const paper = table.children.find(c => c.label === 'story-paper');
+                if (paper && (phase === 'klo-ready' || phase === 'drawing-gull')) r.framing.push({ phase, scale: paper.scale.x });
                 const flap = paper?.children.find(c => /^opening-sea-/.test(c.label || ''));
-                const splash = paper?.children.flatMap(c => c.children || []).find(c => c._base !== undefined);
+                const all = node => [node, ...(node.children || []).flatMap(all)];
+                const splash = paper ? all(paper).find(c => c.label === 'opening-splash') : null;
                 if (phase === 'folding' && flap && splash) r.samples.push({
                     at: performance.now(), splash: splash.scale.y,
                     vertices: Array.from(flap.children[0].geometry.getBuffer('aPosition').data)
@@ -45,7 +51,7 @@ async function open(page, lessMotion = false) {
             requestAnimationFrame(watch);
         };
         requestAnimationFrame(watch);
-    });
+    }, UI.drawShore);
     await page.locator('.sk-title button').first().click();
     await page.waitForFunction(() => !!window.__skoldhast.debug.G);
     await page.evaluate(less => { window.__skoldhast.debug.G.lessMotion = less; }, lessMotion);
@@ -68,6 +74,16 @@ async function reachShore(page) {
         if (await page.locator('.sk-draw.on').count()) {
             const prompt = await page.locator('.sk-draw-prompt').textContent();
             if (prompt === UI.drawShore) return;
+            if (prompt === UI.drawWake) {
+                const { id, anchors } = await page.evaluate(() => {
+                    const r = window.__opening, opts = r.activeDraw;
+                    return { id: r.drawCount, anchors: (opts.getGeometry?.() || opts).anchors };
+                });
+                assert.ok(anchors?.length >= 2, 'the awakening uses its actual guided shell stroke');
+                await stroke(page, anchors);
+                await page.waitForFunction(id => window.__opening.completedDraw >= id, id);
+                continue;
+            }
             const pad = await page.locator('.sk-draw-pad').boundingBox();
             const pts = prompt === UI.drawCloud
                 ? Array.from({ length: 33 }, (_, i) => {
@@ -134,7 +150,7 @@ async function verifyFold(page, lessMotion) {
         const points = window.__opening.shore.map(([x, y]) => [(x - paper.x) / paper.scale.x, (y - paper.y) / paper.scale.y]);
         return { points, vertices: Array.from(flap.children[0].geometry.getBuffer('aPosition').data),
             shorePaths: shore.context.instructions.map(i => ({ action: i.action, path: i.data.path?.instructions.map(p => ({ action: p.action, data: p.data })) })),
-            phases: window.__opening.phases, samples: window.__opening.samples };
+            phases: window.__opening.phases, samples: window.__opening.samples, framing: window.__opening.framing };
     });
     const [ax, ay, , , bx, by] = actual.vertices;
     const last = actual.points.at(-1);
@@ -143,7 +159,15 @@ async function verifyFold(page, lessMotion) {
     const persisted = actual.shorePaths.find(p => p.action === 'stroke')?.path.map(p => p.data.slice(0, 2));
     assert.equal(persisted?.length, actual.points.length, 'all shoreline points persist after the drawing overlay closes');
     assert.ok(persisted.every((p, i) => Math.hypot(p[0] - actual.points[i][0], p[1] - actual.points[i][1]) < .001), 'the exact authored shoreline survives');
-    for (const name of ['shoreline', 'fold-anticipation', 'folding', 'folded', 'frozen']) assert.ok(actual.phases.includes(name), `observed ${name}`);
+    const expectedPhases = ['drawing-wake', 'waking', 'alive', 'klo-entrance', 'klo-wonder', 'klo-take', 'klo-ready', 'drawing-gull', 'drawing-cloud', 'shoreline', 'fold-anticipation', 'folding', 'folded', 'frozen'];
+    for (const [index, name] of expectedPhases.entries()) {
+        assert.ok(actual.phases.includes(name), `observed ${name}`);
+        if (index) assert.ok(actual.phases.indexOf(name) > actual.phases.indexOf(expectedPhases[index - 1]), `${name} follows its visible cause`);
+    }
+    const framingScales = new Set(actual.framing.map(s => Math.round(s.scale * 1e6)));
+    assert.ok(actual.framing.some(s => s.phase === 'klo-ready') && actual.framing.some(s => s.phase === 'drawing-gull'), 'observed the close and wide drawing compositions');
+    if (lessMotion) assert.equal(framingScales.size, 2, 'reduced motion cuts directly from the close drawing to the wide paper');
+    else assert.ok(framingScales.size > 2, 'normal motion smoothly pulls back between the two compositions');
     assert.ok(actual.samples.length >= 4, 'physical folding was observed across frames');
     const tail = actual.samples.slice(-4);
     assert.ok(tail.every(s => s.splash === tail[0].splash), 'the splash stops while the paper is still folding');
@@ -156,7 +180,7 @@ async function verifyFold(page, lessMotion) {
         const shapes = new Set(actual.samples.map(s => s.vertices.map(v => Math.round(v)).join(',')));
         assert.ok(shapes.size <= 2, 'reduced motion changes between flat and folded geometry without rotation');
     }
-    return { endpointDistance: distance, observedFrames: actual.samples.length, phases: actual.phases };
+    return { endpointDistance: distance, observedFrames: actual.samples.length, framingScales: framingScales.size, phases: actual.phases };
 }
 
 try {
@@ -164,7 +188,7 @@ try {
         { width: 844, height: 390, less: false, choice: 0 },
         { width: 390, height: 844, less: false, choice: 1 },
         { width: 390, height: 844, less: true, choice: 0 }
-    ]) {
+    ].filter(c => !lessOnly || c.less)) {
         const context = await browser.newContext({ viewport: { width, height }, hasTouch: true });
         const page = await context.newPage(), errors = [];
         page.on('pageerror', e => errors.push(e.message));
@@ -216,6 +240,7 @@ try {
             console.log(`opening gestures, fold, freeze and choice pass at ${stem}`);
         } finally { await context.close(); }
     }
+    if (!lessOnly) {
     // Close while the fold owns meshes, a mask and scheduled callbacks, then
     // reopen the same game API. The abandoned opening must never reach its choice.
     const context = await browser.newContext({ viewport: { width: 844, height: 390 } });
@@ -249,5 +274,6 @@ try {
         results.push({ lifecycle: 'close during fold and reopen', errors });
         console.log('opening fold cancellation and reopen pass');
     } finally { await context.close(); }
+    }
     await fs.writeFile(path.join(out, 'opening-results.json'), JSON.stringify(results, null, 2));
 } finally { await browser.close(); server.close(); }

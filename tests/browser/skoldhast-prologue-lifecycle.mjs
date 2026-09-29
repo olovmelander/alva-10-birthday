@@ -31,7 +31,11 @@ try {
     await page.evaluate(() => window.__skoldhast.open());
     await page.waitForSelector('.sk-title', { timeout: 30000 });
     await page.locator('.sk-title button', { hasText: /^Börja$/ }).click();
-    await page.waitForSelector('.sk-dialogue.on.who-caption', { timeout: 30000 });
+    // The opening now begins with the shell stroke that wakes the drawing;
+    // complete it the real way, then wait for the hero's first line.
+    await page.waitForSelector('.sk-draw.on.guided', { timeout: 30000 });
+    await page.keyboard.press('Enter');
+    await page.waitForSelector('.sk-dialogue.on.who-horse', { timeout: 30000 });
     await page.evaluate(() => { window.__readableAt = performance.now() + 400; });
     await page.waitForFunction(() => performance.now() >= window.__readableAt);
     await page.evaluate(() => {

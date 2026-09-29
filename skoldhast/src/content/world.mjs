@@ -30,8 +30,13 @@ SCENES.land = {
     bounds: { x0: h(-2), x1: h(119), y0: h(-12), y1: h(3) },
     backdrop: [
         { image: 'bg-steppe', x0: h(-2), x1: h(78) },
-        { image: 'bg-beach', x0: h(80), x1: h(119) }
+        // Her sea sits behind her beach, as in her picture: the painting's first
+        // full sea row (73 % down) is pinned to this world height.
+        { image: 'bg-beach', x0: h(80), x1: h(119), seaRow: 0.73, seaY: h(-0.42) }
     ],
+    // Her dark-blue waterline where the sea meets the sand, behind the legs
+    // (plan §2.3); it runs on into the sea's own surface line at the shore.
+    waterline: { x0: h(105.25), sea: 'shallows' },
     evening: { 'bg-steppe': 'bg-steppe-evening', 'bg-beach': 'bg-beach-evening' },
     surfaces: [
         // Klippudden (Kapitel 2)
@@ -66,7 +71,8 @@ SCENES.land = {
         { id: 'drift-98', thin: true, pts: L([98.2, -1.05], [98.75, -1.06]), mat: 'wood', prop: 'driftwood-2' },
         { id: 'pool-bed', pts: L([99.3, -0.48], [99.9, -0.18], [101, -0.1], [102.6, -0.08], [103.4, -0.2], [103.8, -0.42]), mat: 'wetsand' },
         { id: 'beach', pts: L([103.8, -0.42], [105, -0.43], [106.5, -0.4], [108.5, -0.33], [110, -0.22], [111, -0.1], [112, 0.06], [112.25, 0.08]), mat: 'wetsand' },
-        { id: 'shallows-bed', pts: L([112.25, 0.08], [113, 0.22], [114.7, 0.3]), mat: 'wetsand', underwater: true },
+        // tail: drawn only, so the seabed runs on under the jetty past the page's edge
+        { id: 'shallows-bed', pts: L([112.25, 0.08], [113, 0.22], [114.7, 0.3]), tail: L([117, 0.4], [121.5, 0.48]), mat: 'wetsand', underwater: true },
         { id: 'jetty', thin: true, pts: L([112.2, 0.04], [113.1, -0.16], [118.5, -0.16]), mat: 'wood', hollow: true, planks: true, jetty: true }
     ],
     walls: [
@@ -88,13 +94,13 @@ SCENES.land = {
         { id: 'teach-step', pts: L([93.2, -0.7], [94, -0.73], [95, -0.66]), flag: 'teach_streck', bothWays: true, balk: false, decal: true },
         // P1 Streckbron: the arch over the gully
         { id: 'p1-arch', pts: L([75.98, -0.75], [76.6, -0.98], [77.3, -1.15], [78, -1.2], [78.7, -1.15], [79.4, -0.98], [80.02, -0.66]), flag: 'p1_inked', bothWays: true },
-        // P2: the plank over the crack by the pool (decal; inkable once the reflection has shown it solid)
-        { id: 'p2-plank', pts: L([103.8, -0.42], [104.6, -0.43], [105.2, -0.43]), flag: 'p2_plank', bothWays: true, balk: false, decal: true, inkWhen: 'p2_seen' }
+        // P2: the plank by the pool (decal; inkable once the reflection has shown it solid; a real plank once inked)
+        { id: 'p2-plank', pts: L([103.8, -0.42], [104.6, -0.43], [105.2, -0.43]), flag: 'p2_plank', bothWays: true, balk: false, decal: true, inkWhen: 'p2_seen', solid: 'plank-solid' }
     ],
     hurdles: [{ x: h(57), id: 'log-57' }, { x: h(62), id: 'log-62' }],
     waters: [
         { id: 'pool', x0: h(99.75), x1: h(103.55), top: h(-0.3), kind: 'pool', swim: false, mirror: true },
-        { id: 'shallows', x0: h(110.4), x1: h(114.9), top: h(0), kind: 'sea', swim: false }
+        { id: 'shallows', x0: h(110.4), x1: h(121.5), top: h(0), kind: 'sea', swim: false }
     ],
     // places the story and puzzles refer to
     spots: {
@@ -203,8 +209,10 @@ SCENES.land = {
         { sprite: 'foam-edge', x: h(116.4), y: h(0.02), layer: 'mid' },
         { sprite: 'label-skold-hast', x: h(110.3), y: h(-1.25), layer: 'fore', label: true },
         { sprite: 'rock-1', x: h(104.2), y: h(-0.42), layer: 'mid' },
-        { sprite: 'seaweed-1', x: h(108.1), y: h(-0.34), layer: 'mid' },
-        { sprite: 'rock-2', x: h(111.1), y: h(-0.1), layer: 'fore' },
+        // a strand of kelp resting in the shallows, clear of the hooves and tail
+        { sprite: 'seaweed-1', x: h(113.9), y: h(0.265), layer: 'mid' },
+        // behind the stuck wave, so it never cuts the waterline where the wave meets the sea
+        { sprite: 'rock-2', x: h(111.1), y: h(-0.1), layer: 'mid' },
         { sprite: 'jetty-post', x: h(113.4), y: h(0.3), layer: 'mid' },
         { sprite: 'jetty-post', x: h(115.8), y: h(0.3), layer: 'mid' },
         { sprite: 'jetty-post', x: h(118.2), y: h(0.3), layer: 'mid' },
