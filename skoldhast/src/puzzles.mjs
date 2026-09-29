@@ -10,6 +10,7 @@
  * when the player leaves the area, and nothing can softlock.
  */
 import { HL, C, cond, nearestOnLine, dropIn } from './sim.mjs';
+import { CONTEXT_LABELS } from './content/sv.mjs';
 
 const near = (a, b, r) => Math.abs(a - b) <= r;
 
@@ -31,7 +32,8 @@ export function createPuzzleState() {
         deepest: 0,           // for Djupmätaren
         neighs: { land: false, water: false },
         tally: 0,             // Klo's signs: <0 sköldpadda, >0 häst
-        lastArea: null
+        lastArea: null,
+        plank: { surface: null, index: -1, at: -Infinity }
     };
 }
 
@@ -59,6 +61,18 @@ export function stepPuzzles(G, events, dt) {
     const S = G.puz, p = G.player, sc = G.sceneDef, F = G.flags;
     const hidden = p.hidden && p.hide > 0.9;
     const galloping = (p.mode === 'ground' || p.mode === 'streck') && Math.abs(p.vx) >= C.gallopMin;
+
+    // Spången's tune follows the boards crossed in simulation time. A slow
+    // display must not repeat a note or change the pace of the tune.
+    const plank = S.plank;
+    if (sc.id === 'land' && p.mode === 'ground' && p.surface?.planks && p.surface.hollow) {
+        const index = Math.floor((p.x - p.surface.pts[0][0] - 40) / 64);
+        if (plank.surface !== p.surface.id) { plank.surface = p.surface.id; plank.index = -1; }
+        if (index >= 0 && index !== plank.index) {
+            plank.index = index;
+            if (G.time - plank.at >= 0.085) { plank.at = G.time; G.emit('plankNote', { note: index, surface: p.surface.id }); }
+        }
+    } else { plank.surface = null; plank.index = -1; }
 
     for (const e of events) {
         switch (e.type) {
@@ -320,7 +334,9 @@ export function totalPencils(G) {
 export function contextAction(G) {
     const p = G.player, sc = G.sceneDef, F = G.flags, S = G.puz;
     if (G.busy) return null;
-    const slow = Math.abs(p.vx) < 520;
+    // Keep a valid nearby action through a little coast / slope variation.
+    // The same chosen action drives the button and the actual press.
+    const slow = Math.abs(p.vx) < (G.context ? 560 : 520);
     if (!slow || p.mode === 'air' || p.mode === 'leap' || p.mode === 'streck') return null;
     const cands = [];
     const add = (dist, a) => cands.push({ dist, ...a });
@@ -343,17 +359,17 @@ export function contextAction(G) {
             if (d > -h(0.2) && d < h(1.5)) {
                 const next = S.stone + p.facing;
                 // the sköldhäst follows the stone one notch, so the next Knuffa is right there
-                if (next >= 0 && next <= sc.rail.notches) add(Math.abs(d) / HL, { id: 'knuffa', label: 'Knuffa', run: () => { S.stone = next; p.nudge = { x: from + p.facing * sc.rail.step, t: 1.2 }; G.emit('push', { notch: next, target: sc.rail.target }); } });
+                if (next >= 0 && next <= sc.rail.notches) add(Math.abs(d) / HL, { id: 'knuffa', label: CONTEXT_LABELS.push, run: () => { S.stone = next; p.nudge = { x: from + p.facing * sc.rail.step, t: 1.2 }; G.emit('push', { notch: next, target: sc.rail.target }); } });
             }
         }
         // ropes (P4 plank) and pull ropes (P7 shutter 3)
         for (const r of sc.ropes || []) {
             if (F.has(r.flag) || !cond(r.needs, F)) continue;
-            if (Math.abs(p.x - r.x) < h(1.3) && Math.abs(p.y - r.y) < h(0.6)) add(Math.abs(p.x - r.x) / HL, { id: 'dra', label: 'Dra', run: () => { F.add(r.flag); G.terrain.dirty = true; G.terrain.refresh(); G.emit('pulled', { id: r.id }); } });
+            if (Math.abs(p.x - r.x) < h(1.3) && Math.abs(p.y - r.y) < h(0.6)) add(Math.abs(p.x - r.x) / HL, { id: 'dra', label: CONTEXT_LABELS.pull, run: () => { F.add(r.flag); G.terrain.dirty = true; G.terrain.refresh(); G.emit('pulled', { id: r.id }); } });
         }
         for (const r of sc.pullRopes || []) {
             if (F.has(r.flag)) continue;
-            if (Math.abs(p.x - r.x) < h(1.1) && Math.abs(p.y - r.y) < h(0.6)) add(Math.abs(p.x - r.x) / HL, { id: 'dra', label: 'Dra', run: () => { F.add(r.flag); G.emit('pulled', { id: r.id }); G.emit('latch', { id: r.id, flag: r.flag }); } });
+            if (Math.abs(p.x - r.x) < h(1.1) && Math.abs(p.y - r.y) < h(0.6)) add(Math.abs(p.x - r.x) / HL, { id: 'dra', label: CONTEXT_LABELS.pull, run: () => { F.add(r.flag); G.emit('pulled', { id: r.id }); G.emit('latch', { id: r.id, flag: r.flag }); } });
         }
         for (const st of sc.stairs || []) {
             if (Math.abs(p.x - st.x) < h(1.2) && Math.abs(p.y - st.y) < h(0.6)) add(0.5, { id: 'stair', label: st.label, run: () => G.stair(st) });
@@ -362,15 +378,17 @@ export function contextAction(G) {
         for (const pc of sc.pencils || []) {
             if (!F.has('penna_' + pc.id) || F.has('color_' + pc.id)) continue;
             const at = pc.propAt;
-            if (Math.abs(p.x - at.x) < h(1.1) && Math.abs(p.y - at.y) < h(0.8)) add(Math.abs(p.x - at.x) / HL, { id: 'farglagg', label: 'Färglägg', run: () => { F.add('color_' + pc.id); G.emit('colorin', { id: pc.id, prop: pc.prop }); } });
+            if (Math.abs(p.x - at.x) < h(1.1) && Math.abs(p.y - at.y) < h(0.8)) add(Math.abs(p.x - at.x) / HL, { id: 'farglagg', label: CONTEXT_LABELS.color, run: () => { F.add('color_' + pc.id); G.emit('colorin', { id: pc.id, prop: pc.prop }); } });
         }
         // Skaka: wet and standing still, out of the water (in a pool it would only flicker between Skaka and Hoppa)
         // (not on the pier, where the button offers Hoppa i instead)
-        if (p.wet > 0 && p.submerge < 0.05 && Math.abs(p.vx) < 40 && !p.surface?.dropIn) add(1.5, { id: 'skaka', label: 'Skaka', run: () => G.shake() });
+        const unfinishedShell = !F.has('shells_tune') && (sc.shells || []).some(s => !S.shells[s.id] && Math.abs(s.x - p.x) < h(0.7));
+        const stillEnough = Math.abs(p.vx) < (G.context?.id === 'skaka' ? 65 : 40);
+        if ((p.wet > 0 || unfinishedShell || p.action === 'shake') && p.submerge < 0.05 && stillEnough && !p.surface?.dropIn) add(1.5, { id: 'skaka', label: CONTEXT_LABELS.shake, run: () => { if (p.action !== 'shake') G.shake(); } });
         // Hoppa i: off the pier into the bay (where there is water under it)
         if (p.surface?.dropIn) {
             const col = G.terrain.waterColumn(p.x + p.facing * 60);
-            if (col && col.swim !== false && col.top >= p.y) add(3, { id: 'hoppa-i', label: 'Hoppa i', run: () => { const ev = []; dropIn(p, { terrain: G.terrain, flags: F }, ev); for (const e of ev) G.emit(e.type, e); } });
+            if (col && col.swim !== false && col.top >= p.y) add(3, { id: 'hoppa-i', label: CONTEXT_LABELS.dropIn, run: () => { const ev = []; dropIn(p, { terrain: G.terrain, flags: F }, ev); for (const e of ev) G.emit(e.type, e); } });
         }
     }
     // Smaktestet: a mouthful of steppe grass on land, a bite of kelp in the sea (after Klo's "Ja")
@@ -380,12 +398,14 @@ export function contextAction(G) {
             if (F.has(flag) || !cond(t.when, F)) continue;
             if ((t.kind === 'kelp') !== (p.mode === 'swim')) continue;
             if (Math.abs(p.x - t.x) < h(0.8) && Math.abs(p.y - t.y) < h(1.0)) {
-                add(Math.abs(p.x - t.x) / HL + 0.3, { id: 'taste', label: 'Smaka', run: () => { F.add(flag); G.emit('taste', { kind: t.kind, x: t.x, y: t.y }); } });
+                add(Math.abs(p.x - t.x) / HL + 0.3, { id: 'taste', label: CONTEXT_LABELS.taste, run: () => { F.add(flag); G.emit('taste', { kind: t.kind, x: t.x, y: t.y }); } });
             }
         }
     }
     if (!cands.length) return null;
     cands.sort((a, b) => a.dist - b.dist);
+    const current = G.context && cands.find(a => a.id === G.context.id);
+    if (current && current.dist <= cands[0].dist + 0.15) return current;
     return cands[0];
 }
 

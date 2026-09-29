@@ -1,0 +1,90 @@
+import { test } from 'node:test';
+import assert from 'node:assert/strict';
+import { createGame } from '../skoldhast/src/game.mjs';
+import { contextAction, countPencils } from '../skoldhast/src/puzzles.mjs';
+import { HL, STEP } from '../skoldhast/src/sim.mjs';
+
+function beach(x = 105.35) {
+    const G = createGame();
+    G.flags.add('intro_done');
+    G.goto('land', { x: x * HL, y: -.4 * HL, facing: 1 });
+    return G;
+}
+const hold = (G, sec, inp = {}) => { for (let i = 0; i < Math.round(sec / STEP); i++) G.step(inp); };
+
+test('the shell tune remains discoverable after drying; repeated presses do not stack shakes', () => {
+    const G = beach(), events = [];
+    G.on('*', (type, e) => events.push({ type, ...e }));
+    assert.equal(G.player.wet, 0);
+    for (const x of [105.35, 106.35, 107.35]) {
+        // Positions stage this isolated puzzle; the browser journey walks here.
+        G.goto('land', { x: x * HL, y: -.4 * HL });
+        G.player.wet = 0;
+        G.step({});
+        assert.equal(G.context?.id, 'skaka');
+        G.step({ act: true });
+        const shakes = events.filter(e => e.type === 'shake').length;
+        for (let i = 0; i < 24; i++) G.step({ act: true });
+        assert.equal(events.filter(e => e.type === 'shake').length, shakes, 'one shake while it is already shaking');
+        assert.equal(G.context?.id, 'skaka', 'label stays stable throughout the animation');
+        hold(G, 1);
+    }
+    assert.ok(G.flags.has('shells_tune'));
+    assert.equal(events.filter(e => e.type === 'shellTune').length, 1);
+    assert.equal(G.context?.id, undefined, 'a dry coat offers Hoppa after the completed tune');
+});
+
+test('nearby actions stay stable across small speed changes without enabling them at a gallop', () => {
+    const G = beach();
+    G.player.wet = 1;
+    G.player.vx = 35;
+    G.context = contextAction(G);
+    assert.equal(G.context?.id, 'skaka');
+    G.player.vx = 45;
+    assert.equal(contextAction(G)?.id, 'skaka');
+    G.player.vx = 1000;
+    assert.equal(contextAction(G), null);
+    G.player.vx = 0; G.player.hidden = true;
+    assert.equal(contextAction(G), null, 'hidden shells cannot shake');
+});
+
+test('Spången note order is identical across display schedules and silent while standing still', () => {
+    const sequences = [];
+    for (const fps of [30, 60, 120, 144]) {
+        const G = beach(91), notes = [];
+        G.on('plankNote', e => notes.push(e.note));
+        let acc = 0;
+        for (let frame = 0; frame < fps * 4; frame++) {
+            acc += 1 / fps;
+            while (acc + 1e-10 >= STEP) { G.step({ x: -.4 }); acc -= STEP; }
+        }
+        hold(G, 1);
+        const n = notes.length;
+        hold(G, 2);
+        assert.equal(notes.length, n, 'resting on a board does not replay its note');
+        assert.ok(n >= 12, 'walking across the planks makes a melody');
+        sequences.push(notes);
+    }
+    for (const seq of sequences.slice(1)) assert.deepEqual(seq, sequences[0]);
+});
+
+test('a pencil colours its own prop once and stays recorded after leaving the scene', () => {
+    const G = beach(86.4);
+    G.step({});
+    assert.ok(G.flags.has('penna_p-hut'));
+    assert.equal(countPencils(G), 1);
+    G.goto('land', { x: 81.6 * HL, y: -.63 * HL });
+    G.step({});
+    assert.equal(G.context?.id, 'farglagg');
+    const colors = [];
+    G.on('colorin', e => colors.push(e));
+    G.step({ act: true });
+    G.step({});
+    assert.ok(G.flags.has('color_p-hut'));
+    assert.notEqual(G.context?.id, 'farglagg');
+    assert.equal(colors.length, 1);
+    G.goto('kelp', 'start');
+    G.goto('land', { x: 86.4 * HL, y: -.92 * HL });
+    G.step({});
+    assert.equal(countPencils(G), 1);
+});

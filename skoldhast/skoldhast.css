@@ -729,7 +729,8 @@ html.skoldhast-lock, html.skoldhast-lock body { overflow: hidden !important; ove
 @media (max-width: 380px) {
     .sk-panel { padding-left: max(8px, env(safe-area-inset-left)); padding-right: max(12px, env(safe-area-inset-right)); }
     .sk-journal { padding-left: 16px; padding-right: 8px; } .sk-j-page { padding-left: 20px; padding-right: 14px; }
-    .sk-j-tab { min-width: 0; padding: 2px 2px 5px; }
+    .sk-j-tabs { overflow-x: auto; overflow-y: hidden; scrollbar-width: thin; }
+    .sk-j-tab { flex: 0 0 44px; min-width: 44px; padding: 2px 2px 5px; }
 }
 
 /* --- guidance: the goal note, Klo's hints, thought bubbles, tips (src/guide.mjs) --- */

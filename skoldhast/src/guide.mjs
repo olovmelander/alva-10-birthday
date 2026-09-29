@@ -14,7 +14,7 @@
  * The goal note and the hint share a column at the top, so they never overlap; the ui's
  * toasts read --sk-guide-free (set here) to start below that column.
  */
-import { NAMES } from './content/sv.mjs';
+import { NAMES, UI } from './content/sv.mjs';
 
 const el = (tag, cls, text) => {
     const n = document.createElement(tag);
@@ -34,7 +34,7 @@ export function createGuide(root, { img, heroScreen, onGoalTap } = {}) {
     // --- the goal note ---------------------------------------------------------------
     const goalEl = el('button', 'sk-goal empty');
     goalEl.type = 'button';
-    const goalLabel = el('span', 'sk-goal-label', 'Mål');
+    const goalLabel = el('span', 'sk-goal-label', UI.goalLabel);
     const goalText = el('span', 'sk-goal-text');
     goalEl.append(goalLabel, goalText);
     goalEl.addEventListener('click', () => onGoalTap?.());
@@ -101,6 +101,11 @@ export function createGuide(root, { img, heroScreen, onGoalTap } = {}) {
         if (b > 0) root.style.setProperty('--sk-guide-free', Math.round(b + 10) + 'px');
         else root.style.removeProperty('--sk-guide-free');
     }
+    // Resizing, font loading and moving Klo's hint to the free side can wrap
+    // another line. Keep the toast clearance in sync without a layout read
+    // on every simulation frame.
+    const topSize = typeof ResizeObserver === 'function' ? new ResizeObserver(freeTop) : null;
+    topSize?.observe(top);
 
     // --- placing the tip next to the control it is about ------------------------------------
     const anchors = {
@@ -251,6 +256,6 @@ export function createGuide(root, { img, heroScreen, onGoalTap } = {}) {
             freeTop();
         },
         clear() { hide(hintEl); hide(thinkEl); hide(tipEl); thinking = false; },
-        destroy() { for (const t of timers.values()) clearTimeout(t); root.style.removeProperty('--sk-guide-free'); layer.remove(); }
+        destroy() { topSize?.disconnect(); for (const t of timers.values()) clearTimeout(t); root.style.removeProperty('--sk-guide-free'); layer.remove(); }
     };
 }

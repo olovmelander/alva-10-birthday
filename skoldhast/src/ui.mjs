@@ -43,6 +43,15 @@ export function createUI(host, { assetBase, handlers }) {
     wantFont();
     // iOS Safari shows :active (the buttons' press) only under a touchstart listener
     root.addEventListener('touchstart', () => {}, { passive: true });
+    // Capturing runs before a button replaces its sheet; keyboard clicks and
+    // touch therefore get the same quiet notebook feedback. Page turns have
+    // their own sound below, including the arrow-key shortcut.
+    root.addEventListener('click', e => {
+        const b = e.target.closest?.('button');
+        if (!b || b.disabled || b.closest('.sk-controls, .sk-dialogue') || b.matches('.sk-j-tab, .sk-j-arrow, .sk-journal-btn')) return;
+        handlers.onMenuSound?.('ui');
+    }, true);
+    root.addEventListener('change', e => { if (e.target.matches?.('.sk-settings input')) handlers.onMenuSound?.('ui'); });
     // absolute, because a url() inside a CSS variable resolves against the stylesheet, not the page
     const asset = (file) => new URL(`${assetBase}assets/${file}`, document.baseURI).href;
     const img = (name) => asset(`${name}.webp`);
@@ -299,7 +308,7 @@ export function createUI(host, { assetBase, handlers }) {
                 for (const id of ['fart', 'djup', 'gom', 'gnagg', 'sprang', 'smak']) if (state.flags.has('exp_' + id)) ul.append(el('li', '', JOURNAL.experiments[id]));
                 if (!ul.children.length) { ul.className = 'sk-j-list'; ul.append(el('li', 'sk-j-small', JOURNAL.empty)); }
                 c.append(ul);
-                const signs = el('p', 'sk-j-tally', state.tally > 0 ? 'Klos skylt: häst' : state.tally < 0 ? 'Klos skylt: SKÖLDPADDA' : 'Klos skyltar: det står lika.');
+                const signs = el('p', 'sk-j-tally', state.tally > 0 ? JOURNAL.tallyHorse : state.tally < 0 ? JOURNAL.tallyTurtle : JOURNAL.tallyEven);
                 // the verdict, with the sign Klo holds up for it
                 const verdict = el('div', 'sk-j-verdict');
                 verdict.append(signs, art('npcs', state.tally > 0 ? 'sign-hast' : state.tally < 0 ? 'sign-skoldpadda' : 'klo-signs', 'sk-j-sign'));
@@ -474,6 +483,7 @@ export function createUI(host, { assetBase, handlers }) {
                 page = target;
                 const now = shown();
                 if (now[0] === was[0] && now[now.length - 1] === was[was.length - 1]) { marks(); return; }
+                handlers.onMenuSound?.('page');
                 settle();
                 if (lessMotion()) { layout(); return; }
                 turn(now[0] > was[0] ? 1 : -1);
@@ -502,9 +512,9 @@ export function createUI(host, { assetBase, handlers }) {
         // a tiny pencil map: the regions visited, and the fold between the kelp forest and the bay
         const d = el('div', 'sk-j-map');
         d.append(el('span', 'sk-j-map-title', MENU.map));
-        const regions = [['Stäppen', 'land'], ['Stranden', 'land'], ['Kelpskogen', 'kelp'], ['Spegelviken', 'viken']];
+        const regions = MENU.regions;
         for (const [name, id] of regions) {
-            if (id === 'viken') d.append(el('span', 'sk-j-fold', state.flags.has('unfolded') ? '' : '— veck —'));
+            if (id === 'viken') d.append(el('span', 'sk-j-fold', state.flags.has('unfolded') ? '' : MENU.fold));
             d.append(el('span', `sk-j-region r-${id}` + (state.visited.has(id) ? ' seen' : ''), name));
         }
         return d;
