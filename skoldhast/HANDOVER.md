@@ -1,5 +1,22 @@
 # Sköldhästen – handover
 
+## Latest continuation: deeper visual/mechanics polish
+
+The deeper audit and implemented changes are documented in
+[`docs/skoldhast/polish-round3.md`](../docs/skoldhast/polish-round3.md), with
+paired before/after views and refreshed 27-place sheets at all three viewports.
+The final pure suite passes **117/117**, and the first-playable build is
+**2,753,951 bytes** (strict limit 3,000,000). Required browser checks, both finales,
+drawing/map/guardian/guidance checks and the P7 comparison pass without captured
+errors. Four fresh keyboard/touch journeys cover P1–P8 and extras.
+
+Start review with the clearer lighthouse line, P7's visible mirror comparison,
+Signe's much slower race, the current hide/wait/emerge prompts, the drawing draft
+controls and individual map pieces in Ledtrådar. Physical-phone smoothness and
+human listening remain unmeasured. Text-to-speech was explicitly deferred.
+All work stays on `codex/skoldhast-polish`; ask before merging main.
+
+
 Last updated: 29 September 2026. The review branch is `codex/skoldhast-polish`, based on `main` at `1af945b`. The design is in `docs/skoldhast-game-plan.md` (v2); the working rules are in `skoldhast/CLAUDE.md`.
 
 ## State
@@ -321,11 +338,11 @@ or additional chapter release is part of this branch.
 
 - The goal note, notebook hint and world target share one semantic guidance selector. Context cards name the actual next action and distinguish approach, hiding, waiting, sinking/drifting and emergence. Control wording follows hold/toggle and follow-finger settings; progress comes from the puzzle state.
 - P2 commits the stone independently of the plank, including old saves. P5 refreshes collision when the lanternfish light the passage. P8 arrives once, holds the shell still, saves the sea half and resumes the final drawing after reload. Emerging always releases the hold.
-- Tests cover puzzle ordering, save/reload, deterministic P8 schedules and eleven guidance situations. The integrated pure suite currently passes117 tests, including drawing/map work in progress. Focused context shots cover eighteen states at both phone sizes.
+- Tests cover puzzle ordering, save/reload, deterministic P8 schedules and eleven guidance situations. The integrated pure suite currently passes 117 tests, including drawing/map work in progress. Focused context shots cover eighteen states at both phone sizes.
 
 ### Deeper polish: drawing drafts and forgiving tracing
 
-- Free drawings use a large paper pad with a preview, Rita om, Rita åt mig and Klar. Cancelled or tiny touches cannot silently commit a replacement drawing. Finished strokes map back into the original notebook margin and remain bounded to200 points.
+- Free drawings use a large paper pad with a preview, Rita om, Rita åt mig and Klar. Cancelled or tiny touches cannot silently commit a replacement drawing. Finished strokes map back into the original notebook margin and remain bounded to 200 points.
 - Guided strokes accept fast segments or intentional point taps, support the final line in either direction, own one pointer, cancel cleanly and keep their geometry correct after rotation. Keyboard help and focus containment remain available.
 - Checks: seven geometry tests, the native pointer/cancel/rotation/focus browser suite at both phone sizes, ten close/reopen cycles, and fresh P1–P8 plus extra-activity journeys on touch at both phone sizes and keyboard landscape. Run `tests/browser/skoldhast-drawing.mjs` and `tests/browser/skoldhast-journey.mjs`.
 
@@ -335,11 +352,11 @@ or additional chapter release is part of this branch.
 - Nearby action symbols and their progress use the exact same guidance object as the HUD. They distinguish a shell, emergence, travel and interaction without depending on colour.
 - Reduced motion freezes decorative water, fronds, lanes, vortex motes and clouds. Paper-cover fades use elapsed time, the final page lifts before unfolding, and each world page turn has one sound.
 - P7's mirror explanation uses a reversible lighthouse comparison throughout the dialogue, keeping the dark real lamp and lit reflection visible in either phone orientation. It restores the scene, hidden hero, camera and controls; the temporary layout observer is destroyed on close.
-- Focused renderer check:30 recorded states across both phone sizes, zero errors. P7 uses a real hiding trigger; the mirror-vista browser test checks framing and restoration. Pages and renderer lifecycle checks pass.
+- Focused renderer check: 30 recorded states across both phone sizes, zero errors. P7 uses a real hiding trigger; the mirror-vista browser test checks framing and restoration. Pages and renderer lifecycle checks pass.
 
 ### Deeper polish: inspectable map fragments
 
 - The notebook's Ledtrådar page assembles three torn, textured pieces from existing discovery flags. Each can be inspected separately with its find location and explanation; the pieces share one illustrated coastline, route and layout. Missing pieces remain silhouettes.
 - Tap the map or choose a piece, then zoom, pan with arrow buttons, reset or return to the whole map. The existing paper texture is reused. No new saves or art downloads are needed. Older clue aliases work too.
-- The current-hint page links directly to the map. The existing seven-page notebook structure remains. At320px the piece choices stack, and footer arrows/count remain usable.
-- Four pure collection tests and keyboard/touch browser checks pass at844×390,390×844 and320×568, including big text, zoom/pan limits, old saves and rebuilds; zero console errors. Preview `dev/menus.html?m=journal&page=4&map=all` (`map=none`, `corner`, `land` also work).
+- The current-hint page links directly to the map. The existing seven-page notebook structure remains. At 320px the piece choices stack, and footer arrows/count remain usable.
+- Four pure collection tests and keyboard/touch browser checks pass at 844×390, 390×844 and 320×568, including big text, zoom/pan limits, old saves and rebuilds; zero console errors. Preview `dev/menus.html?m=journal&page=4&map=all` (`map=none`, `corner`, `land` also work).

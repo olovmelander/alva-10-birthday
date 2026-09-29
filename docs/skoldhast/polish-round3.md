@@ -56,3 +56,113 @@ These are design applications, not claims of full accessibility conformance:
 No merge to main without approval. Device performance and subjective listening
 still require the real device. Swedish speech was discussed as a possible separate
 addition; the user's subsequent instruction explicitly excludes it from this round.
+
+## Implemented outcomes
+
+- **Puzzle clarity and recovery.** A shared state selector now supplies the
+  notebook hint, current instruction and nearby world symbol. It distinguishes
+  approaching, hiding, waiting, drifting, sinking and emerging, and reads the
+  actual puzzle progress. Instructions match keyboard/touch and hold/toggle
+  settings. P2 commits the matched stone separately; P5 opens collision at the
+  same instant as its light; P8 holds the shell still, arrives once, saves its
+  sea half and resumes the final drawing after reload.
+- **Race and characters.** Signe now crawls at 70 world units/s instead of 250,
+  72% slower. Her feet follow distance and ground height. Saved games reconstruct
+  Klo, Signe and Kartväktaren from story phase. The guardian now blinks, breathes,
+  walks, turns, gestures and peeks with separate pencil-drawn paper parts.
+- **Lighthouse and scenery.** Reserved paper, graphite edges, arrows and endpoint
+  shapes make P8 readable over both wood and water. The line visibly draws itself.
+  Hatched light, clearer water, foreground kelp fading, a distant ridge and bounded
+  rays/flecks improve regional depth. Reduced motion freezes decorative movement.
+  The final page anticipates its unfold; fades use elapsed time and each page turn
+  has one sound. P7 holds a clear tower/reflection comparison throughout its actual
+  dialogue, with the picture fitted around the dialogue box.
+- **Drawing.** A large paper pad offers draft preview, redo, explicit example and
+  confirmation. One pointer owns a stroke; cancellation never commits it. Fast
+  and reverse guided traces work, point taps remain intentional, rotation refreshes
+  geometry, and saved art returns to the authored notebook margin. Keyboard
+  alternatives and focus containment remain available.
+- **Map fragments.** The existing three discoveries assemble one textured,
+  illustrated map with shared torn edges and routes. Each piece has its own
+  inspection view and find note. Tap, keyboard, zoom, pan buttons and reset work
+  without a required drag. Existing saves need no migration or new fields. Short
+  landscape places the map beside its controls; narrow portrait stacks choices.
+
+## Critical visual review
+
+The first new screenshots exposed issues that passing assertions alone missed:
+
+1. The contextual card covered hooves at the bottom of landscape and the shell
+   in portrait. It now sits above the controls or below the top note. The full
+   tour then exposed left-facing camera overlap: a 45/55% hysteresis rule places
+   the landscape card on the spare side, verified against rendered body bounds.
+2. The first landscape map was too tall to inspect while using zoom/pan. A compact
+   workspace keeps both visible; its sticky map stops before the discovery text.
+   The320px pass also corrected the piece-label and footer-counter overflow.
+3. A new distant ridge revealed its vertical fill edge in portrait. Its closing
+   edges now end under the foreground. Lighthouse light that looked clear close
+   up was still faint against the golden finale sky; reserved paper and graphite
+   make the full-tower beam readable too.
+
+These are regional rendering and interaction improvements. Existing backgrounds
+remain code-drawn pencil art; this round does not replace every asset. All 27 tour
+locations are reviewed at each of the three requested viewports. Real-device
+performance and subjective movement/audio quality still need the intended phone.
+
+## Verification and review points
+
+The baseline passed 76 tests; the integrated implementation passes 117, including
+its deterministic simulation and whole-game robot. New checks cover saved actors,
+puzzle substeps, P8 recovery, guidance, guardian poses, drawing and map flags.
+
+Required browser checks pass: launch, save, touch 844×390 and 390×844, guide, pages,
+and normal/reduced-motion finales. Additional checks cover WebGL recovery,
+close/reopen, native drawing cancellation/rotation, guardian poses, eighteen
+context states, both camera directions, P7 comparison framing and restoration,
+and map inspection with keyboard/touch at 844×390,390×844 and 320×568.
+
+The final fresh-save journeys exercise P1–P8 and the extras with keyboard and
+touch at both phone sizes, through real DOM input and the actual drawing UI.
+These are accelerated regression playthroughs, not a human-device playtest.
+An initial heavily loaded run exhausted its virtual deadline before a fold effect
+received a browser animation frame. The harness now yields an actual RAF while
+busy, preserving the same predicates and time bounds; it never skips an effect
+or grants a puzzle flag. The final four routes use that corrected harness.
+
+| Final fresh journey | Fixed simulation steps | Result |
+| --- | ---: | --- |
+| Touch 844×390 | 43,268 | P1–P8, ending and extras pass |
+| Touch 390×844 | 43,268 | P1–P8, ending and extras pass |
+| Keyboard 844×390 | 43,503 | P1–P8, ending and extras pass |
+| Keyboard 390×844 | 43,503 | P1–P8, ending and extras pass |
+
+All four runs completed the 148-note Spången route and recorded zero browser
+errors. Source changes stayed frozen during the final matrix.
+
+
+**Final first-playable download: 2,753,951 bytes**, below the strict 3,000,000-byte gate (246,049 bytes spare). No new audio assets or text-to-speech were added. The previous
+offline audio measurements and exact listening sequence remain in
+[audio-polish.md](audio-polish.md); this round removes duplicate world page cues.
+
+
+## Saved before/after evidence
+
+| View | Before | After |
+| --- | --- | --- |
+| All 27 places, 844×390 | [Sheet](shots/k3/round3/before/sheet-844x390.webp) | [Sheet](shots/k3/sheet-844x390.webp) |
+| All 27 places, 390×844 | [Sheet](shots/k3/round3/before/sheet-390x844.webp) | [Sheet](shots/k3/sheet-390x844.webp) |
+| All 27 places, 1440×900 | [Sheet](shots/k3/round3/before/sheet-1440x900.webp) | [Sheet](shots/k3/sheet-1440x900.webp) |
+| Exact P8 pier start | [View](shots/k3/round3/before/01-p8-pier-start-844x390.webp) | [View](shots/k3/round3/after/01-p8-pier-start-844x390.webp) |
+| Exact P8 sea lane | [View](shots/k3/round3/before/04-p8-sea-lane-844x390.webp) | [View](shots/k3/round3/after/04-p8-sea-lane-844x390.webp) |
+| Guardian window glimpse | [View](shots/k3/round3/before/09-guardian-peek-844x390.webp) | [View](shots/k3/round3/after/09-guardian-peek-844x390.webp) |
+| Exact kelp silhouette | [View](shots/k3/round3/before/11-kelp-silhouette-844x390.webp) | [View](shots/k3/round3/after/11-kelp-silhouette-844x390.webp) |
+| Notebook map | [Notebook](shots/k3/round3/before/clues-390x844.webp) | [Map](shots/k3/round3/after/map-390x844.webp) |
+
+Additional review views: [landscape map inspection](shots/k3/round3/after/map-inspect-844x390.webp), [320px big text](shots/k3/round3/after/map-big-text-320x568.webp), [real prologue drawing](shots/k3/round3/after/drawing-844x390.webp), [P7 comparison](shots/k3/round3/after/p7-mirror-390x844.webp), [lamp closeup](shots/k3/round3/after/13-lit-lamp-gallery-844x390.webp), [full finale light](shots/k3/round3/after/finale-light-844x390.webp), and [left-facing hero/card](shots/k3/round3/after/14-left-facing-land-844x390.webp).
+
+Review in the game: hide at Spegelpölen and the P7 plate; follow the complete P8
+route; pause during the final drawing and reload; inspect every map fragment;
+redraw a prologue picture; turn around by Galoppbanan; and walk alongside Signe.
+For audio, use the six precise steps in the linked audio checklist. Speech remains
+excluded. Flytbryggan is still optional stretch work; the publication clipping
+remains excluded by the existing privacy rules. Main is not merged.

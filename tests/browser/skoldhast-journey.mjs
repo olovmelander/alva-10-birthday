@@ -175,9 +175,10 @@ try {
             G.step({ ...cont, act: e.act, hide: e.hide, tapHero: e.tapHero || e.neigh });
             await Promise.resolve();
             if (++steps % 12 === 0) render();
-            // Effects such as the map demonstration use RAF callbacks. Let
-            // them settle without letting a stalled effect spend the timeout.
-            if (G.busy && steps % 30 === 0) { app.render(); await sleep(0); }
+            // Effects such as the map demonstration own RAF callbacks. Give
+            // them a real frame: a zero-time timer can exhaust the virtual
+            // deadline before software WebGL delivers an animation frame.
+            if (G.busy && steps % 30 === 0) { app.render(); await new Promise(requestAnimationFrame); }
             if (steps % 600 === 0) await sleep(0);
         }
         async function until(pred, inp, seconds, label) {
