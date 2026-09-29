@@ -55,6 +55,7 @@ export function createGame({ released = RELEASED_CHAPTER } = {}) {
             const s = typeof spawn === 'string' ? G.sceneDef.spots[spawn] : spawn;
             const keepWet = G.player.wet;
             G.player = createPlayer(s || G.sceneDef.spots.start || { x: 0, y: 0 });
+            if (s?.hidden) { G.player.hidden = true; G.player.hide = 1; }
             G.player.wet = keepWet;
             // settle on the ground or in the water
             const sup = G.terrain.support(G.player.x, G.player.y, 120, 400);
@@ -88,7 +89,7 @@ export function createGame({ released = RELEASED_CHAPTER } = {}) {
         context: null,
         storyActions() { return G.story ? G.story.actions() : []; },
 
-        /** One fixed step of the whole game. input: { x, y, hop, hide, act, tapHero } */
+        /** One fixed step of the whole game. input: { x, y, hop, hide, hideRelease, act, tapHero } */
         step(input) {
             const dt = STEP;
             G.time += dt; G.sceneTime += dt;
@@ -102,7 +103,7 @@ export function createGame({ released = RELEASED_CHAPTER } = {}) {
             // the context button: an action here, or Hoppa
             G.context = locked ? null : contextAction(G);
             const events = [];
-            const simInput = { x: inp.x || 0, y: inp.y || 0, hop: false, hide: !!inp.hide, hopHeld: !!inp.hopHeld };
+            const simInput = { x: inp.x || 0, y: inp.y || 0, hop: false, hide: !!inp.hide, hideRelease: !!inp.hideRelease, hopHeld: !!inp.hopHeld };
             if (inp.act) {
                 if (G.context) { const c = G.context; G.emit('context', { id: c.id }); c.run(); }
                 else simInput.hop = true;
@@ -147,8 +148,8 @@ export function createGame({ released = RELEASED_CHAPTER } = {}) {
             G.flags.clear();
             for (const f of data.flags || []) G.flags.add(f);
             G.checkpoint = CHECKPOINTS[data.checkpoint] ? data.checkpoint : 'start';
+            Object.assign(G.puz, createPuzzleState());
             Object.assign(G.puz, { deepest: data.puz?.deepest || 0, tally: data.puz?.tally || 0, shells: data.puz?.shells || {} });
-            if (G.flags.has('p2_open')) G.puz.stone = SCENES.land.rail.target;
             chapterFlags();
             const cp = CHECKPOINTS[G.checkpoint];
             G.goto(cp.scene, cp.spot || cp.at);

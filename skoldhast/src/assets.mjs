@@ -16,6 +16,7 @@ export function createAssets(PIXI, base) {
     const pending = new Map();     // bundle → Promise
     const done = new Set();        // bundles fully loaded
     let manifest = null;
+    let closed = false, closing = null;
 
     const url = (f) => base + 'assets/' + f;
 
@@ -26,6 +27,7 @@ export function createAssets(PIXI, base) {
     }
 
     function load(bundle) {
+        if (closed) throw new Error('assets are closed');
         if (!manifest) throw new Error('assets.init() first');
         if (pending.has(bundle)) return pending.get(bundle);
         const jobs = [];
@@ -35,6 +37,7 @@ export function createAssets(PIXI, base) {
                 const u = url(f);
                 jobs.push(PIXI.Assets.load(u).then((sheet) => {
                     loadedUrls.add(u);
+                    if (closed) return;
                     for (const [k, t] of Object.entries(sheet.textures || {})) frames.set(k, t);
                 }).catch((e) => console.warn('atlas', name, e)));
             }
@@ -44,6 +47,7 @@ export function createAssets(PIXI, base) {
             const u = url(im.file);
             jobs.push(PIXI.Assets.load(u).then((t) => {
                 loadedUrls.add(u);
+                if (closed) return;
                 if (im.repeat) {
                     t.source.style.addressMode = 'repeat';
                     t.source.style.update?.();
@@ -53,18 +57,26 @@ export function createAssets(PIXI, base) {
         }
         for (const [name, d] of Object.entries(manifest.data || {})) {
             if (d.bundle !== bundle) continue;
-            jobs.push(fetch(url(d.file)).then((r) => r.json()).then((o) => data.set(name, o)).catch((e) => console.warn('data', name, e)));
+            jobs.push(fetch(url(d.file)).then((r) => r.json()).then((o) => { if (!closed) data.set(name, o); }).catch((e) => console.warn('data', name, e)));
         }
-        const p = Promise.all(jobs).then(() => { done.add(bundle); return bundle; });
+        const p = Promise.all(jobs).then(() => { if (!closed) done.add(bundle); return bundle; });
         pending.set(bundle, p);
         return p;
     }
 
-    async function close() {
-        const urls = [...loadedUrls];
-        loadedUrls.clear();
-        frames.clear(); images.clear(); pending.clear(); done.clear();
-        try { await PIXI.Assets.unload(urls); } catch (e) { console.warn('unload', e); }
+    function close() {
+        if (closing) return closing;
+        closed = true;
+        frames.clear(); images.clear(); data.clear(); done.clear();
+        closing = (async () => {
+            // Background bundles can finish after close begins. Keep collecting their URLs,
+            // then release them before the next session may reuse Pixi's global cache.
+            await Promise.allSettled([...pending.values()]);
+            const urls = [...loadedUrls];
+            try { if (urls.length) await PIXI.Assets.unload(urls); } catch (e) { console.warn('unload', e); }
+            loadedUrls.clear(); pending.clear();
+        })();
+        return closing;
     }
 
     return {

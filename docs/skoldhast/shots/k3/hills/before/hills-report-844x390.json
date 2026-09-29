@@ -1,0 +1,868 @@
+{
+  "viewport": [
+    844,
+    390
+  ],
+  "baseline": true,
+  "traversals": [
+    {
+      "pace": "walk",
+      "direction": -1,
+      "events": [],
+      "maxGroundError": 0,
+      "airSteps": 0,
+      "maxSpeedDelta": 16.666666666666686,
+      "minSpeed": 318.75,
+      "finite": true,
+      "steps": 2642,
+      "lastV": 354.1666666666667
+    },
+    {
+      "pace": "walk",
+      "direction": 1,
+      "events": [],
+      "maxGroundError": 0,
+      "airSteps": 0,
+      "maxSpeedDelta": 16.666666666666686,
+      "minSpeed": 318.75,
+      "finite": true,
+      "steps": 2348,
+      "lastV": 354.1666666666667
+    },
+    {
+      "pace": "gallop",
+      "direction": -1,
+      "events": [],
+      "maxGroundError": 0,
+      "airSteps": 0,
+      "maxSpeedDelta": 16.666666666666742,
+      "minSpeed": 1080,
+      "finite": true,
+      "steps": 823,
+      "lastV": 1200
+    },
+    {
+      "pace": "gallop",
+      "direction": 1,
+      "events": [],
+      "maxGroundError": 0,
+      "airSteps": 0,
+      "maxSpeedDelta": 16.666666666666742,
+      "minSpeed": 1080,
+      "finite": true,
+      "steps": 736,
+      "lastV": 1200
+    }
+  ],
+  "captures": [
+    {
+      "file": "walk-west-x47-844x390.webp",
+      "target": 47,
+      "pace": "walk",
+      "direction": -1,
+      "reached": true,
+      "player": {
+        "x": 9399.022569444494,
+        "y": -280.4887152777528,
+        "vx": -318.75,
+        "mode": "ground",
+        "surface": "ramp1"
+      },
+      "camera": {
+        "x": 9400,
+        "y": -440,
+        "zoom": 0.7020000000000001
+      },
+      "route": {
+        "pace": "walk",
+        "direction": -1,
+        "events": [],
+        "maxGroundError": 0,
+        "airSteps": 0,
+        "maxSpeedDelta": 16.666666666666686,
+        "minSpeed": 318.75,
+        "finite": true,
+        "steps": 358,
+        "lastV": 318.75
+      }
+    },
+    {
+      "file": "walk-west-x46-844x390.webp",
+      "target": 46,
+      "pace": "walk",
+      "direction": -1,
+      "reached": true,
+      "player": {
+        "x": 9199.803819444494,
+        "y": -380.00098090277754,
+        "vx": -318.75,
+        "mode": "ground",
+        "surface": "L1"
+      },
+      "camera": {
+        "x": 9200,
+        "y": -540,
+        "zoom": 0.7020000000000001
+      },
+      "route": {
+        "pace": "walk",
+        "direction": -1,
+        "events": [],
+        "maxGroundError": 0,
+        "airSteps": 0,
+        "maxSpeedDelta": 16.666666666666686,
+        "minSpeed": 318.75,
+        "finite": true,
+        "steps": 433,
+        "lastV": 318.75
+      }
+    },
+    {
+      "file": "walk-west-x38_5-844x390.webp",
+      "target": 38.5,
+      "pace": "walk",
+      "direction": -1,
+      "reached": true,
+      "player": {
+        "x": 7697.696180555678,
+        "y": -590,
+        "vx": -318.75,
+        "mode": "ground",
+        "surface": "L2"
+      },
+      "camera": {
+        "x": 7700,
+        "y": -750,
+        "zoom": 0.7020000000000001
+      },
+      "route": {
+        "pace": "walk",
+        "direction": -1,
+        "events": [],
+        "maxGroundError": 0,
+        "airSteps": 0,
+        "maxSpeedDelta": 16.666666666666686,
+        "minSpeed": 318.75,
+        "finite": true,
+        "steps": 958,
+        "lastV": 318.75
+      }
+    },
+    {
+      "file": "walk-west-x36-844x390.webp",
+      "target": 36,
+      "pace": "walk",
+      "direction": -1,
+      "reached": true,
+      "player": {
+        "x": 7199.355902777905,
+        "y": -800.006440972221,
+        "vx": -318.75,
+        "mode": "ground",
+        "surface": "plateau"
+      },
+      "camera": {
+        "x": 7200,
+        "y": -960,
+        "zoom": 0.7020000000000001
+      },
+      "route": {
+        "pace": "walk",
+        "direction": -1,
+        "events": [],
+        "maxGroundError": 0,
+        "airSteps": 0,
+        "maxSpeedDelta": 16.666666666666686,
+        "minSpeed": 318.75,
+        "finite": true,
+        "steps": 1143,
+        "lastV": 318.75
+      }
+    },
+    {
+      "file": "walk-west-x34-844x390.webp",
+      "target": 34,
+      "pace": "walk",
+      "direction": -1,
+      "reached": true,
+      "player": {
+        "x": 6798.289930555709,
+        "y": -804.9781597221341,
+        "vx": -354.1666666666667,
+        "mode": "ground",
+        "surface": "plateau"
+      },
+      "camera": {
+        "x": 6800,
+        "y": -963.9999999999999,
+        "zoom": 0.7020000000000001
+      },
+      "route": {
+        "pace": "walk",
+        "direction": -1,
+        "events": [],
+        "maxGroundError": 0,
+        "airSteps": 0,
+        "maxSpeedDelta": 16.666666666666686,
+        "minSpeed": 318.75,
+        "finite": true,
+        "steps": 1279,
+        "lastV": 354.1666666666667
+      }
+    },
+    {
+      "file": "walk-west-x28-844x390.webp",
+      "target": 28,
+      "pace": "walk",
+      "direction": -1,
+      "reached": true,
+      "player": {
+        "x": 5598.994791666833,
+        "y": -1270,
+        "vx": -354.1666666666667,
+        "mode": "ground",
+        "surface": "plateau"
+      },
+      "camera": {
+        "x": 5600,
+        "y": -1430,
+        "zoom": 0.7020000000000001
+      },
+      "route": {
+        "pace": "walk",
+        "direction": -1,
+        "events": [],
+        "maxGroundError": 0,
+        "airSteps": 0,
+        "maxSpeedDelta": 16.666666666666686,
+        "minSpeed": 318.75,
+        "finite": true,
+        "steps": 1723,
+        "lastV": 354.1666666666667
+      }
+    },
+    {
+      "file": "walk-east-x28-844x390.webp",
+      "target": 28,
+      "pace": "walk",
+      "direction": 1,
+      "reached": true,
+      "player": {
+        "x": 5601.939236110957,
+        "y": -1270,
+        "vx": 354.1666666666667,
+        "mode": "ground",
+        "surface": "plateau"
+      },
+      "camera": {
+        "x": 5600,
+        "y": -1430,
+        "zoom": 0.7020000000000001
+      },
+      "route": {
+        "pace": "walk",
+        "direction": 1,
+        "events": [],
+        "maxGroundError": 0,
+        "airSteps": 0,
+        "maxSpeedDelta": 16.666666666666686,
+        "minSpeed": 318.75,
+        "finite": true,
+        "steps": 1016,
+        "lastV": 354.1666666666667
+      }
+    },
+    {
+      "file": "walk-east-x34-844x390.webp",
+      "target": 34,
+      "pace": "walk",
+      "direction": 1,
+      "reached": true,
+      "player": {
+        "x": 6800.130208333165,
+        "y": -803.9986979166682,
+        "vx": 382.50000000000006,
+        "mode": "ground",
+        "surface": "plateau"
+      },
+      "camera": {
+        "x": 6800,
+        "y": -963.9999999999999,
+        "zoom": 0.7020000000000001
+      },
+      "route": {
+        "pace": "walk",
+        "direction": 1,
+        "events": [],
+        "maxGroundError": 0,
+        "airSteps": 0,
+        "maxSpeedDelta": 16.666666666666686,
+        "minSpeed": 318.75,
+        "finite": true,
+        "steps": 1397,
+        "lastV": 382.50000000000006
+      }
+    },
+    {
+      "file": "walk-east-x36-844x390.webp",
+      "target": 36,
+      "pace": "walk",
+      "direction": 1,
+      "reached": true,
+      "player": {
+        "x": 7201.616319444249,
+        "y": -799.2106346900181,
+        "vx": 354.1666666666667,
+        "mode": "ground",
+        "surface": "ramp3"
+      },
+      "camera": {
+        "x": 7200,
+        "y": -960,
+        "zoom": 0.7020000000000001
+      },
+      "route": {
+        "pace": "walk",
+        "direction": 1,
+        "events": [],
+        "maxGroundError": 0,
+        "airSteps": 0,
+        "maxSpeedDelta": 16.666666666666686,
+        "minSpeed": 318.75,
+        "finite": true,
+        "steps": 1533,
+        "lastV": 354.1666666666667
+      }
+    },
+    {
+      "file": "walk-east-x38_5-844x390.webp",
+      "target": 38.5,
+      "pace": "walk",
+      "direction": 1,
+      "reached": true,
+      "player": {
+        "x": 7702.668402777577,
+        "y": -588.6968265504855,
+        "vx": 354.1666666666667,
+        "mode": "ground",
+        "surface": "ramp2"
+      },
+      "camera": {
+        "x": 7700,
+        "y": -750,
+        "zoom": 0.7020000000000001
+      },
+      "route": {
+        "pace": "walk",
+        "direction": 1,
+        "events": [],
+        "maxGroundError": 0,
+        "airSteps": 0,
+        "maxSpeedDelta": 16.666666666666686,
+        "minSpeed": 318.75,
+        "finite": true,
+        "steps": 1692,
+        "lastV": 354.1666666666667
+      }
+    },
+    {
+      "file": "walk-east-x46-844x390.webp",
+      "target": 46,
+      "pace": "walk",
+      "direction": 1,
+      "reached": true,
+      "player": {
+        "x": 9200.81770833306,
+        "y": -379.59114583347036,
+        "vx": 354.1666666666667,
+        "mode": "ground",
+        "surface": "ramp1"
+      },
+      "camera": {
+        "x": 9200,
+        "y": -540,
+        "zoom": 0.7020000000000001
+      },
+      "route": {
+        "pace": "walk",
+        "direction": 1,
+        "events": [],
+        "maxGroundError": 0,
+        "airSteps": 0,
+        "maxSpeedDelta": 16.666666666666686,
+        "minSpeed": 318.75,
+        "finite": true,
+        "steps": 2189,
+        "lastV": 354.1666666666667
+      }
+    },
+    {
+      "file": "walk-east-x47-844x390.webp",
+      "target": 47,
+      "pace": "walk",
+      "direction": 1,
+      "reached": true,
+      "player": {
+        "x": 9401.439236110837,
+        "y": -279.2803819445817,
+        "vx": 382.50000000000006,
+        "mode": "ground",
+        "surface": "ramp1"
+      },
+      "camera": {
+        "x": 9400,
+        "y": -440,
+        "zoom": 0.7020000000000001
+      },
+      "route": {
+        "pace": "walk",
+        "direction": 1,
+        "events": [],
+        "maxGroundError": 0,
+        "airSteps": 0,
+        "maxSpeedDelta": 16.666666666666686,
+        "minSpeed": 318.75,
+        "finite": true,
+        "steps": 2252,
+        "lastV": 382.50000000000006
+      }
+    },
+    {
+      "file": "gallop-west-x47-844x390.webp",
+      "target": 47,
+      "pace": "gallop",
+      "direction": -1,
+      "reached": true,
+      "player": {
+        "x": 9392.623263888889,
+        "y": -283.68836805555566,
+        "vx": -1080,
+        "mode": "ground",
+        "surface": "ramp1"
+      },
+      "camera": {
+        "x": 9400,
+        "y": -440,
+        "zoom": 0.7020000000000001
+      },
+      "route": {
+        "pace": "gallop",
+        "direction": -1,
+        "events": [],
+        "maxGroundError": 0,
+        "airSteps": 0,
+        "maxSpeedDelta": 0,
+        "minSpeed": null,
+        "finite": true,
+        "steps": 148,
+        "lastV": 1080
+      }
+    },
+    {
+      "file": "gallop-west-x46-844x390.webp",
+      "target": 46,
+      "pace": "gallop",
+      "direction": -1,
+      "reached": true,
+      "player": {
+        "x": 9194.623263888889,
+        "y": -380.02688368055556,
+        "vx": -1080,
+        "mode": "ground",
+        "surface": "L1"
+      },
+      "camera": {
+        "x": 9200,
+        "y": -540,
+        "zoom": 0.7020000000000001
+      },
+      "route": {
+        "pace": "gallop",
+        "direction": -1,
+        "events": [],
+        "maxGroundError": 0,
+        "airSteps": 0,
+        "maxSpeedDelta": 0,
+        "minSpeed": null,
+        "finite": true,
+        "steps": 170,
+        "lastV": 1080
+      }
+    },
+    {
+      "file": "gallop-west-x38_5-844x390.webp",
+      "target": 38.5,
+      "pace": "gallop",
+      "direction": -1,
+      "reached": true,
+      "player": {
+        "x": 7693.355902777777,
+        "y": -590,
+        "vx": -1080,
+        "mode": "ground",
+        "surface": "L2"
+      },
+      "camera": {
+        "x": 7700,
+        "y": -750,
+        "zoom": 0.7020000000000001
+      },
+      "route": {
+        "pace": "gallop",
+        "direction": -1,
+        "events": [],
+        "maxGroundError": 0,
+        "airSteps": 0,
+        "maxSpeedDelta": 16.666666666666742,
+        "minSpeed": 1080,
+        "finite": true,
+        "steps": 325,
+        "lastV": 1080
+      }
+    },
+    {
+      "file": "gallop-west-x36-844x390.webp",
+      "target": 36,
+      "pace": "gallop",
+      "direction": -1,
+      "reached": true,
+      "player": {
+        "x": 7194.494791666666,
+        "y": -800.0550520833333,
+        "vx": -1080,
+        "mode": "ground",
+        "surface": "plateau"
+      },
+      "camera": {
+        "x": 7200,
+        "y": -960,
+        "zoom": 0.7020000000000001
+      },
+      "route": {
+        "pace": "gallop",
+        "direction": -1,
+        "events": [],
+        "maxGroundError": 0,
+        "airSteps": 0,
+        "maxSpeedDelta": 16.666666666666742,
+        "minSpeed": 1080,
+        "finite": true,
+        "steps": 380,
+        "lastV": 1080
+      }
+    },
+    {
+      "file": "gallop-west-x34-844x390.webp",
+      "target": 34,
+      "pace": "gallop",
+      "direction": -1,
+      "reached": true,
+      "player": {
+        "x": 6799.338541666666,
+        "y": -804.3783541666669,
+        "vx": -1200,
+        "mode": "ground",
+        "surface": "plateau"
+      },
+      "camera": {
+        "x": 6800,
+        "y": -963.9999999999999,
+        "zoom": 0.7020000000000001
+      },
+      "route": {
+        "pace": "gallop",
+        "direction": -1,
+        "events": [],
+        "maxGroundError": 0,
+        "airSteps": 0,
+        "maxSpeedDelta": 16.666666666666742,
+        "minSpeed": 1080,
+        "finite": true,
+        "steps": 420,
+        "lastV": 1200
+      }
+    },
+    {
+      "file": "gallop-west-x28-844x390.webp",
+      "target": 28,
+      "pace": "gallop",
+      "direction": -1,
+      "reached": true,
+      "player": {
+        "x": 5592.071180555555,
+        "y": -1270,
+        "vx": -1200,
+        "mode": "ground",
+        "surface": "plateau"
+      },
+      "camera": {
+        "x": 5600,
+        "y": -1430,
+        "zoom": 0.7020000000000001
+      },
+      "route": {
+        "pace": "gallop",
+        "direction": -1,
+        "events": [],
+        "maxGroundError": 0,
+        "airSteps": 0,
+        "maxSpeedDelta": 16.666666666666742,
+        "minSpeed": 1080,
+        "finite": true,
+        "steps": 552,
+        "lastV": 1200
+      }
+    },
+    {
+      "file": "gallop-east-x28-844x390.webp",
+      "target": 28,
+      "pace": "gallop",
+      "direction": 1,
+      "reached": true,
+      "player": {
+        "x": 5601.532986111111,
+        "y": -1270,
+        "vx": 1200,
+        "mode": "ground",
+        "surface": "plateau"
+      },
+      "camera": {
+        "x": 5600,
+        "y": -1430,
+        "zoom": 0.7020000000000001
+      },
+      "route": {
+        "pace": "gallop",
+        "direction": 1,
+        "events": [],
+        "maxGroundError": 0,
+        "airSteps": 0,
+        "maxSpeedDelta": 16.666666666666742,
+        "minSpeed": 1080,
+        "finite": true,
+        "steps": 342,
+        "lastV": 1200
+      }
+    },
+    {
+      "file": "gallop-east-x34-844x390.webp",
+      "target": 34,
+      "pace": "gallop",
+      "direction": 1,
+      "reached": true,
+      "player": {
+        "x": 6802.907986111127,
+        "y": -803.9709201388886,
+        "vx": 1296,
+        "mode": "ground",
+        "surface": "plateau"
+      },
+      "camera": {
+        "x": 6800,
+        "y": -963.9999999999999,
+        "zoom": 0.7020000000000001
+      },
+      "route": {
+        "pace": "gallop",
+        "direction": 1,
+        "events": [],
+        "maxGroundError": 0,
+        "airSteps": 0,
+        "maxSpeedDelta": 16.666666666666742,
+        "minSpeed": 1080,
+        "finite": true,
+        "steps": 455,
+        "lastV": 1296
+      }
+    },
+    {
+      "file": "gallop-east-x36-844x390.webp",
+      "target": 36,
+      "pace": "gallop",
+      "direction": 1,
+      "reached": true,
+      "player": {
+        "x": 7204.824652777794,
+        "y": -797.6437742247984,
+        "vx": 1200,
+        "mode": "ground",
+        "surface": "ramp3"
+      },
+      "camera": {
+        "x": 7200,
+        "y": -960,
+        "zoom": 0.7020000000000001
+      },
+      "route": {
+        "pace": "gallop",
+        "direction": 1,
+        "events": [],
+        "maxGroundError": 0,
+        "airSteps": 0,
+        "maxSpeedDelta": 16.666666666666742,
+        "minSpeed": 1080,
+        "finite": true,
+        "steps": 495,
+        "lastV": 1200
+      }
+    },
+    {
+      "file": "gallop-east-x38_5-844x390.webp",
+      "target": 38.5,
+      "pace": "gallop",
+      "direction": 1,
+      "reached": true,
+      "player": {
+        "x": 7705.7163194444665,
+        "y": -587.2083091085163,
+        "vx": 1200,
+        "mode": "ground",
+        "surface": "ramp2"
+      },
+      "camera": {
+        "x": 7700,
+        "y": -750,
+        "zoom": 0.7020000000000001
+      },
+      "route": {
+        "pace": "gallop",
+        "direction": 1,
+        "events": [],
+        "maxGroundError": 0,
+        "airSteps": 0,
+        "maxSpeedDelta": 16.666666666666742,
+        "minSpeed": 1080,
+        "finite": true,
+        "steps": 542,
+        "lastV": 1200
+      }
+    },
+    {
+      "file": "gallop-east-x46-844x390.webp",
+      "target": 46,
+      "pace": "gallop",
+      "direction": 1,
+      "reached": true,
+      "player": {
+        "x": 9206.60798611114,
+        "y": -376.69600694443034,
+        "vx": 1200,
+        "mode": "ground",
+        "surface": "ramp1"
+      },
+      "camera": {
+        "x": 9200,
+        "y": -540,
+        "zoom": 0.7020000000000001
+      },
+      "route": {
+        "pace": "gallop",
+        "direction": 1,
+        "events": [],
+        "maxGroundError": 0,
+        "airSteps": 0,
+        "maxSpeedDelta": 16.666666666666742,
+        "minSpeed": 1080,
+        "finite": true,
+        "steps": 689,
+        "lastV": 1200
+      }
+    },
+    {
+      "file": "gallop-east-x47-844x390.webp",
+      "target": 47,
+      "pace": "gallop",
+      "direction": 1,
+      "reached": true,
+      "player": {
+        "x": 9408.782986111131,
+        "y": -275.60850694443434,
+        "vx": 1296,
+        "mode": "ground",
+        "surface": "ramp1"
+      },
+      "camera": {
+        "x": 9400,
+        "y": -440,
+        "zoom": 0.7020000000000001
+      },
+      "route": {
+        "pace": "gallop",
+        "direction": 1,
+        "events": [],
+        "maxGroundError": 0,
+        "airSteps": 0,
+        "maxSpeedDelta": 16.666666666666742,
+        "minSpeed": 1080,
+        "finite": true,
+        "steps": 708,
+        "lastV": 1296
+      }
+    },
+    {
+      "file": "ramp1-ungrown-844x390.webp",
+      "grown": false,
+      "elapsed": 0,
+      "player": {
+        "x": 9400,
+        "y": -161,
+        "mode": "ground",
+        "surface": "floor"
+      },
+      "camera": {
+        "x": 9400,
+        "y": -320,
+        "zoom": 0.7020000000000001
+      }
+    },
+    {
+      "file": "ramp1-growth-first-frame-844x390.webp",
+      "grown": true,
+      "elapsed": 0.008333333333333333,
+      "player": {
+        "x": 9400,
+        "y": -161,
+        "mode": "ground",
+        "surface": "floor"
+      },
+      "camera": {
+        "x": 9400,
+        "y": -320,
+        "zoom": 0.7020000000000001
+      }
+    },
+    {
+      "file": "ramp1-growth-half-second-844x390.webp",
+      "grown": true,
+      "elapsed": 0.5,
+      "player": {
+        "x": 9400,
+        "y": -161,
+        "mode": "ground",
+        "surface": "floor"
+      },
+      "camera": {
+        "x": 9400,
+        "y": -320,
+        "zoom": 0.7020000000000001
+      }
+    },
+    {
+      "file": "ramp1-grown-844x390.webp",
+      "grown": true,
+      "elapsed": 1,
+      "player": {
+        "x": 9400,
+        "y": -161,
+        "mode": "ground",
+        "surface": "floor"
+      },
+      "camera": {
+        "x": 9400,
+        "y": -320,
+        "zoom": 0.7020000000000001
+      }
+    }
+  ],
+  "errors": []
+}

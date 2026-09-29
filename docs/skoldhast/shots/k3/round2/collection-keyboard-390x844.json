@@ -1,0 +1,58 @@
+{
+  "regions": [
+    {
+      "id": "land",
+      "title": "Stranden och stäppen",
+      "found": 7,
+      "total": 7
+    },
+    {
+      "id": "kelp",
+      "title": "Kelpskogen",
+      "found": 4,
+      "total": 4
+    },
+    {
+      "id": "viken",
+      "title": "Spegelviken",
+      "found": 4,
+      "total": 4
+    }
+  ],
+  "pickups": [
+    "p-kite",
+    "p-flowers",
+    "p-hut",
+    "p-bucket",
+    "p-windmill",
+    "p-udden-flowers",
+    "p-udden-kite",
+    "p-kelp-bucket",
+    "p-kelp-shell",
+    "p-kelp-boat",
+    "p-kelp-pebbles",
+    "p-bay-boat",
+    "p-bay-windmill",
+    "p-bay-shell",
+    "p-gallery-flowers"
+  ],
+  "colours": [
+    "p-kite",
+    "p-flowers",
+    "p-hut",
+    "p-bucket",
+    "p-windmill",
+    "p-udden-flowers",
+    "p-udden-kite",
+    "p-kelp-bucket",
+    "p-kelp-shell",
+    "p-kelp-boat",
+    "p-kelp-pebbles",
+    "p-bay-boat",
+    "p-bay-windmill",
+    "p-bay-shell",
+    "p-gallery-flowers"
+  ],
+  "steps": 5490,
+  "errors": []
+}

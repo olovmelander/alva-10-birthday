@@ -1169,7 +1169,7 @@ item('props', 'label-skold-hast', [0.5, 0.5], () => {
 });
 
 // ---------------------------------------------------------------------------
-// Färgpennor: a pencil to pick up, and six props in grey and in colour
+// Färgpennor: a pencil to pick up, and props in grey and in colour
 // ---------------------------------------------------------------------------
 item('props', 'pencil-pickup', [0.5, 0.5], () => {
     const W = 74, H = 46;
@@ -1385,6 +1385,56 @@ twin('windmill', 150, 204, [0.5, 1], (S, c) => {
     body(S, hb);
     soft(S, c(PP.iron), S.mask(hb), { pressure: 0.95 });
     ink(S, hb, { width: 1.4, passes: 1 });
+});
+
+// Empty beach treasures, small enough to read beside the seabed's kelp. These
+// twins colour their own drawings, never the sköldhäst or a living animal.
+twin('sea-shell', 108, 86, [0.5, 1], (S, c) => {
+    const shell = smooth([[46, 77], [33, 69], [16, 56], [7, 43], [8, 32], [17, 29],
+        [18, 18], [29, 18], [36, 8], [47, 12], [58, 5], [67, 14], [79, 12],
+        [85, 24], [96, 25], [96, 38], [103, 47], [90, 62], [67, 77]], { steps: 5, tension: 0.35 });
+    const m = body(S, shell);
+    soft(S, c(PP.peach), m, { angle: -0.8, gap: 1.9, len: [8, 24], pressure: 0.65 });
+    pen(S, c(PP.pinkDeep), m, { angle: 0.9, gap: 2.6, len: [6, 18], pressure: 0.75,
+        pmap: ramp(S, 54, 6, 54, 76, 0.1, 0.8) });
+    // Each rib fans out from the hinge; paper highlights separate the pencil
+    // bands, so the grey drawing is already a complete little shell.
+    const tips = [[11, 37], [23, 22], [37, 12], [58, 9], [77, 17], [91, 29], [98, 45]];
+    const ribs = tips.map(([x, y], k) => smooth([[53 + k * 0.8, 73],
+        [48 + (x - 48) * 0.55, 49], [x, y]], { closed: false, steps: 8 }));
+    for (let k = 0; k < ribs.length; k++) {
+        lines(S, c(k % 2 ? PP.peachDeep : PP.pinkDeep), [ribs[k]], { width: 3.0, pressure: 0.75, clip: m });
+        lines(S, c(P.paper), [ribs[k].map(([x, y]) => [x + 2.2, y])], { width: 1.8, pressure: 0.9, clip: m });
+    }
+    ink(S, shell, { width: 1.9, pressure: 0.85, wobble: 0.35 });
+    const hinge = smooth([[43, 74], [54, 68], [67, 74], [64, 82], [46, 81]], { steps: 4 });
+    const hm = body(S, hinge);
+    soft(S, c(PP.lemon), hm, { angle: 0.3, gap: 1.6, len: [4, 9], pressure: 0.9 });
+    ink(S, hinge, { width: 1.5, passes: 1, wobble: 0.3 });
+});
+
+twin('pebbles', 98, 96, [0.5, 1], (S, c) => {
+    const r = rng(193);
+    // A slightly lopsided cairn: rounded stones resting on each other, with
+    // differently angled pencil strokes and a pale mineral vein on each one.
+    const stones = [
+        { x: 48, y: 79, rx: 42, ry: 12, rot: -0.02, col: PP.powder, shade: PP.powderDeep },
+        { x: 51, y: 59, rx: 30, ry: 12, rot: 0.08, col: PP.peach, shade: PP.peachDeep },
+        { x: 43, y: 39, rx: 23, ry: 11, rot: -0.08, col: PP.mint, shade: PP.mintDeep },
+        { x: 48, y: 20, rx: 16, ry: 10, rot: 0.12, col: PP.lilac, shade: PP.lilacDeep }
+    ];
+    for (const [i, stone] of stones.entries()) {
+        const { x, y, rx, ry, rot, col, shade } = stone;
+        const shape = blob(x, y, rx, ry, r, { n: 10, j: 0.045, rot });
+        const m = body(S, shape);
+        soft(S, c(col), m, { angle: -0.3 + i * 0.5, gap: 1.8, len: [7, 20], pressure: 0.95 });
+        pen(S, c(shade), m, { angle: 0.5, gap: 2.2, len: [5, 16], pressure: 0.8,
+            pmap: ramp(S, x, y - ry, x, y + ry, 0, 1) });
+        const vein = smooth([[x - rx * 0.68, y + 3], [x - rx * 0.2, y - 1],
+            [x + rx * 0.2, y - 3], [x + rx * 0.66, y - 2]], { closed: false, steps: 6 });
+        lines(S, c(P.paper), [vein], { width: 2.0, pressure: 0.9, grain: 0.4, clip: m });
+        ink(S, shape, { width: 1.8, pressure: 0.8, wobble: 0.3 });
+    }
 });
 
 // ---------------------------------------------------------------------------

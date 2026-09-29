@@ -12,6 +12,7 @@
  * Everything puzzle-related is described here as data; puzzles.mjs gives it life.
  */
 import { HL } from '../sim.mjs';
+import { SCENE_TITLES, CONTEXT_LABELS } from './sv.mjs';
 
 const h = (v) => v * HL;
 const L = (...pts) => pts.map(([x, y]) => [h(x), h(y)]);
@@ -25,7 +26,7 @@ export const SCENES = {};
 // LAND
 // ===========================================================================
 SCENES.land = {
-    id: 'land', title: 'Stranden och stäppen',
+    id: 'land', title: SCENE_TITLES.land,
     bounds: { x0: h(-2), x1: h(119), y0: h(-12), y1: h(3) },
     backdrop: [
         { image: 'bg-steppe', x0: h(-2), x1: h(78) },
@@ -44,8 +45,8 @@ SCENES.land = {
         { id: 'L1', pts: L([38.5, -1.9], [42, -1.92], [46, -1.9]), mat: 'grass', edgeMat: 'earth' },
         // grown ramps (P3)
         { id: 'ramp3', pts: L([36, -4.0], [38.15, -2.95]), mat: 'grass', when: 'p3_t3', ramp: true },
-        { id: 'ramp2', pts: L([38.5, -2.95], [40.65, -1.9]), mat: 'grass', when: 'p3_t2', ramp: true },
-        { id: 'ramp1', pts: L([46, -1.9], [48.2, -0.8]), mat: 'grass', when: 'p3_t1', ramp: true },
+        { id: 'ramp2', pts: L([38.5, -2.95], [40.65, -1.9122857142857144]), mat: 'grass', when: 'p3_t2', ramp: true },
+        { id: 'ramp1', pts: L([46, -1.9], [48.2, -0.811]), mat: 'grass', when: 'p3_t1', ramp: true },
         // Galoppbanan (the steppe floor), hurdles as gentle bumps, the little ditch
         {
             id: 'floor', pts: L([46, -0.8], [50, -0.82], [53, -0.78], [56.6, -0.8], [57, -1.0], [57.4, -0.8], [60, -0.84],
@@ -170,13 +171,16 @@ SCENES.land = {
         { id: 'p-flowers', x: h(61), y: h(-1.26), prop: 'flowers', propAt: { x: h(58.8), y: h(-0.82) } },
         { id: 'p-hut', x: h(86.4), y: h(-0.92), prop: 'hut', propAt: { x: h(81.6), y: h(-0.63) } },
         { id: 'p-bucket', x: h(33.2), y: h(-4.05), prop: 'bucket', propAt: { x: h(106.9), y: h(-0.38) } },
-        { id: 'p-windmill', x: h(27.9), y: h(-6.4), prop: 'windmill', propAt: { x: h(71.2), y: h(-0.77) } }
+        { id: 'p-windmill', x: h(27.9), y: h(-6.4), prop: 'windmill', propAt: { x: h(71.2), y: h(-0.77) } },
+        // Kapitel 2: small discoveries on the far side of Stora språnget.
+        { id: 'p-udden-flowers', chapter: 2, x: h(2.6), y: h(-4.045), prop: 'flowers', propAt: { x: h(1.5), y: h(-4.03125) } },
+        { id: 'p-udden-kite', chapter: 2, x: h(5.6), y: h(-3.98933), prop: 'kite', propAt: { x: h(6.6), y: h(-3.98615) } }
     ],
     pinwheels: [{ id: 'pw-70', x: h(70.4), y: h(-0.78) }, { id: 'pw-88', x: h(88.6), y: h(-0.9) }],
     // Smaktestet (O1): tufts of steppe grass to taste
     tastes: [{ id: 'grass-74', kind: 'grass', x: h(74.8), y: h(-0.76) }, { id: 'grass-51', kind: 'grass', x: h(50.8), y: h(-0.81) }, { id: 'grass-30', kind: 'grass', x: h(30.5), y: h(-5.9) }],
     // Kapplöpning mot Sköldpaddan Signe (O8, after the ending): from the shells to the pool
-    race: { start: { x: h(107.4), y: h(-0.37) }, finish: h(103.6), signe: { x: h(106.9), y: h(-0.39) } },
+    race: { start: { x: h(107.4), y: h(-0.37) }, finish: h(103.6), speed: h(0.35), signe: { x: h(106.9), y: h(-0.39) } },
     // Sandpapperet (O4): hoofprints stay on these materials (walk prints fade, gallop prints turn to graphite)
     printMats: ['sand', 'wetsand'],
     drums: [{ id: 'spangen-flag', surface: 'spangen', x0: h(88.5), x1: h(91.4), notches: 10, flag: 'spangen_flag' }],
@@ -243,7 +247,7 @@ SCENES.land = {
         { id: 'udden-paper', x0: h(-2), x1: h(12.9), until: 'ch2_open', note: { x: h(10.4), y: h(-4.6) } }
     ],
     exits: [
-        { id: 'to-kelp', x0: h(101.0), x1: h(102.7), action: 'Simma in', when: 'p2_open', to: 'kelp', spawn: 'fromLand' },
+        { id: 'to-kelp', x0: h(101.0), x1: h(102.7), action: CONTEXT_LABELS.swimIn, when: 'p2_open', to: 'kelp', spawn: 'fromLand' },
         { id: 'to-viken', x0: h(117.8), x1: h(118.6), when: 'gate_open', to: 'viken', spawn: 'fromLand', auto: true }
     ]
 };
@@ -252,7 +256,14 @@ SCENES.land = {
 // KELP
 // ===========================================================================
 SCENES.kelp = {
-    id: 'kelp', title: 'Kelpskogen', underwater: true,
+    id: 'kelp', title: SCENE_TITLES.kelp, underwater: true,
+    pencils: [
+        // Pickups float just above the seabed; the drawings rest on its contour.
+        { id: 'p-kelp-bucket', chapter: 2, x: h(23.7), y: h(11.4), prop: 'bucket', propAt: { x: h(24.6), y: h(12.05882) } },
+        { id: 'p-kelp-shell', chapter: 2, when: 'p5_lit', x: h(28.8), y: h(12.22), prop: 'sea-shell', propAt: { x: h(29.8), y: h(12.59333) } },
+        { id: 'p-kelp-boat', chapter: 2, when: 'p5_lit', x: h(32.1), y: h(11.34), prop: 'boat', propAt: { x: h(33.1), y: h(11.20667) } },
+        { id: 'p-kelp-pebbles', chapter: 2, when: 'p5_lit', x: h(43), y: h(9.53), prop: 'pebbles', propAt: { x: h(44.2), y: h(9.46667) } }
+    ],
     bounds: { x0: h(-1), x1: h(50), y0: h(-3), y1: h(14) },
     backdrop: [{ image: 'bg-under', x0: h(-1), x1: h(50) }],
     surfaces: [
@@ -346,9 +357,16 @@ SCENES.kelp = {
 // VIKEN (Spegelviken, Trumbryggan, Pappersfyren)
 // ===========================================================================
 SCENES.viken = {
-    id: 'viken', title: 'Spegelviken',
+    id: 'viken', title: SCENE_TITLES.viken,
+    pencils: [
+        { id: 'p-bay-boat', chapter: 3, x: h(0.9), y: h(-0.16), prop: 'boat', propAt: { x: h(0.4), y: h(-0.16) } },
+        { id: 'p-bay-windmill', chapter: 3, x: h(7), y: h(-0.62), prop: 'windmill', propAt: { x: h(8.1), y: h(-0.62) } },
+        { id: 'p-bay-shell', chapter: 3, x: h(19.2), y: h(6.47), prop: 'sea-shell', propAt: { x: h(20.2), y: h(6.735) } },
+        { id: 'p-gallery-flowers', chapter: 3, x: h(30.2), y: h(-7.3), prop: 'flowers', propAt: { x: h(31.1), y: h(-7.3) } }
+    ],
     bounds: { x0: h(-1), x1: h(36), y0: h(-11), y1: h(9) },
     backdrop: [{ image: 'bg-bay', x0: h(-1), x1: h(36) }],
+    evening: { 'bg-bay': 'bg-bay-evening' },
     surfaces: [
         { id: 'shore', pts: L([-1, -0.16], [1.4, -0.16], [2.2, 0.15], [3.2, 0.9], [4.5, 2.6], [6, 4.6], [8, 5.8]), mat: 'sand' },
         { id: 'bay-bed', pts: L([8, 5.8], [11, 6.4], [14, 6.85], [18, 6.9], [22, 6.6], [24.8, 6.3], [26.2, 6.0]), mat: 'seabed' },
@@ -378,7 +396,7 @@ SCENES.viken = {
     lanes: [
         { id: 'pipe', pts: L([26.5, 5.2], [26.5, 0.6], [26.5, -7.1]), width: h(0.9), speed: 520, eject: true, suck: h(2.2) },
         // the sea half of P8 starts where the pier leap lands and ends in a calm pool at the lower window
-        { id: 'p8-lane', pts: L([25.6, 0.85], [25.95, 1.7], [26.2, 2.3], [26.35, 2.6]), width: h(1.4), speed: 260, dashed: true, endHold: true, priority: 1, when: 'p8_land' }
+        { id: 'p8-lane', pts: L([25.6, 0.85], [25.95, 1.7], [26.2, 2.3], [26.35, 2.6]), width: h(1.4), speed: 260, dashed: true, endHold: true, priority: 1, when: ['p8_land', '!p8_done'] }
     ],
     spots: {
         fromLand: { x: h(0.6), y: h(-0.16), facing: 1 },
@@ -406,7 +424,7 @@ SCENES.viken = {
     // a resting shell within `pull` slides onto the plate; `hold` seconds on it latches the shutter
     plates: [{ id: 'plate', x: h(14.2), y: h(6.86), w: h(1.6), pull: h(1.5), flag: 'shutter2', hold: 1.2 }],
     pullRopes: [{ id: 'shutter3-rope', x: h(28.6), y: h(-7.3), flag: 'shutter3' }],
-    stairs: [{ id: 'stair', x: h(27.2), y: h(-7.3), to: 'stairFoot', label: 'Gå ner' }],
+    stairs: [{ id: 'stair', x: h(27.2), y: h(-7.3), to: 'stairFoot', label: CONTEXT_LABELS.down }],
     dashed: [
         // runways of about 4 HL (shore and pier start), 1.4 HL and 1.4 HL between the segments; each is at most 10 HL
         { id: 'p8-d1', pts: L([4.0, -0.62], [9.6, -0.62]), flag: 'p8_s1', balk: false, decal: true, dir: 1, when: 'talk_done', glow: true },
@@ -463,6 +481,7 @@ export const CHECKPOINTS = {
     viken: { scene: 'viken', spot: 'fromKelp' },
     pier: { scene: 'viken', at: { x: h(12), y: h(-0.62), facing: 1 } },
     pierEnd: { scene: 'viken', at: { x: h(21.5), y: h(-0.62), facing: 1 } },
+    lineWindow: { scene: 'viken', at: { x: h(26.35), y: h(2.6), facing: 1, mode: 'swim', hidden: true } },
     beachEnd: { scene: 'land', spot: 'start' }
 };
 

@@ -34,6 +34,7 @@ export function createRobot({ released = 3, verbose = false } = {}) {
             log.push({ t: G.time, kind: 'fx', name });
             data?.onCovered?.();
             await G.wait(name === 'plask' ? 1 : 0.3);
+            await data?.whileVisible?.();
         }
     };
     const story = createStory(G, io);

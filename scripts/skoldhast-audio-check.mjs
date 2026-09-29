@@ -4,7 +4,8 @@
  *
  * Renders every area arrangement, stinger and effect of skoldhast/src/audio.mjs in an
  * OfflineAudioContext inside headless Chromium (the real module, the real node graph), then reports:
- *   - peak dBFS (must stay below -1 dBFS), RMS, DC offset, the largest sample step
+ *   - peak dBFS (must stay below -1 dBFS), RMS loudness (not LUFS), DC offset, sample steps,
+ *     clipped/non-finite sample counts and independent music/effects/voice slider checks
  *   - loop seams: the 16-bar cycle boundary of each arrangement against its other bar boundaries,
  *     and the wrap point of each looping ambience buffer
  *   - a pitch check: single notes of every pitched instrument across the theme's range must have
@@ -19,12 +20,15 @@
  * --stems also renders every layer of every area alone (for balancing the mix).
  * Output: --out, else $SKOLDHAST_AUDIO_OUT, else <tmp>/skoldhast-audio.
  * Needs the global Playwright (see scripts/skoldhast-shot.mjs) and Chromium in /opt/pw-browsers.
+ * If ffmpeg is installed, also measures EBU R128 LUFS and reconstructed true peaks. Results,
+ * bus isolation checks and failures are always persisted to report.json.
  */
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { createRequire } from 'node:module';
 import { fileURLToPath } from 'node:url';
+import { spawnSync } from 'node:child_process';
 
 const require = createRequire(import.meta.url);
 const fsp = fs.promises;
@@ -100,11 +104,15 @@ export function levels(chs, fs) {
     let sum = 0;
     let count = 0;
     let maxStep = 0;
+    let clipped = 0;
+    let nonFinite = 0;
     const dc = [];
     for (const c of chs) {
         let s = 0;
         for (let i = 0; i < c.length; i++) {
+            if (!Number.isFinite(c[i])) { nonFinite++; continue; }
             const a = Math.abs(c[i]);
+            if (a >= 1) clipped++;
             if (a > peak) peak = a;
             sum += c[i] * c[i];
             s += c[i];
@@ -131,7 +139,9 @@ export function levels(chs, fs) {
         rmsDb: dB(Math.sqrt(sum / count)),
         stRmsDb: dB(Math.sqrt(best / Math.min(w, m.length))),
         dc: Math.max(...dc.map(Math.abs)),
-        maxStep
+        maxStep,
+        clipped,
+        nonFinite
     };
 }
 
@@ -388,6 +398,17 @@ export function writeWav(file, chs, sr) {
     fs.writeFileSync(file, b);
 }
 
+/** Optional EBU R128 integrated loudness / reconstructed true peak of the rendered WAV. */
+export function loudness(file) {
+    const result = spawnSync('ffmpeg', ['-hide_banner', '-nostats', '-i', file,
+        '-af', 'ebur128=peak=true:framelog=verbose', '-f', 'null', '-'], { encoding: 'utf8', maxBuffer: 1024 * 1024 });
+    if (result.error?.code === 'ENOENT') return null; // the Chromium RMS/clip checks still run
+    if (result.status !== 0) throw new Error('ffmpeg loudness analysis failed: ' + result.stderr);
+    const summary = result.stderr.slice(result.stderr.lastIndexOf('Summary:'));
+    const read = (re) => { const match = summary.match(re); return match ? Number(match[1]) : null; };
+    return { integratedLufs: read(/\bI:\s+(-?[\d.]+) LUFS/), rangeLu: read(/\bLRA:\s+([\d.]+) LU/), truePeakDb: read(/Peak:\s+(-?[\d.]+) dBFS/) };
+}
+
 // =============================================================================================
 // Cues: what to render (times in seconds; actions are [time, method, ...args] on the audio API)
 // =============================================================================================
@@ -399,6 +420,18 @@ const AREA_CUES = [
     { name: 'area-final', area: 'final', motion: { speed01: 1 }, extra: 2 }
 ];
 const SCENES = [
+    {
+        name: 'scene-master-stress', dur: 9, notes: 'All sliders at maximum; final gallop, stingers, hoof contacts, water and Klo overlap. Safety ceiling stress test, not normal play.',
+        actions: [[0, 'setVolumes', { music: 1, sfx: 1, voice: 1 }], [0, 'setArea', 'final'], [0, 'setMotion', { speed01: 1 }],
+            [1, 'stinger', 'unfold'], [3, 'stinger', 'leap'], [5, 'stinger', 'plask'],
+            ...Array.from({ length: 36 }, (_, k) => [0.5 + k * 0.18, 'sfx', 'hoof', { surface: k % 2 ? 'pier' : 'sand', speed01: 1, gain: 2, foot: k % 4 }]),
+            ...Array.from({ length: 8 }, (_, k) => [1 + k * 0.75, 'sfx', 'splash', { size: 1, gain: 2 }]),
+            ...Array.from({ length: 6 }, (_, k) => [1 + k, 'sfx', 'crabvoice', { gain: 2 }])]
+    },
+    ...['beach', 'steppe', 'kelp', 'bay'].map((name) => ({
+        name: 'scene-ambience-' + name, dur: 10,
+        actions: [[0, 'setVolumes', { music: 0, sfx: 0.9, voice: 0 }], [0, 'setEnvironment', name]]
+    })),
     {
         name: 'scene-land-adaptive', dur: 30, notes: 'speed 0→1 (5–10 s), under water 15–19 s, hidden 20–25 s',
         actions: [[0, 'setArea', 'land'], [0, 'setMotion', { speed01: 0 }], ...Array.from({ length: 11 }, (_, k) => [5 + k * 0.5, 'setMotion', { speed01: k / 10 }]),
@@ -428,7 +461,7 @@ const SCENES = [
 ];
 const STINGER_NAMES = ['aha', 'reveal', 'chapter', 'freeze', 'plask', 'leap', 'unfold', 'discovery'];
 const SFX_CUES = {
-    hoof: { opts: null, dur: 7.4 },
+    hoof: { opts: null, dur: 10.6 },
     splash: { opts: [{ size: 0.15 }, { size: 0.5 }, { size: 1 }], gap: 1.9, dur: 6.5 },
     drip: { gap: 0.4, n: 6, dur: 3 },
     shake: { gap: 1.3, dur: 4.4 },
@@ -438,6 +471,8 @@ const SFX_CUES = {
     rustle: { gap: 1.2, dur: 4 },
     unfold: { gap: 2.2, n: 2, dur: 5 },
     crabclick: { gap: 0.5, n: 5, dur: 3 },
+    crabvoice: { gap: 0.8, n: 5, dur: 4.6 },
+    ui: { opts: [{ kind: 'open' }, { kind: 'tab' }, { kind: 'confirm' }, { kind: 'close' }], gap: 0.6, dur: 3 },
     neigh: { gap: 1.8, dur: 6 },
     blubb: { gap: 1.5, dur: 5 },
     snort: { gap: 0.8, dur: 3 },
@@ -462,7 +497,7 @@ function sfxActions(name) {
     if (name === 'hoof') {
         const acts = [];
         let t = 0.1;
-        for (const surface of ['sand', 'wetsand', 'plank', 'grass', 'rock', 'shallow']) {
+        for (const surface of ['sand', 'wetsand', 'plank', 'pier', 'grass', 'rock', 'shallow']) {
             for (const sp of [0.3, 1]) {
                 for (let k = 0; k < 2; k++) {
                     acts.push([t, 'sfx', 'hoof', { surface, speed01: sp }]);
@@ -607,11 +642,16 @@ async function main() {
             seamTxt = `seam ${fmt(sr2.levelDb)} dB, click x${fmt(sr2.clickRatio, 2)}`;
         }
         row.status = check(lv.peakDb < -1, `${name}: peak ${fmt(lv.peakDb, 2)} dBFS ≥ -1`);
+        if (lv.clipped || lv.nonFinite) row.status = check(false, `${name}: ${lv.clipped} clipped / ${lv.nonFinite} non-finite samples`);
         if (Math.abs(lv.dc) > 0.002) row.status = check(false, `${name}: DC offset ${lv.dc.toExponential(2)}`);
         if (row.seamDb != null && (Math.abs(row.seamDb) > 6 || row.seamClick > 3)) row.status = check(false, `${name}: loop seam ${seamTxt}`);
         rows.push(row);
         const base = path.join(OUT, name);
         writeWav(`${base}.wav`, chs, sr);
+        if (!name.startsWith('pitch-')) {
+            row.loudness = loudness(`${base}.wav`);
+            if (Number.isFinite(row.loudness?.truePeakDb) && row.loudness.truePeakDb >= -1) row.status = check(false, `${name}: true peak ${row.loudness.truePeakDb} dBFS ≥ -1`);
+        }
         if (images) {
             await spectrogramPng(chs, sr, `${base}.png`, {
                 title: `${name}   peak ${fmt(lv.peakDb)} dBFS   rms ${fmt(lv.rmsDb)} dBFS   short-term max ${fmt(lv.stRmsDb)} dBFS   ${seamTxt}`,
@@ -651,6 +691,25 @@ async function main() {
         const name = `sfx-${n}`;
         if (!want(name)) continue;
         await analyse(name, { dur: SFX_CUES[n].dur, actions: sfxActions(n) });
+    }
+    // Volume controls must route actual game sounds, including their reverb sends.
+    const busRows = [];
+    if (want('buses')) {
+        const groups = {
+            music: [[1, 'setArea', 'land'], [1, 'setMotion', { speed01: 1 }], [2, 'stinger', 'aha']],
+            sfx: [[1, 'setEnvironment', 'beach'], [1.2, 'sfx', 'hoof', { surface: 'pier' }], [2, 'sfx', 'page'], [3, 'sfx', 'ui', { kind: 'confirm' }], [3.5, 'sfx', 'crabclick']],
+            voice: [[1, 'sfx', 'crabvoice'], [2, 'sfx', 'neigh'], [4, 'sfx', 'blubb'], [5, 'sfx', 'snort']]
+        };
+        for (const [bus, actions] of Object.entries(groups)) {
+            const variants = {};
+            for (const audible of [false, true]) {
+                const volumes = { music: 0, sfx: 0, voice: 0, [bus]: audible ? 1 : 0 };
+                const result = await render({ dur: 7, actions: [[0, 'setVolumes', volumes], ...actions] });
+                variants[audible ? 'audible' : 'muted'] = levels(result.ch.map(dec), sr);
+            }
+            const ok = variants.muted.peakDb < -100 && variants.audible.rmsDb > -65 && !variants.audible.clipped && !variants.audible.nonFinite;
+            busRows.push({ bus, ...variants, status: check(ok, `${bus} bus: muted peak ${variants.muted.peakDb.toFixed(1)} / audible RMS ${variants.audible.rmsDb.toFixed(1)} dBFS`) });
+        }
     }
     // 5. Ambience loops: wrap seams of the looping buffers
     const loopRows = [];
@@ -703,6 +762,11 @@ async function main() {
         console.log(`\n${pad('ambience loop', 16)}${pad('sec', 6)}${pad('wrap step', 12)}${pad('typical', 12)}${pad('p99.9', 12)}status`);
         for (const l of loopRows) console.log(`${pad(l.name, 16)}${pad(fmt(l.sec), 6)}${pad(l.wrap.toExponential(2), 12)}${pad(l.typical.toExponential(2), 12)}${pad(l.p999.toExponential(2), 12)}${l.status}`);
     }
+    const loudRows = rows.filter((r) => r.loudness && (r.name.startsWith('area-') || r.name === 'scene-master-stress'));
+    if (loudRows.length) {
+        console.log('\nIntegrated loudness and reconstructed true peak (EBU R128, rendered WAVs)');
+        for (const r of loudRows) console.log(`  ${pad(r.name, 27)} ${fmt(r.loudness.integratedLufs)} LUFS; true peak ${fmt(r.loudness.truePeakDb)} dBFS`);
+    }
     if (pitchRows.length) {
         console.log('\npitch check (fundamental within 10 cents of target)');
         const byInst = {};
@@ -716,6 +780,12 @@ async function main() {
     if (pageErrors.length) {
         failures.push(...pageErrors.map((e) => `page error: ${e}`));
     }
+    if (busRows.length) {
+        console.log('\nVolume isolation (mute < -100 dBFS; audible content > -65 dBFS RMS)');
+        for (const b of busRows) console.log(`  ${b.bus}: muted peak ${fmt(b.muted.peakDb)}; audible RMS ${fmt(b.audible.rmsDb)} dBFS; ${b.status}`);
+    }
+    console.log(`\nClipped samples: ${rows.reduce((n, r) => n + r.clipped, 0)}; non-finite samples: ${rows.reduce((n, r) => n + r.nonFinite, 0)}`);
+    await fsp.writeFile(path.join(OUT, 'report.json'), JSON.stringify({ sampleRate: sr, rows, loopRows, pitchRows, busRows, pageErrors, failures }, null, 2) + '\n');
     console.log(failures.length ? `\n${failures.length} problem(s):\n  - ${failures.join('\n  - ')}` : '\nall checks passed');
     process.exitCode = failures.length ? 1 : 0;
 }

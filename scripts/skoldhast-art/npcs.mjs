@@ -711,7 +711,7 @@ function kloPaint(sh, m, angle = -0.7, { rimW = 3, line: lw = 2, layers = 2 } = 
 }
 
 /** Draw Professor Klo in a pose into a sprite sheet whose origin is the ground point. */
-function drawKlo(sh, pose) {
+function drawKlo(sh, pose, only = null) {
     const S = sh.S;
     const bx = pose.body.x, by = pose.body.y, tilt = pose.body.tilt || 0;
     // body-space → world (wu): rotate about the ground point under the body, then offset
@@ -742,7 +742,7 @@ function drawKlo(sh, pose) {
         });
     }
     // far legs first (outer ones), so the front legs overlap nicely
-    for (const order of [2, 5, 1, 4, 0, 3]) kloPaint(sh, legMasks[order], 1.2, { rimW: 1.6, line: 1.9, layers: 1 });
+    for (const order of [2, 5, 1, 4, 0, 3]) if (!only || only === 'leg-' + order) kloPaint(sh, legMasks[order], 1.2, { rimW: 1.6, line: 1.9, layers: 1 });
 
     // --- eye stalks (behind the shell) -------------------------------------
     const eyeC = [];
@@ -755,10 +755,11 @@ function drawKlo(sh, pose) {
         const top = add(base, dir(a0, len));
         const mid = add(add(base, dir(a0, len * 0.5)), [side * 0.6, 0]);
         const m = taperMask(sh, Wb([base, mid, top]), 5.2 * S, 4.4 * S);
-        kloPaint(sh, m, 1.35, { rimW: 1.4, line: 1.9, layers: 1 });
+        if (!only || only === (side < 0 ? 'eye-l' : 'eye-r')) kloPaint(sh, m, 1.35, { rimW: 1.4, line: 1.9, layers: 1 });
         eyeC.push(add(base, dir(a0, len + 6.2 * pose.eyes.size)));
     }
 
+    if (!only || only === 'body') {
     // --- shell and belly ---------------------------------------------------
     const bodyPts = Wb(smooth(KLO_BODY, { closed: true, steps: 6 }));
     const bodyM = sh.mask(bodyPts);
@@ -807,8 +808,10 @@ function drawKlo(sh, pose) {
         sh.fill(N.kloTip, sh.mask(inside), { pressure: 0.85 });
     }
 
+    }
     // --- eyes ------------------------------------------------------------------
     eyeC.forEach((c0, i) => {
+        if (only && only !== (i === 0 ? 'eye-l' : 'eye-r')) return;
         const side = i === 0 ? -1 : 1;
         const r = 8.4 * pose.eyes.size;
         const [cx, cy] = sh.pt(B(c0));
@@ -863,7 +866,7 @@ function drawKlo(sh, pose) {
     const claws = [['clawL', -1], ['clawR', 1]];
     for (const [key, side] of claws) {
         const cl = pose[key];
-        if (!cl || cl.hidden) continue;
+        if (!cl || cl.hidden || (only && only !== (side < 0 ? 'arm-l' : 'arm-r'))) continue;
         const shoulder = B([21.5 * side, -22]);
         const c = cl.at;
         const wrist = add(c, dir(cl.ang + Math.PI, 8.2 * (cl.size || 1)));
@@ -886,7 +889,7 @@ function drawKlo(sh, pose) {
         for (const item of pose.hold.filter((h) => h.claw === key && h.layer === 'front')) item.draw(sh, pose, c);
     }
     // --- extra marks (joy lines, sweat, psst) ---------------------------------
-    if (pose.marks) pose.marks(sh, B);
+    if (!only && pose.marks) pose.marks(sh, B);
 }
 
 /**
@@ -1228,6 +1231,28 @@ export function buildKloFrames(scale = KLO_SCALE) {
     const pk = sprite('klo-peek', 60, 40, scale * KLO_SIZE);
     drawKloPeek(pk);
     out.push({ name: 'klo-peek', canvas: finish(pk, [0.5, 1]), anchor: [0.5, 1] });
+    return out;
+}
+
+/** Reusable pencil parts: every anchor is still the ground point, so runtime pivots
+ * use the authored coordinates × KLO_SIZE. Lettered story poses stay whole and unmirrored. */
+export function buildKloParts(scale = KLO_SCALE) {
+    const out = [];
+    const addPart = (name, draw) => {
+        const sh = sprite(name, 180, 160, scale * KLO_SIZE);
+        draw(sh);
+        out.push({ name, canvas: finish(sh, [0.5, 1]), anchor: [0.5, 1] });
+    };
+    for (const part of ['body', ...Array.from({ length: 6 }, (_, i) => 'leg-' + i), 'arm-l', 'arm-r', 'eye-l', 'eye-r']) {
+        addPart('klo-part-' + part, (sh) => drawKlo(sh, kloDefault(), part));
+    }
+    for (const side of ['l', 'r']) addPart('klo-part-eye-' + side + '-blink', (sh) => {
+        const pose = kloDefault(); pose.eyes.mode = 'shut';
+        drawKlo(sh, pose, 'eye-' + side);
+    });
+    addPart('klo-part-watch', (sh) => heldStopwatch('clawR', { at: [0, 0], r: 8.8 }).draw(sh, null, [0, -15]));
+    addPart('klo-part-book', (sh) => heldNotebook('clawL', { at: [0, 0], rot: 0 }).draw(sh, null, [0, -12]));
+    addPart('klo-part-pencil', (sh) => heldPencil('clawR', { at: [0, 0], ang: 2.35, len: 17 }).draw(sh, null, [0, -2]));
     return out;
 }
 
@@ -1647,6 +1672,53 @@ export function buildKvFrames(scale = KV_SCALE) {
         const sh = sprite(name, 240, 230, scale * KV_SIZE);
         drawKv(sh, pose);
         out.push({ name, canvas: finish(sh, [0.5, 1]), anchor: [0.5, 1] });
+    }
+    return out;
+}
+
+/** Small articulated pieces retain the same paper facets as the complete poses.
+ * Their origins are real joints, so a rotating knee never carries a padded
+ * whole-character frame around with it. No words are baked into these parts. */
+export function buildGuardianParts(scale = KV_SCALE) {
+    const out = [];
+    const mk = (name, w, h, draw) => {
+        const sh = sprite('kv-part-' + name, w, h, scale * KV_SIZE, [0.5, 0.5]);
+        draw(sh);
+        out.push({ name: 'kv-part-' + name, canvas: finish(sh, [0.5, 0.5]), anchor: [0.5, 0.5] });
+    };
+    // Coat coordinates are relative to the hips; the shoulder line is y=-56.
+    mk('coat', 80, 140, (sh) => {
+        const poly = [[-4,-59],[-11,-55],[-14,-45],[-22,6],[-16,10],[-10,7],[-4,10],[2,7],[8,10],[14,7],[21,9],[12,-55],[4,-59]];
+        paperPiece(sh, poly, { facets: [
+            { poly: [[-11,-55],[-14,-45],[-22,6],[-16,10],[-6,8],[2,-41]], shade: 1 },
+            { poly: [[2,-41],[6,10],[21,10],[12,-55]], shade: 1, angle: 0.5 }
+        ], folds: [[[2,-41],[-7,8]],[[2,-41],[6,8]],[[-12,-44],[-11,-28]]], line: 2.2 });
+        paperPiece(sh, [[-4,-59],[2,-41],[-11,-55]], { facets: [{ poly: [[-4,-59],[2,-41],[-11,-55]], shade: 2 }], line: 1.6 });
+        paperPiece(sh, [[4,-59],[2,-41],[12,-55]], { line: 1.6 });
+        sh.dots(P.inkBlue, sh.T([[3,-34],[4,-24],[5,-14]]), { rx: 1.4 * sh.S, ry: 1.4 * sh.S, alpha: 0.9, opaque: true });
+    });
+    mk('cape', 84, 140, (sh) => paperPiece(sh,
+        [[-7,-56],[-14,-51],[-27,8],[-20,12],[-10,7],[2,-41]],
+        { facets: [{ poly: [[-14,-51],[-27,8],[-20,12],[-16,-24]], shade: 2 }], folds: [[[-11,-45],[-20,7]]], line: 1.7 }));
+    for (const [name, width] of [['leg',7.4],['arm',6.6],['neck',6]]) {
+        mk(name, 26, 86, (sh) => paperStrip(sh, [0,0], [0,32], width, { capA: 1.5, capB: 1.5, shadeSide: -1 }));
+    }
+    mk('shoe', 52, 24, (sh) => paperPiece(sh,
+        [[-4.5,-2.6],[2.5,-3.2],[15,3.6],[14.5,4.4],[-4,4.4],[-5.5,2]],
+        { facets: [{ poly: [[-6,1.2],[16,1.2],[16,6],[-6,6]], shade: 2 }], folds: [[[-4.5,1.2],[11,1.8]]], line: 1.8 }));
+    for (const kind of ['mitt','grip','open','point']) mk('hand-' + kind, 40, 32, (sh) => paperHand(sh, [0,0], 0, kind));
+    mk('ruler', 140, 22, (sh) => drawRuler(sh, [-32,0], [32,0]));
+    mk('pencil', 50, 58, (sh) => drawPencil(sh, [-6,-12], [6,12], 3.2));
+    for (const mood of ['normal','worry','soft']) for (const action of ['','-blink','-talk']) {
+        mk('head-' + mood + action, 90, 76, (sh) => {
+            const pose = kvDefault();
+            pose.head = [0,0]; pose.headTilt = 0; pose.only = { hands: [] };
+            pose.face = { brows: mood === 'soft' ? 'soft' : mood === 'worry' ? 'up' : 'worry',
+                eyes: action === '-blink' ? 'closed' : mood === 'worry' ? 'wide' : 'dot',
+                mouth: action === '-talk' ? 'o' : mood === 'soft' ? 'smile' : 'wobbly',
+                blush: mood === 'soft', look: [0.65, 0.15] };
+            drawKv(sh, pose);
+        });
     }
     return out;
 }
@@ -2226,7 +2298,7 @@ export function tableFrames() {
 // ---------------------------------------------------------------------------
 export async function build(api) {
     api.atlas('npcs', { scale: 1.5, bundle: 'boot', quality: 70 });
-    for (const f of buildKloFrames(1.5)) api.frame('npcs', f.name, f.canvas, f.anchor);
+    for (const f of [...buildKloFrames(1.5), ...buildKloParts(1.5)]) api.frame('npcs', f.name, f.canvas, f.anchor);
     for (const f of buildSignFrames(1.5)) api.frame('npcs', f.name, f.canvas, f.anchor);
     // shy beach creatures ride in boot; the lyktfiskar live in Kelpskogen (sea) and
     // Signe only races after the ending (land), so they wait for their bundles
@@ -2239,7 +2311,7 @@ export async function build(api) {
     api.atlas('npcs-land', { scale: 1.5, bundle: 'land', quality: 78 });
     for (const f of creatures.filter(isLand)) api.frame('npcs-land', f.name, f.canvas, f.anchor);
     api.atlas('npcs-bay', { scale: 1.5, bundle: 'bay', quality: 78 });
-    for (const f of buildKvFrames(1.5)) api.frame('npcs-bay', f.name, f.canvas, f.anchor);
+    for (const f of [...buildKvFrames(1.5), ...buildGuardianParts(1.5)]) api.frame('npcs-bay', f.name, f.canvas, f.anchor);
     api.atlas('table', { scale: 1, bundle: 'boot', quality: 72 });
     for (const f of tableFrames()) api.frame('table', f.name, f.canvas, f.anchor);
 }

@@ -32,10 +32,36 @@ const base = `http://127.0.0.1:${server.address().port}`;
 const browser = await launch();
 const ctx = await browser.newContext({ viewport: { width: W, height: H } });
 const pg = await ctx.newPage();
-pg.on('pageerror', (e) => console.log('[pageerror]', e.message));
+const errors = [];
+pg.on('pageerror', e => { errors.push(e.message); console.error('[pageerror]', e.message); });
+pg.on('console', m => { if (m.type() === 'error') { errors.push(m.text()); console.error('[consoleerror]', m.text()); } });
+const assertClean = () => { if (errors.length) throw new Error(`tour browser errors:\n${errors.join('\n')}`); };
+try {
 await pg.goto(`${base}/skoldhast/dev/play.html`, { waitUntil: 'load' });
 await pg.waitForSelector('.sk-title');
+// The notebook appears before its atlas metadata/backgrounds finish loading.
+// Wait for all three decorations, including those hidden by phone layout,
+// then decode their images rather than photographing an arbitrary load phase.
+await pg.waitForFunction(() => {
+    const art = [...document.querySelectorAll('.sk-title .sk-art')];
+    return art.length === 3 && art.every(node => node.classList.contains('on'));
+});
+await pg.evaluate(async () => {
+    const title = document.querySelector('.sk-title');
+    const backgrounds = [...new Set([...title.querySelectorAll('.sk-art')].map(node => getComputedStyle(node).backgroundImage))];
+    const images = backgrounds.map(background => {
+        const image = new Image();
+        image.src = background.slice(4, -1).replace(/^["']|["']$/g, '');
+        return image.decode();
+    });
+    await Promise.all([document.fonts.ready, ...images, ...[...title.querySelectorAll('img')].map(image => image.decode())]);
+    // Atlas decorations fade in after .on. Finish those finite transitions
+    // too, so a fast decode cannot leave a half-transparent comparison image.
+    await Promise.all([...title.querySelectorAll('.sk-art')].flatMap(node => node.getAnimations()).map(animation => animation.finished));
+});
+assertClean();
 await pg.screenshot({ path: path.join(out, `00-title-${W}x${H}.png`) });
+console.log(`title art ready: ${W}x${H}`);
 await pg.getByText('Jag har en kod').click();
 await pg.fill('.sk-code-input', 'fyr fjun klo');
 await pg.locator('.sk-panel button', { hasText: 'Fortsätt' }).click();
@@ -62,8 +88,10 @@ for (const [scene, name, x, y, mode] of STOPS) {
         await pg.waitForTimeout(350);
     }
     const file = path.join(out, `${String(++n).padStart(2, '0')}-${scene}-${name}-${W}x${H}.png`);
+    assertClean();
     await pg.screenshot({ path: file });
 }
+assertClean();
 if (args.sheet) {
     // one contact sheet per viewport: every place as a half-size thumbnail, labelled by its file name order
     const sharp = (await import('sharp')).default;
@@ -83,6 +111,9 @@ if (args.webp) {
         fs.unlinkSync(path.join(out, f));
     }
 }
-console.log(`${n} places photographed into ${out}`);
+assertClean();
+console.log(`${n} places photographed into ${out}; no browser errors`);
+} finally {
 await browser.close();
 server.close();
+}

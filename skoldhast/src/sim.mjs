@@ -21,7 +21,7 @@ export const C = {
     gallopDefl: 0.72,        // stick deflection that asks for a full gallop
     accel: 1350, brake: 2000, turnSkid: 0.35,
     stepUp: 52, snapDown: 70, maxSlope: Math.tan(36 * Math.PI / 180),
-    gravity: 2600, hopHeight: 125, buckHeight: 55, hopBuffer: 0.18,
+    gravity: 2600, hopHeight: 125, buckHeight: 105, hopBuffer: 0.18,
     swimMax: 520, swimAccel: 1250, swimDrag: 1.6, floatDepth: 130, surfaceBand: 200,
     wadeMax: 120, wadeExit: 80, sinkSpeed: 160, buoyancy: 60,
     hideTime: 0.3, unhideHold: 0.5,
@@ -112,8 +112,13 @@ export class Terrain {
         this.refresh();
     }
     refresh() {
-        const s = this.scene, f = this.flags;
-        this.surfaces = (s.surfaces || []).filter((q) => cond(q.when, f));
+        this.revision = (this.revision || 0) + 1;
+        this.dirty = false;
+        const s = this.scene, f = this.flags, previous = this.surfaces || [];
+        this.rampAddedAt ||= new Map();
+        this.rampGrowth ||= new Map();
+        this.surfaces = (s.surfaces || []).filter((q) => cond(q.when, f)).map(q => this.rampGrowth.get(q.id)?.surface || q);
+        for (const ramp of this.surfaces) if (ramp.ramp && !previous.some(q => q.id === ramp.id)) this.rampAddedAt.set(ramp.id, this.revision);
         this.walls = (s.walls || []).filter((q) => cond(q.when, f));
         this.edges = (s.edges || []).filter((q) => cond(q.when, f));
         this.waters = (s.waters || []).filter((q) => cond(q.when, f));
@@ -124,6 +129,41 @@ export class Terrain {
         this.hurdles = (s.hurdles || []).filter((q) => cond(q.when, f));
         for (const l of this.lanes) if (!l._len) l._len = lineLength(l.pts);
         for (const d of this.dashed) if (!d._len) d._len = lineLength(d.pts);
+    }
+    /** A newly earned ramp rises from the old shelf. Restored flags have no transient growth state. */
+    startRampGrowth(id, duration = 0.65) {
+        const raw = this.scene.surfaces.find(s => s.id === id && s.ramp);
+        if (!raw || this.rampGrowth.has(id) || this.surfaces.some(s => s.id === id)) return false;
+        const x0 = raw.pts[0][0], x1 = raw.pts.at(-1)[0];
+        const underneath = this.surfaces.filter(s => s.id !== id && !s.thin);
+        const xs = [...new Set([x0, x1, ...raw.pts.map(p => p[0]), ...underneath.flatMap(s => s.pts.map(p => p[0]).filter(x => x > x0 && x < x1))])].sort((a, b) => a - b);
+        const base = [], target = [], pts = [];
+        for (const x of xs) {
+            // At a terrace endpoint, sample inward so the old upper ledge does not
+            // masquerade as the lower shelf from which the ramp grows.
+            const sx = x === x0 ? x + 0.1 : x === x1 ? x - 0.1 : x;
+            let floor = Infinity;
+            for (const s of underneath) {
+                const y = heightOn(s.pts, sx);
+                if (y !== null && y < floor) floor = y;
+            }
+            const to = heightOn(raw.pts, x), from = floor === Infinity ? to : Math.max(to, floor);
+            base.push(from); target.push(to); pts.push([x, from]);
+        }
+        this.rampGrowth.set(id, { elapsed: 0, duration: Math.max(STEP, duration), base, target, surface: { ...raw, pts, growing: true } });
+        return true;
+    }
+    /** Called only by the fixed simulation step; rendering reads these same active points. */
+    advance(dt) {
+        if (!this.rampGrowth.size) return false;
+        for (const [id, growth] of this.rampGrowth) {
+            growth.elapsed = Math.min(growth.duration, growth.elapsed + dt);
+            const t = growth.elapsed / growth.duration, eased = t * t * (3 - 2 * t);
+            for (let i = 0; i < growth.surface.pts.length; i++) growth.surface.pts[i][1] = growth.base[i] + (growth.target[i] - growth.base[i]) * eased;
+            if (t === 1) this.rampGrowth.delete(id);
+        }
+        this.refresh();
+        return true;
     }
     /** Topmost surface at x whose height is at or below `yFeet - up` (i.e. not higher than a step above the feet). */
     support(x, yFeet, up = C.stepUp, down = Infinity, skip = null) {
@@ -160,7 +200,7 @@ export class Terrain {
         }
         return null;
     }
-    floorAt(x, fromY = -1e9) { const r = this.support(x, fromY, -Infinity); return r ? r.y : null; }
+    floorAt(x, fromY = -1e9) { const r = this.support(x, fromY, 0); return r ? r.y : null; }
     /** The nearest surface at or below y (for swimmers and falling things). */
     floorBelow(x, y, up = 30) { const r = this.support(x, y, up, Infinity); return r ? r.y : null; }
     /** Is (x, y) inside solid ground (below the top of a non-thin surface)? */
@@ -175,6 +215,22 @@ export class Terrain {
     groundBelow(x, yFeet) { const r = this.support(x, yFeet, C.stepUp); return r ? r.y : null; }
     /** Ground a hoof could stand on near the feet (null over a gap or an edge: the rig then keeps to the ground it has). */
     groundNear(x, yFeet, down = 90) { const r = this.support(x, yFeet, C.stepUp, down); return r ? r.y : null; }
+    /** Follow the reachable surface to a projected hoof, not a floor hidden beneath an uphill ramp. */
+    hoofGround(x, fromX, yFeet) {
+        const steps = Math.max(1, Math.ceil(Math.abs(x - fromX) / 24));
+        let y = yFeet;
+        for (let i = 1; i <= steps; i++) {
+            const sx = fromX + (x - fromX) * i / steps;
+            let next = Infinity;
+            for (const surface of this.surfaces) {
+                const sy = heightOn(surface.pts, sx);
+                if (sy !== null && sy >= y - C.stepUp && sy <= y + 90 && sy < next) next = sy;
+            }
+            if (next === Infinity) return null;
+            y = next;
+        }
+        return y;
+    }
     waterAt(x, y) {
         for (const w of this.waters) {
             if (x >= w.x0 && x <= w.x1 && y > w.top - 4 && (w.bottom === undefined || y < w.bottom)) return w;
@@ -218,7 +274,7 @@ export function createPlayer(spawn = {}) {
         mode: spawn.mode || 'ground',
         hidden: false, hide: 0, hideQueued: false, stickHold: 0,
         speed: 0, gait: 'stand', gaitPhase: 0, lastBeat: 0,
-        groundAngle: 0, surface: null,
+        groundAngle: 0, groundSlope: 0, stride: 190, terrainRevision: 0, surface: null,
         water: null, submerge: 0, wet: 0, wetTimer: 0,
         action: null, actionT: 0, actionDur: 0,
         airT: 0, leap: null, streck: null, jump: null,
@@ -242,16 +298,36 @@ function gaitFor(speed) {
     if (speed < 1000) return 'canter';
     return 'gallop';
 }
-const STRIDE = { walk: 170, trot: 230, canter: 300, gallop: 360 };
-const BEATS = { walk: [0, 0.25, 0.5, 0.75], trot: [0, 0.5], canter: [0, 0.3, 0.45], gallop: [0, 0.12, 0.3, 0.42] };
+// Match the rig's nominal distance per cycle and touchdown offsets.
+const STRIDE = { walk: 190, trot: 270, canter: 360, gallop: 460 };
+const GAIT_SPEED = { walk: 320, trot: 640, canter: 900, gallop: 1200 };
+const BEATS = { walk: [0, 0.25, 0.5, 0.75], trot: [0, 0.5], canter: [0, 0.2, 0.42], gallop: [0, 0.12, 0.34, 0.46] };
+const FEET = { walk: [2, 3, 0, 1], trot: [2, 0], canter: [0, 2, 3], gallop: [0, 2, 1, 3] };
 
 /**
  * One fixed step.
- * input: { x, y, hop, hide, auto }  (x, y in -1..1; hop/hide are "pressed this step")
+ * input: { x, y, hop, hide, hideRelease, auto }  (x, y in -1..1; hop/hide are "pressed this step")
  */
 export function stepPlayer(p, input, world, dt, events) {
     const T = world.terrain;
+    T.advance(dt);
     p.px = p.x; p.py = p.y;
+    if (p.terrainRevision !== T.revision) {
+        if (p.mode === 'ground' && p.surface) {
+            let grown = null, y = p.y;
+            for (const ramp of T.surfaces) {
+                if (!ramp.ramp || (T.rampAddedAt.get(ramp.id) || 0) <= p.terrainRevision) continue;
+                const ry = heightOn(ramp.pts, p.x);
+                if (ry !== null && ry < y) { y = ry; grown = ramp; }
+            }
+            if (grown) {
+                const rise = p.y - y;
+                p.y = p.py = y; p.surface = grown; p.vy = 0;
+                events.push({ type: 'rampLift', id: grown.id, x: p.x, y, rise });
+            }
+        }
+        p.terrainRevision = T.revision;
+    }
     if (p.balkCooldown > 0) p.balkCooldown -= dt;
     if (p.lockInput > 0) p.lockInput -= dt;
     // Hoppa pressed a moment before landing still hops when the hooves touch down
@@ -272,7 +348,13 @@ export function stepPlayer(p, input, world, dt, events) {
     }
 
     // --- Göm dig toggle -------------------------------------------------------
-    if (input.hide && p.lockInput <= 0 && !p.auto) {
+    // Hold-mode releases win over a press in the same fixed-step batch and also
+    // cancel a queued tuck while braking or in the air. The toggle mode never sends this.
+    if (input.hideRelease) {
+        p.hideQueued = false;
+        if (p.hidden) unhide(p, events);
+    }
+    if (input.hide && !input.hideRelease && p.lockInput <= 0 && !p.auto) {
         if (p.hidden) unhide(p, events);
         else if (p.mode === 'leap' || p.mode === 'streck' || p.mode === 'air' || p.jump) p.hideQueued = true;
         else p.hideQueued = true;
@@ -323,10 +405,13 @@ function stepBeats(p, dt, events) {
     const g = p.gait;
     if (!STRIDE[g]) { p.gaitPhase = 0; return; }
     const prev = p.gaitPhase;
-    p.gaitPhase = (p.gaitPhase + Math.abs(p.vx) * dt / STRIDE[g]) % 1;
-    for (const b of BEATS[g]) {
+    const stride = STRIDE[g] * Math.max(0.55, Math.min(1.25, Math.sqrt(Math.abs(p.vx) / GAIT_SPEED[g])));
+    p.stride += (stride - p.stride) * (1 - Math.exp(-9 * dt));
+    p.gaitPhase = (p.gaitPhase + Math.abs(p.vx) * dt / p.stride) % 1;
+    for (let foot = 0; foot < BEATS[g].length; foot++) {
+        const b = BEATS[g][foot];
         const crossed = prev <= p.gaitPhase ? (b > prev && b <= p.gaitPhase) : (b > prev || b <= p.gaitPhase);
-        if (crossed) events.push({ type: 'hoof', surface: p.surface?.mat || 'sand', hollow: !!p.surface?.hollow, speed: Math.abs(p.vx), x: p.x, y: p.y, wading: p.submerge > 0 });
+        if (crossed) events.push({ type: 'hoof', foot: FEET[g][foot], surface: p.surface?.mat || 'sand', hollow: !!p.surface?.hollow, speed: Math.abs(p.vx), x: p.x, y: p.y, wading: p.submerge > 0 });
     }
 }
 
@@ -347,15 +432,18 @@ function stepGround(p, ix, input, world, dt, events) {
     }
     // uphill/downhill feel
     const slope = p.surface ? slopeOn(p.surface.pts, p.x) : 0;
-    const along = slope * Math.sign(p.vx || dir || p.facing);
-    if (along < -0.25) target *= 0.9;          // uphill
-    if (along > 0.2) target *= 1.08;           // downhill
+    p.groundSlope += (slope - p.groundSlope) * (1 - Math.exp(-10 * dt));
+    const along = p.groundSlope * Math.sign(p.vx || dir || p.facing);
+    target *= 1 + Math.max(-0.1, Math.min(0.08, along * 0.22));
 
     // skid when reversing at speed
     if (p.skid > 0) {
         p.skid -= dt;
         p.vx -= Math.sign(p.vx) * Math.min(Math.abs(p.vx), C.brake * 1.4 * dt);
-        if (p.skid <= 0) { p.skid = 0; p.facing = -p.facing; }
+        if (p.skid <= 0 || Math.abs(p.vx) < 1) {
+            p.skid = 0;
+            if (dir) p.facing = dir; // releasing/correcting the stick must not force an unwanted turn
+        }
     } else if (dir !== 0 && dir !== Math.sign(p.vx) && Math.abs(p.vx) > 700 && !p.hidden) {
         p.skid = C.turnSkid;
         events.push({ type: 'skid' });
@@ -415,7 +503,7 @@ function stepGround(p, ix, input, world, dt, events) {
     if (mdir !== 0 && Math.abs(p.vx) > 850 && !p.jump) {
         for (const h of T.hurdles) {
             const dx = (h.x - p.x) * mdir;
-            if (dx > 0 && dx < 70) { startHurdle(p, h, input, events); return; }
+            if (dx > 0 && dx < 70 && startHurdle(p, h, input, world, events)) return;
         }
     }
     const sup = T.support(nx, p.y, C.stepUp, C.snapDown);
@@ -443,7 +531,7 @@ function stepGround(p, ix, input, world, dt, events) {
             p.x = nx; p.mode = 'air'; p.vy = 0; p.surface = null;
         }
     }
-    p.groundAngle = p.surface ? Math.atan(slopeOn(p.surface.pts, p.x)) : 0;
+    p.groundAngle = p.surface ? -Math.atan(slopeOn(p.surface.pts, p.x)) : 0;
     // water while standing
     updateWading(p, world, events);
 }
@@ -502,7 +590,7 @@ function startHop(p, world, events) {
         // buck in place
         p.jump = { kind: 'buck', vx: 0 };
         p.vy = -Math.sqrt(2 * C.gravity * C.buckHeight);
-        setAction(p, 'buck', 0.45, null);
+        setAction(p, 'buck', 2 * Math.sqrt(2 * C.buckHeight / C.gravity), null);
     } else {
         p.jump = { kind: 'hop', vx: p.vx };
         p.vy = -Math.sqrt(2 * C.gravity * C.hopHeight * (speed > 900 ? 1 : 0.8));
@@ -522,14 +610,21 @@ function startHop(p, world, events) {
     events.push({ type: 'hop', kind: p.jump.kind, x: p.x, y: p.y });
 }
 
-function startHurdle(p, h, input, events) {
+function startHurdle(p, h, input, world, events) {
     const style = !!input.hop || !!input.hopHeld;
     const dir = Math.sign(p.vx);
     const dist = 220 + (style ? 60 : 0);
+    const T = world.terrain, endX = p.x + dir * dist;
+    const edge = T.edgeCrossed(p.x, endX, p.y, dir);
+    // A decorative hurdle can never leap across an unearned puzzle boundary.
+    if ((edge && edge.kind !== 'pass') || T.dashedStart(p.x, endX, p.y, dir)) return false;
+    const landing = T.support(endX, p.y, dist * C.maxSlope, dist * C.maxSlope);
+    if (!landing || T.wallBetween(p.x, endX, p.y, dir)) return false;
     const from = { x: p.x, y: p.y };
-    p.leap = { from, to: { x: p.x + dir * dist, y: p.y }, peak: style ? 150 : 95, t: 0, dur: dist / Math.abs(p.vx), style, hurdle: true };
+    p.leap = { from, to: { x: endX, y: landing.y }, peak: style ? 150 : 95, t: 0, dur: dist / Math.abs(p.vx), style, hurdle: true };
     p.mode = 'leap'; p.airT = 0;
     events.push({ type: 'leapStart', hurdle: true, style, x: p.x, y: p.y });
+    return true;
 }
 
 function startLeap(p, e, events) {
@@ -630,7 +725,7 @@ function stepStreck(p, world, dt, events) {
     const s = Math.min(S.d._len, Math.max(0, S.s));
     const pt = pointAt(S.d.pts, s);
     p.x = pt.x; p.y = pt.y; p.vx = S.dir * S.speed; p.facing = S.dir;
-    p.groundAngle = Math.atan2(pt.ty, pt.tx) * (S.dir > 0 ? 1 : 1);
+    p.groundAngle = -Math.atan2(pt.ty, pt.tx);
     S.d._ink = S.dir > 0 ? s / S.d._len : 1 - s / S.d._len;
     events.push({ type: 'ink', id: S.d.id, t: S.d._ink, from: S.dir > 0 ? 0 : 1 });
     if (done) {
@@ -667,7 +762,7 @@ function stepSwim(p, ix, iy, input, world, dt, events) {
         if (n.s >= l._len - 6) {
             // the calm pool at its end; a lane with endHold keeps the shell there
             if (hidden) events.push({ type: 'laneEnd', id: l.id });
-            if (l.endHold) { lane = null; ln = null; held = true; break; }
+            if (l.endHold) { lane = null; ln = null; held = l; break; }
             continue;
         }
         const pr = l.priority || 0, best = lane?.priority || 0;
@@ -725,6 +820,7 @@ function stepSwim(p, ix, iy, input, world, dt, events) {
 
     if (hidden) {
         if (p.anchored) { p.vx *= Math.exp(-6 * dt); p.vy *= Math.exp(-6 * dt); }
+        else if (held) { p.vx = 0; p.vy = 0; p.inLane = held; p.resting = true; }
         else if (whirl) { p.vx = fx; p.vy = fy; } // the whirl steers the shell directly (a lagging velocity would fling it outward)
         else if (drift) { p.vx += (fx - p.vx) * Math.min(1, dt * 4); p.vy += (fy - p.vy) * Math.min(1, dt * 4); }
         else {
@@ -733,14 +829,20 @@ function stepSwim(p, ix, iy, input, world, dt, events) {
             p.vy += (C.sinkSpeed - p.vy) * Math.min(1, dt * 4);
         }
     } else {
-        p.vx += ix * C.swimAccel * dt; p.vy += iy * C.swimAccel * dt;
-        const drag = Math.exp(-C.swimDrag * dt * (ix || iy ? 0.6 : 1.4));
+        const inputLength = Math.max(1, Math.hypot(ix, iy));
+        p.vx += ix / inputLength * C.swimAccel * dt; p.vy += iy / inputLength * C.swimAccel * dt;
+        const drag = Math.exp(-C.swimDrag * dt * (ix || iy ? 0.6 : 1.2));
         p.vx *= drag; p.vy *= drag;
         const sp = Math.hypot(p.vx, p.vy);
         if (sp > C.swimMax) { p.vx *= C.swimMax / sp; p.vy *= C.swimMax / sp; }
         // near-neutral buoyancy: float up only in the band just under the surface
         const depth = p.y - top;
-        if (!iy && depth < C.surfaceBand + C.floatDepth && w.kind !== 'pipe') p.vy += ((top + C.floatDepth - p.y) * 1.5 - p.vy) * Math.min(1, dt * 1.5) * 0.5;
+        if (!iy && w.kind !== 'pipe') {
+            // A damped surface spring fades to neutral buoyancy at depth, without a force step.
+            const band = Math.max(0, Math.min(1, (C.surfaceBand + C.floatDepth - depth) / C.surfaceBand));
+            const buoy = band * band * (3 - 2 * band);
+            p.vy += ((C.floatDepth - depth) * 3 - p.vy * 1.8) * buoy * dt;
+        }
         p.vx += fx * 1.2 * dt; p.vy += fy * 1.2 * dt;
         if (ix) p.facing = Math.sign(ix);
         // dolphin leap out of the surface
@@ -798,8 +900,12 @@ function stepSwim(p, ix, iy, input, world, dt, events) {
     // paddling beats
     const sp = Math.hypot(p.vx, p.vy);
     const prev = p.gaitPhase;
-    p.gaitPhase = (p.gaitPhase + (sp + 80) * dt / 380) % 1;
-    if (prev > p.gaitPhase && !hidden && sp > 60) events.push({ type: 'paddle', x: p.x, y: p.y, surface: p.y - top < 200 });
+    if (!hidden) p.gaitPhase = (p.gaitPhase + (0.65 + Math.min(1, sp / C.swimMax) * 0.95) * dt) % 1;
+    if (!hidden && sp > 60) for (const beat of [0, 0.5]) {
+        const crossed = prev <= p.gaitPhase ? (beat > prev && beat <= p.gaitPhase) : (beat > prev || beat <= p.gaitPhase);
+        if (crossed) events.push({ type: 'paddle', x: p.x, y: p.y, waterY: top,
+            hoofX: p.x + p.facing * 62, hoofY: p.y - 28, side: beat === 0 ? 1 : -1, surface: p.y - top < 200 });
+    }
 }
 
 // ---------------------------------------------------------------------------
@@ -815,9 +921,10 @@ export function snapshot(p, alpha, terrain, time) {
         action: p.action, actionT: p.actionT,
         airT: p.mode === 'leap' ? p.airT : p.mode === 'air' ? 0.5 : 0,
         vx: p.vx, vy: p.vy,
-        groundAngle: p.groundAngle,
+        groundAngle: p.groundAngle, gaitPhase: p.gaitPhase, terrainRevision: terrain.revision,
+        dive: p.mode === 'swim' && p.vy > 80,
         // on a line being drawn the hooves stand on the line (the gully is far below); elsewhere only nearby ground
-        groundAt: p.mode === 'streck' && p.streck ? (gx) => heightOn(p.streck.d.pts, gx) : (gx) => terrain.groundNear(gx, y),
+        groundAt: p.mode === 'streck' && p.streck ? (gx) => heightOn(p.streck.d.pts, gx) : (gx) => terrain.hoofGround(gx, x, y),
         submerge: p.submerge,
         waterY: p.water ? p.water.top : null,
         wet: p.wet,

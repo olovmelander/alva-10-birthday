@@ -1,0 +1,141 @@
+{
+  "date": "2026-09-29",
+  "branch": "codex/skoldhast-polish",
+  "runtimeCommit": "d59f998e486db61b5b1a3147b2b9b051e948d272",
+  "runtimeTree": "4d93e151e178df02961a8dfc8e1eb3cd9e908b3e",
+  "pure": {
+    "command": "npm test",
+    "passed": 76,
+    "failed": 0,
+    "includes": [
+      "whole-game robot",
+      "deterministic frame rates"
+    ]
+  },
+  "firstPlayable": {
+    "command": "npm run build:skoldhast -- --check",
+    "bytes": 2723140,
+    "limitBytes": 3000000
+  },
+  "requiredBrowserChecks": [
+    {
+      "name": "launch",
+      "status": "pass"
+    },
+    {
+      "name": "save",
+      "status": "pass"
+    },
+    {
+      "name": "touch",
+      "viewport": "844x390",
+      "status": "pass"
+    },
+    {
+      "name": "touch",
+      "viewport": "390x844",
+      "status": "pass"
+    },
+    {
+      "name": "guide",
+      "status": "pass"
+    },
+    {
+      "name": "pages",
+      "status": "pass"
+    },
+    {
+      "name": "finale",
+      "viewport": "844x390",
+      "motion": "normal",
+      "status": "pass"
+    },
+    {
+      "name": "finale",
+      "viewport": "390x844",
+      "motion": "reduced",
+      "status": "pass"
+    }
+  ],
+  "freshJourneys": [
+    {
+      "input": "keyboard",
+      "viewport": "844x390",
+      "status": "pass",
+      "steps": 43725,
+      "spangenNotes": 148,
+      "browserErrors": []
+    },
+    {
+      "input": "keyboard",
+      "viewport": "390x844",
+      "status": "pass",
+      "steps": 44397,
+      "spangenNotes": 148,
+      "browserErrors": []
+    },
+    {
+      "input": "touch",
+      "viewport": "844x390",
+      "status": "pass",
+      "steps": 43672,
+      "spangenNotes": 148,
+      "browserErrors": []
+    },
+    {
+      "input": "touch",
+      "viewport": "390x844",
+      "status": "pass",
+      "steps": 43972,
+      "spangenNotes": 148,
+      "browserErrors": []
+    }
+  ],
+  "focusedChecks": {
+    "collection": {
+      "variants": 4,
+      "pencils": 15,
+      "coloured": 15,
+      "regions": {
+        "land": 7,
+        "kelp": 4,
+        "viken": 4
+      },
+      "status": "pass"
+    },
+    "lifecycle": "pass",
+    "prologueLifecycle": "pass",
+    "viewLifecycle": "pass",
+    "contextRestoration": "pass",
+    "notebook": "pass",
+    "ink": {
+      "states": 20,
+      "status": "pass"
+    }
+  },
+  "tours": {
+    "viewports": [
+      "844x390",
+      "390x844",
+      "1440x900"
+    ],
+    "placesPerViewport": 27,
+    "includesTitle": true,
+    "browserErrors": [],
+    "status": "pass",
+    "titleReadiness": "Atlas decorations, image decoding, fonts and finite opacity transitions"
+  },
+  "unchangedAudioEvidence": "audio-qa.json",
+  "limitations": [
+    "Automated journeys use accelerated fixed steps and are not human usability tests.",
+    "Physical phone performance, subjective movement feel and human audio listening remain unverified.",
+    "Distant Galoppbanan horse can look suspended against a pale ridge; foreground kelp sometimes crosses the hero."
+  ],
+  "privacy": {
+    "firstNameOnly": true,
+    "herText": null,
+    "photosOrScansAdded": false,
+    "ticketRemainsHidden": true
+  },
+  "mainMerged": false
+}

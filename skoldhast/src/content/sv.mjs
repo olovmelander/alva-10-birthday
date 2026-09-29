@@ -25,8 +25,10 @@ export const FAMILY = {
 export const NAMES = {
     horse: 'Sköldhästen', klo: 'Professor Klo', kv: 'Kartväktaren', alva: 'Alva', mira: 'Mira', signe: 'Sköldpaddan Signe', note: ''
 };
+export const SCENE_TITLES = { land: 'Stranden och stäppen', kelp: 'Kelpskogen', viken: 'Spegelviken' };
 
 export const UI = {
+    goalLabel: 'Mål',
     title: 'Sköldhästen',
     subtitle: 'och havet mellan sidorna',
     credit: 'Sköldhästar är påhittade och ritade av Alva.',
@@ -52,6 +54,8 @@ export const UI = {
     bigText: 'Större text', lessMotion: 'Mindre rörelse',
     music: 'Musik', sound: 'Ljud', voices: 'Röster',
     pencils: 'Färgpennor', nextPage: 'Nästa sida kommer snart.',
+    pencilBadge: (n, total) => `✎ ${n}/${total}`,
+    pencilRegion: (name, n, total) => `${name}: ${n} / ${total}`,
     report: 'Forskningsrapport', code: 'Kod', photoTip: 'Ta gärna en bild på koden.',
     chapter1: 'Kapitel 1: Stranden och stäppen', chapter2: 'Kapitel 2: Udden och djupet', chapter3: 'Kapitel 3: Pappersfyren',
     prologue: 'Ett streck till', finale: 'Havet hittar hem',
@@ -156,7 +160,7 @@ export const STORY = {
     },
     k3: {
         arrive: ['klo', 'Spegelviken! Och där ute – Pappersfyren.'],
-        mirror: ['klo', 'I spegelbilden är tre luckor öppna. Här är alla stängda.'],
+        mirror: ['klo', 'Spegelbilden visar tre öppna luckor och en tänd lampa. Så ska fyren se ut!'],
         talk1: [
             ['kv', 'Strandkanten blir aldrig färdig. Och ett ofärdigt streck kan bli en reva.'],
             ['kv', 'Så jag vek bort havet. Det var för teckningens skull!']
@@ -173,8 +177,8 @@ export const STORY = {
         line: ['klo', 'Linjen! Den går hela vägen längs bryggan – och sedan ner i vattnet.'],
         chains: 'Tre kedjor går från luckorna: en ner till botten, en till röret och en till bryggan.',
         drumHint: 'Bryggan är ihålig. Galoppera fram och tillbaka på den!',
-        plateHint: 'En platta på botten … den vill nog ha något tungt. En sten?',
-        pipeHint: 'Röret blåser bort simmare. Men en sten skulle åka rakt upp!',
+        plateHint: 'Göm dig ovanför plattan. Då sjunker skalet ner och håller den nere!',
+        pipeHint: 'Göm dig vid rörets mynning. Då bär strömmen ditt skal hela vägen upp!',
         diveHint: 'Göm dig nu – låt strömmen ta dig till fönstret!',
         sorry: [
             ['kv', 'Förlåt, Alva. Det var inget fel på ditt streck. Det var bara inte färdigt än.'],
@@ -224,7 +228,7 @@ export const BALK = {
 export const HINTS = {
     explore: { q: 'Vad vill Klo?', note: 'Klo har ett stoppur. Visa hur fort du kan springa – galoppera förbi honom!', sketch: 'Håll spaken ända ut (eller pilen inne) i några sekunder nära Klo.' },
     hide: { q: 'Hur får man en blyg krabba att komma fram?', note: 'Blyga djur kommer fram när ingen syns. Göm dig nära hålet!', sketch: 'Stå still nära hålet och tryck Göm dig.' },
-    pool: { q: 'Vad döljer pölen?', note: 'Pölen krusar sig när du rör dig. Om du står helt still blir den blank som en spegel.', sketch: 'Gå fram till pölen och tryck Göm dig. Titta i vattnet.' },
+    pool: { q: 'Vad döljer pölen?', note: 'Göm dig vid pölen. Under skalet blir du så stilla att vattnet blir en spegel.', sketch: 'Gå fram till pölen och göm dig. Stanna gömd tills spegelbilden syns.' },
     p2: { q: 'Vad skiljer spegelbilden från stranden?', note: 'I spegelbilden ligger stenen vid klippan, och plankan över sprickan är hel.', sketch: 'Ställ dig bakom stenen och tryck Knuffa tills den ligger vid klippan. Galoppera sedan över den streckade plankan.' },
     p1: { q: 'Hur kommer man över valvet?', note: 'Streckade linjer är ofärdiga. I full galopp ritar hovarna klart dem!', sketch: 'Ta sats på plankorna till höger om valvet och galoppera hela vägen över.' },
     p3: { q: 'Hur kommer man upp på branten?', note: 'Backsippornas fjun flyger åt samma håll som du springer. De prickiga tuvorna vill ha fjun.', sketch: 'Galoppera förbi backsippan på slätten mot branten. Vänta tills rampen har växt och gå upp.' },
@@ -236,11 +240,12 @@ export const HINTS = {
     p5: { q: 'Hur blir det ljust i Mörka valvet?', note: 'Lyktfiskarna är blyga. De följer en sten – men aldrig en simmare.', sketch: 'Simma till strömmen ovanför fiskarnas kelp och göm dig där. Strömmen bär dig in i valvet.' },
     p6: { q: 'Vad finns mitt i strömkarusellen?', note: 'Man kan inte simma emot. Släpp taget!', sketch: 'Göm dig i strömmen, så drar den dig in till mitten.' },
     toViken: { q: 'Vart leder strömmen?', note: 'Virveln har vänt sig ut åt höger.', sketch: 'Simma till virveln längst in i diket och låt den nya strömmen ta dig vidare.' },
-    p7: { q: 'Hur tänds fyren?', note: 'Tre luckor, tre kedjor. Följ varje kedja till sin maskin.', sketch: 'Göm dig på plattan på botten. Göm dig vid röret och åk upp. Galoppera sedan fram och tillbaka på bryggan.' },
+    p7: { q: 'Hur tänds fyren?', note: 'Tre luckor, tre kedjor. Följ varje kedja till sin maskin.', sketch: 'Göm dig över bottenplattan. Göm dig vid röret, åk upp och dra i repet. Galoppera på bryggan för den sista luckan.' },
     talk: { q: 'Vem bor i Pappersfyren?', note: 'Kartväktaren väntar vid bryggans slut.', sketch: 'Gå fram till honom och tryck Prata.' },
     p8: { q: 'Var fortsätter linjen?', note: 'Linjen går längs bryggan och sedan ner i vattnet.', sketch: 'Galoppera längs linjen från stranden, hoppa i vattnet och göm dig där.' },
     signe: { q: 'Vem är snabbast?', note: 'Signe väntar vid snäckorna.', sketch: 'Gå fram till Signe och tryck Prata.' },
-    free: { q: 'Snabbaste sköldpaddan eller långsammaste hästen?', note: 'Forskningen fortsätter. Leta efter färgpennor!', sketch: '' }
+    free: { q: 'Snabbaste sköldpaddan eller långsammaste hästen?', note: 'Forskningen fortsätter. Leta efter färgpennor!', sketch: '' },
+    freeComplete: { q: 'Vad vill du upptäcka nu?', note: 'Du har hittat alla färgpennor! Havet är öppet för nya upptäckter.', sketch: 'Ta en simtur, galoppera över stäppen eller hälsa på Signe igen.' }
 };
 
 // ---------------------------------------------------------------------------
@@ -265,7 +270,8 @@ export const GOALS = {
     talk: 'Prata med Kartväktaren på bryggan.',
     p8: 'Följ den lysande linjen – hela vägen!',
     signe: 'Tävla mot Sköldpaddan Signe till pölen!',
-    free: 'Utforska fritt – och leta färgpennor!'
+    free: 'Utforska fritt – och leta färgpennor!',
+    freeComplete: 'Alla färgpennor är hittade – utforska fritt!'
 };
 
 // ---------------------------------------------------------------------------
@@ -281,10 +287,92 @@ export const TIPS = {
     fullGallop: { touch: 'Full galopp! Nu ritar hovarna och du kan ta stora språng.', keys: 'Full galopp! Nu ritar hovarna och du kan ta stora språng.' }
 };
 
+// Persistent, state-derived help. The renderer and controls share these words;
+// no timer or remembered one-off tip decides whether they are needed.
+export const GUIDANCE = {
+    controls: {
+        hide: { touch: 'Tryck Göm dig.', keys: 'Tryck G.' },
+        hideHold: { touch: 'Håll Göm dig intryckt.', keys: 'Håll G intryckt.' },
+        emerge: { touch: 'Tryck Kom fram.', keys: 'Tryck G igen.' },
+        emergeHold: { touch: 'Släpp Göm dig.', keys: 'Släpp G.' },
+        stay: { touch: 'Stanna gömd.', keys: 'Stanna gömd.' },
+        move: { touch: 'Styr med spaken.', keys: 'Styr med pilarna.' },
+        follow: 'Håll fingret dit du vill gå.',
+        gallop: { touch: 'Dra spaken ända ut.', keys: 'Håll pilen inne för full galopp.' },
+        followGallop: 'Håll fingret långt framför sköldhästen.',
+        act: { touch: 'Tryck på handlingsknappen.', keys: 'Tryck mellanslag.' },
+        hideTipHold: { touch: 'Håll Göm dig intryckt för att krypa under skalet. Släpp för att komma fram.', keys: 'Håll G intryckt för att krypa under skalet. Släpp för att komma fram.' },
+        gallopTipFollow: 'Håll fingret långt framför sköldhästen – då galopperar du!'
+    },
+    progress: {
+        calm: 'Vattnet blir stilla', waiting: 'Väntar på lyktfiskarna', drifting: 'Följer strömmen',
+        sinking: 'Skalet sjunker', plate: 'Plattan hålls nere', ink: 'Hovarna ritar',
+        ramps: n => `${n} av 3 ramper`, shutters: n => `${n} av 3 luckor`,
+        ratchet: (n, total) => `${n} av ${total} steg i hjulet`,
+        lines: n => `${n} av 3 streck på bryggan`
+    },
+    emerge: 'Kom fram ur skalet för att fortsätta.',
+    afterKlo: 'Klo har kommit fram! Kom fram du också, så visar han kartbiten.',
+    afterMirror: 'Spegelbilden syns! Kom fram och gör stranden lik bilden.',
+    afterPlate: 'Luckan är öppen! Kom fram för att simma vidare.',
+    lampLit: 'Nu lyser fyren – både på land och i spegelbilden!',
+    route: {
+        land: 'Simma tillbaka genom grottan till stranden.',
+        kelp: 'Gå till Vattenporten vid pölen och välj Simma in.',
+        viken: 'Följ strömmen åt höger, till nästa sida.',
+        bayExit: 'Följ stranden åt vänster för att komma tillbaka.'
+    },
+    steps: {
+        hideApproach: 'Gå nära Klos hål. Där kan han se ditt tomma skal.',
+        hideReady: 'Göm dig här. Klo vågar komma fram när du ser ut som en sten.',
+        hideWait: 'Stanna gömd. Klo tittar försiktigt ut ur hålet.',
+        poolApproach: 'Gå fram till pölen vid klippan.',
+        poolReady: 'Göm dig vid vattnet, så slutar pölen krusa sig.',
+        poolWait: 'Stanna gömd tills vattnet blir blankt.',
+        stone: 'Ställ dig till vänster om stenen. Knuffa den mot klippan.',
+        plank: 'Ta sats och galoppera över den streckade plankan.',
+        bridge: 'Ta sats till höger om valvet. Galoppera hela vägen åt vänster.',
+        ramp: 'Galoppera åt vänster förbi backsippan. Fjunet flyger till tuvan.',
+        rampWait: 'Fjunet är på väg! Vänta tills rampen har vuxit fram.',
+        leapRunup: 'Gå upp på Galoppbacken. Där finns plats att få full fart.',
+        leap: 'Galoppera ner åt vänster och fortsätt hela vägen till kanten.',
+        landmark: 'Du är över! Fortsätt till märket på Klippudden.',
+        returnRope: 'Dra i repet vid klyftan. Då blir vägen tillbaka hel.',
+        fishApproach: 'Simma till strömmen ovanför lyktfiskarna.',
+        fishReady: 'Göm dig i strömmen. Fiskarna vågar följa ett stilla skal.',
+        fishWait: 'Stanna gömd medan lyktfiskarna kommer närmare.',
+        fishDrift: 'Stanna gömd. Strömmen bär dig och fiskarna in i valvet.',
+        fishRecover: 'Kom fram och simma tillbaka till strömmen ovanför fiskarna.',
+        vortexApproach: 'Simma in i virvelns ytterkant.',
+        vortexReady: 'Göm dig i virveln. Skalet kan följa strömmen inåt.',
+        vortexWait: 'Stanna gömd. Virveln drar skalet mot mitten.',
+        mirrorReady: 'Göm dig på bryggan för att se fyrens spegelbild.',
+        mirrorWait: 'Stanna gömd tills spegelbilden blir tydlig.',
+        plateApproach: 'Simma ovanför plattan på botten.',
+        plateReady: 'Göm dig här. Skalet sjunker ner och trycker på plattan.',
+        plateSink: 'Stanna gömd. Skalet sjunker mot plattan.',
+        plateWait: 'Stanna gömd en liten stund till. Plattan öppnar luckan.',
+        pipeApproach: 'Simma till rörets mynning nere i viken.',
+        pipeReady: 'Göm dig vid mynningen. Strömmen lyfter skalet upp i röret.',
+        pipeWait: 'Stanna gömd tills röret släpper av dig på galleriet.',
+        rope: 'Gå till repet på galleriet och välj Dra.',
+        drum: 'Galoppera fram och tillbaka på bryggan. Hovarna vrider hjulet.',
+        talk: 'Gå fram till Kartväktaren och välj Prata.',
+        p8Runup: 'Börja vid stranden till vänster. Ta sats åt höger.',
+        p8Land: 'Galoppera åt höger över de tre strecken på bryggan.',
+        p8Jump: 'Alla tre streck är klara! Fortsätt i galopp ut över bryggans kant.',
+        p8Approach: 'Simma till linjens början i vattnet, strax efter bryggan.',
+        p8Hide: 'Göm dig på linjen. Då kan skalet rita vidare under vattnet.',
+        p8Drift: 'Stanna gömd. Följ linjen ner till det lilla fönstret.',
+        p8Draw: 'Linjen är hel! Nu kan den sista teckningen bli klar.'
+    }
+};
+
 // ---------------------------------------------------------------------------
 // The journal: Forskningsdagbok (plan §4.7)
 // ---------------------------------------------------------------------------
 export const JOURNAL = {
+    tallyHorse: 'Lutar åt häst.', tallyTurtle: 'Lutar åt sköldpadda.', tallyEven: 'Det står lika.',
     title: 'Sköldhäst – först beskriven av Alva',
     latin: 'Chelonippus alvae?',
     latinNote: 'Ett förslag. Alva får döpa om den.',
@@ -337,13 +425,85 @@ export const CAPTIONS = {
     rustle: '(prassel)', plask: '(PLASK!)', neigh: '(gnägg!)', blubb: '(blubb!)', ratchet: '(klick)', latch: '(klonk!)', drum: '(dunk dunk)', unfold: '(prassel …)'
 };
 
-export const CONTEXT_LABELS = { talk: 'Prata', read: 'Läs', swimIn: 'Simma in', down: 'Gå ner', taste: 'Smaka' };
+export const CONTEXT_LABELS = { talk: 'Prata', read: 'Läs', swimIn: 'Simma in', down: 'Gå ner', taste: 'Smaka', push: 'Knuffa', pull: 'Dra', color: 'Färglägg', shake: 'Skaka', dropIn: 'Hoppa i' };
+
+// Drawing actions remain available without a precise trace or a keyboard.
+export const DRAWING = {
+    freeHint: 'Rita med fingret eller musen. Du bestämmer formen.',
+    traceHint: 'Följ prickarna med fingret eller musen.',
+    previewHint: 'Vill du behålla teckningen eller rita om?',
+    shortHint: 'Dra ett streck, eller låt pennan hjälpa till.',
+    interruptedHint: 'Rita vidare när du vill.',
+    redo: 'Rita om', example: 'Rita åt mig', done: 'Klar',
+    progress: (done, total) => `${done} av ${total} prickar`,
+    canvasLabel: 'Din rityta',
+    keyboardHint: 'Enter hjälper dig vidare. Tab väljer knapp.'
+};
+
+// The three already-authored discoveries, shown as inspectable notebook pieces.
+export const MAP = {
+    title: 'Kartan mellan sidorna', overview: 'Hela kartan', inspect: 'Titta på kartan',
+    assembled: 'Så hör kartbitarna ihop', empty: 'Här samlas kartbitarna ni hittar.',
+    missing: 'Inte hittad än', count: (found, total) => `${found} av ${total} kartbitar`,
+    selected: (name) => `Du tittar på: ${name}`,
+    zoomIn: 'Förstora', zoomOut: 'Förminska', reset: 'Visa hela biten',
+    pan: { up: 'Visa längre upp', down: 'Visa längre ner', left: 'Visa mer åt vänster', right: 'Visa mer åt höger' },
+    detailHint: 'Välj en kartbit för att titta närmare.',
+    legend: 'Streck visar vägar. Rivna kanter visar var bitarna möts.',
+    pieces: {
+        corner: { name: 'Karthörnet', foundAt: 'Hos Klo på stranden', detail: 'Klo hittade ett karthörn i sanden. När kartan viks, viks världen också. Vem har skrivit /K?' },
+        land: { name: 'Märket från land', foundAt: 'På Klippudden', detail: 'Ena halvan låg bortom klyftan. Vågmärkena visar att havet en gång nådde högt upp på land.' },
+        sea: { name: 'Märket från havet', foundAt: 'I Kelphjärtats virvel', detail: 'Den andra halvan låg under det vikta hörnet. Tillsammans visar märket vägen vidare mot Pappersfyren.' }
+    },
+    places: { steppe: 'Stäppen', cliff: 'Klippudden', beach: 'Stranden', bridge: 'Streckbron', gate: 'Vattenporten', kelp: 'Kelpskogen', vault: 'Mörka valvet', heart: 'Kelphjärtat', bay: 'Spegelviken', tower: 'Pappersfyren', fold: 'Vecket' }
+};
 
 // ---------------------------------------------------------------------------
 // The menus' notebook (src/ui.mjs): the journal's tabs, the report's stamp, the map sketch
 // ---------------------------------------------------------------------------
 export const MENU = {
+    regions: [['Stäppen', 'land'], ['Stranden', 'land'], ['Kelpskogen', 'kelp'], ['Spegelviken', 'viken']],
+    fold: '— veck —',
     tabs: ['Framsida', 'Fältanteckning', 'Vad vet vi?', 'Mätningar', 'Ledtrådar', 'Rapporter', 'Din anteckning'],
     stamp: 'Granskad',
     map: 'Karta'
 };
+// Professor Klo's optional, non-blocking research break. Never required for progress.
+export const KLO_JOKES = [
+    'Jag går i sidled. Det är mitt sätt att tänka utanför rutan.',
+    'Forskningsrapport: sköldhästar är svåra att stoppa i ett pennfodral.',
+    'Jag tog tid på en våg. Den vinkade och gick.',
+    'Havet har många hemligheter. Min anteckningsbok är redan fuktig.',
+    'En penna utan spets? Ett mycket kort trollspö.',
+    'Jag har två klor och noll fickor. Vem ritade min labbrock?',
+    'Min klocka säger tick. Jag säger klick. Vi har mycket gemensamt.',
+    'Om en sköldhäst gömmer sig, är den då en hemlig häst?',
+    'Jag frågade en snäcka vad klockan var. Den svarade: schhh.',
+    'Dagens upptäckt: sand smakar fortfarande sand.',
+    'Jag mäter mod i små steg. Sidosteg räknas också.',
+    'Min penna simmar dåligt. Den föredrar att rita vatten.',
+    'En våg räcker upp handen hela tiden. Så artigt!',
+    'Jag skulle sortera alla sandkorn. Sedan blev det lunch.',
+    'Sköldhästens man ser ut som havets bästa frisyr.',
+    'Jag har skrivit en bok om tystnad. Den börjar med schhh.',
+    'Forskning kräver tålamod. Och ibland ett mellanmål.',
+    'Jag provade att galoppera. Det blev mest trassliga ben.',
+    'Min anteckningsbok är vattentät. Mina anteckningar är det inte.',
+    'En bubbla är havets sätt att säga plopp.',
+    'Jag tappar aldrig hakan. Den sitter så opraktiskt till.',
+    'Tänk om månen är ett suddgummi som glömts i himlen.',
+    'Jag frågade en fisk om vägen. Den pekade åt blubb.',
+    'Sköldhästar har sköld. Jag har skal. Vi borde bilda klubb.',
+    'Dagens experiment: kan man kittla en våg? Den bara skvalpar.',
+    'Jag går inte vilse. Jag undersöker oväntade riktningar.',
+    'Gräs kittlar benen. Jag har gjort flera samtidiga mätningar.',
+    'Min bästa teori står på nästa sida. Eller sidan efter den.',
+    'Jag har hittat spår! Det kan vara hovar. Eller väldigt små tekoppar.',
+    'En krabba med bråttom tar en genväg. I sidled, förstås.',
+    'Jag räknade bubblor till sju. Sedan sprack min uträkning.',
+    'Det bästa med blyertspennor är att misstag kan bli moln.',
+    'Min klocka mäter sekunder. Min mage mäter mellanmål.',
+    'Undrar om havet får hicka när det blåser.',
+    'Vetenskaplig slutsats: du är väldigt bra på att hitta krabbor.',
+    'Jag tänkte vara allvarlig i dag. Men det kliar i klorna.'
+];

@@ -8,7 +8,7 @@ export function createInput(root, ui, opts) {
     const ac = new AbortController();
     const sig = { signal: ac.signal };
     const keys = new Set();
-    const edges = { act: false, hide: false, hideUp: false, tapHero: false, neigh: false };
+    const edges = { act: false, hide: false, hideUp: false, tapHero: false, tapKlo: false, neigh: false };
     const stick = { id: null, ox: 0, oy: 0, x: 0, y: 0, latched: 0 };
     const finger = { id: null, x: 0, y: 0 };
     let hopHeld = false;
@@ -16,6 +16,14 @@ export function createInput(root, ui, opts) {
     const R = 58; // stick radius, CSS px
     let stickTap = null;
     let lastTap = null; // for tests
+
+    // Klo's small, explicit target wins over the hero's generous tap circle.
+    // A drag stays a stick gesture, even when it began over either character.
+    function tapActor(x, y, allowHero = true) {
+        if (opts.kloHit?.(x, y)) { edges.tapKlo = true; return 'klo'; }
+        if (allowHero && opts.heroHit(x, y)) { edges.tapHero = true; return 'hero'; }
+        return null;
+    }
 
     // --- the stick --------------------------------------------------------------
     const zone = ui.stickZone;
@@ -49,10 +57,11 @@ export function createInput(root, ui, opts) {
     }, sig);
     const endStick = (e) => {
         if (e && e.pointerId !== stick.id) return;
-        if (e && e.type === 'pointerup' && stickTap && !stickTap.moved && e.timeStamp - stickTap.t < 350 && opts.heroHit(stickTap.x, stickTap.y)) edges.tapHero = true;
+        if (e && e.type === 'pointerup' && stickTap && !stickTap.moved && e.timeStamp - stickTap.t < 350) tapActor(stickTap.x, stickTap.y);
         stickTap = null;
         // Håll kvar galoppen: letting go at full gallop keeps galloping
-        if (opts.settings().holdGallop && opts.isGalloping() && Math.abs(stick.x) > 0.7) stick.latched = Math.sign(stick.x);
+        if (e?.type === 'pointerup' && opts.settings().holdGallop && opts.isGalloping() && Math.abs(stick.x) > 0.7) stick.latched = Math.sign(stick.x);
+        else stick.latched = 0;
         stick.id = null; stick.x = stick.y = 0;
         ui.stickBase.classList.remove('on', 'gallop');
         moveKnob();
@@ -65,25 +74,40 @@ export function createInput(root, ui, opts) {
     // --- follow the finger (optional mode) and taps on the sköldhäst ------------
     const canvasArea = opts.canvas;
     let tapStart = null;
-    canvasArea.addEventListener('pointerdown', (e) => {
-        if (!enabled) return;
-        tapStart = { x: e.clientX, y: e.clientY, t: e.timeStamp, id: e.pointerId }; // event times: robust to a slow frame
-        if (opts.settings().followFinger) { finger.id = e.pointerId; finger.x = e.clientX; finger.y = e.clientY; canvasArea.setPointerCapture?.(e.pointerId); }
-    }, sig);
-    canvasArea.addEventListener('pointermove', (e) => { if (e.pointerId === finger.id) { finger.x = e.clientX; finger.y = e.clientY; } }, sig);
+    const startFinger = (e, captureArea = canvasArea) => {
+        if (!enabled || (tapStart && tapStart.id !== e.pointerId)) return;
+        tapStart = { x: e.clientX, y: e.clientY, t: e.timeStamp, id: e.pointerId, klo: !!opts.kloHit?.(e.clientX, e.clientY) }; // event times: robust to a slow frame
+        // Greeting Klo should not turn the horse/camera and move Klo away from the touch.
+        // A drag from his body still becomes steering once it crosses the tap slop.
+        if (opts.settings().followFinger) { finger.id = tapStart.klo ? null : e.pointerId; finger.x = e.clientX; finger.y = e.clientY; captureArea.setPointerCapture?.(e.pointerId); }
+    };
+    const moveFinger = (e) => {
+        if (tapStart?.id === e.pointerId && tapStart.klo && opts.settings().followFinger && Math.hypot(e.clientX - tapStart.x, e.clientY - tapStart.y) > 14) {
+            tapStart.klo = false; finger.id = e.pointerId;
+        }
+        if (e.pointerId === finger.id) { finger.x = e.clientX; finger.y = e.clientY; }
+    };
+    canvasArea.addEventListener('pointerdown', startFinger, sig);
+    canvasArea.addEventListener('pointermove', moveFinger, sig);
+    // The transparent stick band remains above the canvas in follow mode.
+    // Forward its gestures instead of swallowing the entire left side of the screen.
+    zone.addEventListener('pointerdown', (e) => { if (opts.settings().followFinger) startFinger(e, zone); }, sig);
+    zone.addEventListener('pointermove', moveFinger, sig);
     const endFinger = (e) => {
         if (tapStart && e.pointerId === tapStart.id) {
-            const quick = e.timeStamp - tapStart.t < 350 && Math.hypot(e.clientX - tapStart.x, e.clientY - tapStart.y) < 14;
-            const hit = quick && !opts.settings().followFinger && opts.heroHit(e.clientX, e.clientY);
-            if (hit) edges.tapHero = true;
-            lastTap = { dt: Math.round(e.timeStamp - tapStart.t), quick, hit };
+            const quick = e.type === 'pointerup' && e.timeStamp - tapStart.t < 350 && Math.hypot(e.clientX - tapStart.x, e.clientY - tapStart.y) < 14;
+            const target = quick ? tapActor(e.clientX, e.clientY, !opts.settings().followFinger) : null;
+            lastTap = { dt: Math.round(e.timeStamp - tapStart.t), quick, hit: target === 'hero', target };
             if (quick && opts.onTap) opts.onTap(e.clientX, e.clientY);
             tapStart = null;
         }
         if (e.pointerId === finger.id) finger.id = null;
     };
-    canvasArea.addEventListener('pointerup', endFinger, sig);
-    canvasArea.addEventListener('pointercancel', endFinger, sig);
+    for (const area of [canvasArea, zone]) {
+        area.addEventListener('pointerup', endFinger, sig);
+        area.addEventListener('pointercancel', endFinger, sig);
+        area.addEventListener('lostpointercapture', endFinger, sig);
+    }
 
     // --- buttons ----------------------------------------------------------------------
     const press = (btn, down, up) => {
@@ -117,6 +141,7 @@ export function createInput(root, ui, opts) {
             e.preventDefault(); edges.act = true;
         } else if (e.key === 'g' || e.key === 'G') { edges.hide = true; }
         else if (e.key === 'n' || e.key === 'N') { edges.neigh = true; }
+        else if (e.key === 'k' || e.key === 'K') { edges.tapKlo = true; }
         else if (e.key === 'j' || e.key === 'J') { opts.onKey?.('journal'); }
         else if (e.key === 'Escape' || e.key === 'p' || e.key === 'P') { opts.onKey?.('pause'); }
     }, sig);
@@ -127,7 +152,9 @@ export function createInput(root, ui, opts) {
     }, sig);
     const releaseAll = () => {
         keys.clear(); hopHeld = false; stick.id = null; stick.x = stick.y = 0; stick.latched = 0; finger.id = null;
-        ui.stickBase.classList.remove('on'); moveKnob();
+        stickTap = tapStart = null;
+        for (const key of Object.keys(edges)) edges[key] = false;
+        ui.stickBase.classList.remove('on', 'gallop'); moveKnob();
         ui.actBtn.classList.remove('down'); ui.hideBtn.classList.remove('down');
     };
     window.addEventListener('blur', releaseAll, sig);
@@ -159,7 +186,7 @@ export function createInput(root, ui, opts) {
         /** One-shot presses since the last call */
         consume() {
             const out = { ...edges };
-            edges.act = edges.hide = edges.hideUp = edges.tapHero = edges.neigh = false;
+            edges.act = edges.hide = edges.hideUp = edges.tapHero = edges.tapKlo = edges.neigh = false;
             return out;
         },
         release: releaseAll,

@@ -31,6 +31,8 @@
 import { createUI } from '../src/ui.mjs';
 import { createGuide } from '../src/guide.mjs';
 import { STORY, GOALS, HINTS, TIPS, BALK, UI } from '../src/content/sv.mjs';
+import { SCENES } from '../src/content/world.mjs';
+import { pencilProgress, totalPencils } from '../src/puzzles.mjs';
 
 const q = new URLSearchParams(location.search);
 const m = q.get('m') || 'title';
@@ -51,18 +53,27 @@ const ui = createUI(host, {
         openJournal: () => ui.journal(journalState()), openPause: () => ui.pauseMenu(), resume: () => log('resume'),
         stuck: () => log('stuck'), quit: () => log('quit'), getSettings: () => settings,
         setSetting: (k, v) => { settings[k] = v; log('setting', k, v); if (k === 'bigText') ui.setBigText(v); if (k === 'lessMotion') ui.root.classList.toggle('less-motion', v); },
-        setNote: (v) => log('note', v), nextChapterOpen: (n) => n < 2, onSay: () => {}, onPencil: () => {}
+        setNote: (v) => log('note', v), nextChapterOpen: (n) => n < 2, onSay: () => {}, onPencil: () => {}, onMenuSound: (kind) => log('menu-sound', kind)
     }
 });
 ui.setBigText(settings.bigText);
 ui.root.classList.toggle('less-motion', settings.lessMotion);
-ui.setPencils(2, 5);
+ui.setPencils(2, SCENES.land.pencils.length, SCENES.land.title);
 const img = (name) => new URL(`../assets/${name}.webp`, location.href).href;
 const guide = createGuide(ui.root, { img, heroScreen: () => ({ x: innerWidth * 0.45, y: innerHeight * 0.55, scale: 0.8, facing: 1 }), onGoalTap: () => ui.journal(journalState()) });
 
 function journalState() {
     const flags = new Set(['intro_done', 'exp_fart', 'exp_djup', 'exp_gnagg', 'clue_map_corner', 'clue_note1', 'clue_wave_marks', 'clue_reflection', 'clue_fold', 'mark_land', 'ch1_end', 'ch2_open', 'kelp_entered']);
-    return { flags, objective: q.get('objective') || 'p5', tally: Number(q.get('tally') ?? 1), note: q.get('note') || '', pencils: 2, pencilsTotal: 5,
+    if (q.has('map')) {
+        for (const flag of ['clue_map_corner', 'mark_land', 'mark_sea', 'clue_mark_land', 'clue_mark_sea']) flags.delete(flag);
+        if (q.get('map') !== 'none') flags.add('clue_map_corner');
+        if (['land', 'all'].includes(q.get('map'))) flags.add('mark_land');
+        if (q.get('map') === 'all') flags.add('mark_sea');
+    }
+    flags.add('penna_p-kite'); flags.add('penna_p-hut');
+    const collection = { scenes: SCENES, flags };
+    return { flags, objective: q.get('objective') || 'p5', tally: Number(q.get('tally') ?? 1), note: q.get('note') || '', pencils: 2, pencilsTotal: totalPencils(collection),
+        pencilRegions: pencilProgress(collection).filter(r => r.id !== 'viken'),
         visited: new Set(['land', 'kelp']), page: q.has('page') ? Number(q.get('page')) : undefined, onClose: () => log('journal closed') };
 }
 const titleOpts = () => ({
@@ -70,7 +81,7 @@ const titleOpts = () => ({
     onBegin: () => log('begin'), onContinue: () => log('continue'), onSwitch: (done) => ui.slotPicker([{ id: 'alva', label: 'Alva', note: 'Mer forskning!' }, { id: 'r-signe', label: 'Signe' }], (id) => { done(); log('pick', id); }, (name) => { done(); log('new', name); }),
     onCode: (t) => /kelp|fyr/i.test(t)
 });
-const play = () => { ui.showControls(true); guide.show(true); guide.goal(GOALS.p5(0)); };
+const play = () => { ui.showControls(true); guide.show(true); guide.goal(GOALS.p5); };
 
 switch (m) {
     case 'title': ui.showControls(false); ui.title(titleOpts()); break;
@@ -115,7 +126,7 @@ setInterval(() => guide.update(), 100);
 // links to every state (hidden with &shot=1)
 const nav = document.createElement('div');
 nav.className = 'dev-menu';
-for (const s of ['title', 'title&save=1', 'code', 'restart', 'slots', 'journal&page=0', 'journal&page=2', 'journal&page=3', 'journal&page=5', 'journal&page=6', 'pause', 'stuck', 'settings', 'report&n=1', 'dialogue&who=klo', 'dialogue&who=note', 'choice', 'toasts', 'hud']) {
+for (const s of ['title', 'title&save=1', 'code', 'restart', 'slots', 'journal&page=0', 'journal&page=2', 'journal&page=3', 'journal&page=4&map=all', 'journal&page=5', 'journal&page=6', 'pause', 'stuck', 'settings', 'report&n=1', 'dialogue&who=klo', 'dialogue&who=note', 'choice', 'toasts', 'hud']) {
     const a = document.createElement('a');
     a.href = '?m=' + s + (q.has('big') ? '&big=1' : '');
     a.textContent = s;

@@ -13,12 +13,16 @@
  *   audio.* (see audio.mjs), save()
  */
 import { HL } from './sim.mjs';
-import { STORY, HINTS, JOURNAL, BALK, HER_TEXT, FAMILY, UI, GOALS, TIPS } from './content/sv.mjs';
+import { beginKloWalk, stepKloWalk, createKloReactions } from './klo.mjs';
+import { p8Progress } from './puzzles.mjs';
+import { describeGuidance, controlTip } from './guidance-state.mjs';
+import { STORY, HINTS, JOURNAL, BALK, HER_TEXT, FAMILY, UI, KLO_JOKES, CONTEXT_LABELS } from './content/sv.mjs';
 
 const h = (v) => v * HL;
 
 export function createStory(G, io) {
     const F = G.flags;
+    const pencilFlags = Object.values(G.scenes).flatMap(sc => (sc.pencils || []).map(pc => 'penna_' + pc.id));
     const beats = [];
     let running = null;
     const queue = [];
@@ -28,11 +32,30 @@ export function createStory(G, io) {
     G.actors.klo = { id: 'klo', scene: null, x: 0, y: 0, pose: 'idle', facing: -1, visible: false, pop: 0, walk: null, holding: null };
     G.actors.kv = { id: 'kv', scene: null, x: 0, y: 0, pose: 'stand', facing: -1, visible: false, walk: null };
     G.actors.figure = { id: 'figure', scene: null, x: 0, y: 0, pose: 'kv-walk-1', facing: 1, visible: false, walk: null };
-    G.actors.signe = { id: 'signe', scene: null, x: 0, y: 0, pose: 'idle', facing: -1, visible: false, walk: null };
+    G.actors.signe = { id: 'signe', scene: null, x: 0, y: 0, pose: 'idle', facing: -1, visible: false, walk: null, speed: 0, walkPhase: 0 };
     let lastTaste = 'grass';
     G.on('taste', (e) => { lastTaste = e.kind; });
 
-    const say = (lines) => io.ui.say(Array.isArray(lines[0]) ? lines : [lines]);
+    const reactions = createKloReactions(KLO_JOKES);
+    const say = async (lines) => {
+        const list = Array.isArray(lines[0]) ? lines : [lines];
+        for (const id of ['klo', 'kv']) G.actors[id].talking = list.some(([who]) => who === id);
+        try { return await io.ui.say(list); }
+        finally { for (const id of ['klo', 'kv']) G.actors[id].talking = false; }
+    };
+    function tapKlo({ visible = false } = {}) {
+        const actor = G.actors.klo;
+        const reaction = reactions.tap({ actor, time: G.time, scene: G.sceneId, visible,
+            busy: G.busy || io.ui.panelOpen?.(), running: !!running, dialogue: io.ui.dialogueOpen?.() });
+        if (!reaction) return false;
+        actor.reactAt = G.time;
+        actor.talkUntil = G.time + Math.min(3.8, 1.2 + reaction.line.length / 34);
+        actor.facing = Math.sign(G.player.x - actor.x) || actor.facing;
+        io.audio?.sfx('crabclick');
+        io.guide?.hint(reaction.line, 'klo', 5200);
+        G.emit('kloTap', { count: reaction.count, line: reaction.line });
+        return true;
+    }
     const api = {
         G, F,
         say,
@@ -40,7 +63,13 @@ export function createStory(G, io) {
         wait: (s) => G.wait(s),
         flag: (f) => G.flag(f),
         has: (f) => F.has(f),
-        fx: (name, data) => io.fx(name, data || {}),
+        async fx(name, data) {
+            if (name !== 'vista') return io.fx(name, data || {});
+            const controlsOn = !io.ui.controls?.classList.contains('off');
+            io.ui.showControls?.(false);
+            try { return await io.fx(name, data || {}); }
+            finally { io.ui.showControls?.(controlsOn); }
+        },
         sfx: (n, o) => io.audio?.sfx(n, o),
         stinger: (n) => io.audio?.stinger(n),
         cam(opts) { G.camHint = { ...opts, t0: G.time }; return G.wait(opts.hold ?? opts.t ?? 1); },
@@ -56,7 +85,10 @@ export function createStory(G, io) {
         walk(id, x, speed = 260) {
             const a = G.actors[id];
             a.facing = Math.sign(x - a.x) || a.facing;
-            return new Promise((resolve) => { a.walk = { x, speed, resolve }; });
+            return new Promise((resolve) => {
+                if (id === 'klo') beginKloWalk(a, x, speed, resolve);
+                else a.walk = { x, speed, resolve };
+            });
         },
         clue(key, { quiet = false } = {}) {
             if (F.has('clue_' + key)) return;
@@ -93,6 +125,46 @@ export function createStory(G, io) {
     const inArea = (a) => G.areas.has(a);
     const P = () => G.player;
 
+    // Actors are presentation of committed story state, not saved objects. A
+    // one-time introduction must not make its character disappear on reload.
+    // Authored transitions during a beat retain full control of their staging.
+    function restoreActors() {
+        if (!G.sceneDef || running) return;
+        const sc = G.sceneDef, p = P(), klo = G.actors.klo, kv = G.actors.kv, sg = G.actors.signe;
+        const place = (actor, at, extra = {}) => Object.assign(actor, at, {
+            scene: sc.id, visible: true, walk: null, pose: 'idle', inHole: false,
+            holding: null, talking: false, speed: 0, ...extra
+        });
+        if (sc.id === 'land') {
+            if (F.has('b:k1_enter') || F.has('klo_hidden') || F.has('ended')) {
+                let at = sc.spots.kloBeach;
+                if (F.has('klo_hidden') && !F.has('klo_ja')) {
+                    place(klo, sc.spots.kloHole, { pose: 'peek', inHole: true });
+                } else {
+                    if (p.x < h(13) && F.has('p4_leap')) at = sc.spots.kloUdden;
+                    else if (p.x < h(38.5) && F.has('p3_done')) at = sc.spots.kloLedge;
+                    else if (p.x < h(65) && F.has('b:k1_branten')) at = sc.spots.kloBranten;
+                    else if (p.x < h(94) && F.has('note1_read')) at = sc.spots.kloNote;
+                    place(klo, at, { facing: Math.sign(p.x - at.x) || -1 });
+                }
+            }
+            if (F.has('ended') && F.has('signe_met')) {
+                place(sg, sc.race.signe, { facing: -1, racing: false });
+                groundSigne();
+            }
+        } else if (sc.id === 'kelp' && (F.has('kelp_entered') || F.has('ch2_open'))) {
+            place(klo, p.x > h(20) ? sc.spots.kloTrench : sc.spots.klo, { facing: 1 });
+        } else if (sc.id === 'viken') {
+            if (F.has('viken_arrived')) place(klo, p.x < h(3) ? sc.spots.kloShore : sc.spots.klo, { facing: -1 });
+            if (F.has('kv_met')) {
+                place(kv, sc.spots.kvPier, { pose: F.has('talk1') && !F.has('talk_done') ? 'point' : 'stand',
+                    facing: -1, map: F.has('talk1') ? 'open' : 'closed' });
+                if (F.has('talk2') && !F.has('talk_done')) place(klo, { x: kv.x - h(0.5), y: kv.y - h(0.45) }, { pose: 'point', facing: 1 });
+            }
+        }
+    }
+    G.on('scene', restoreActors);
+
     // =========================================================================
     // KAPITEL 1
     // =========================================================================
@@ -122,8 +194,10 @@ export function createStory(G, io) {
             s.sfx('stamp');
             await s.wait(0.35);
             const hole = G.sceneDef.spots.kloHole;
-            G.actors.klo.x = hole.x; G.actors.klo.y = hole.y; G.actors.klo.pose = 'peek'; G.actors.klo.inHole = true;
+            await s.walk('klo', hole.x, 430);
+            G.actors.klo.y = hole.y; G.actors.klo.pose = 'peek'; G.actors.klo.inHole = true;
             s.sfx('crabclick');
+            await s.wait(0.32);
             s.camFree();
             G.flag('klo_hidden');
             tipOnce('hide');
@@ -432,7 +506,7 @@ export function createStory(G, io) {
             await s.say(STORY.k2.bothHalves);
             if (inScene('kelp')) await s.cam({ x: h(43), y: h(3.5), zoom: 0.8, t: 1.6, hold: 1.2 });
             // a glimpse of the lighthouse: the paper figure peeks and snaps a shutter shut
-            await s.fx('vista', { scene: 'viken', x: h(29.8), y: h(-7.2), zoom: 0.9, t: 3.2, peek: true });
+            await s.fx('vista', { scene: 'viken', lighthouse: true, t: 3.2, peek: true });
             await s.say(STORY.k2.end);
             s.camFree();
             G.flag('ch2_end');
@@ -470,11 +544,10 @@ export function createStory(G, io) {
         on: 'reflectionSeen', filter: (e) => e.id === 'bay',
         async run(s) {
             await s.wait(0.6);
-            // look at the lighthouse and its reflection while Klo talks about them
-            const lh = G.sceneDef.spots.lighthouse;
-            await s.cam({ x: lh.x - h(2), y: lh.y - h(1.5), zoom: 0.62, t: 0.9, hold: 0.6 });
-            await s.say(STORY.k3.mirror);
-            s.camFree();
+            // Keep the actual answer visible for the whole explanation. The
+            // reversible comparison removes the rock face hiding the reflection.
+            await s.fx('vista', { scene: 'viken', lighthouse: true, comparison: true,
+                whileVisible: () => s.say(STORY.k3.mirror), hold: 0.6 });
             s.checkpoint('pier');
         }
     });
@@ -500,6 +573,7 @@ export function createStory(G, io) {
 
     beat('k3_lamp', {
         on: 'lampLit',
+        when: () => inScene('viken') && F.has('lamp_lit') && !F.has('kv_met'),
         async run(s) {
             const L = G.sceneDef.lamp;
             await s.cam({ x: L.x, y: L.y + h(2.5), zoom: 0.72, t: 1.2, hold: 0.6 });
@@ -544,13 +618,19 @@ export function createStory(G, io) {
 
     beat('k3_window', {
         on: 'windowReached',
+        filter: () => !F.has('p8_done'),
+        when: () => inScene('viken') && F.has('p8_sea') && !F.has('p8_done') && G.checkpoint === 'lineWindow',
         async run(s) {
             const win = G.sceneDef.spots.window;
+            io.save(); // preserve the completed sea half before opening the final drawing
             await s.cam({ x: win.x, y: win.y, zoom: 1.2, t: 0.8, hold: 0.9 });
             // Alva's pencil joins the two half-marks across the window (tap or trace the anchors; it can't fail)
-            const anchors = [];
-            for (let i = 0; i < 4; i++) { const q = io.toScreen?.(win.x - h(0.9) + i * h(0.6), win.y); if (q) anchors.push([q.x, q.y]); }
-            await io.ui.draw({ prompt: UI.drawLast, anchors: anchors.length ? anchors : null, width: 6, color: '#3b3530' });
+            const getGeometry = () => {
+                const anchors = [];
+                for (let i = 0; i < 4; i++) { const q = io.toScreen?.(win.x - h(0.9) + i * h(0.6), win.y); if (q) anchors.push([q.x, q.y]); }
+                return { anchors: anchors.length ? anchors : null };
+            };
+            await io.ui.draw({ prompt: UI.drawLast, ...getGeometry(), getGeometry, allowReverse: true, width: 6, color: '#3b3530' });
             G.flag('p8_done');
             s.stinger('aha');
             // Kartväktaren chooses
@@ -592,9 +672,11 @@ export function createStory(G, io) {
         G.auto = null; G.finalRun = false;
         await s.wait(1.2);
         io.audio?.setArea('quiet');
-        await s.cam({ x: h(9), y: h(-6.5), zoom: 0.6, t: 1.5, hold: 2.0, lookSea: true });
+        // The same distant page as Kapitel 2: the real lamp now matches its reflection.
+        // Keep the player on Klippudden while the view visits the bay.
+        await s.fx('vista', { scene: 'viken', lighthouse: true, hold: 1.8 });
         io.audio?.setArea('final');
-        await s.appear('klo', { scene: 'land', x: G.sceneDef.spots.kloUdden.x, y: G.sceneDef.spots.kloUdden.y, pose: 'sign-folded', facing: 1 });
+        await s.appear('klo', { scene: 'land', x: G.player.x - h(1.7), y: G.sceneDef.spots.kloUdden.y, pose: 'sign-folded', facing: 1 });
         s.camFree();
         await s.say(STORY.final.conclusion);
         G.flag('conclusion');
@@ -636,30 +718,42 @@ export function createStory(G, io) {
             Object.assign(sg, { x: r.start.x - h(0.2), y: r.start.y, facing: -1, pose: 'idle', visible: true, scene: 'land' });
             await s.say(F.has('signe_race') ? STORY.after.signeAgain : STORY.after.signeGo);
             G.busy--;
-            race.active = true; race.wave = 0;
+            race.active = true; race.wave = 0; sg.racing = true;
             const won = await new Promise((resolve) => { race.done = resolve; });
             race.active = false;
-            sg.pose = 'idle';
+            sg.pose = 'idle'; sg.speed = 0; sg.racing = false;
             G.busy++;
             await s.say(won ? STORY.after.signeLose : STORY.after.signeGiveUp);
             G.busy--;
             if (won) { G.flag('signe_race'); s.stinger('aha'); }
             // back to her place by the shells
-            await s.walk('signe', r.signe.x, 160);
+            await s.walk('signe', r.signe.x, r.speed);
         }
     });
+    function groundSigne() {
+        const sg = G.actors.signe;
+        if (sg.scene !== G.sceneId) return;
+        const ground = G.terrain.support(sg.x, sg.y, h(0.6), h(0.6));
+        if (ground) sg.y = ground.y;
+    }
+    function moveSigne(x, dt) {
+        const sg = G.actors.signe, dx = x - sg.x;
+        sg.x = x; sg.speed = Math.abs(dx) / dt;
+        sg.walkPhase = (sg.walkPhase + Math.abs(dx) / h(0.5)) % 1;
+        groundSigne();
+    }
     function stepRace(dt) {
         if (!race.active) return;
         const r = G.sceneDef?.race, sg = G.actors.signe, p = G.player;
         if (!r || !inScene('land')) { race.done?.(false); return; }
         if (p.x <= r.finish) { race.done?.(true); return; }
         if (p.x > r.start.x + h(3)) { race.done?.(false); return; }
-        // a steady turtle trot; near the line she stops to wave to the crowd until you pass
+        // A gentle turtle stroll. Near the line she waits as long as the player
+        // needs, so even a pause or the lightest stick movement can still win.
         const ahead = sg.x < p.x;
         const nearLine = sg.x - r.finish < h(0.8);
-        if (nearLine && ahead) { sg.pose = 'wave'; race.wave += dt; return; }
-        const v = h(1.25);
-        sg.x = Math.max(r.finish + h(0.2), sg.x - v * dt);
+        if (nearLine && ahead) { sg.pose = 'wave'; sg.speed = 0; race.wave += dt; return; }
+        moveSigne(Math.max(r.finish + h(0.2), sg.x - r.speed * dt), dt);
         sg.facing = -1; sg.pose = 'walk';
     }
 
@@ -674,19 +768,19 @@ export function createStory(G, io) {
         if (inScene('viken') && kv.visible && F.has('talk1') && !F.has('talk_done')) {
             const d = Math.abs(p.x - kv.x);
             if (d < h(1.6)) {
-                if (!F.has('talk2')) out.push({ id: 'talk2', label: 'Prata', dist: d / HL, run: () => start(beats.find((b) => b.id === '_talk2')) });
-                else out.push({ id: 'talk3', label: 'Prata', dist: d / HL, run: () => start(beats.find((b) => b.id === '_talk3')) });
+                if (!F.has('talk2')) out.push({ id: 'talk2', label: CONTEXT_LABELS.talk, dist: d / HL, run: () => start(beats.find((b) => b.id === '_talk2')) });
+                else out.push({ id: 'talk3', label: CONTEXT_LABELS.talk, dist: d / HL, run: () => start(beats.find((b) => b.id === '_talk3')) });
             }
         }
         const sg = G.actors.signe;
         if (inScene('land') && F.has('signe_met') && sg.visible && sg.scene === 'land' && !race.active && !sg.walk) {
             const d = Math.abs(p.x - sg.x);
-            if (d < h(1.4)) out.push({ id: 'race', label: 'Prata', dist: d / HL, run: () => start(beats.find((b) => b.id === '_race')) });
+            if (d < h(1.4)) out.push({ id: 'race', label: CONTEXT_LABELS.talk, dist: d / HL, run: () => start(beats.find((b) => b.id === '_race')) });
         }
         if (inScene('land')) {
             const n = G.sceneDef.spots.note1;
             const d = Math.abs(p.x - n.x);
-            if (d < h(0.9) && F.has('note1_read')) out.push({ id: 'read', label: 'Läs', dist: d / HL + 0.3, run: () => say([STORY.k1.note1]) });
+            if (d < h(0.9) && F.has('note1_read')) out.push({ id: 'read', label: CONTEXT_LABELS.read, dist: d / HL + 0.3, run: () => say([STORY.k1.note1]) });
         }
         return out;
     }
@@ -742,10 +836,23 @@ export function createStory(G, io) {
         // actors walking
         for (const a of Object.values(G.actors)) {
             if (a.pop > 0) a.pop = Math.max(0, a.pop - dt * 2);
+            if (a.id === 'klo') {
+                const wet = G.sceneDef.underwater || (G.sceneId === 'viken' && a.y > 0);
+                stepKloWalk(a, dt, !wet && a.scene === G.sceneId ? (x, y, down) => G.terrain.groundNear(x, y, down) : null);
+                if (!a.walk && !a.inHole && a.scene === G.sceneId && Math.abs(P().x - a.x) > 35) a.facing = Math.sign(P().x - a.x);
+                continue;
+            }
             if (!a.walk) continue;
             const d = a.walk.x - a.x, st = a.walk.speed * dt;
-            if (Math.abs(d) <= st) { a.x = a.walk.x; const r = a.walk.resolve; a.walk = null; r(); }
-            else { a.x += Math.sign(d) * st; a.facing = Math.sign(d); }
+            if (Math.abs(d) <= st) {
+                if (a.id === 'signe') { moveSigne(a.walk.x, dt); a.speed = 0; }
+                else a.x = a.walk.x;
+                const r = a.walk.resolve; a.walk = null; r();
+            } else {
+                if (a.id === 'signe') moveSigne(a.x + Math.sign(d) * st, dt);
+                else a.x += Math.sign(d) * st;
+                a.facing = Math.sign(d);
+            }
         }
         hints(dt);
         stepRace(dt);
@@ -766,7 +873,10 @@ export function createStory(G, io) {
     // Objectives and hints (plan §4.4)
     // =========================================================================
     function objective() {
-        if (F.has('ended')) return F.has('signe_met') && !F.has('signe_race') ? 'signe' : 'free';
+        if (F.has('ended')) {
+            if (F.has('signe_met') && !F.has('signe_race')) return 'signe';
+            return pencilFlags.length && pencilFlags.every(flag => F.has(flag)) ? 'freeComplete' : 'free';
+        }
         // Kapitel 3: find the way to Spegelviken, light the lamp, talk, draw the last line
         if (F.has('ch2_end')) {
             if (!F.has('viken_arrived')) return 'toViken';
@@ -795,53 +905,27 @@ export function createStory(G, io) {
         if (!F.has('p3_done')) return 'p3';
         return 'kelp';
     }
-    /** The goal line for the note at the top of the screen. */
-    function goal() {
+    /** The goal note, help ladder and world cue share this one current task. */
+    function guidance() {
         const key = objective();
-        const g = GOALS[key];
-        if (typeof g !== 'function') return g || '';
-        const count = (...fs) => fs.filter((f) => F.has(f)).length;
-        if (key === 'p7') return g(count('shutter1', 'shutter2', 'shutter3'));
-        if (key === 'p3' || key === 'p3b') return g(count('p3_t1', 'p3_t2', 'p3_t3'));
-        if (key === 'p2') return g((G.puz.stone === G.scenes.land.rail.target ? 1 : 0) + count('p2_plank'));
-        if (key === 'p4' || key === 'toSea') return g(count('mark_land', 'mark_sea'));
-        return g(0);
+        return describeGuidance(G, { objective: key, touch: io.touch, ...io.settings?.(), p8: key === 'p8' ? p8Progress(G) : undefined });
     }
-
-    const HINT_SPOTS = {
-        explore: () => inScene('land') && G.actors.klo.visible && { x: G.actors.klo.x, y: G.actors.klo.y },
-        hide: () => inScene('land') && { x: G.sceneDef.spots.kloHole.x, y: G.sceneDef.spots.kloHole.y },
-        pool: () => inScene('land') && { x: h(102.4), y: h(-0.3) },
-        p1: () => inScene('land') && { x: h(80.1), y: h(-0.66) },
-        p3: () => inScene('land') && { x: h(52.3), y: h(-0.8) },
-        p3b: () => inScene('land') && { x: h(44.6), y: h(-1.9) },
-        p2: () => inScene('land') && (G.puz.stone !== G.sceneDef.rail.target ? { x: G.sceneDef.rail.x0 + G.puz.stone * G.sceneDef.rail.step, y: h(-0.1) } : { x: h(104.5), y: h(-0.43) }),
-        kelp: () => inScene('land') && { x: h(101.9), y: h(-0.3) },
-        hook: () => inScene('kelp') && { x: h(20.8), y: h(3.4) },
-        p4: () => inScene('land') && (F.has('p4_leap') ? { x: G.sceneDef.spots.landmark.x, y: G.sceneDef.spots.landmark.y } : { x: h(27.5), y: h(-6.4) }),
-        toSea: () => inScene('land') && { x: h(101.9), y: h(-0.3) },
-        p5: () => inScene('kelp') && { x: h(22.8), y: h(7.8) },
-        p6: () => inScene('kelp') && { x: h(36), y: h(8.4) },
-        toViken: () => inScene('kelp') && { x: h(36.5), y: h(8.4) },
-        p7: () => inScene('viken') && (!F.has('shutter2') ? { x: h(14.2), y: h(6.8) } : !F.has('shutter3') ? { x: h(26.4), y: h(5.0) } : { x: h(13), y: h(-0.62) }),
-        talk: () => inScene('viken') && { x: G.actors.kv.x, y: G.actors.kv.y },
-        p8: () => inScene('viken') && { x: h(24.1), y: h(-0.62) },
-        signe: () => inScene('land') && G.actors.signe.visible && { x: G.actors.signe.x, y: G.actors.signe.y }
-    };
-    const PROGRESS = new Set(['inked', 'grow', 'opened', 'latch', 'lit', 'mark', 'flattened', 'push', 'reflectionSeen', 'scene', 'bigLanding', 'streckDone', 'ratchet', 'taste']);
+    function goal() { return guidance().goal; }
+    const PROGRESS = new Set(['inked', 'grow', 'opened', 'latch', 'lit', 'mark', 'flattened', 'push', 'reflectionSeen', 'scene', 'bigLanding', 'streckDone', 'ratchet', 'taste', 'pickup', 'colorin']);
     G.on('*', (type) => { if (PROGRESS.has(type)) { hintState.t = 0; hintState.level = 0; hintState.said = 0; } });
+    G.on('pickup', () => { if (objective() === 'freeComplete') io.guide?.hint(HINTS.freeComplete.note); });
 
     /**
      * When the player seems stuck, Klo helps without stopping play: first a nudge (the margin note),
      * then the plain answer with a mark on the spot and Alva's gull circling it. Help level scales the waits.
      */
     function hints(dt) {
-        const key = objective();
+        const cue = guidance(), key = cue.key;
         if (key !== hintState.key) { hintState.key = key; hintState.t = 0; hintState.level = 0; hintState.said = 0; }
         if (G.busy || running) return;
         hintState.t += dt;
         const mult = G.helpLevel === 'easy' ? 0.6 : G.helpLevel === 'hard' ? 2 : 1;
-        const H = HINTS[key];
+        const H = cue.hint;
         if (!H) return;
         const first = 30 * mult, second = 75 * mult, again = 60 * mult;
         if (hintState.said === 0 && hintState.t > first) {
@@ -861,9 +945,10 @@ export function createStory(G, io) {
     // which control a tip points at on a touch screen (with keys only the journal has a place to point)
     const TIP_AT = { gallop: 'stick', swim: 'stick', dashed: 'stick', act: 'act', hide: 'hide', journal: 'journal' };
     function tipOnce(id) {
-        if (F.has('tip_' + id) || !TIPS[id]) return;
+        const text = controlTip(id, { touch: io.touch, ...io.settings?.() });
+        if (F.has('tip_' + id) || !text) return;
         F.add('tip_' + id);
-        io.guide?.tip(io.touch ? TIPS[id].touch : TIPS[id].keys, { at: io.touch || id === 'journal' ? TIP_AT[id] : null });
+        io.guide?.tip(text, { at: io.touch || id === 'journal' ? TIP_AT[id] : null });
     }
     /** a one-off hint from Klo (remembered in the save) */
     function hintOnce(id, text, who = 'klo') {
@@ -887,8 +972,11 @@ export function createStory(G, io) {
         if (key !== balks.key || G.time - balks.t > 25) { balks.key = key; balks.n = 0; }
         balks.n++; balks.t = G.time;
         if (balks.n === 3 && e.reason !== 'paper' && e.reason !== 'fold' && e.reason !== 'gate') {
-            const H = HINTS[objective()];
-            if (H) G.later(1.2, () => io.guide?.hint(H.sketch || H.note, 'klo', 9000));
+            const cue = guidance();
+            if (cue.hint) G.later(1.2, () => {
+                const current = guidance();
+                if (current.key === cue.key) io.guide?.hint(current.hint.sketch || current.hint.note, 'klo', 9000);
+            });
         }
     });
     G.on('push', (e) => { if (e.notch === G.sceneDef.rail?.target) hintOnce('stone', STORY.k1.stoneDone); });
@@ -926,14 +1014,14 @@ export function createStory(G, io) {
         if (G.context && G.context.id !== 'skaka') tipOnce('act');
     }
 
+    restoreActors();
     return {
         step(dt) { step(dt); watch(); },
         actions,
-        objective, goal, tipOnce, hintOnce,
+        objective, goal, guidance, tipOnce, hintOnce, tapKlo,
         hintInfo() {
-            const key = hintState.key || objective();
-            const spot = HINT_SPOTS[key]?.();
-            return { key, level: hintState.level, spot: spot || null, text: HINTS[key] };
+            const cue = guidance();
+            return { key: cue.objective, level: hintState.level, spot: cue.target, text: cue.hint };
         },
         running: () => !!running,
         herText: HER_TEXT, family: FAMILY, balkText: BALK

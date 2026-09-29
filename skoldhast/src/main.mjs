@@ -17,11 +17,12 @@ import { createView } from './view.mjs';
 import { createUI } from './ui.mjs';
 import { createGuide } from './guide.mjs';
 import { createInput } from './input.mjs';
+import { createPressQueue } from './presses.mjs';
 import { createSave, codeToChapter, CODE_RESTORE } from './save.mjs';
 import { createStory } from './story.mjs';
 import { createAssets } from './assets.mjs';
 import { createTable } from './prologue.mjs';
-import { countPencils, totalPencils, createPuzzleState } from './puzzles.mjs';
+import { countPencils, totalPencils, pencilProgress, createPuzzleState } from './puzzles.mjs';
 import { UI, BALK, CAPTIONS, FAMILY, JOURNAL } from './content/sv.mjs';
 import { CHECKPOINTS } from './content/world.mjs';
 
@@ -37,7 +38,7 @@ export function createGame({ host = document.body, assetBase = './skoldhast/', r
     let el = null, app = null, assets = null, G = null, view = null, ui = null, input = null, audio = null, story = null, table = null, guide = null;
     let raf = 0, last = 0, acc = 0, paused = false, mode = 'title';
     let glLostAt = 0, glPrompt = null;
-    let audioTheme = null, lastPlank = -1, plankAt = 0;
+    let audioTheme = null;
     let slot = { id: 'alva', label: UI.slotAlva };
     let settings = { ...DEFAULT_SETTINGS, lessMotion: !!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches };
     let note = '';
@@ -47,6 +48,7 @@ export function createGame({ host = document.body, assetBase = './skoldhast/', r
     const debug = /[?&#]debug/.test(location.search + location.hash);
     const frameTimes = [];
     let debugEl = null;
+    const presses = createPressQueue();
 
     // --------------------------------------------------------------------------------
     // Host glue
@@ -89,6 +91,7 @@ export function createGame({ host = document.body, assetBase = './skoldhast/', r
         if (closing) await closing;
         if (state !== 'closed') return;
         state = 'opening';
+        paused = false; acc = 0; presses.clear();
         listeners = new AbortController();
         try {
             await openInner();
@@ -118,8 +121,16 @@ export function createGame({ host = document.body, assetBase = './skoldhast/', r
         el.appendChild(app.canvas);
         // WebGL context loss (plan §8.2): Pixi restores its textures itself; if the context has not come
         // back 2 s after the tab is visible, save and offer a clean restart behind one tap
-        app.canvas.addEventListener('webglcontextlost', () => { glLostAt = performance.now(); }, { signal: listeners.signal });
-        app.canvas.addEventListener('webglcontextrestored', () => { glLostAt = 0; }, { signal: listeners.signal });
+        app.canvas.addEventListener('webglcontextlost', () => {
+            glLostAt = performance.now();
+            presses.clear(); input?.release();
+        }, { signal: listeners.signal });
+        app.canvas.addEventListener('webglcontextrestored', () => {
+            glLostAt = 0;
+            glPrompt?.remove(); glPrompt = null;
+            last = performance.now(); acc = 0;
+            presses.clear(); input?.release();
+        }, { signal: listeners.signal });
         assets = createAssets(PIXI, assetBase);
         try {
             await assets.init();
@@ -146,6 +157,7 @@ export function createGame({ host = document.body, assetBase = './skoldhast/', r
             isStopped: () => G && Math.abs(G.player.vx) < 20,
             gallopDefl: C.gallopDefl,
             heroHit: (x, y) => heroHit(x, y),
+            kloHit: (x, y) => kloHit(x, y),
             heroScreen: () => heroScreen(),
             onKey: (k) => {
                 if (mode !== 'play') return;
@@ -157,7 +169,7 @@ export function createGame({ host = document.body, assetBase = './skoldhast/', r
         });
         await loadAudio();
         story = createStory(G, {
-            ui, audio, guide, touch: !!window.matchMedia?.('(pointer: coarse)').matches,
+            ui, audio, guide, settings: () => settings, touch: !!window.matchMedia?.('(pointer: coarse)').matches,
             fx: (n, d) => view.fx(n, d), save: () => saveNow(),
             toScreen: (x, y) => ({ x: view.world.position.x + x * view.world.scale.x, y: view.world.position.y + y * view.world.scale.y })
         });
@@ -401,19 +413,23 @@ export function createGame({ host = document.body, assetBase = './skoldhast/', r
             else if (now - glLostAt > 2000 && !glPrompt) contextGone();
             return;
         }
-        if (paused || state !== 'open') { if (app) app.render(); return; }
+        if (paused || state !== 'open') { presses.clear(); input?.release(); if (app) app.render(); return; }
         const t0 = performance.now();
         if (mode === 'play') {
             const blocked = ui.panelOpen() || ui.dialogueOpen();
             const cont = blocked ? { x: 0, y: 0, hopHeld: false } : input.state();
             const e = input.consume();
             if (ui.dialogueOpen() && e.act) ui.advance();
+            if (!blocked && e.tapKlo) story.tapKlo({ visible: kloOnScreen() });
+            if (blocked) presses.clear(); else presses.push(e);
             let first = true;
             acc += dt;
             let steps = 0;
             while (acc >= STEP && steps < 10) {
-                const hideEdge = first && !blocked && (settings.holdToHide ? ((e.hide && !G.player.hidden) || (e.hideUp && G.player.hidden)) : e.hide);
-                G.step({ x: cont.x, y: cont.y, hopHeld: cont.hopHeld, act: first && !blocked && e.act, hide: hideEdge, tapHero: first && !blocked && (e.tapHero || e.neigh) });
+                const edges = first ? presses.consume() : {};
+                const hideEdge = first && !blocked && (settings.holdToHide ? (edges.hide && !G.player.hidden) : edges.hide);
+                const hideRelease = first && !blocked && settings.holdToHide && !!edges.hideUp;
+                G.step({ x: cont.x, y: cont.y, hopHeld: cont.hopHeld, act: first && !blocked && edges.act, hide: hideEdge, hideRelease, tapHero: first && !blocked && (edges.tapHero || edges.neigh) });
                 first = false; acc -= STEP; steps++;
             }
             if (steps >= 10) acc = 0;
@@ -430,18 +446,22 @@ export function createGame({ host = document.body, assetBase = './skoldhast/', r
                     });
                 }
             }
+            G.guidance = story.guidance();
             const snap = snapshot(G.player, acc / STEP, G.terrain, G.time);
             view.render(snap, dt);
             ui.setContext(G.context?.label, G.player.hidden);
             guide.show(!ui.dialogueOpen() && !ui.panelOpen() && !G.busy && !G.vista);
-            guide.goal(story.goal());
+            guide.goal(G.guidance.goal);
+            guide.context(G.guidance);
             guide.update();
             if (audio) {
                 const p = G.player;
                 audio.setMotion({ speed01: Math.min(1, Math.abs(p.vx) / 1200), underwater: p.mode === 'swim' && p.submerge > 0.7, hidden: p.hidden });
-                plankNotes(p, now);
+                audio.setEnvironment(G.sceneId === 'kelp' ? 'kelp' : G.sceneId === 'viken' ? 'bay' : p.x >= 80 * HL ? 'beach' : 'steppe');
             }
         } else if (mode === 'table') {
+            presses.clear();
+            audio?.setEnvironment('table');
             table.tick(dt);
             // the world shows only while the table fades in or out
             const showWorld = !table.opaque;
@@ -450,23 +470,11 @@ export function createGame({ host = document.body, assetBase = './skoldhast/', r
             const e = input.consume();
             if (ui.dialogueOpen() && e.act) ui.advance();
         } else {
+            presses.clear();
             input.consume();
         }
         app.render();
         if (debug) debugFrame(performance.now() - t0, dt);
-    }
-
-    // Spången (O3): each plank is a note of Sköldhästens visa; a steady pace plays the tune
-    function plankNotes(p, now) {
-        const sp = p.surface;
-        if (!sp || !sp.planks || !sp.hollow || G.sceneId !== 'land' || p.mode !== 'ground') { lastPlank = -1; return; }
-        const k = Math.floor((p.x - sp.pts[0][0] - 40) / 64);
-        if (k === lastPlank || k < 0) return;
-        lastPlank = k;
-        if (now - plankAt < 85) return; // at a full gallop some planks are skipped
-        plankAt = now;
-        const deg = audioTheme?.degrees;
-        audio.note?.(deg && deg.length ? deg[k % deg.length] : k % 7, { inst: 'plank' });
     }
 
     function debugFrame(ms, dt) {
@@ -490,11 +498,11 @@ export function createGame({ host = document.body, assetBase = './skoldhast/', r
         G.on('*', (type, e) => {
             if (!audio) return;
             switch (type) {
-                case 'hoof': audio.sfx('hoof', { surface: e.hollow ? 'plank' : e.wading ? 'shallow' : e.surface, speed01: Math.min(1, e.speed / 1200) }); break;
+                case 'hoof': audio.sfx('hoof', { surface: e.hollow ? 'pier' : e.wading ? 'shallow' : e.surface, foot: e.foot, speed01: Math.min(1, e.speed / 1200) }); break;
                 case 'splashIn': audio.sfx('splash', { size: e.size ?? 0.6 }); break;
                 case 'splashOut': audio.sfx('drip'); break;
                 case 'dolphin': audio.sfx('splash', { size: 0.8 }); audio.stinger('leap'); break;
-                case 'paddle': audio.sfx('swim'); break;
+                case 'paddle': audio.sfx('swim', { pan: (e.side || 0) * 0.2, gain: e.surface ? 0.9 : 0.7 }); break;
                 case 'streckStart': audio.sfx('pencil', { len: 0.8 }); break;
                 case 'ink': if (G.time > inkT) { inkT = G.time + 0.18; audio.sfx('pencil', { len: 0.2 }); } break;
                 case 'leapStart': audio.sfx('whoosh'); if (e.big) audio.stinger('leap'); break;
@@ -515,6 +523,11 @@ export function createGame({ host = document.body, assetBase = './skoldhast/', r
                 case 'pickup': audio.sfx('pickup'); break;
                 case 'colorin': audio.sfx('colorin'); break;
                 case 'shellNote': audio.note?.(e.note, { inst: 'shell' }); break;
+                case 'plankNote': {
+                    const degrees = audioTheme?.degrees;
+                    audio.note?.(degrees?.length ? degrees[e.note % degrees.length] : e.note % 7, { inst: 'plank' });
+                    break;
+                }
                 case 'shellTune': audio.phrase?.(8); break;
                 case 'schoolFollow': audio.sfx('sparkle'); break;
                 case 'flattened': audio.sfx('thud'); break;
@@ -528,7 +541,7 @@ export function createGame({ host = document.body, assetBase = './skoldhast/', r
         G.on('pickup', () => updatePencils());
         G.on('colorin', () => updatePencils());
         G.on('checkpoint', () => saveNow());
-        G.on('scene', () => { if (!G.vista) saveNow(); });
+        G.on('scene', () => { updatePencils(); if (!G.vista) saveNow(); });
         G.on('neigh', () => {
             if (G.puz.neighs.land && G.puz.neighs.water && !G.flags.has('exp_gnagg')) {
                 G.flag('exp_gnagg'); G.puz.tally += 1;
@@ -537,7 +550,11 @@ export function createGame({ host = document.body, assetBase = './skoldhast/', r
         });
         G.on('shellTune', () => ui.toast('♪ Sköldhästens visa ♪', 3000));
     }
-    function updatePencils() { if (ui && G) ui.setPencils(countPencils(G), totalPencils(G)); }
+    function updatePencils() {
+        if (!ui || !G) return;
+        const region = pencilProgress(G).find(r => r.id === G.sceneId);
+        if (region) ui.setPencils(region.found, region.total, region.title);
+    }
 
     // --------------------------------------------------------------------------------
     // Handlers for the UI
@@ -547,15 +564,16 @@ export function createGame({ host = document.body, assetBase = './skoldhast/', r
         if (G.flags.has('kelp_entered')) visited.add('kelp');
         if (G.flags.has('viken_arrived')) visited.add('viken');
         visited.add('land');
-        return { flags: G.flags, objective: story.objective(), tally: G.puz.tally, note, pencils: countPencils(G), pencilsTotal: totalPencils(G), visited };
+        return { flags: G.flags, objective: story.objective(), hint: story.guidance().hint, tally: G.puz.tally, note, pencils: countPencils(G), pencilsTotal: totalPencils(G), pencilRegions: pencilProgress(G).filter(r => visited.has(r.id)), visited };
     }
-    function openJournal() { if (mode !== 'play' || ui.panelOpen()) return; paused = true; audio?.sfx('page'); ui.journal({ ...journalState(), onClose: () => { paused = false; last = performance.now(); } }); }
-    function openPause() { if (mode !== 'play' || ui.panelOpen()) return; paused = true; ui.pauseMenu(); }
+    function openJournal() { if (mode !== 'play' || ui.panelOpen()) return; pause(); audio?.sfx('page'); ui.journal({ ...journalState(), onClose: () => resume() }); }
+    function openPause() { if (mode !== 'play' || ui.panelOpen()) return; pause(); ui.pauseMenu(); }
     function uiHandlers() {
         return {
+            onMenuSound: (kind) => audio?.sfx(kind === 'page' ? 'page' : 'ui', { kind: 'tab' }),
             openJournal: () => openJournal(),
             openPause: () => openPause(),
-            resume: () => { paused = false; last = performance.now(); },
+            resume: () => resume(),
             stuck: () => {
                 // the nearest safe place on this page; the last checkpoint only if there is none
                 const spot = G.safeSpot?.();
@@ -565,14 +583,14 @@ export function createGame({ host = document.body, assetBase = './skoldhast/', r
                     G.goto(cp.scene, cp.spot || cp.at);
                     view.setScene(G.sceneId);
                 }
-                paused = false; last = performance.now();
+                resume();
             },
             quit: () => close(),
             getSettings: () => settings,
             setSetting: (k, v) => { settings[k] = v; applySettings(); saveNow(); },
             setNote: (v) => { note = v.slice(0, 200); saveNow(); },
             nextChapterOpen: (n) => (G.released || 3) > n,
-            onSay: () => audio?.sfx('write'),
+            onSay: (who) => audio?.sfx(who === 'klo' ? 'crabvoice' : 'write'),
             onPencil: (len) => audio?.sfx('pencil', { len })
         };
     }
@@ -597,6 +615,15 @@ export function createGame({ host = document.body, assetBase = './skoldhast/', r
         const r = HL * 0.6 * view.world.scale.x + 20;
         return Math.hypot(x - s.x, y - s.y) < r;
     }
+    function kloOnScreen() {
+        const k = G?.actors?.klo, b = view?.kloBounds();
+        return !!(mode === 'play' && !paused && !G.hideActors && !G.vista && k?.visible && !k.inHole && k.scene === G.sceneId && b && b.maxX > 0 && b.minX < app.screen.width && b.maxY > 0 && b.minY < app.screen.height);
+    }
+    function kloHit(x, y) {
+        if (!kloOnScreen() || G.busy || story?.running() || ui?.dialogueOpen() || ui?.panelOpen()) return false;
+        const b = view.kloBounds(), pad = 8;
+        return x >= b.minX - pad && x <= b.maxX + pad && y >= b.minY - pad && y <= b.maxY + pad;
+    }
 
     function resumeAudio() { try { audio?.resume(); } catch { /* ignore */ } }
 
@@ -607,7 +634,12 @@ export function createGame({ host = document.body, assetBase = './skoldhast/', r
         const sig = { signal: listeners.signal };
         document.addEventListener('visibilitychange', () => {
             if (document.hidden) { saveNow(); audio?.suspend(); pause({ reason: 'visibility' }); }
-            else { resume(); }
+            else {
+                // Hidden tabs may receive no frames, so start the recovery window
+                // at the visibility event rather than the last hidden frame.
+                if (glLostAt) glLostAt = performance.now();
+                resume();
+            }
         }, sig);
         window.addEventListener('pagehide', () => saveNow(), sig);
         const onResize = () => {
@@ -619,15 +651,22 @@ export function createGame({ host = document.body, assetBase = './skoldhast/', r
             if (table?.active) table.layout();
         };
         window.addEventListener('resize', onResize, sig);
-        window.addEventListener('orientationchange', () => { pause({ reason: 'orientation' }); setTimeout(() => { onResize(); resume(); }, 350); }, sig);
+        let orientationTimer = null;
+        sig.signal.addEventListener('abort', () => clearTimeout(orientationTimer), { once: true });
+        window.addEventListener('orientationchange', () => {
+            pause({ reason: 'orientation' });
+            clearTimeout(orientationTimer);
+            orientationTimer = setTimeout(() => { onResize(); resume(); }, 350);
+        }, sig);
         const unlock = () => { if (audio) { resumeAudio(); } };
         for (const t of ['pointerdown', 'pointerup', 'keydown']) el.addEventListener(t, unlock, sig);
     }
 
-    function pause() { paused = true; input?.release(); }
+    function pause() { presses.clear(); paused = true; input?.release(); }
     function resume() {
         if (state !== 'open') return;
         if (ui?.panelOpen()) return;
+        presses.clear(); input?.release();
         paused = false; last = performance.now(); acc = 0;
         if (!document.hidden) resumeAudio();
     }
@@ -637,6 +676,7 @@ export function createGame({ host = document.body, assetBase = './skoldhast/', r
     // --------------------------------------------------------------------------------
     let closing = null;
     function close() {
+        presses.clear();
         if (closing) return closing;
         if (state === 'closed') return Promise.resolve();
         closing = (async () => {
@@ -645,13 +685,13 @@ export function createGame({ host = document.body, assetBase = './skoldhast/', r
             cancelAnimationFrame(raf);
             listeners?.abort();
             input?.destroy();
+            ui?.destroy(); // drawing input/timers must stop before a slow asset unload
             try { audio?.dispose(); } catch { /* ignore */ }
             try { table?.destroy(); } catch { /* ignore */ }
             try { view?.destroy(); } catch { /* ignore */ }
             try { await assets?.close(); } catch { /* ignore */ }
             try { app?.destroy(true, { children: true }); } catch { /* ignore */ }
             guide?.destroy();
-            ui?.destroy();
             el?.remove();
             restoreHost();
             app = null; view = null; ui = null; input = null; audio = null; story = null; table = null; G = null; assets = null; guide = null;
@@ -666,7 +706,7 @@ export function createGame({ host = document.body, assetBase = './skoldhast/', r
     function dispose() { return close(); }
 
     // for automated tests and the ?debug overlay
-    const api = { open, close, pause, resume, dispose, get state() { return state; }, get debug() { return { G, view, ui, app, assets, story, input, guide, heroHit, heroScreen }; } };
+    const api = { open, close, pause, resume, dispose, get state() { return state; }, get debug() { return { G, view, ui, app, assets, story, input, guide, heroHit, heroScreen, kloHit, kloOnScreen }; } };
     window.__skoldhast = api;
     return api;
 }

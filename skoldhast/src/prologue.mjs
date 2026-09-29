@@ -8,7 +8,7 @@
  * one drop rolls upward, and the sköldhäst blinks. The camera dives into the page.
  */
 import { HL } from './sim.mjs';
-import { STORY, UI, HER_TEXT, FAMILY } from './content/sv.mjs';
+import { STORY, UI, HER_TEXT, FAMILY, CAPTIONS } from './content/sv.mjs';
 
 const h = (v) => v * HL;
 const PW = 1000, PH = 760;                 // the paper, in paper units
@@ -36,6 +36,8 @@ export function createTable({ PIXI, app, view, G, ui, audio, assets, makeHero })
     const falling = [];
     let dropT = 0;
     let running = false;
+    let destroyed = false;
+    const pending = new Set();
 
     const sprite = (name, ax = 0.5, ay = 0.5) => {
         const tx = T(name);
@@ -58,6 +60,10 @@ export function createTable({ PIXI, app, view, G, ui, audio, assets, makeHero })
     }
     /** paper units → CSS px */
     const toCss = (x, y) => [paperLayer.x + x * paperLayer.scale.x, paperLayer.y + y * paperLayer.scale.y];
+    const paperBounds = (x, y, width, height) => {
+        const [left, top] = toCss(x, y);
+        return { x: left, y: top, width: width * paperLayer.scale.x, height: height * paperLayer.scale.y };
+    };
 
     // the snapshot camera for her composition
     function pictureCam() {
@@ -190,16 +196,24 @@ export function createTable({ PIXI, app, view, G, ui, audio, assets, makeHero })
         await ui.say([HER_TEXT.lastTwo ? STORY.prolog.klo1 : STORY.prolog.klo1Fallback, STORY.prolog.klo2]);
         picKlo.texture = T('klo-point') || picKlo.texture;
         // three strokes in the margin, outside her finished picture
-        const [gx, gy] = toCss(875, 150);
-        const s = paperLayer.scale.x;
-        const gullPts = await ui.draw({ prompt: UI.drawGull, ghost: ghostM(gx, gy, s * 0.9) });
+        const gullGeometry = () => ({
+            ghost: ghostM(880, 150, 0.9).map(([x, y]) => toCss(x, y)),
+            bounds: paperBounds(790, 70, 190, 160)
+        });
+        const gullPts = await ui.draw({ prompt: UI.drawGull, ...gullGeometry(), getGeometry: gullGeometry, color: '#4d6e8c' });
         const gull = strokeTexture(gullPts, { color: '#4d6e8c' });
         G.userGull = gull.texture; G.userStrokes = { gull: gull.pts };
         const gs = new PIXI.Sprite(gull.texture); gs.x = gull.box.x; gs.y = gull.box.y; gs.scale.set(0.5); onPaper.addChild(gs);
         audio?.sfx('gull');
         tween(2.2, (u) => { gs.x = gull.box.x - u * 260; gs.y = gull.box.y - u * 120 + Math.sin(u * 12) * 10; gs.alpha = 1 - Math.max(0, u - 0.7) / 0.3; });
-        const [cx, cy] = toCss(870, 330);
-        const cloudPts = await ui.draw({ prompt: UI.drawCloud, ghost: ghostCloud(cx, cy).map(([x, y]) => [x * 1, y * 1]) });
+        // The cloud is authored in paper units, just like the gull. Applying
+        // the paper transform to every point keeps its start inside a portrait
+        // phone and prevents an oversized cloud in the finished picture.
+        const cloudGeometry = () => ({
+            ghost: ghostCloud(885, 330).map(([x, y]) => toCss(885 + (x - 885) * 0.85, 330 + (y - 330) * 0.85)),
+            bounds: paperBounds(790, 250, 190, 160)
+        });
+        const cloudPts = await ui.draw({ prompt: UI.drawCloud, ...cloudGeometry(), getGeometry: cloudGeometry });
         const cloud = strokeTexture(cloudPts, { color: '#3b3530' });
         G.userCloud = cloud.texture; G.userStrokes.cloud = cloud.pts;
         const cs = new PIXI.Sprite(cloud.texture); cs.x = cloud.box.x; cs.y = cloud.box.y; cs.scale.set(0.5); onPaper.addChild(cs);
@@ -207,15 +221,14 @@ export function createTable({ PIXI, app, view, G, ui, audio, assets, makeHero })
         // the shoreline, traced along generous anchors from the picture's edge; the crease cuts it short
         const st = G.scenes.land.spots.start;
         const [, wy] = worldToPaper(st.x + h(2.5), G.scenes.land.surfaces.find((q) => q.id === 'beach').pts.at(-1)[1] - 6);
-        const anchors = [];
-        for (let i = 0; i < 6; i++) anchors.push(toCss(PIC.x + PIC.w - 6 + i * 40, wy));
-        await ui.draw({ prompt: UI.drawShore, anchors, stopAt: 3, width: 6, color: '#244f8f' });
+        const shoreGeometry = () => ({ anchors: Array.from({ length: 6 }, (_, i) => toCss(PIC.x + PIC.w - 6 + i * 40, wy)) });
+        await ui.draw({ prompt: UI.drawShore, ...shoreGeometry(), getGeometry: shoreGeometry, stopAt: 3, width: 6, color: '#244f8f' });
         // Prassel. A dead-straight crease flicks across the horizon from outside the page.
         await crease(wy);
         frozen = true;
         audio?.freeze(true);
         audio?.stinger('freeze');
-        ui.caption('(prassel)');
+        ui.caption(CAPTIONS.rustle);
         // one drop rolls upward over the paper
         const d = sprite('p-drop'); d.x = sx + 30; d.y = sy - 60; d.scale.set(0.9); onPaper.addChild(d); drops.push({ s: d, y0: sy - 60, t: 0 });
         await wait(1.6);
@@ -304,14 +317,29 @@ export function createTable({ PIXI, app, view, G, ui, audio, assets, makeHero })
     let journalState = () => ({});
 
     // --- small helpers ------------------------------------------------------------------------
-    function wait(s) { return new Promise((r) => setTimeout(r, s * 1000)); }
+    // Cancellation stops the suspended script here. Resolving a cancelled wait
+    // would let an abandoned prologue keep working on the destroyed table.
+    function wait(s) {
+        return new Promise((resolve) => {
+            if (destroyed) return;
+            const cancel = () => clearTimeout(timer);
+            const timer = setTimeout(() => { pending.delete(cancel); if (!destroyed) resolve(); }, s * 1000);
+            pending.add(cancel);
+        });
+    }
     function tween(dur, fn) {
         return new Promise((resolve) => {
+            if (destroyed) return;
             const t0 = performance.now();
+            let raf = 0;
+            const cancel = () => cancelAnimationFrame(raf);
+            pending.add(cancel);
             const step = () => {
+                if (destroyed) return;
                 const u = Math.min(1, (performance.now() - t0) / (dur * 1000));
                 fn(u);
-                if (u < 1) requestAnimationFrame(step); else resolve();
+                if (u < 1) raf = requestAnimationFrame(step);
+                else { pending.delete(cancel); resolve(); }
             };
             step();
         });
@@ -325,6 +353,12 @@ export function createTable({ PIXI, app, view, G, ui, audio, assets, makeHero })
         get active() { return table.visible; },
         /** true while the table covers the whole screen (the game world need not be drawn) */
         get opaque() { return table.visible && table.alpha >= 0.999; },
-        destroy() { running = false; stop(); table.destroy({ children: true }); }
+        destroy() {
+            if (destroyed) return;
+            destroyed = true;
+            for (const cancel of pending) cancel();
+            pending.clear();
+            running = false; stop(); table.destroy({ children: true });
+        }
     };
 }

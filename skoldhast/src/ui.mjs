@@ -11,7 +11,10 @@
  * The UI never changes the game directly; it returns promises and calls the
  * handlers main.mjs gives it.
  */
-import { UI, NAMES, JOURNAL, HINTS, HER_TEXT, WORD_CODES, FAMILY, MENU } from './content/sv.mjs';
+import { UI, NAMES, JOURNAL, HINTS, HER_TEXT, WORD_CODES, FAMILY, MENU, MAP, DRAWING } from './content/sv.mjs';
+
+import { createMapBook } from './mapbook.mjs';
+import { createDrawing } from './drawing.mjs';
 
 const el = (tag, cls, text) => {
     const n = document.createElement(tag);
@@ -43,6 +46,15 @@ export function createUI(host, { assetBase, handlers }) {
     wantFont();
     // iOS Safari shows :active (the buttons' press) only under a touchstart listener
     root.addEventListener('touchstart', () => {}, { passive: true });
+    // Capturing runs before a button replaces its sheet; keyboard clicks and
+    // touch therefore get the same quiet notebook feedback. Page turns have
+    // their own sound below, including the arrow-key shortcut.
+    root.addEventListener('click', e => {
+        const b = e.target.closest?.('button');
+        if (!b || b.disabled || b.closest('.sk-controls, .sk-dialogue, .sk-draw, .sk-mapbook') || b.matches('.sk-j-tab, .sk-j-arrow, .sk-journal-btn')) return;
+        handlers.onMenuSound?.('ui');
+    }, true);
+    root.addEventListener('change', e => { if (e.target.matches?.('.sk-settings input')) handlers.onMenuSound?.('ui'); });
     // absolute, because a url() inside a CSS variable resolves against the stylesheet, not the page
     const asset = (file) => new URL(`${assetBase}assets/${file}`, document.baseURI).href;
     const img = (name) => asset(`${name}.webp`);
@@ -252,6 +264,7 @@ export function createUI(host, { assetBase, handlers }) {
     const spreadQuery = window.matchMedia?.('(min-width: 900px) and (min-height: 520px)');
     function journal(state) {
         let page = Math.max(0, Math.min(6, state.page ?? 2));
+        let showJournalPage = () => {};
         const pages = [
             (c) => {
                 c.classList.add('sk-j-cover-page');
@@ -274,7 +287,7 @@ export function createUI(host, { assetBase, handlers }) {
             (c) => {
                 c.classList.add('sk-j-known');
                 c.append(el('h3', '', JOURNAL.known));
-                const hint = HINTS[state.objective] || HINTS.explore;
+                const hint = state.hint || HINTS[state.objective] || HINTS.explore;
                 c.append(el('p', 'sk-j-question', hint.q));
                 const note = el('p', 'sk-j-margin');
                 note.style.backgroundImage = `url("${img('ui-claw')}")`;
@@ -291,6 +304,7 @@ export function createUI(host, { assetBase, handlers }) {
                 b1.dataset.focus = '';
                 c.append(b1, note, sketch);
                 c.append(mapSketch(state));
+                c.append(btn(MAP.inspect, () => showJournalPage(4), 'sk-mapbook-open'));
                 c.append(art('npcs', 'klo-point', 'sk-j-klo'));
             },
             (c) => {
@@ -299,7 +313,7 @@ export function createUI(host, { assetBase, handlers }) {
                 for (const id of ['fart', 'djup', 'gom', 'gnagg', 'sprang', 'smak']) if (state.flags.has('exp_' + id)) ul.append(el('li', '', JOURNAL.experiments[id]));
                 if (!ul.children.length) { ul.className = 'sk-j-list'; ul.append(el('li', 'sk-j-small', JOURNAL.empty)); }
                 c.append(ul);
-                const signs = el('p', 'sk-j-tally', state.tally > 0 ? 'Klos skylt: häst' : state.tally < 0 ? 'Klos skylt: SKÖLDPADDA' : 'Klos skyltar: det står lika.');
+                const signs = el('p', 'sk-j-tally', state.tally > 0 ? JOURNAL.tallyHorse : state.tally < 0 ? JOURNAL.tallyTurtle : JOURNAL.tallyEven);
                 // the verdict, with the sign Klo holds up for it
                 const verdict = el('div', 'sk-j-verdict');
                 verdict.append(signs, art('npcs', state.tally > 0 ? 'sign-hast' : state.tally < 0 ? 'sign-skoldpadda' : 'klo-signs', 'sk-j-sign'));
@@ -310,12 +324,7 @@ export function createUI(host, { assetBase, handlers }) {
                 c.append(el('h3', '', JOURNAL.clues));
                 const ul = el('ul', 'sk-j-list sk-j-clues');
                 for (const [k, text] of Object.entries(JOURNAL.clueText)) if (state.flags.has('clue_' + k)) ul.append(el('li', '', text));
-                if (state.flags.has('mark_land') || state.flags.has('mark_sea') || state.flags.has('ch2_open')) {
-                    const m = el('div', 'sk-j-marks');
-                    m.append(el('span', 'sk-j-mark land' + (state.flags.has('mark_land') ? ' got' : '')), el('span', 'sk-j-mark sea' + (state.flags.has('mark_sea') ? ' got' : '')));
-                    m.append(el('p', 'sk-j-small', JOURNAL.halves));
-                    c.append(m);
-                }
+                c.append(createMapBook(state, { paperUrl: img('ui-paper'), onSound: handlers.onMenuSound }));
                 if (!ul.children.length) { ul.className = 'sk-j-list'; ul.append(el('li', 'sk-j-small', '…')); }
                 c.append(ul);
                 c.append(art('npcs', 'klo-map-corner', 'sk-j-klo'));
@@ -342,6 +351,10 @@ export function createUI(host, { assetBase, handlers }) {
                 const pc = el('p', 'sk-j-pencils', `${UI.pencils}: ${state.pencils} / ${state.pencilsTotal}`);
                 pc.prepend(icon('pencil'));
                 c.append(pc);
+                if (state.pencilRegions?.length) {
+                    const regions = list(state.pencilRegions.filter(r => r.total).map(r => UI.pencilRegion(r.title, r.found, r.total)), 'sk-j-list sk-j-small sk-j-pencil-regions');
+                    c.append(regions);
+                }
                 c.append(art('table', 'pencils-lying', 'sk-j-crayons'));
             }
         ];
@@ -474,6 +487,7 @@ export function createUI(host, { assetBase, handlers }) {
                 page = target;
                 const now = shown();
                 if (now[0] === was[0] && now[now.length - 1] === was[was.length - 1]) { marks(); return; }
+                handlers.onMenuSound?.('page');
                 settle();
                 if (lessMotion()) { layout(); return; }
                 turn(now[0] > was[0] ? 1 : -1);
@@ -484,6 +498,7 @@ export function createUI(host, { assetBase, handlers }) {
                 const s = spreadOf(page) + d;
                 go(s <= 0 ? 0 : 2 * s - 1);
             }
+            showJournalPage = go;
             layout();
             // turning the phone (or resizing the window) switches between one page and a spread
             const onMode = () => { if (card.isConnected) layout(); else unlisten(); };
@@ -502,9 +517,9 @@ export function createUI(host, { assetBase, handlers }) {
         // a tiny pencil map: the regions visited, and the fold between the kelp forest and the bay
         const d = el('div', 'sk-j-map');
         d.append(el('span', 'sk-j-map-title', MENU.map));
-        const regions = [['Stäppen', 'land'], ['Stranden', 'land'], ['Kelpskogen', 'kelp'], ['Spegelviken', 'viken']];
+        const regions = MENU.regions;
         for (const [name, id] of regions) {
-            if (id === 'viken') d.append(el('span', 'sk-j-fold', state.flags.has('unfolded') ? '' : '— veck —'));
+            if (id === 'viken') d.append(el('span', 'sk-j-fold', state.flags.has('unfolded') ? '' : MENU.fold));
             d.append(el('span', `sk-j-region r-${id}` + (state.visited.has(id) ? ' seen' : ''), name));
         }
         return d;
@@ -704,92 +719,8 @@ export function createUI(host, { assetBase, handlers }) {
     // ---------------------------------------------------------------------------
     // Drawing overlay: Alva's pencil (prologue strokes, the final stroke)
     // ---------------------------------------------------------------------------
-    const drawLayer = el('div', 'sk-draw');
-    const drawCanvas = el('canvas');
-    const drawPrompt = el('div', 'sk-draw-prompt');
-    drawLayer.append(drawCanvas, drawPrompt);
-    root.appendChild(drawLayer);
-    /**
-     * opts: { prompt, ghost: [[x,y]...] in CSS px (free drawing over a faint ghost),
-     *         anchors: [[x,y]...] (trace/tap along generous anchors), color, width }
-     * Resolves with the drawn points (CSS px).
-     */
-    function draw(opts) {
-        const W = host.clientWidth, H = host.clientHeight;
-        const dpr = Math.min(2, window.devicePixelRatio || 1);
-        drawCanvas.width = W * dpr; drawCanvas.height = H * dpr;
-        drawCanvas.style.width = W + 'px'; drawCanvas.style.height = H + 'px';
-        const ctx = drawCanvas.getContext('2d');
-        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-        drawPrompt.textContent = opts.prompt || '';
-        drawLayer.classList.add('on');
-        const pts = [];
-        let anchorsHit = 0;
-        const anchors = opts.anchors || null;
-        const redraw = () => {
-            ctx.clearRect(0, 0, W, H);
-            if (opts.ghost) {
-                ctx.save(); ctx.globalAlpha = 0.28; ctx.strokeStyle = '#6b635a'; ctx.lineWidth = 5; ctx.setLineDash([10, 9]); ctx.lineCap = 'round';
-                ctx.beginPath(); opts.ghost.forEach(([x, y], i) => (i ? ctx.lineTo(x, y) : ctx.moveTo(x, y))); ctx.stroke(); ctx.restore();
-            }
-            if (anchors) {
-                anchors.forEach(([x, y], i) => {
-                    ctx.beginPath(); ctx.arc(x, y, 22, 0, Math.PI * 2);
-                    ctx.fillStyle = i < anchorsHit ? 'rgba(59,53,48,0.55)' : 'rgba(255,210,122,0.45)'; ctx.fill();
-                    ctx.lineWidth = 2; ctx.strokeStyle = '#3b3530'; ctx.stroke();
-                });
-            }
-            if (pts.length > 1) {
-                ctx.strokeStyle = opts.color || '#3b3530'; ctx.lineWidth = opts.width || 5; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
-                ctx.beginPath(); pts.forEach(([x, y], i) => (i ? ctx.lineTo(x, y) : ctx.moveTo(x, y))); ctx.stroke();
-            }
-        };
-        redraw();
-        return new Promise((resolve) => {
-            let down = false;
-            const finish = () => {
-                drawLayer.classList.remove('on');
-                drawLayer.onpointerdown = drawLayer.onpointermove = drawLayer.onpointerup = drawLayer.onpointercancel = null;
-                window.removeEventListener('keydown', onKey);
-                resolve(pts.length > 1 ? pts.slice() : (opts.ghost ? opts.ghost.slice() : anchors ? anchors.slice() : []));
-            };
-            const hitAnchor = (x, y) => {
-                if (!anchors) return;
-                while (anchorsHit < anchors.length && Math.hypot(anchors[anchorsHit][0] - x, anchors[anchorsHit][1] - y) < 46) {
-                    anchorsHit++; handlers.onPencil?.(0.15);
-                    if (opts.stopAt && anchorsHit >= opts.stopAt) { down = false; finish(); return; }
-                }
-                if (anchorsHit >= anchors.length) setTimeout(finish, 250);
-            };
-            drawLayer.onpointerdown = (e) => {
-                down = true; drawLayer.setPointerCapture?.(e.pointerId);
-                pts.push([e.offsetX, e.offsetY]); hitAnchor(e.offsetX, e.offsetY); redraw();
-            };
-            drawLayer.onpointermove = (e) => {
-                if (!down) return;
-                const last = pts[pts.length - 1];
-                if (!last || Math.hypot(e.offsetX - last[0], e.offsetY - last[1]) > 3) { pts.push([e.offsetX, e.offsetY]); handlers.onPencil?.(0.05); }
-                hitAnchor(e.offsetX, e.offsetY); redraw();
-            };
-            drawLayer.onpointerup = drawLayer.onpointercancel = () => {
-                if (!down) return;
-                down = false;
-                if (anchors) { if (anchorsHit >= anchors.length) finish(); return; }
-                // a free stroke: accepted whatever it is (a too-short one becomes the ghost shape)
-                if (pts.length < 6) pts.length = 0;
-                finish();
-            };
-            // keyboard: Enter/space draws it for you (plan: keyboard users confirm anchors)
-            const onKey = (e) => {
-                if (e.key === 'Enter' || e.key === ' ') {
-                    e.preventDefault();
-                    if (anchors) { anchorsHit = opts.stopAt || anchors.length; pts.length = 0; anchors.slice(0, anchorsHit).forEach((a) => pts.push(a)); redraw(); setTimeout(finish, 300); }
-                    else { pts.length = 0; finish(); }
-                }
-            };
-            window.addEventListener('keydown', onKey);
-        });
-    }
+    const drawing = createDrawing(root, { host, words: DRAWING, onPencil: handlers.onPencil, onUiSound: handlers.onMenuSound });
+    const draw = opts => drawing.draw(opts);
 
     // ---------------------------------------------------------------------------
     return {
@@ -799,7 +730,11 @@ export function createUI(host, { assetBase, handlers }) {
         panelOpen: () => panel.classList.contains('on'),
         dialogueOpen: () => !!dlgResolve,
         advance,
-        setPencils(n, total) { pencilCount.textContent = n ? `✎ ${n}/${total}` : ''; },
+        setPencils(n, total, region = '') {
+            pencilCount.textContent = total ? UI.pencilBadge(n, total) : '';
+            pencilCount.title = UI.pencilRegion(region || UI.pencils, n, total);
+            pencilCount.setAttribute('aria-label', pencilCount.title);
+        },
         setContext(label, hidden) {
             const l = label || UI.hop;
             if (actBtn.textContent !== l) actBtn.textContent = l;
@@ -808,6 +743,6 @@ export function createUI(host, { assetBase, handlers }) {
         },
         showControls(on) { controls.classList.toggle('off', !on); hud.classList.toggle('off', !on); },
         setBigText(on) { root.classList.toggle('big-text', !!on); },
-        destroy() { root.remove(); }
+        destroy() { drawing.destroy(); root.remove(); }
     };
 }

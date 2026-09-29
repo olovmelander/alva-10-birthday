@@ -392,7 +392,7 @@ html.skoldhast-lock, html.skoldhast-lock body { overflow: hidden !important; ove
 .sk-pbtn.sk-j-arrow::before { inset: auto; left: 50%; top: 50%; width: 42px; height: 42px; margin: -21px 0 0 -21px;
     background: var(--sk-icons) 33.333% 33.333% / 700% 400% no-repeat; }
 .sk-pbtn.sk-j-arrow:first-child::before { transform: scaleX(-1); }
-.sk-j-dots { flex: 1; text-align: center; font-size: 19px; color: rgba(244, 234, 210, 0.92); }
+.sk-j-dots { white-space: nowrap; flex: 1; text-align: center; font-size: 19px; color: rgba(244, 234, 210, 0.92); }
 .sk-journal .sk-close { flex: none; min-width: 104px; min-height: 50px; }
 
 /* a two-page spread on a wide screen */
@@ -729,7 +729,8 @@ html.skoldhast-lock, html.skoldhast-lock body { overflow: hidden !important; ove
 @media (max-width: 380px) {
     .sk-panel { padding-left: max(8px, env(safe-area-inset-left)); padding-right: max(12px, env(safe-area-inset-right)); }
     .sk-journal { padding-left: 16px; padding-right: 8px; } .sk-j-page { padding-left: 20px; padding-right: 14px; }
-    .sk-j-tab { min-width: 0; padding: 2px 2px 5px; }
+    .sk-j-tabs { overflow-x: auto; overflow-y: hidden; scrollbar-width: thin; }
+    .sk-j-tab { flex: 0 0 44px; min-width: 44px; padding: 2px 2px 5px; }
 }
 
 /* --- guidance: the goal note, Klo's hints, thought bubbles, tips (src/guide.mjs) --- */
@@ -739,7 +740,7 @@ html.skoldhast-lock, html.skoldhast-lock body { overflow: hidden !important; ove
 .sk-guide-top { position: absolute; left: 0; right: 0; top: max(10px, env(safe-area-inset-top)); display: flex; flex-direction: column; align-items: center;
     gap: 10px; padding: 0 max(12px, env(safe-area-inset-right)) 0 max(12px, env(safe-area-inset-left)); pointer-events: none; }
 /* the pencil count becomes a small badge on the journal button, so the note can use the width */
-.sk-pencils { position: absolute; left: calc(max(12px, env(safe-area-inset-left)) + 30px); top: calc(max(10px, env(safe-area-inset-top)) + 36px);
+.sk-pencils { position: absolute; left: calc(max(12px, env(safe-area-inset-left)) + 8px); top: calc(max(10px, env(safe-area-inset-top)) + 36px);
     padding: 1px 6px; border-radius: 9px; font-size: 12px; line-height: 16px; color: #3b3530; background: #fdf6dc; box-shadow: inset 0 0 0 1.5px rgba(59,53,48,0.55); z-index: 1; }
 .sk-pencils { font-size: 14px; background: #fbe89a; border-radius: 3px 8px 4px 7px; transform: rotate(-6deg);
     box-shadow: inset 0 0 0 1.5px rgba(59, 53, 48, 0.6), 0 2px 3px rgba(40, 30, 20, 0.25); }
@@ -834,3 +835,128 @@ html.skoldhast-lock, html.skoldhast-lock body { overflow: hidden !important; ove
 
 /* --- the stick asks for a full gallop (input.mjs toggles .gallop) --- */
 .sk-stick-base.gallop .sk-stick-knob { filter: drop-shadow(0 0 7px rgba(246, 193, 74, 0.95)) drop-shadow(0 0 2px rgba(224, 120, 42, 0.9)); }
+
+/* Notebook: textured, individually inspectable map fragments. */
+.sk-mapbook { width: 100%; box-sizing: border-box; margin: 3px 0 15px; color: var(--sk-ink); }
+.sk-mapbook-heading { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 3px 10px; }
+.sk-mapbook-heading h4 { margin: 0; font-size: calc(20px * var(--fz)); }
+.sk-mapbook-count { font-size: calc(15px * var(--fz)); color: var(--sk-soft); }
+.sk-mapbook-stage { overflow: hidden; margin: 7px 0 9px; border: 1px solid #c3b69a; border-radius: 3px 7px 4px 8px;
+    background: repeating-linear-gradient(35deg, #d0c6af33 0 1px, transparent 1px 7px), #ded5bf55;
+    box-shadow: inset 0 1px 5px #6c594b1c; }
+.sk-mapbook-stage svg { display: block; width: 100%; height: auto; aspect-ratio: 32 / 21; max-height: 300px; }
+.sk-mapbook .map-labels { font-family: 'Patrick Hand', cursive; font-size: 22px; }
+.sk-mapbook .map-labels .minor { font-size: 16px; }
+.sk-map-piece { cursor: pointer; }
+.sk-mapbook-pieces { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 5px; }
+.sk-mapbook-piece, .sk-mapbook-tool { font: inherit; color: inherit; min-height: 44px; border: 1px solid #aaa185;
+    border-radius: 3px 6px 4px 5px; background: var(--sk-paper) #f8f3e6; cursor: pointer; }
+.sk-mapbook-piece { display: flex; align-items: center; justify-content: center; gap: 4px; padding: 6px 5px;
+    font-size: calc(15px * var(--fz)); line-height: 1.1; }
+.sk-mapbook-piece > span:last-child { min-width: 0; overflow-wrap: anywhere; }
+@media (max-width: 340px) {
+    .sk-mapbook-pieces { grid-template-columns: 1fr; }
+    .sk-j-nav { gap: 6px; }
+    .sk-j-arrow { width: 48px; }
+    .sk-journal .sk-close { min-width: 84px; }
+    .sk-j-dots { font-size: 17px; min-width: 36px; }
+}
+.sk-mapbook-piece-icon { flex: none; width: 17px; font-size: 25px; color: #58787a; }
+.sk-mapbook-piece.land .sk-mapbook-piece-icon { color: #687b51; }
+.sk-mapbook-piece.corner .sk-mapbook-piece-icon { color: #98713a; }
+.sk-mapbook-piece.selected { background-color: #e5ebd9; border: 2px solid #617d57; box-shadow: inset 0 -4px #8ca76c44; }
+.sk-mapbook-piece:disabled { color: #887d69; cursor: default; background: #ded8c644; border-style: dashed; }
+.sk-mapbook-piece:disabled .sk-mapbook-piece-icon { opacity: .3; }
+.sk-mapbook-tools { display: flex; flex-wrap: wrap; gap: 6px; margin: 7px 0; }
+.sk-mapbook-pan { display: flex; justify-content: center; gap: 6px; margin: 7px 0; }
+.sk-mapbook .reset { width: 100%; font-size: 17px; }
+.sk-mapbook [hidden] { display: none !important; }
+.sk-mapbook-tool { min-width: 44px; padding: 5px 10px; font-size: 22px; }
+.sk-mapbook-tool.overview { flex: 1; font-size: calc(17px * var(--fz)); }
+.sk-mapbook-tool:disabled { opacity: .4; cursor: default; }
+.sk-mapbook button:focus-visible { outline: 3px solid #b88436; outline-offset: 3px; }
+.sk-mapbook-detail { min-height: 92px; padding: 8px 11px; border-left: 3px solid #b4bb99; background: #fff9e66e; }
+.sk-mapbook-detail strong { display: block; font-size: calc(19px * var(--fz)); font-weight: normal; }
+.sk-mapbook-found { display: block; color: var(--sk-soft); font-size: calc(15px * var(--fz)); }
+.sk-mapbook-detail p { margin: 5px 0 0; font-size: calc(17px * var(--fz)); line-height: 1.25; }
+.sk-mapbook-open { font-size: calc(18px * var(--fz)); align-self: flex-start; }
+/* Drawing: a paper draft pad, clear next steps and touch-sized actions. */
+.sk-draw { isolation: isolate; outline: none; }
+.sk-draw.free { background: rgba(49, 43, 32, .18); }
+.sk-draw-canvas { z-index: 1; touch-action: none; }
+.sk-draw-pad { position: absolute; z-index: 0; background: var(--sk-paper) #fffaf0; background-size: 256px;
+    border: 2px solid rgba(104, 89, 69, .45); border-radius: 7px; box-sizing: border-box;
+    box-shadow: 0 14px 34px rgba(42, 35, 27, .2), inset 0 0 0 6px rgba(255,255,255,.4); pointer-events: none; }
+.sk-draw.guided .sk-draw-pad { display: none; }
+.sk-draw-toolbar { position: absolute; z-index: 2; top: max(10px, env(safe-area-inset-top)); left: 50%; transform: translateX(-50%);
+    width: min(620px, calc(100% - 28px)); box-sizing: border-box; padding: 10px 18px 9px; text-align: center;
+    color: #3b3530; background: var(--sk-paper) #fbf8f1; background-size: 256px; border-radius: 5px;
+    box-shadow: 0 4px 14px rgba(42,35,27,.17); pointer-events: none; }
+.sk-draw .sk-draw-prompt { position: static; transform: none; margin: 0; padding: 0; white-space: normal;
+    max-width: none; background: none; box-shadow: none; font-size: calc(23px * var(--fz)); line-height: 1.12; }
+.sk-draw .sk-draw-prompt::before { display: none; }
+.sk-draw-hint { margin: 5px 0 0; font-size: calc(17px * var(--fz)); line-height: 1.2; }
+.sk-draw-keyboard { margin: 3px 0 0; font-size: 13px; line-height: 1.15; opacity: .65; }
+.sk-draw-progress { display: inline-block; min-width: 128px; margin-top: 6px; padding: 2px 12px; border: 1px solid #b8bea8;
+    border-radius: 12px; font-size: 16px; line-height: 1.2; background: linear-gradient(90deg, #dbe5cc calc(var(--draw-progress, 0) * 100%), #f4f0e4 0); }
+.sk-draw-actions { position: absolute; z-index: 2; bottom: max(12px, env(safe-area-inset-bottom)); left: 50%; transform: translateX(-50%);
+    width: min(490px, calc(100% - 28px)); display: flex; justify-content: center; gap: 9px; }
+.sk-draw-actions button { flex: 1; min-height: 48px; min-width: 0; max-width: 180px; margin: 0; padding: 8px 10px;
+    font-size: calc(18px * var(--fz)); line-height: 1.05; box-sizing: border-box; box-shadow: 0 5px 14px rgba(42,35,27,.16); }
+.sk-draw-actions button:disabled { opacity: .52; cursor: default; }
+.sk-draw-actions button:focus-visible { outline: 3px solid #bf8736; outline-offset: 4px; }
+.sk-draw.preview .sk-draw-done { background-color: #dce8ce; }
+.sk-draw [hidden] { display: none !important; }
+@media (orientation: landscape) and (max-height: 450px) {
+    .sk-draw-toolbar { top: max(7px, env(safe-area-inset-top)); padding: 7px 14px 6px; }
+    .sk-draw .sk-draw-prompt { font-size: calc(21px * var(--fz)); }
+    .sk-draw-hint { margin-top: 3px; font-size: calc(16px * var(--fz)); }
+    .sk-draw-keyboard { display: none; }
+    .sk-draw-actions { bottom: max(8px, env(safe-area-inset-bottom)); }
+}
+
+/* The current action shares its state with the world marker and notebook hint. */
+.sk-context-guide { position: absolute; right: max(18px, env(safe-area-inset-right));
+    top: max(110px, var(--sk-guide-free, 110px)); bottom: auto; width: min(294px, calc(100% - 36px));
+    box-sizing: border-box; padding: 9px 12px; background: var(--sk-paper) #faf3dc; background-size: 256px;
+    color: #3b3931; border: 1px solid #b9af93; border-radius: 4px 8px 5px 7px;
+    box-shadow: 0 3px 7px #46372524; pointer-events: none; font: 17px/1.2 var(--sk-hand); }
+.sk-context-text, .sk-context-control { display: block; }
+.sk-context-control { margin-top: 4px; color: #52653d; font-size: 15px; }
+.sk-context-guide[data-action="hide"], .sk-context-guide[data-action="emerge"] { border-left: 4px solid #758960; }
+.sk-context-progress { display: flex; align-items: center; gap: 9px; margin-top: 6px; font-size: 14px; }
+.sk-context-progress-label { flex: 1; }
+.sk-context-meter { flex: none; width: 76px; height: 7px; border: 0; border-radius: 6px; overflow: hidden; background: #ded8bf; color: #758960; appearance: none; }
+.sk-context-meter::-webkit-progress-bar { background: #ded8bf; }
+.sk-context-meter::-webkit-progress-value { background: #758960; }
+.sk-context-meter::-moz-progress-bar { background: #758960; }
+.sk-context-guide[hidden], .sk-context-guide [hidden] { display: none !important; }
+.sk-guide:has(.sk-tip.on) .sk-context-guide { visibility: hidden; }
+.big-text .sk-context-guide { font-size: 20px; }
+.big-text .sk-context-control { font-size: 17px; }
+@media (orientation: landscape) {
+    .sk-context-guide { top: auto; right: max(18px, env(safe-area-inset-right));
+        bottom: calc(max(18px, env(safe-area-inset-bottom)) + 188px); width: min(276px, calc(100% - 36px)); }
+}
+
+.sk-guide:has(.sk-hintbubble.on) .sk-context-guide, .sk-ui:has(.sk-toast.on) .sk-context-guide { visibility: hidden; }
+
+@media (orientation: landscape) {
+    .sk-context-guide[data-side="left"] { left: max(18px, env(safe-area-inset-left)); right: auto; }
+}
+@media (orientation: landscape) and (max-height: 520px) {
+    .sk-j-page:has(.sk-mapbook) > h3 { display: none; }
+    .sk-mapbook-workspace { display: grid; grid-template-columns: minmax(0, 1fr) minmax(200px, .7fr); gap: 6px 14px; align-items: start; }
+    .sk-mapbook-heading { margin-bottom: 6px; }
+    .sk-mapbook-stage { grid-column: 1; grid-row: 1 / span 3; position: sticky; top: 0; margin: 0; }
+    .sk-mapbook-stage svg { height: min(176px, calc(100vh - 214px)); max-height: none; aspect-ratio: auto; }
+    .sk-mapbook-pieces, .sk-mapbook-tools, .sk-mapbook-pan { grid-column: 2; margin: 0; }
+    .sk-mapbook-piece-icon { display: none; }
+    .sk-mapbook-tool.overview { flex-basis: 100%; }
+    .sk-mapbook-detail { margin-top: 4px; }
+}
+
+@media (max-width: 420px) {
+    .sk-mapbook-piece-icon { display: none; }
+    .big-text .sk-mapbook-pieces { grid-template-columns: 1fr; }
+}

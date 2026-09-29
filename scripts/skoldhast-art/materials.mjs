@@ -456,12 +456,12 @@ function matWetSand() {
     const patch = fbm(M, M, 21, [[4, 4, 0.5], [8, 8, 0.3], [16, 16, 0.2]], 1.2);
     const streak = fbm(M, M, 22, [[5, 22, 0.55], [9, 40, 0.45]], 1.8);
     hatchT(S, P.sand, { angle: -0.03, gap: 2.0, len: [50, 130], width: 2.1, pressure: 1, alpha: [0.6, 1], grain: 0.6 });
-    hatchT(S, P.wetSand, { angle: -0.02, gap: 1.9, len: [50, 140], width: 2.1, pmap: fmap(patch, (v) => 0.74 + 0.16 * v), alpha: [0.6, 1], grain: 0.65 });
+    hatchT(S, P.wetSand, { angle: -0.02, gap: 1.9, len: [50, 140], width: 2.1, pmap: fmap(patch, (v) => 0.57 + 0.16 * v), alpha: [0.6, 1], grain: 0.65 });
     hatchT(S, P.wetSand, { angle: 0.35, gap: 3.2, len: [20, 50], width: 1.5, pressure: 0.3 });
     burnishT(S, null, 2, 0.7);
     // a few long horizontal streaks: darker ones and paler ones
     hatchT(S, P.sandShadow, { angle: -0.01, angleJitter: 0.008, gap: 3.6, len: [60, 200], width: 1.5, grain: 0.8,
-        pmap: fmap(streak, (v) => smoothstep(0.66, 0.92, v) * 0.6) });
+        pmap: fmap(streak, (v) => smoothstep(0.66, 0.92, v) * 0.42) });
     const r = rng(23);
     const pale = [];
     for (let k = 0; k < 10; k++) {
@@ -486,8 +486,8 @@ function matGrass() {
         count, angle: -Math.PI / 2 + 0.2 + bias, angleJitter: 0.26, len, width, bow: 1.4, pressure, grain: 0.85,
         alpha: [0.55, 1], pmap: fmap(patch, (v) => 0.65 + 0.5 * v)
     });
-    blade(P.grassSilver, 2600, 0.95, [10, 26], 1.5);
-    blade(P.grassGreen, 1200, 0.8, [9, 22], 1.4, 0.05);
+    blade(P.grassSilver, 2600, 0.82, [10, 26], 1.5);
+    blade(P.grassGreen, 1200, 0.7, [9, 22], 1.4, 0.05);
     blade(P.grassOchre, 1000, 0.85, [8, 20], 1.4, -0.1);
     blade(mix(P.grassGreen, P.kelpDark, 0.35), 320, 0.6, [7, 15], 1.25);
     return S;
@@ -506,7 +506,7 @@ function matEarth() {
         band[y * M + x] = layerTone[k];
     }
     hatchT(S, mix(P.earth, P.sand, 0.45), { angle: -0.05, gap: 2.2, len: [30, 90], width: 1.9, pressure: 0.85, grain: 0.85 });
-    hatchT(S, P.earth, { angle: -0.03, gap: 2.2, len: [30, 100], width: 1.8, grain: 0.85, pmap: fmap(band, (v, i) => v * (0.75 + 0.35 * patch[i])) });
+    hatchT(S, P.earth, { angle: -0.03, gap: 2.2, len: [30, 100], width: 1.8, grain: 0.85, pmap: fmap(band, (v, i) => v * (0.57 + 0.3 * patch[i])) });
     hatchT(S, P.earth, { angle: 0.5, gap: 3.6, len: [14, 36], width: 1.4, pmap: fmap(patch, (v) => 0.2 + 0.35 * v) });
     burnishT(S, null, 1, 0.35);
     const r = rng(43);
@@ -524,7 +524,7 @@ function matEarth() {
         for (let x = 0; x <= l; x += 2) pts.push([x0 + x, y0 + Math.sin((x / per) * Math.PI * 2) * amp + wav(x0 + x, j) * 0.8]);
         lines.push({ pts, width: 1.3, alpha: 0.5 + r() * 0.3 });
     }
-    linesT(S, mix(P.woodDark, P.earth, 0.3), lines, { pressure: 0.7, grain: 0.8 });
+    linesT(S, mix(P.woodDark, P.earth, 0.3), lines, { pressure: 0.52, grain: 0.8 });
     dotsT(S, P.woodDark, scatterPts(47, 240, 0.5, 1.3), { rx: 1.1, ry: 0.8, alpha: 0.5 });
     return S;
 }

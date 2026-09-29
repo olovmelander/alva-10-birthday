@@ -13,6 +13,7 @@
  *   audio.resume() / audio.suspend()       // Promises; on gestures / when hidden
  *   audio.setVolumes({ music, sfx, voice })
  *   audio.setArea('table' | 'land' | 'sea' | 'bay' | 'final' | 'quiet')   // crossfades; 'quiet' = no music
+ *   audio.setEnvironment('beach' | 'steppe' | 'kelp' | 'bay' | 'table' | null) // null follows area
  *   audio.setMotion({ speed01, underwater, hidden })                      // every frame, allocation-free
  *   audio.stinger(name) → seconds          // aha reveal chapter freeze plask leap unfold discovery
  *   audio.freeze(on)                       // stop dead / start on the next downbeat
@@ -186,10 +187,12 @@ export const AREAS = Object.freeze(['table', 'land', 'sea', 'bay', 'final', 'qui
 export const STINGERS = Object.freeze(['aha', 'reveal', 'chapter', 'freeze', 'plask', 'leap', 'unfold', 'discovery']);
 export const SFX = Object.freeze(['hoof', 'splash', 'drip', 'shake', 'bubble', 'swim', 'pencil', 'rustle', 'unfold',
     'crabclick', 'neigh', 'blubb', 'snort', 'stamp', 'gull', 'wind', 'whoosh', 'thud', 'latch', 'ratchet', 'gate', 'pop',
-    'page', 'pickup', 'colorin', 'sparkle', 'stopwatch', 'write']);
-export const SURFACES = Object.freeze(['sand', 'wetsand', 'plank', 'grass', 'rock', 'shallow']);
+    'page', 'pickup', 'colorin', 'sparkle', 'stopwatch', 'write', 'ui', 'crabvoice']);
+export const SURFACES = Object.freeze(['sand', 'wetsand', 'plank', 'pier', 'grass', 'rock', 'shallow']);
+export const ENVIRONMENTS = Object.freeze(['beach', 'steppe', 'kelp', 'bay', 'table']);
 // other names the world uses for what is underfoot
-const SURFACE_ALIAS = { wood: 'plank', pier: 'plank', spangen: 'plank', cream: 'plank', seabed: 'wetsand', earth: 'grass', paper: 'grass', glass: 'rock', stone: 'rock', water: 'shallow' };
+const SURFACE_ALIAS = { wood: 'plank', spangen: 'pier', cream: 'plank', seabed: 'wetsand', earth: 'grass', paper: 'grass', glass: 'rock', stone: 'rock', water: 'shallow' };
+const VOICE_SFX = new Set(['crabvoice', 'neigh', 'blubb', 'snort']);
 export const INSTRUMENTS = Object.freeze(['lyre', 'shell', 'plank', 'bell-free']);
 
 // =============================================================================================
@@ -639,15 +642,18 @@ function pluckExcitation(fs, f0, rng, { pos = 0.18, noise = 0.35, soft = 4000 } 
     for (let i = 0; i < E; i++) e[i] -= m;
     return e;
 }
-const LYRE_BODY = [['peak', 190, 1.2, 4], ['peak', 440, 1.5, 3], ['peak', 1250, 2, 2], ['hs', 3800, 0.7, -5], ['hp', 70, 0.7, 0]];
+const LYRE_BODY = [['peak', 190, 0.9, 4.5], ['peak', 440, 1.1, 2.5], ['peak', 1100, 1.4, 1], ['hs', 3100, 0.7, -7], ['hp', 65, 0.7, 0]];
 
 function renderLyre(fs, midi, rng, { dur = 1.6 } = {}) {
     const f0 = mtof(midi);
-    const t60 = 2.8 * Math.pow(150 / f0, 0.3);
-    const p = 0.11 * Math.min(1, Math.pow(650 / f0, 1.4));
-    const exc = pluckExcitation(fs, f0, rng, { pos: rr(rng, 0.15, 0.21), noise: 0.35, soft: 5200 });
+    const t60 = 3.05 * Math.pow(150 / f0, 0.3);
+    const p = 0.135 * Math.min(1, Math.pow(650 / f0, 1.4));
+    const exc = pluckExcitation(fs, f0, rng, { pos: rr(rng, 0.20, 0.27), noise: 0.23, soft: 4100 });
     const x = ksString(fs, f0, dur, { t60, p }, exc);
-    addNoise(x, fs, rng, 0, 0.012, { fc: 2600, q: 0.9, amp: 0.035, attack: 0.0005, tau: 0.0025 }); // the finger
+    // A small wooden soundboard bloom, below the string rather than a second detuned note.
+    const body = peakOf(x) * 0.065;
+    addModes(x, fs, 0.003, [[183, body, 0.028], [367, body * 0.5, 0.018]], 0.003);
+    addNoise(x, fs, rng, 0, 0.015, { fc: 1700, q: 0.7, amp: 0.018, attack: 0.001, tau: 0.003 });
     for (const [type, f, q, g] of LYRE_BODY) filt(x, fs, type, f, q, g);
     dcBlock(x, fs);
     fadeIn(x, fs, 0.0015);
@@ -663,10 +669,10 @@ function renderHarm(fs, midi, rng, { dur = 2.0 } = {}) {
     const ph2 = rng() * TAU;
     for (let i = 0; i < E; i++) {
         const u = (TAU * i) / E;
-        exc[i] = Math.sin(u) + 0.1 * Math.sin(2 * u + ph2) + 0.035 * Math.sin(3 * u);
+        exc[i] = Math.sin(u) + 0.18 * Math.sin(2 * u + ph2) + 0.06 * Math.sin(3 * u);
     }
     const x = ksString(fs, f0, dur, { t60: 3.2 * Math.pow(440 / f0, 0.25), p: 0.012 }, exc);
-    addNoise(x, fs, rng, 0, 0.01, { fc: 3200, q: 1.2, amp: 0.02, attack: 0.0005, tau: 0.002 });
+    addNoise(x, fs, rng, 0, 0.014, { fc: 1900, q: 0.8, amp: 0.012, attack: 0.001, tau: 0.003 });
     filt(x, fs, 'hp', 80, 0.7);
     dcBlock(x, fs);
     fadeIn(x, fs, 0.0035);
@@ -747,7 +753,7 @@ function renderDrum(fs, kind, rng) {
 // ---------------------------------------------------------------------------------------------
 // Reverb impulse: early reflections + a diffuse tail that darkens as it decays (stereo)
 // ---------------------------------------------------------------------------------------------
-function renderReverb(fs, rng, { seconds = 2.2, t60 = 1.8, pre = 0.012 } = {}) {
+function renderReverb(fs, rng, { seconds = 1.85, t60 = 1.45, pre = 0.016 } = {}) {
     const n = Math.round(seconds * fs);
     const out = [new Float32Array(n), new Float32Array(n)];
     for (let c = 0; c < 2; c++) {
@@ -785,8 +791,9 @@ function renderReverb(fs, rng, { seconds = 2.2, t60 = 1.8, pre = 0.012 } = {}) {
 
 // --- hooves -----------------------------------------------------------------------------------
 function renderHoof(fs, rng, surface, speed) {
-    const x = buf(fs, 0.34);
+    const x = buf(fs, surface === 'pier' ? 0.55 : 0.38);
     const hard = 0.55 + 0.45 * speed;
+    const toe = rr(rng, 0.012, 0.022) * (1.1 - speed * 0.35);
     const thump = (f, a, tau) => addTone(x, fs, 0, tau * 7, (t) => f * (1 + 0.35 * Math.exp(-t / 0.02)), (t) => a * envAD(t, 0.0015, tau), rng() * TAU);
     switch (surface) {
         case 'wetsand':
@@ -795,9 +802,16 @@ function renderHoof(fs, rng, surface, speed) {
             addNoise(x, fs, rng, 0, 0.05, { mode: 0, fc: 700, q: 0.7, amp: 0.35, attack: 0.001, tau: 0.012 });
             break;
         case 'plank':
-            addModes(x, fs, 0, [[rr(rng, 172, 188), 0.55, 0.07], [rr(rng, 405, 440), 0.35, 0.05], [rr(rng, 900, 990), 0.18, 0.03], [2100, 0.06, 0.012]]);
-            addNoise(x, fs, rng, 0, 0.03, { fc: 1800, q: 1.2, amp: 0.4 * hard, attack: 0.0004, tau: 0.004 });
+            addModes(x, fs, 0, [[rr(rng, 230, 252), 0.5, 0.042], [rr(rng, 510, 550), 0.27, 0.025], [rr(rng, 1060, 1150), 0.12, 0.017]]);
+            addModes(x, fs, toe, [[rr(rng, 390, 440), 0.22 * hard, 0.018], [1550, 0.055, 0.01]]);
+            addNoise(x, fs, rng, 0, 0.03, { fc: 1600, q: 1.1, amp: 0.3 * hard, attack: 0.0008, tau: 0.004 });
             thump(110, 0.35, 0.03);
+            break;
+        case 'pier':
+            // Broad boards over an air cavity: a lower, longer hollow knock than solid wood.
+            addModes(x, fs, 0, [[rr(rng, 104, 119), 0.65, 0.1], [rr(rng, 245, 275), 0.32, 0.065], [rr(rng, 590, 645), 0.15, 0.038]]);
+            addModes(x, fs, toe, [[rr(rng, 335, 375), 0.25 * hard, 0.042], [1280, 0.05, 0.012]]);
+            addNoise(x, fs, rng, 0, 0.028, { fc: 1450, q: 0.8, amp: 0.35 * hard, attack: 0.0008, tau: 0.005 });
             break;
         case 'grass':
             thump(rr(rng, 90, 110), 0.4, 0.035);
@@ -817,11 +831,19 @@ function renderHoof(fs, rng, surface, speed) {
             thump(rr(rng, 95, 115), 0.55, 0.04);
             addNoise(x, fs, rng, 0.001, 0.12, { fc: rr(rng, 1800, 2600), q: 0.9, amp: 0.55 * hard, attack: 0.003, tau: 0.028, grain: [2600, 0.0006, 0.08] });
     }
+    if (surface === 'sand' || surface === 'wetsand' || surface === 'grass') {
+        // Weight sinks in, then grains/leaves release. Hard contacts push more material aside.
+        addNoise(x, fs, rng, toe, 0.13 + speed * 0.055, {
+            fc: surface === 'wetsand' ? 620 : surface === 'grass' ? 1900 : 1350,
+            q: 0.65, amp: hard * 0.17, attack: 0.015, tau: 0.026 + speed * 0.009,
+            grain: [surface === 'grass' ? 600 : 1400, 0.0014, 0.2]
+        });
+    }
     filt(x, fs, 'hp', 45, 0.7);
     dcBlock(x, fs);
     fadeIn(x, fs, 0.0005);
     fadeOut(x, fs, 0.05);
-    return { ch: [scaleTo(x, 0.5, peakOf(x))], send: surface === 'plank' ? 0.2 : 0.08 };
+    return { ch: [scaleTo(x, surface === 'grass' ? 0.36 : surface === 'sand' ? 0.43 : 0.48, peakOf(x))], send: surface === 'pier' ? 0.22 : surface === 'plank' ? 0.14 : 0.05 };
 }
 function renderStamp(fs, rng) {
     const x = buf(fs, 0.5);
@@ -851,10 +873,13 @@ function renderSplash(fs, rng, size) {
             addNoise(x, fs, rng, 0.004, 0.3, { mode: 1, fc: 380, q: 1.2, amp: 0.5 * s, attack: 0.006, tau: 0.07 });
         }
         filt(x, fs, 'lp', 7500, 0.7);
-        const drops = Math.round(4 + 26 * s);
+        // An irregular curtain of tiny impacts, not a run of identical electronic chirps.
+        addNoise(x, fs, rng, 0.08, dur * 0.8, { mode: 0, fc: 520, q: 0.65, amp: 0.22 + s * 0.15, attack: 0.06, tau: 0.1 + s * 0.13, src: pink(Math.ceil(dur * fs), rng) });
+        const drops = Math.round(5 + 21 * s);
         for (let k = 0; k < drops; k++) {
             const t = rr(rng, 0.05, 0.2 + 1.0 * s);
-            addDrip(x, fs, t, rr(rng, 650, 1400), rr(rng, 1400, 3400), rr(rng, 0.12, 0.3) * Math.exp(-t * 1.2), rr(rng, 0.03, 0.07));
+            const f = rr(rng, 520, 1700);
+            addDrip(x, fs, t, f, f * rr(rng, 1.15, 1.65), rr(rng, 0.035, 0.12) * Math.exp(-t * 1.2), rr(rng, 0.012, 0.04));
         }
         filt(x, fs, 'hp', 60, 0.7);
         dcBlock(x, fs);
@@ -876,18 +901,23 @@ function renderBubble(fs, rng) {
     const count = 1 + Math.floor(rng() * 3.5);
     for (let k = 0; k < count; k++) {
         const t = k === 0 ? 0 : rr(rng, 0.05, 0.32);
-        const f1 = rr(rng, 220, 480);
-        addTone(x, fs, t, 0.16, (u) => f1 * (1 + 1.1 * Math.min(1, u / 0.09)), (u) => (k ? 0.6 : 1) * envAD(u, 0.003, 0.03), rng() * TAU);
+        const f1 = rr(rng, 180, 620);
+        const tau = rr(rng, 0.012, 0.026);
+        addTone(x, fs, t, tau * 7, (u) => f1 * (1 + 0.38 * (1 - Math.exp(-u / 0.009))), (u) => (k ? 0.6 : 1) * envAD(u, 0.0015, tau), rng() * TAU);
+        addNoise(x, fs, rng, t, 0.04, { fc: 480, q: 0.7, amp: 0.12, attack: 0.001, tau: 0.008 });
     }
     filt(x, fs, 'lp', 2200, 0.7);
     fadeOut(x, fs, 0.03);
-    return { ch: [scaleTo(x, 0.34, peakOf(x))], send: 0.25 };
+    return { ch: [scaleTo(x, 0.23, peakOf(x))], send: 0.18 };
 }
 function renderSwim(fs, rng) {
     const x = buf(fs, 0.75);
-    addNoise(x, fs, rng, 0, 0.7, { mode: 0, fc: (t) => 380 + 500 * Math.sin(Math.PI * Math.min(1, t / 0.55)), q: 1.3, amp: 1, tau: (t) => (t < 0.14 ? t / 0.14 : Math.exp(-(t - 0.14) / 0.14)) });
-    addNoise(x, fs, rng, 0.05, 0.4, { fc: 1300, q: 3, amp: 0.12, attack: 0.08, tau: 0.08 });
-    for (let k = 0; k < 2; k++) addTone(x, fs, rr(rng, 0.15, 0.45), 0.12, (u) => 300 * (1 + u * 9), (u) => 0.16 * envAD(u, 0.003, 0.025), 0);
+    addNoise(x, fs, rng, 0, 0.7, { mode: 0, fc: (t) => 310 + 420 * Math.sin(Math.PI * Math.min(1, t / 0.55)), q: 0.8, amp: 1, tau: (t) => (t < 0.105 ? t / 0.105 : Math.exp(-(t - 0.105) / 0.13)) });
+    addNoise(x, fs, rng, 0.08, 0.4, { fc: 1050, q: 0.85, amp: 0.23, attack: 0.055, tau: 0.08, grain: [130, 0.006, 0.4] });
+    for (let k = 0; k < 3; k++) {
+        const f = rr(rng, 270, 600);
+        addDrip(x, fs, rr(rng, 0.16, 0.46), f, f * 1.4, rr(rng, 0.045, 0.095), 0.03);
+    }
     filt(x, fs, 'lp', 1800, 0.7);
     dcBlock(x, fs);
     fadeOut(x, fs, 0.06);
@@ -1127,15 +1157,16 @@ function renderPencil(fs, rng, len = 0.4, speed = 0.6) {
     const n = x.length;
     const nz = white(n, rng);
     const g = grains(n, fs, rng, 500 + 1500 * speed, 0.0007, 0.35);
-    const wob = ctl(n, fs, wobble(rng, 3 + 3 * speed));
-    for (let i = 0; i < n; i++) nz[i] *= g[i] * (0.75 + 0.25 * wob[i]);
+    const wob = ctl(n, fs, wobble(rng, 4 + 5 * speed));
+    const pressure = ctl(n, fs, (t) => 0.64 + 0.36 * Math.pow(Math.sin(TAU * (2.2 + speed) * t + 0.7), 2));
+    for (let i = 0; i < n; i++) nz[i] *= g[i] * (0.66 + 0.34 * wob[i]) * pressure[i];
     const hi = nz.slice();
-    svf(hi, fs, 4200 + 1500 * speed, 0.7, 1);
-    svf(nz, fs, 1800, 1.1, 1);
+    svf(hi, fs, 3400 + 1100 * speed, 0.7, 1);
+    svf(nz, fs, 1250, 0.85, 1);
     const e = ctl(n, fs, (t) => Math.min(1, t / 0.012) * (t > L ? Math.max(0, 1 - (t - L) / 0.025) : 1), 8);
-    for (let i = 0; i < n; i++) x[i] = (hi[i] + 0.35 * nz[i]) * e[i];
-    filt(x, fs, 'hp', 900, 0.7);
-    filt(x, fs, 'lp', 10000, 0.7);
+    for (let i = 0; i < n; i++) x[i] = (hi[i] * 0.65 + 0.65 * nz[i]) * e[i];
+    filt(x, fs, 'hp', 550, 0.7);
+    filt(x, fs, 'lp', 7200, 0.7);
     fadeOut(x, fs, 0.01);
     return { ch: [scaleTo(x, 0.16 + 0.1 * speed, peakOf(x))], send: 0.06 };
 }
@@ -1197,6 +1228,21 @@ function renderPage(fs, rng) {
     fadeOut(x, fs, 0.03);
     return { ch: [scaleTo(x, 0.3, peakOf(x))], send: 0.1 };
 }
+// The notebook is close and small: fingertips, paper and a soft wooden pencil tap.
+function renderUI(fs, rng, { kind = 'tab' } = {}) {
+    const open = kind === 'open';
+    const close = kind === 'close';
+    const confirm = kind === 'confirm';
+    const x = buf(fs, open || close ? 0.3 : 0.16);
+    addNoise(x, fs, rng, 0, open ? 0.22 : 0.09, { fc: open ? 1700 : 1100, q: 0.7, amp: 0.22, attack: 0.009, tau: open ? 0.065 : 0.023, grain: [400, 0.001, 0.3] });
+    const t = close ? 0.07 : 0.012;
+    addModes(x, fs, t, [[close ? 210 : 440, 0.12, 0.016], [close ? 510 : 970, 0.06, 0.009]], 0.002);
+    if (confirm) addModes(x, fs, 0.065, [[660, 0.08, 0.025], [1320, 0.025, 0.016]], 0.004);
+    filt(x, fs, 'lp', 4100);
+    dcBlock(x, fs);
+    fadeOut(x, fs, 0.025);
+    return { ch: [scaleTo(x, 0.115, peakOf(x))], send: 0.035 };
+}
 function renderWrite(fs, rng) {
     const x = buf(fs, 1.25);
     let t = 0.02;
@@ -1217,13 +1263,30 @@ function renderCrabclick(fs, rng) {
     const clicks = 2 + Math.floor(rng() * 2);
     let t = 0;
     for (let k = 0; k < clicks; k++) {
-        addModes(x, fs, t, [[rr(rng, 3300, 3800), 0.5, 0.006], [rr(rng, 5400, 6200), 0.35, 0.004], [rr(rng, 2100, 2400), 0.25, 0.008]], 0.0002);
-        addNoise(x, fs, rng, t, 0.006, { mode: 2, fc: 3000, q: 0.7, amp: 0.4, attack: 0.0001, tau: 0.0008 });
+        addModes(x, fs, t, [[rr(rng, 1800, 2200), 0.5, 0.009], [rr(rng, 3600, 4100), 0.18, 0.004], [rr(rng, 850, 1100), 0.3, 0.014]], 0.0006);
+        addNoise(x, fs, rng, t, 0.008, { fc: 2400, q: 0.7, amp: 0.24, attack: 0.0003, tau: 0.0015 });
         t += rr(rng, 0.045, 0.09);
     }
-    filt(x, fs, 'hp', 800, 0.7);
+    filt(x, fs, 'hp', 450, 0.7);
     fadeOut(x, fs, 0.02);
-    return { ch: [scaleTo(x, 0.32, peakOf(x))], send: 0.12 };
+    return { ch: [scaleTo(x, 0.25, peakOf(x))], send: 0.1 };
+}
+function renderCrabvoice(fs, rng) {
+    const x = buf(fs, 0.62);
+    const count = 3 + Math.floor(rng() * 3);
+    const pitch = rr(rng, 0.9, 1.12);
+    let t = 0;
+    for (let k = 0; k < count; k++) {
+        const lift = k === count - 1 ? 1.16 : 1 - k * 0.025;
+        const a = k & 1 ? 0.62 : 1;
+        addModes(x, fs, t, [[760 * pitch * lift, a * 0.35, 0.025], [1370 * pitch * lift, a * 0.2, 0.015], [2450, a * 0.07, 0.008]], 0.0015);
+        addNoise(x, fs, rng, t, 0.023, { fc: 1650, q: 0.7, amp: a * 0.11, attack: 0.001, tau: 0.005 });
+        t += rr(rng, 0.055, 0.1);
+    }
+    filt(x, fs, 'lp', 4800);
+    dcBlock(x, fs);
+    fadeOut(x, fs, 0.06);
+    return { ch: [scaleTo(x, 0.24, peakOf(x))], send: 0.09 };
 }
 function renderLatch(fs, rng) {
     const x = buf(fs, 0.45);
@@ -1329,6 +1392,7 @@ const SFX_RENDER = {
     rustle: renderRustle,
     unfold: renderUnfold,
     crabclick: renderCrabclick,
+    crabvoice: renderCrabvoice,
     neigh: renderNeigh,
     blubb: renderBlubb,
     snort: renderSnort,
@@ -1342,6 +1406,7 @@ const SFX_RENDER = {
     gate: renderGate,
     pop: renderPop,
     page: renderPage,
+    ui: renderUI,
     pickup: renderPickupNoise,
     colorin: renderColorinNoise,
     sparkle: null, // purely musical
@@ -1349,8 +1414,8 @@ const SFX_RENDER = {
     write: renderWrite
 };
 // how many variants each effect keeps before reusing them (and how many may overlap)
-const SFX_VARIANTS = { drip: 6, bubble: 6, crabclick: 5, ratchet: 5, pop: 3, splash: 2, wind: 2, unfold: 2, gate: 2, shake: 2, blubb: 2 };
-const SFX_POLY = { hoof: 8, drip: 6, bubble: 6, ratchet: 4, pencil: 3, splash: 4 };
+const SFX_VARIANTS = { drip: 6, bubble: 6, crabclick: 5, crabvoice: 5, ratchet: 5, pop: 3, splash: 2, wind: 2, unfold: 2, gate: 2, shake: 2, blubb: 2 };
+const SFX_POLY = { hoof: 8, drip: 6, bubble: 6, ratchet: 4, pencil: 3, splash: 4, crabvoice: 1, ui: 3 };
 
 // --- ambience beds (seamless loops) -------------------------------------------------------------
 function renderBed(fs, rng, name) {
@@ -1410,7 +1475,7 @@ function renderReverseSwell(fs, rng) {
 }
 
 // soft ceiling for the master: linear up to `knee`, approaching `ceil` (< -1 dBFS) smoothly
-function ceilingCurve(n = 4096, knee = 0.62, ceil = 0.87) {
+function ceilingCurve(n = 4096, knee = 0.60, ceil = 0.82) {
     const c = new Float32Array(n);
     const p = (1 - knee) / (ceil - knee);
     for (let i = 0; i < n; i++) {
@@ -1441,6 +1506,7 @@ const PAD_LEVEL = 0.03; // per oscillator
 const DRONE_LEVEL = 0.022;
 const BED_LEVEL = { wind: 0.12, under: 0.2, waves: 0.32, lap: 0.22 };
 const AREA_BEDS = { table: {}, land: { wind: 1 }, sea: { under: 1 }, bay: { lap: 1 }, final: { waves: 1, wind: 0.4 } };
+const ENV_BEDS = { table: {}, beach: { waves: 0.5, wind: 0.2 }, steppe: { wind: 1 }, kelp: { under: 1 }, bay: { lap: 1, wind: 0.12 } };
 const HIDE_MUL = { mel: 0.85, acc: 0.12, pad: 0.3, drum: 0, harm: 0.8, tex: 0.4 };
 const INST_GAIN = { lyre: 0.6, harm: 0.8, shell: 0.55, plank: 0.6 };
 const INST_ALIAS = { lyre: 'lyre', shell: 'shell', plank: 'plank', 'bell-free': 'harm', harm: 'harm' };
@@ -1458,6 +1524,7 @@ function silentAudio() {
         suspend: () => Promise.resolve(),
         setVolumes: noop,
         setArea: noop,
+        setEnvironment: noop,
         setMotion: noop,
         stinger: () => 0,
         freeze: noop,
@@ -1607,8 +1674,13 @@ export function createAudio({ ctx: givenCtx, seed, lifecycle = false, warm = tru
     ambLP.connect(G(0.3, sfxWet));
     const ambBus = G(1, ambLP);
 
-    // voices (recorded lines, if the game adds any): connect sources to audio.voiceInput
+    // Character voices have their own dry AND wet volume paths. Claw taps remain effects.
+    // Optional future recorded lines can still connect to audio.voiceInput.
     const voiceVol = G(1, trim);
+    const voiceVolW = G(1, verbIn);
+    const voiceLanes = LANES.map((p) => Pan(p, voiceVol));
+    const voiceSend = G(0.1, voiceVolW);
+    const voiceLaneFor = (pan) => voiceLanes[Math.round((clamp(pan, -0.6, 0.6) + 0.6) / 0.3)];
 
     // ---- instruments ----------------------------------------------------------------------
     const instCache = new Map();
@@ -1635,7 +1707,7 @@ export function createAudio({ ctx: givenCtx, seed, lifecycle = false, warm = tru
         const n = 25;
         const re = new Float32Array(n);
         const im = new Float32Array(n);
-        for (let k = 1; k < n; k++) im[k] = (1 / k) * (1 + 0.9 * Math.exp(-Math.pow((k - 3) / 1.6, 2))) * (k > 14 ? Math.exp(-(k - 14) / 4) : 1);
+        for (let k = 1; k < n; k++) im[k] = (1 / Math.pow(k, 1.28)) * (1 + 0.45 * Math.exp(-Math.pow((k - 3) / 1.8, 2))) * (k > 10 ? Math.exp(-(k - 10) / 3) : 1);
         return ctx.createPeriodicWave(re, im);
     })();
     const droneWave = (() => {
@@ -1690,10 +1762,10 @@ export function createAudio({ ctx: givenCtx, seed, lifecycle = false, warm = tru
             g.gain.linearRampToValueAtTime(0, end);
         }
         const lfo = ctx.createOscillator();
-        lfo.frequency.value = 4.4 + rng() * 0.8;
+        lfo.frequency.value = 3.5 + rng() * 0.6;
         const depth = ctx.createGain();
         depth.gain.setValueAtTime(0, t);
-        depth.gain.linearRampToValueAtTime(4, t + attack + 0.8);
+        depth.gain.linearRampToValueAtTime(2.6, t + attack + 0.8);
         lfo.connect(depth);
         const oscs = [lfo];
         for (const m of notes) {
@@ -2054,12 +2126,13 @@ export function createAudio({ ctx: givenCtx, seed, lifecycle = false, warm = tru
     const bedCache = Object.create(null);
     const beds = Object.create(null); // name → { src, g, target, idle }
     let bedArea = null;
+    let environment = null;
     function bedBuf(name) {
         if (!bedCache[name]) bedCache[name] = makeBuffer([renderBed(fs, rngFor('bed:' + name), name)]);
         return bedCache[name];
     }
     function updateBeds(now) {
-        const want = Object.assign({}, AREA_BEDS[bedArea] || {});
+        const want = Object.assign({}, bedArea === 'final' ? AREA_BEDS.final : ENV_BEDS[environment] || AREA_BEDS[bedArea] || {});
         if (motion.underwater) {
             for (const k in want) want[k] *= 0.5;
             want.under = 1;
@@ -2151,9 +2224,12 @@ export function createAudio({ ctx: givenCtx, seed, lifecycle = false, warm = tru
         if (name === 'hoof') {
             const surface = SURFACES.indexOf(o.surface) >= 0 ? o.surface : SURFACE_ALIAS[o.surface] || 'sand';
             const sp = clamp(o.speed01 == null ? 0.5 : o.speed01, 0, 1);
-            const v = bankGet('hoof:' + surface, 4, (r) => renderHoof(fs, r, surface, 0.6));
-            const lane = o.pan == null ? (rng() - 0.5) * 0.3 : o.pan;
-            play(v.buffer, t, { dry: laneFor(lane), wet: sendFor(v.send) }, gm * (0.45 + 0.5 * sp) * (0.9 + 0.2 * rng()), 0.93 + 0.12 * sp + 0.03 * (rng() - 0.5), 0, name);
+            const hard = sp >= 0.62;
+            const v = bankGet('hoof:' + surface + ':' + (hard ? 'hard' : 'soft'), 4, (r) => renderHoof(fs, r, surface, hard ? 0.9 : 0.3));
+            const foot = Number.isInteger(o.foot) ? o.foot : null;
+            const lane = o.pan == null ? (foot == null ? (rng() - 0.5) * 0.3 : (foot < 2 ? -0.16 : 0.16)) : o.pan;
+            const accent = foot == null ? 1 : [0.94, 0.86, 1, 0.92][foot & 3];
+            play(v.buffer, t, { dry: laneFor(lane), wet: sendFor(v.send) }, gm * accent * (0.4 + 0.5 * sp) * (0.93 + 0.14 * rng()), 0.96 + 0.06 * sp + 0.025 * (rng() - 0.5), 0, name);
             return;
         }
         if (name === 'sparkle') {
@@ -2179,7 +2255,11 @@ export function createAudio({ ctx: givenCtx, seed, lifecycle = false, warm = tru
         let key = name;
         let ro = o;
         let gain = gm;
-        if (name === 'splash') {
+        if (name === 'ui') {
+            const kind = ['open', 'close', 'tab', 'confirm'].includes(o.kind) ? o.kind : 'tab';
+            key = 'ui:' + kind;
+            ro = { kind };
+        } else if (name === 'splash') {
             const size = clamp(o.size == null ? 0.6 : o.size, 0, 1);
             const b = size < 0.34 ? 0 : size < 0.67 ? 1 : 2;
             key = 'splash:' + b;
@@ -2200,7 +2280,8 @@ export function createAudio({ ctx: givenCtx, seed, lifecycle = false, warm = tru
         const wide = name === 'gull' || name === 'drip' || name === 'bubble' || name === 'crabclick';
         const lane = o.pan == null ? (rng() - 0.5) * (wide ? 1 : 0.3) : o.pan;
         const rate = name === 'neigh' || name === 'blubb' || name === 'gull' ? 0.97 + 0.06 * rng() : 0.96 + 0.08 * rng();
-        play(v.buffer, t, { dry: laneFor(lane), wet: sendFor(v.send) }, gain * (0.88 + 0.2 * rng()), rate, 0, name);
+        const dest = VOICE_SFX.has(name) ? { dry: voiceLaneFor(lane), wet: voiceSend } : { dry: laneFor(lane), wet: sendFor(v.send) };
+        play(v.buffer, t, dest, gain * (0.9 + 0.16 * rng()), rate, 0, name);
     }
 
     // ---- stingers -------------------------------------------------------------------------------
@@ -2400,6 +2481,12 @@ export function createAudio({ ctx: givenCtx, seed, lifecycle = false, warm = tru
         applyMotion(false);
     }
 
+    function setEnvironment(name) {
+        if (disposed || (name != null && !ENVIRONMENTS.includes(name)) || name === environment) return;
+        environment = name == null ? null : name;
+        updateBeds(ctx.currentTime);
+    }
+
     function setVolumes(v) {
         if (disposed || !v) return;
         const now = ctx.currentTime;
@@ -2411,7 +2498,10 @@ export function createAudio({ ctx: givenCtx, seed, lifecycle = false, warm = tru
             aim(sfxVol.gain, volCurve(v.sfx), now, 0.05);
             aim(sfxVolW.gain, volCurve(v.sfx), now, 0.05);
         }
-        if (v.voice != null) aim(voiceVol.gain, volCurve(v.voice), now, 0.05);
+        if (v.voice != null) {
+            aim(voiceVol.gain, volCurve(v.voice), now, 0.05);
+            aim(voiceVolW.gain, volCurve(v.voice), now, 0.05);
+        }
     }
 
     function stinger(name) {
@@ -2574,7 +2664,7 @@ export function createAudio({ ctx: givenCtx, seed, lifecycle = false, warm = tru
     function startWarm() {
         const jobs = [];
         for (const m of [62, 65, 67, 69, 71, 72, 74, 76, 77, 79]) jobs.push(() => instBuf('harm', m));
-        for (const s of SURFACES) jobs.push(() => bankGet('hoof:' + s, 4, (r) => renderHoof(fs, r, s, 0.6)));
+        for (const s of SURFACES) for (const hard of [false, true]) jobs.push(() => bankGet('hoof:' + s + ':' + (hard ? 'hard' : 'soft'), 4, (r) => renderHoof(fs, r, s, hard ? 0.9 : 0.3)));
         for (const n of ['splash', 'drip', 'bubble', 'pop', 'page', 'pencil', 'rustle', 'neigh', 'snort', 'gull', 'crabclick', 'stamp', 'swim', 'shake', 'blubb', 'whoosh', 'thud', 'ratchet', 'latch', 'stopwatch', 'write', 'wind', 'unfold', 'gate', 'pickup', 'colorin']) {
             jobs.push(() => {
                 const key = n === 'splash' ? 'splash:1' : n;
@@ -2585,6 +2675,8 @@ export function createAudio({ ctx: givenCtx, seed, lifecycle = false, warm = tru
         }
         for (const m of [74, 81, 83, 86, 88, 78, 84]) jobs.push(() => instBuf('harm', m));
         for (const b of ['wind', 'under', 'lap', 'waves']) jobs.push(() => bedBuf(b));
+        jobs.push(() => bankGet('crabvoice', 5, (r) => renderCrabvoice(fs, r)));
+        for (const kind of ['open', 'close', 'tab', 'confirm']) jobs.push(() => bankGet('ui:' + kind, 3, (r) => renderUI(fs, r, { kind })));
         jobs.push(() => {
             if (!swellBuf) swellBuf = makeBuffer([renderReverseSwell(fs, rngFor('swell'))]);
         });
@@ -2618,6 +2710,7 @@ export function createAudio({ ctx: givenCtx, seed, lifecycle = false, warm = tru
         suspend,
         setVolumes,
         setArea,
+        setEnvironment,
         setMotion,
         stinger,
         freeze,
@@ -2639,6 +2732,9 @@ export function createAudio({ ctx: givenCtx, seed, lifecycle = false, warm = tru
             },
             get frozen() {
                 return frozen;
+            },
+            get environment() {
+                return environment;
             },
             players: () => players.map((p) => ({ area: p.area, step: p.step, fading: p.fading, eighth: p.eighth })),
             mute(names) {

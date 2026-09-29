@@ -1,0 +1,52 @@
+{
+  "date": "2026-09-29",
+  "base": "1af945baabe081cd9e8bd95eb10f7ec2d36a2843",
+  "branch": "codex/skoldhast-polish",
+  "pure_tests": {
+    "passed": 66,
+    "failed": 0,
+    "whole_game_robot": true
+  },
+  "first_playable": {
+    "bytes": 2708659,
+    "text_encoding": "gzip",
+    "images": "as stored",
+    "limit_bytes": 3000000
+  },
+  "browser_checks": {
+    "launch": "pass, including paused close/reopen",
+    "save": "pass",
+    "touch_844x390": "pass",
+    "touch_390x844": "pass",
+    "guide": "pass",
+    "pages": "pass",
+    "finale": "pass",
+    "klo_844x390": "pass",
+    "klo_390x844": "pass",
+    "notebook": "pass at 844x390, 390x844, 320x700",
+    "journeys": "keyboard and touch, both phone viewports, P1–P8 and implemented extras",
+    "hills": "walk/gallop, both directions, 28 matched captures"
+  },
+  "audio": {
+    "sample_peak_dbfs": -1.72,
+    "true_peak_dbfs": -1.5,
+    "clipped_samples": 0,
+    "nonfinite_samples": 0,
+    "details": "audio-qa.json"
+  },
+  "tour": {
+    "places": 27,
+    "viewports": [
+      "844x390",
+      "390x844",
+      "1440x900"
+    ],
+    "before": "shots/k3/before",
+    "after": "shots/k3"
+  },
+  "limits": [
+    "Automated accelerated playthroughs, not human playtests",
+    "Physical phone performance and feel unmeasured",
+    "Human listening still needed"
+  ]
+}
