@@ -64,7 +64,7 @@ The before/after audit and acceptance evidence are in
   shafts/depth, bounded water shimmer and a dedicated warm evening bay. No
   heavy filters or downloaded sound/art were added. See `docs/skoldhast/scenery-polish.md`.
 
-Final pure gate: **66/66 tests pass**, including the whole-game robot. Required
+First polish gate: **66/66 tests passed**, including the whole-game robot. Required
 launch, save, touch (both phone sizes), guide, pages and finale browser checks
 pass; focused Klo, notebook, hills, audio and fresh journey evidence is linked
 from `docs/skoldhast/polish-review.md`.
@@ -86,8 +86,8 @@ save through the real title/prologue and sends DOM/CDP input, then accelerates
 the fixed simulation to cover P1–P8 and the implemented extras. It is an
 automated playthrough, not a human usability or physical-device performance test.
 
-The first-playable bundle is **2,708,659 bytes (2.58 MiB)**, below both 3 MB and the build's
-3 MiB gate. Human listening and performance/feel on Alva's actual device remain
+The current first-playable bundle is **2,723,140 bytes (2.723 MB)**, below the
+strict **3,000,000-byte** build gate. Human listening and performance/feel on Alva's actual device remain
 unverified. Foreground kelp can still briefly soften/overlap the hero; no new
 missing scenery or terrain seams were found in the 27-place review.
 
@@ -265,10 +265,15 @@ or additional chapter release is part of this branch.
   two points, truncating a completed stroke after about 30 world units. The
   focused ink browser check covers 20 drawing states, both directions, exact
   endpoints, curved joins and finite GPU vertices; no new asset is needed.
-- Order next: finish close-during-drawing cleanup; enable regional collection
-  and underwater colouring; add the remaining ten pencils; complete the lit
-  lighthouse view at the finale. The clipping remains excluded by the privacy
-  rules, and Flytbryggan remains stretch work.
+- The continuation's implementation is complete, with **76/76 pure tests**.
+  The required browser matrix passes, including touch at both phone sizes,
+  plus four fresh keyboard/touch journeys and normal/reduced-motion finales.
+  The all-fifteen collection routes, lifecycle, notebook, context restoration
+  and full-ink checks also pass with no game browser errors.
+  Findings, focused commands and fresh before/after evidence are in
+  `docs/skoldhast/implementation-round2.md`. Next: review the real-device feel
+  and audio, then ask before merging. The clipping remains excluded by the
+  privacy rules, and Flytbryggan remains stretch work.
 
 - **Performance on a real phone is unmeasured.** Headless Chromium renders WebGL in software, so its frame rate is not a device benchmark. Measure with `?debug` on Alva's device and lower the resolution cap in `main.mjs` `sizes()` if needed.
 - **Audio** has passed automatic checks (levels, seams, tuning) but needs a listen.

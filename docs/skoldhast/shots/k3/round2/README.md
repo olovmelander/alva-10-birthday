@@ -12,6 +12,10 @@ Captured on 29 September 2026 on `codex/skoldhast-polish`.
 - `regional-notebook.webp`: all 15 pencils recorded as 7/7, 4/4 and 4/4.
 - `collection-*.json`: all pickups, colours, simulation steps and browser
   errors for keyboard/touch at both phone viewports.
+- `journey-*.json`: four fresh journeys through P1–P8 and the extras. These
+  colour all seven land pencils; the collection checks above cover all regions.
+- `lighthouse-*.webp` and `conclusion-*.webp`: the final lighthouse/reflection
+  and return to Klo at both phone viewports, including reduced motion in portrait.
 
 Contact sheets and screenshots are review exports, not downloaded game assets.
 The desktop sheets use 1176-pixel width. See `../../../implementation-round2.md`
