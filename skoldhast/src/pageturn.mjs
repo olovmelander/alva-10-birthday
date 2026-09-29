@@ -7,6 +7,7 @@
  *   page.destroy();
  *
  *   await turnScreen(PIXI, app, { texture, hinge = 'left', duration = 1, back = null, lessMotion = false, parent = app.stage });
+ *   snapshotScreen(PIXI, app) → a RenderTexture of the screen as it is now (the `texture` above)
  *
  * The sheet bends around a vertical hinge. Every vertical strip of paper turns with its own sine ease,
  * the free edge ahead of the hinge, so a curl travels across the sheet while the hinge side stays flat.
@@ -18,8 +19,9 @@
  * How it is drawn: the part of the sheet that faces the viewer and the part that faces away are
  * separate meshes, front first. The paper's height grows from the hinge outward, so the part that has
  * folded over is always the nearer one. Vertices past the fold collapse onto it, so each mesh covers
- * only its own side. Light is a black/white overlay whose UVs index a small ramp texture. Everything is
- * allocated in createPage; set() rewrites positions and a few UVs and allocates nothing.
+ * only its own side. Light is a shade/white overlay whose UVs index a small ramp texture, and the shadow
+ * a band whose UVs index a small falloff texture. Everything is allocated in createPage; set() rewrites
+ * vertex positions and those light UVs, and allocates nothing.
  */
 
 const PI = Math.PI;
@@ -58,16 +60,17 @@ const SHADE_RGB = [59, 45, 34];   // shade and shadow: warm graphite, not black
  * @param o.columns, o.rows  mesh resolution (32 × 8 is plenty; columns run across the turn)
  * @param o.tile       tile `front` at one texel per unit (like Graphics textureSpace 'global'); the texture
  *                     must be a whole image with addressMode 'repeat' (e.g. mat-paper), not an atlas frame
- * @param o.paper, o.paperColor, o.showThrough  the back when `back` is null: a tiled paper texture
- *                     (default: a generated grain), its tint, and the alpha of the mirrored front
+ * @param o.paper, o.paperColor, o.showThrough  the back when `back` is null: a paper texture tiled at one
+ *                     texel per unit (default: a generated grain), its tint (default: the game's paper
+ *                     white on the grain, none on a texture of your own), and the alpha of the mirrored front
  * @param o.edges      'all' outlines the whole sheet, 'free' only the free edge and the fold
  * @param o.lineColor, o.lineAlpha, o.lineWidth (screen px), o.lineTexture  the pencil outline
  * Any option of set() given here becomes that option's default.
  */
 export function createPage(PIXI, {
     front, back = null, width, height, columns = 32, rows = 8,
-    tile = false, paper = null, paperColor = PAPER, showThrough = 0.16,
-    edges = 'all', lineColor = PENCIL, lineAlpha = 0.8, lineWidth = 1.8, lineTexture = null,
+    tile = false, paper = null, paperColor = null, showThrough = 0.16,
+    edges = 'all', lineColor = PENCIL, lineAlpha = 0.85, lineWidth = 2, lineTexture = null,
     hinge = 'left', curl = 0.35, perspective = 1, lift = 0.08, slant = 0.04,
     shadow = 1, shade = 1, outline = 1, eye = null, px = 0
 } = {}) {
@@ -142,7 +145,7 @@ export function createPage(PIXI, {
     const frontMesh = mesh(FP, frontUV, front, IDX);
     const frontShade = mesh(FP, FS, ramp, IDX);
     const backMesh = mesh(BP, backUV, back || paperTex, IDX);
-    if (!back) backMesh.tint = paperColor;
+    if (!back) backMesh.tint = paperColor ?? (paper ? 0xffffff : PAPER);
     const ghost = !back && showThrough > 0 ? mesh(BP, frontUV, front, IDX) : null;
     if (ghost) ghost.alpha = showThrough;
     const backShade = mesh(BP, BS, ramp, IDX);
@@ -215,11 +218,12 @@ export function createPage(PIXI, {
         const bump = Math.sin(PI * t);
         const zl = Math.max(0, o.lift) * W * bump * bump;  // rises from nothing at the hinge
         const ex = hl ? o.eyeX : W - o.eyeX, ey = o.eyeY;
-        const sl = o.slant * bump;
+        const sl = Math.max(-0.9, Math.min(0.9, o.slant)), span = 1 / (1 - Math.abs(sl));
         let reach = -Infinity;
         for (let i = 0; i <= R; i++) {
             const y = (i / R) * H;
-            const ti = clamp01(t + sl * (i / R - 0.5)); // slant > 0: the bottom corner leads
+            // slant > 0: the bottom corner lifts first and the rows above follow, up to `slant` later
+            const ti = clamp01((t - (sl > 0 ? sl * (1 - i / R) : -sl * (i / R))) * span);
             let x = 0, z = 0, prev = 0, lastX = -Infinity, crest = C;
             for (let k = 0; k <= C; k++) {
                 const phi = PI * easeInOut((ti - delta * (1 - k / C)) * inv);
@@ -361,11 +365,18 @@ export function createPage(PIXI, {
         get height() { return H; },
         get t() { return current; },
         /**
-         * t: 0 flat (covers its rectangle exactly) … 1 turned fully over onto the other side of the hinge.
-         * Options (each falls back on createPage's): hinge 'left'|'right', curl (0 rigid … 1 a rolling peel),
-         * perspective (0 flat … 2 strong), lift (hover at mid-turn, in page widths), slant (the bottom corner
-         * leads; negative: the top), shadow, shade, outline (strength multipliers), eye {x, y} (the point under
-         * the viewer, in the page's units; default its centre), px (units per screen pixel; default measured).
+         * t: 0 flat (covers its rectangle exactly) … 1 turned fully over onto the other side of the hinge. t is
+         * time-like: the motion eases in and out by itself. Options (each falls back on createPage's):
+         *   hinge 'left' | 'right'   the edge the sheet turns around
+         *   curl 0.35                0 a rigid card, 0.35 a gentle page, 1.5 a tight roll that peels across
+         *   perspective 1            0 none; 1: the lifted paper grows up to about a fifth toward the eye
+         *   lift 0.08                extra height at mid-turn, in page widths, rising from nothing at the hinge
+         *   slant 0.04               the bottom corner lifts first, the top row starts up to `slant` later
+         *                            (negative: the top leads; keep it small, rows out of step stretch the sheet)
+         *   shadow, shade, outline 1 strength of the cast shadow, of the light on the paper, of the pencil line
+         *   eye {x, y}               the point under the viewer, in the sheet's units (default its centre); for a
+         *                            sheet in a camera-scaled world, the camera centre minus the sheet's position
+         *   px                       sheet units per screen pixel (default: measured from the global transform)
          */
         set(t, opts) {
             if (destroyed) return page;
@@ -445,12 +456,12 @@ export function createPage(PIXI, {
  * screen). turnScreen() drives one of these from requestAnimationFrame; the dev page scrubs it.
  */
 export function createScreenTurn(PIXI, app, {
-    texture, hinge = 'left', back = null, parent = app.stage,
+    texture, hinge = 'left', back = null, paper = null, parent = app.stage,
     width = app.screen.width, height = app.screen.height,
     curl = 0.35, perspective = 1, lift = 0.08, slant = 0.05
 } = {}) {
     const page = createPage(PIXI, {
-        front: texture, back, width, height, columns: 32, rows: 8, edges: 'free',
+        front: texture, back, paper, width, height, columns: 32, rows: 8, edges: 'free',
         hinge, curl, perspective, lift, slant, px: 1
     });
     parent.addChild(page.view);
@@ -470,20 +481,21 @@ export function createScreenTurn(PIXI, app, {
     turn.at(0);
     return turn;
 }
-/** Ease in, and out only a little: the sheet leaves the view still moving, as a turned page does. */
-function timing(k) { return k * k * (2 - k); }
+/** Ease in and out, the out gentler: the sheet leaves the view still moving (as a turned page does), so
+ *  no sliver lingers at the edge. */
+function timing(k) { return k * k * (2.5 - 1.5 * k); }
 
 /**
  * The old picture turns away like a notebook page and shows whatever is drawn underneath it.
  * `texture` is the old picture (e.g. a RenderTexture of the last frame), stretched over the screen; it is
  * not destroyed. The page goes on top of `parent` (screen space) and is drawn by the caller's own loop
  * (app.render()); this only moves it on requestAnimationFrame. Resolves when done, after removing and
- * destroying what it made. lessMotion: a short crossfade instead. Extra look options: curl, perspective,
- * lift, slant.
+ * destroying what it made. lessMotion: a short crossfade instead. Extra options: curl, perspective, lift,
+ * slant (as in page.set) and paper (a repeating paper texture for the back, e.g. mat-paper).
  */
 export function turnScreen(PIXI, app, {
     texture, hinge = 'left', duration = 1.0, back = null, lessMotion = false, parent = app.stage,
-    curl, perspective, lift, slant
+    curl, perspective, lift, slant, paper = null
 } = {}) {
     return new Promise((resolve) => {
         if (!texture || !app?.renderer) { resolve(); return; }
@@ -493,12 +505,12 @@ export function turnScreen(PIXI, app, {
             const s = new PIXI.Sprite(texture);
             s.width = app.screen.width; s.height = app.screen.height;
             parent.addChild(s);
-            ms = Math.min(450, Math.max(200, ms * 0.4));
-            show = (k) => { s.alpha = 1 - easeInOut(k); };
+            if (ms > 0) ms = Math.min(450, Math.max(200, ms * 0.4));
+            show = (k) => { if (!s.destroyed) s.alpha = 1 - easeInOut(k); };
             done = () => { s.parent?.removeChild(s); if (!s.destroyed) s.destroy(); };
             show(0);
         } else {
-            const look = { texture, hinge, back, parent };
+            const look = { texture, hinge, back, paper, parent };
             if (curl !== undefined) look.curl = curl;
             if (perspective !== undefined) look.perspective = perspective;
             if (lift !== undefined) look.lift = lift;
@@ -520,6 +532,17 @@ export function turnScreen(PIXI, app, {
         };
         requestAnimationFrame(tick);
     });
+}
+
+/**
+ * The screen as it is now, as a RenderTexture at the renderer's resolution: the `texture` for turnScreen().
+ * Take it before switching the scene, in the same frame as the switch and the turn. The caller destroys it
+ * (rt.destroy(true)) once the turn has resolved.
+ */
+export function snapshotScreen(PIXI, app, container = app.stage) {
+    const rt = PIXI.RenderTexture.create({ width: app.screen.width, height: app.screen.height, resolution: app.renderer.resolution });
+    app.renderer.render({ container, target: rt, clear: true });
+    return rt;
 }
 
 // --- generated textures ------------------------------------------------------------------------------------------

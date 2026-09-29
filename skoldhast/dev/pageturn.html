@@ -44,15 +44,16 @@
  *   cover  – a 3000 × 3000 paper cover over a drawn beach, in a camera-scaled world, peels away (1.5 s)
  *   sheet  – a page of a notebook on a desk
  * The t slider freezes the current demo at that point of its animation (sheet: page.set(t)).
- * ?clean hides the controls, ?still skips the turn on load, ?mode=cover|sheet starts elsewhere.
+ * ?clean hides the controls, ?still skips the turn on load, ?mode=cover|sheet starts elsewhere,
+ * ?grid draws a numbered checker instead of bg-beach (to see how the sheet bends).
  *
- *   window.pageturnDemo.mode('sheet')          // switch demo
+ *   window.pageturnDemo.mode('sheet')          // switch demo (and load its preset look)
  *   window.pageturnDemo.set({ curl: 0.6 })     // hinge, curl, perspective, lift, slant, less
  *   window.pageturnDemo.at(0.5)                // freeze at t (returns once drawn)
  *   await window.pageturnDemo.play()           // run the animation of the current demo
  */
 import * as PIXI from '../vendor/pixi-8.21.0.min.mjs';
-import { createPage, createScreenTurn, turnScreen, easeInOut } from '../src/pageturn.mjs';
+import { createPage, createScreenTurn, turnScreen, snapshotScreen, easeInOut } from '../src/pageturn.mjs';
 
 const query = new URLSearchParams(location.search);
 if (query.has('clean')) document.body.classList.add('clean');
@@ -99,6 +100,12 @@ const backdrop = new PIXI.Sprite(IMG['bg-beach']);
 bgLayer.addChild(backdrop);
 
 const state = { mode: 'screen', hinge: 'left', curl: 0.35, perspective: 1, lift: 0.08, slant: 0.05, less: false, t: 0 };
+// each demo starts from its own look: a cover is far wider than the view, so it rolls up tighter
+const PRESET = {
+    screen: { curl: 0.35, perspective: 1, lift: 0.08, slant: 0.05 },
+    cover: { curl: 1.5, perspective: 1, lift: 0.08, slant: 0.04 },
+    sheet: { curl: 0.35, perspective: 1, lift: 0.08, slant: 0.04 }
+};
 const look = () => ({ hinge: state.hinge, curl: state.curl, perspective: state.perspective, lift: state.lift, slant: state.slant });
 let busy = false;       // an animation is running
 let frozen = false;     // the t slider holds the current demo
@@ -116,10 +123,8 @@ let shown = 0;          // the backdrop that is on screen
 let still = null;       // { turn, rt, key }: a frozen screen turn for the slider
 
 function snapshot() {
-    const rt = PIXI.RenderTexture.create({ width: app.screen.width, height: app.screen.height, resolution: app.renderer.resolution });
     layout();
-    app.renderer.render({ container: app.stage, target: rt, clear: true });
-    return rt;
+    return snapshotScreen(PIXI, app);
 }
 async function playScreen() {
     dropStill();
@@ -181,7 +186,7 @@ const coverOpts = { hinge: 'right', curl: 0, perspective: 0, lift: 0, slant: 0, 
 function buildCover() {
     coverDemo.page?.destroy();
     // like view.mjs's cover: mat-paper tiled at one texel per world unit; its hinge on the far side
-    const page = createPage(PIXI, { front: IMG['mat-paper'], tile: true, width: COVER.w, height: COVER.h });
+    const page = createPage(PIXI, { front: IMG['mat-paper'], tile: true, width: COVER.w, height: COVER.h, columns: 96 });
     page.view.position.set(COVER.x, COVER.y);
     world.addChild(page.view);
     coverDemo.page = page;
@@ -298,11 +303,12 @@ function layout() {
     world.scale.set(cam.zoom);
     world.position.set(W / 2 - cam.x * cam.zoom, H / 2 - cam.y * cam.zoom);
 }
-function setMode(m) {
+function setMode(m, keepLook = false) {
     if (busy) return;
     dropStill();
     frozen = false;
     state.mode = m;
+    if (!keepLook) Object.assign(state, PRESET[m]);
     bgLayer.visible = m !== 'sheet';
     world.visible = m === 'cover';
     desk.visible = m === 'sheet';
@@ -349,7 +355,8 @@ for (const k of ['curl', 'perspective', 'lift', 'slant']) $(k).oninput = (e) => 
 $('less').onchange = (e) => { state.less = e.target.checked; };
 function syncUI() {
     for (const b of document.querySelectorAll('[data-mode]')) b.classList.toggle('on', b.dataset.mode === state.mode);
-    $('hinge').textContent = 'hinge ' + state.hinge;
+    $('hinge').textContent = state.mode === 'cover' ? 'hinge far side' : 'hinge ' + state.hinge;
+    $('hinge').disabled = state.mode === 'cover';   // the cover always turns about its far side
     $('t').value = state.t; $('t-out').textContent = state.t.toFixed(2);
     for (const k of ['curl', 'perspective', 'lift', 'slant']) { $(k).value = state[k]; $(k + '-out').textContent = (+state[k]).toFixed(2); }
     $('less').checked = state.less;
@@ -367,7 +374,7 @@ function frame(now) {
     if (!query.has('clean')) info.textContent = `${state.mode}${frozen ? ' · t ' + state.t.toFixed(2) : ''}${busy ? ' · playing' : ''} · ${(1000 / Math.max(1, dt)).toFixed(0)} fps`;
 }
 requestAnimationFrame(frame);
-window.addEventListener('resize', () => requestAnimationFrame(() => { const m = state.mode; setMode(m); }));
+window.addEventListener('resize', () => requestAnimationFrame(() => setMode(state.mode, true)));
 
 setMode(['cover', 'sheet'].includes(query.get('mode')) ? query.get('mode') : 'screen');
 const nextFrame = () => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));

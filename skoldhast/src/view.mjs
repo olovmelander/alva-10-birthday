@@ -624,28 +624,29 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
             destroy = () => s.destroy();
             duration = Math.min(0.45, duration * 0.4);
         } else {
-            const turn = createScreenTurn(PIXI, app, { texture: rt, hinge, parent: turnLayer });
+            // the back of the page is the notebook's own paper
+            const turn = createScreenTurn(PIXI, app, { texture: rt, hinge, parent: turnLayer, paper: T('mat-paper') || null });
             show = (k) => turn.at(k);
             destroy = () => turn.destroy();
         }
-        const T = { rt, k: 0, dur: duration, hold, show, destroy, resolve: null };
-        T.done = new Promise((r) => { T.resolve = r; });
+        const tr = { rt, k: 0, dur: duration, hold, show, destroy, resolve: null };
+        tr.done = new Promise((r) => { tr.resolve = r; });
         show(0);
-        turns.push(T);
+        turns.push(tr);
         onFx?.('sfx', 'page');
-        return T;
+        return tr;
     }
     function stepTurns(dt) {
         for (let i = turns.length - 1; i >= 0; i--) {
-            const T = turns[i];
-            if (T.hold) continue;
-            T.k = Math.min(1, T.k + dt / T.dur);
-            T.show(T.k);
-            if (T.k >= 1) { turns.splice(i, 1); T.destroy(); T.rt.destroy(true); T.resolve(); }
+            const tr = turns[i];
+            if (tr.hold) continue;
+            tr.k = Math.min(1, tr.k + dt / tr.dur);
+            tr.show(tr.k);
+            if (tr.k >= 1) { turns.splice(i, 1); tr.destroy(); tr.rt.destroy(true); tr.resolve(); }
         }
     }
     function endTurns() {
-        for (const T of turns.splice(0)) { T.destroy(); T.rt.destroy(true); T.resolve(); }
+        for (const tr of turns.splice(0)) { tr.destroy(); tr.rt.destroy(true); tr.resolve(); }
         held = null;
     }
 
@@ -679,10 +680,10 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
         }
         // the far edge is the hinge; the edge facing the player lifts first
         const hinge = d.under ? 'right' : 'left';
+        const eye = { x: clamp(cam.x - x0, 0, width), y: cam.y - top }; // the viewer: follows the camera each frame
         const page = createPage(PIXI, {
             front: paper, tile: true, width, height, columns: Math.max(24, Math.min(96, Math.ceil(width / h(0.35)))), rows: 8,
-            edges: 'free', hinge, curl: 0.5, perspective: 1, lift: 0.04,
-            eye: { x: clamp(cam.x - x0, 0, width), y: cam.y - top }
+            edges: 'free', hinge, curl: 0.5, perspective: 1, lift: 0.04, eye
         });
         page.view.x = x0; page.view.y = top;
         L.cover.addChild(page.view);
@@ -696,6 +697,7 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
             pc.resolve = resolve;
             pc.step = (dt) => {
                 k = Math.min(1, k + dt / dur);
+                eye.x = cam.x - x0; eye.y = cam.y - top;
                 page.set(clock(k));
                 if (k >= 1) { page.destroy(); pc.page = null; pc.step = null; finish(); resolve(); }
             };
@@ -1298,7 +1300,7 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
             }
             case 'cutToPicture':
                 cam.snap = true;
-                if (held) { const T = held; held = null; T.hold = false; await T.done; }
+                if (held) { const tr = held; held = null; tr.hold = false; await tr.done; }
                 else await fadeTo(0, 0.9);
                 break;
             case 'plask': {
