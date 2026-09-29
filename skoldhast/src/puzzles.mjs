@@ -9,7 +9,7 @@
  * that never resets), objects before it return to their start on reload or
  * when the player leaves the area, and nothing can softlock.
  */
-import { HL, C, cond, nearestOnLine } from './sim.mjs';
+import { HL, C, cond, nearestOnLine, dropIn } from './sim.mjs';
 
 const near = (a, b, r) => Math.abs(a - b) <= r;
 
@@ -132,7 +132,6 @@ export function stepPuzzles(G, events, dt) {
         const crossed = (p.px - c.x) * (p.x - c.x) <= 0 && p.px !== p.x;
         if (!crossed || !galloping || !near(p.y, c.y, h(0.3))) continue;
         const dir = Math.sign(p.x - p.px);
-        S.clumps[c.id] = 4;
         const tx = c.x + dir * h(5);
         // the fluff drifts to the nearest dotted tuft around where it comes down (forgiving: 1.5 HL either way)
         let target = null;
@@ -140,6 +139,8 @@ export function stepPuzzles(G, events, dt) {
             if (F.has(t.flag)) continue;
             if (Math.abs(t.x - tx) < h(1.5) && t.y <= c.y + h(0.3) && t.y >= c.y - h(1.45) && (!target || Math.abs(t.x - tx) < Math.abs(target.x - tx))) target = t;
         }
+        // a flower whose fluff found a tuft rests a while; after a miss (a run-up the other way) it is back at once
+        S.clumps[c.id] = target ? 4 : 0.9;
         const ty = target ? target.y : c.y - h(0.2);
         S.fluff.push({ x: c.x, y: c.y - h(0.5), tx: target ? target.x : tx, ty, t: 0, dur: 1.3, target: target?.id });
         G.emit('fluff', { id: c.id, dir, target: target?.id || null });
@@ -363,8 +364,14 @@ export function contextAction(G) {
             const at = pc.propAt;
             if (Math.abs(p.x - at.x) < h(1.1) && Math.abs(p.y - at.y) < h(0.8)) add(Math.abs(p.x - at.x) / HL, { id: 'farglagg', label: 'Färglägg', run: () => { F.add('color_' + pc.id); G.emit('colorin', { id: pc.id, prop: pc.prop }); } });
         }
-        // Skaka: wet and standing still
-        if (p.wet > 0 && Math.abs(p.vx) < 40) add(1.5, { id: 'skaka', label: 'Skaka', run: () => G.shake() });
+        // Skaka: wet and standing still, out of the water (in a pool it would only flicker between Skaka and Hoppa)
+        // (not on the pier, where the button offers Hoppa i instead)
+        if (p.wet > 0 && p.submerge < 0.05 && Math.abs(p.vx) < 40 && !p.surface?.dropIn) add(1.5, { id: 'skaka', label: 'Skaka', run: () => G.shake() });
+        // Hoppa i: off the pier into the bay (where there is water under it)
+        if (p.surface?.dropIn) {
+            const col = G.terrain.waterColumn(p.x + p.facing * 60);
+            if (col && col.swim !== false && col.top >= p.y) add(3, { id: 'hoppa-i', label: 'Hoppa i', run: () => { const ev = []; dropIn(p, { terrain: G.terrain, flags: F }, ev); for (const e of ev) G.emit(e.type, e); } });
+        }
     }
     // Smaktestet: a mouthful of steppe grass on land, a bite of kelp in the sea (after Klo's "Ja")
     if (F.has('klo_ja') && !F.has('exp_smak') && !p.hidden && (p.mode === 'ground' || p.mode === 'swim')) {

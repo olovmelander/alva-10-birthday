@@ -126,9 +126,10 @@ export class Terrain {
         for (const d of this.dashed) if (!d._len) d._len = lineLength(d.pts);
     }
     /** Topmost surface at x whose height is at or below `yFeet - up` (i.e. not higher than a step above the feet). */
-    support(x, yFeet, up = C.stepUp, down = Infinity) {
+    support(x, yFeet, up = C.stepUp, down = Infinity, skip = null) {
         let best = null, by = Infinity;
         for (const s of this.surfaces) {
+            if (skip && s.id === skip) continue;
             const y = heightOn(s.pts, x);
             if (y === null) continue;
             if (y < yFeet - up || y > yFeet + down) continue;
@@ -152,7 +153,8 @@ export class Terrain {
     /** Is there an explicit wall between x0 and x1 at this height? */
     wallBetween(x0, x1, yFeet, dir) {
         for (const w of this.walls) {
-            if (dir > 0 ? (w.x >= x0 - 0.01 && w.x <= x1) : (w.x <= x0 + 0.01 && w.x >= x1)) {
+            // only a wall ahead counts: one just behind (touching it from its own side) must never hold the sköldhäst
+            if (dir > 0 ? (w.x >= x0 && w.x <= x1) : (w.x <= x0 && w.x >= x1)) {
                 if (yFeet > w.y0 && yFeet - 60 < w.y1 && (w.dir === undefined || w.dir === dir)) return w;
             }
         }
@@ -171,6 +173,8 @@ export class Terrain {
         return false;
     }
     groundBelow(x, yFeet) { const r = this.support(x, yFeet, C.stepUp); return r ? r.y : null; }
+    /** Ground a hoof could stand on near the feet (null over a gap or an edge: the rig then keeps to the ground it has). */
+    groundNear(x, yFeet, down = 90) { const r = this.support(x, yFeet, C.stepUp, down); return r ? r.y : null; }
     waterAt(x, y) {
         for (const w of this.waters) {
             if (x >= w.x0 && x <= w.x1 && y > w.top - 4 && (w.bottom === undefined || y < w.bottom)) return w;
@@ -218,7 +222,7 @@ export function createPlayer(spawn = {}) {
         water: null, submerge: 0, wet: 0, wetTimer: 0,
         action: null, actionT: 0, actionDur: 0,
         airT: 0, leap: null, streck: null, jump: null,
-        skid: 0, balkCooldown: 0, lockInput: 0, hopBuf: 0,
+        skid: 0, balkCooldown: 0, lockInput: 0, hopBuf: 0, dropThrough: null, dropY: 0,
         still: 0, moveNoise: 0,
         auto: null, // scripted run: { dir, speed }
         nudge: null, // a short scripted step: { x, t } (after Knuffa the sköldhäst follows the stone)
@@ -287,6 +291,9 @@ export function stepPlayer(p, input, world, dt, events) {
         if (Math.abs(ix) > 0.5) { p.stickHold += dt; if (p.stickHold >= C.unhideHold) unhide(p, events); }
         else p.stickHold = 0;
     }
+
+    // down on a plank over water (the pier): drop in
+    if (p.mode === 'ground' && iy > 0.7 && Math.abs(ix) < 0.5 && Math.abs(p.vx) < 300 && p.surface?.dropIn && !p.hidden) dropIn(p, world, events);
 
     switch (p.mode) {
         case 'ground': stepGround(p, ix, input, world, dt, events); break;
@@ -397,7 +404,8 @@ function stepGround(p, ix, input, world, dt, events) {
         // explicit walls
         const w = T.wallBetween(p.x, nx, p.y, mdir);
         if (w) {
-            nx = w.x - mdir * 30;
+            // stop short of the wall (never behind where we were)
+            nx = mdir > 0 ? Math.max(Math.min(p.x, w.x - 1), w.x - 30) : Math.min(Math.max(p.x, w.x + 1), w.x + 30);
             if (Math.abs(p.vx) > 200) events.push({ type: 'bump', wall: w.id });
             p.vx = 0;
             if (w.balk) balk(p, nx, w.balk, events, w);
@@ -438,6 +446,24 @@ function stepGround(p, ix, input, world, dt, events) {
     p.groundAngle = p.surface ? Math.atan(slopeOn(p.surface.pts, p.x)) : 0;
     // water while standing
     updateWading(p, world, events);
+}
+
+/**
+ * Off a plank into the water below (the pier in Spegelviken): a small hop out, then down through the
+ * plank. Returns false where there is no water under the plank.
+ */
+export function dropIn(p, world, events) {
+    const T = world.terrain;
+    const s = p.surface;
+    if (p.mode !== 'ground' || !s || !s.thin || p.hidden || p.jump) return false;
+    const col = T.waterColumn(p.x + p.facing * 60);
+    if (!col || col.swim === false || col.top < p.y) return false;
+    p.dropThrough = s.id; p.dropY = p.y;
+    p.jump = { kind: 'dive', vx: p.facing * 180, limit: null, dir: p.facing, fromY: p.y };
+    p.vy = -Math.sqrt(2 * C.gravity * 45);
+    p.mode = 'air'; p.surface = null;
+    events.push({ type: 'hop', kind: 'dive', x: p.x, y: p.y });
+    return true;
 }
 
 function balk(p, x, reason, events, src) {
@@ -560,11 +586,12 @@ function stepAir(p, ix, input, world, dt, events) {
     const wallHere = T.wallAbove(nx, p.y, 600);
     if (wallHere && T.support(nx, p.y, 10, 30) === null) { nx = p.x; if (p.jump) p.jump.vx = 0; else vx = 0; }
     const ny = p.y + p.vy * dt;
-    // landing
+    // landing (not back onto a plank we are dropping through)
+    if (p.dropThrough && p.y > p.dropY + 40) p.dropThrough = null;
     if (p.vy >= 0) {
-        const sup = T.support(nx, p.y, 8, (ny - p.y) + 8);
+        const sup = T.support(nx, p.y, 8, (ny - p.y) + 8, p.dropThrough);
         if (sup) {
-            p.x = nx; p.y = sup.y; p.surface = sup.s; p.mode = 'ground'; p.vy = 0;
+            p.x = nx; p.y = sup.y; p.surface = sup.s; p.mode = 'ground'; p.vy = 0; p.dropThrough = null;
             p.vx = p.jump ? p.jump.vx : vx;
             events.push({ type: 'land', x: p.x, y: p.y, soft: !p.jump || p.jump.kind === 'buck' });
             p.jump = null;
@@ -579,7 +606,7 @@ function stepAir(p, ix, input, world, dt, events) {
     if (w && !w.frozen && p.y > w.top + 20 && p.vy > 0) {
         const floor = T.floorBelow(p.x, p.y);
         if (floor === null || floor - w.top > C.wadeMax) {
-            p.mode = 'swim'; p.jump = null; p.water = w;
+            p.mode = 'swim'; p.jump = null; p.water = w; p.dropThrough = null;
             p.vy = Math.min(p.vy, 500) * 0.5;
             p.vx *= 0.35; // the water takes most of the run's speed
             events.push({ type: 'splashIn', size: 1, x: p.x, y: w.top, water: w.id, dive: true });
@@ -738,7 +765,7 @@ function stepSwim(p, ix, iy, input, world, dt, events) {
     // explicit walls (the fold, paper edges)
     const wall = T.wallBetween(p.x, nx, ny, dir);
     if (wall) {
-        nx = p.x; p.vx = 0;
+        nx = dir > 0 ? Math.min(p.x, wall.x - 2) : Math.max(p.x, wall.x + 2); p.vx = 0; // clear of the wall's line
         if (wall.balk && p.balkCooldown <= 0) { events.push({ type: 'balk', reason: wall.balk, id: wall.id, x: p.x }); p.balkCooldown = 1.5; setAction(p, 'balk', 0.9); }
     }
     // edges in the water (the dark vault)
@@ -789,7 +816,8 @@ export function snapshot(p, alpha, terrain, time) {
         airT: p.mode === 'leap' ? p.airT : p.mode === 'air' ? 0.5 : 0,
         vx: p.vx, vy: p.vy,
         groundAngle: p.groundAngle,
-        groundAt: (gx) => terrain.groundBelow(gx, y),
+        // on a line being drawn the hooves stand on the line (the gully is far below); elsewhere only nearby ground
+        groundAt: p.mode === 'streck' && p.streck ? (gx) => heightOn(p.streck.d.pts, gx) : (gx) => terrain.groundNear(gx, y),
         submerge: p.submerge,
         waterY: p.water ? p.water.top : null,
         wet: p.wet,

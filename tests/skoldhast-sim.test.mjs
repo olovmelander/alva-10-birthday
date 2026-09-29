@@ -30,6 +30,7 @@ function pressAt(t, what, held = {}) {
     return (G) => (!done && G.time >= t ? (done = true, { ...held, [what]: true }) : { ...held });
 }
 
+const h1 = (v) => v * HL;
 const atRunway = (G) => { G.flags.add('intro_done'); G.goto('land', { x: 90.5 * HL, y: -0.9 * HL, facing: -1 }); };
 
 test('the same inputs give the same result', () => {
@@ -109,4 +110,34 @@ test('after Knuffa the sköldhäst steps after the stone, so it can push again',
     }
     for (let i = 0; i < 120; i++) G.step({});
     assert.equal(G.puz.stone, rail.target, 'four pushes from one spot, with no walking in between');
+});
+
+// --- from the fresh-eyes playtest: nothing may trap the sköldhäst -------------------------------------
+test('on the pier before the last line, the sköldhäst can still get into the bay (Hoppa i, or down)', () => {
+    for (const how of ['act', 'down']) {
+        const G = run(60, 4, (G) => (how === 'act' ? (G.time > 0.2 && G.time < 0.25 ? { act: true } : {}) : { y: 1 }),
+            inViken({ x: 12 * HL, y: -0.62 * HL, facing: 1 }));
+        assert.equal(G.player.mode, 'swim', `${how}: swimming in the bay (at ${(G.player.x / HL).toFixed(2)}, ${(G.player.y / HL).toFixed(2)})`);
+    }
+});
+
+test('a swimmer touching a wall can always swim away from it', () => {
+    for (const gap of [0.0006, 0.005, 0.5, 20]) {
+        const G = createGame();
+        for (const f of ['intro_done', 'ch1_end', 'ch2_open']) G.flags.add(f);
+        const wall = G.scenes.kelp.walls.find((w) => w.id === 'fold').x;
+        G.goto('kelp', { x: wall - gap, y: 9 * HL, facing: 1, mode: 'swim' });
+        G.player.x = G.player.px = wall - gap;
+        for (let i = 0; i < 240; i++) G.step({ x: -1 });
+        assert.ok(G.player.x < wall - h1(0.5), `from ${gap} units left of the fold it swims left (x ${(G.player.x / HL).toFixed(2)} HL)`);
+    }
+});
+
+test('a run-up past a backsippa the wrong way does not spoil the right pass', () => {
+    const G = run(120, 6, (G) => ({ x: G.time < 1.6 ? 1 : -1 }), (G) => {
+        for (const f of ['intro_done', 'exp_fart', 'klo_ja', 'p1_inked', 'b:k1_p1', 'entrance_fluff']) G.flags.add(f);
+        G.goto('land', { x: 49.5 * HL, y: -0.8 * HL, facing: 1 });
+    });
+    for (let i = 0; i < 240; i++) G.step({});
+    assert.ok(G.flags.has('p3_t1'), 'the first ramp grows after the run-up');
 });

@@ -91,7 +91,8 @@ function migrate(d) {
 
 /** Normalise a typed word code and find which chapter it restores (or 0). */
 export function codeToChapter(text) {
-    const norm = (s) => s.toUpperCase().replace(/[^A-ZÅÄÖ]+/g, ' ').trim().replace(/\s+/g, ' ');
+    // MAS, mås and MÅS are the same word (a keyboard without å, or a hurried hand)
+    const norm = (s) => s.toUpperCase().replace(/[ÅÄ]/g, 'A').replace(/Ö/g, 'O').replace(/[^A-Z]+/g, ' ').trim().replace(/\s+/g, ' ');
     const t = norm(text || '');
     for (const [n, code] of Object.entries(WORD_CODES)) if (norm(code) === t) return Number(n);
     return 0;

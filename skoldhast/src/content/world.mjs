@@ -355,7 +355,8 @@ SCENES.viken = {
         { id: 'rock-face', pts: L([26.2, 6.0], [26.8, 4.0], [26.95, 0.8], [27.1, -0.45]), mat: 'rock', hidden: true },
         { id: 'light-base', pts: L([27.1, -0.45], [32.5, -0.45]), mat: 'rock' },
         { id: 'east-bed', pts: L([32.5, -0.45], [33.2, 2], [34, 5.5], [36, 6]), mat: 'seabed' },
-        { id: 'pier', thin: true, pts: L([1.4, -0.16], [2.4, -0.62], [24.2, -0.62]), mat: 'wood', hollow: true, planks: true, pier: true },
+        // dropIn: the sköldhäst can hop off it into the bay (Hoppa i, or down on the stick), so it is never a trap
+        { id: 'pier', thin: true, pts: L([1.4, -0.16], [2.4, -0.62], [24.2, -0.62]), mat: 'wood', hollow: true, planks: true, pier: true, dropIn: true },
         { id: 'gallery', thin: true, pts: L([26.05, -7.3], [31.9, -7.3]), mat: 'cream', gallery: true }
     ],
     walls: [
