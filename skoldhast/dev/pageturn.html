@@ -1,0 +1,386 @@
+<!doctype html>
+<html lang="sv">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sköldhästen – page turn dev</title>
+<style>
+    html, body { margin: 0; height: 100%; background: #fbf8f1; font: 12px/1.3 system-ui, sans-serif; color: #3b3530; overflow: hidden; }
+    #stage { position: fixed; inset: 0; }
+    #bar { position: fixed; left: 0; right: 0; top: 0; z-index: 2; display: flex; flex-wrap: wrap; align-items: center; gap: 3px 10px; padding: 4px 6px; background: rgba(251, 248, 241, 0.86); }
+    #bar .group { display: inline-flex; gap: 3px; }
+    #bar button { font: inherit; padding: 2px 8px; border: 1px solid #b8ada0; border-radius: 12px; background: #fff; color: #3b3530; cursor: pointer; }
+    #bar button.on { background: #e0782a; border-color: #9c4318; color: #fff; }
+    #bar button.go { background: #3b3530; border-color: #3b3530; color: #fff; }
+    #bar label { display: inline-flex; align-items: center; gap: 3px; white-space: nowrap; }
+    #bar input[type=range] { width: 76px; margin: 0; }
+    #bar output { display: inline-block; min-width: 2.4em; font-variant-numeric: tabular-nums; color: #6b635a; }
+    #info { position: fixed; left: 8px; bottom: 6px; z-index: 2; color: #6b635a; pointer-events: none; }
+    body.clean #bar, body.clean #info { display: none; }
+</style>
+</head>
+<body>
+<div id="stage"></div>
+<div id="bar">
+    <span class="group">
+        <button data-mode="screen" title="a full-screen turn between two backdrops (turnScreen)">screen</button>
+        <button data-mode="cover" title="a paper cover in world space peels away from its edge">cover</button>
+        <button data-mode="sheet" title="a page in a notebook, turned by the slider">sheet</button>
+    </span>
+    <button id="play" class="go">▶ turn</button>
+    <label title="scrubs the animation (screen and cover through their clocks, sheet: page.set(t))">t <input id="t" type="range" min="0" max="1" step="0.005" value="0"><output id="t-out"></output></label>
+    <button id="hinge">hinge left</button>
+    <label>curl <input id="curl" type="range" min="0" max="1.4" step="0.01"><output id="curl-out"></output></label>
+    <label>persp <input id="perspective" type="range" min="0" max="2" step="0.05"><output id="perspective-out"></output></label>
+    <label>lift <input id="lift" type="range" min="0" max="0.3" step="0.005"><output id="lift-out"></output></label>
+    <label>slant <input id="slant" type="range" min="-0.4" max="0.4" step="0.01"><output id="slant-out"></output></label>
+    <label><input id="less" type="checkbox"> less motion</label>
+</div>
+<div id="info"></div>
+<script type="module">
+/*
+ * Dev page for src/pageturn.mjs (serve the repository over http, e.g. `npx http-server -c-1`):
+ *   screen – turnScreen() between two backdrops (bg-beach ↔ bg-steppe); plays once on load
+ *   cover  – a 3000 × 3000 paper cover over a drawn beach, in a camera-scaled world, peels away (1.5 s)
+ *   sheet  – a page of a notebook on a desk
+ * The t slider freezes the current demo at that point of its animation (sheet: page.set(t)).
+ * ?clean hides the controls, ?still skips the turn on load, ?mode=cover|sheet starts elsewhere.
+ *
+ *   window.pageturnDemo.mode('sheet')          // switch demo
+ *   window.pageturnDemo.set({ curl: 0.6 })     // hinge, curl, perspective, lift, slant, less
+ *   window.pageturnDemo.at(0.5)                // freeze at t (returns once drawn)
+ *   await window.pageturnDemo.play()           // run the animation of the current demo
+ */
+import * as PIXI from '../vendor/pixi-8.21.0.min.mjs';
+import { createPage, createScreenTurn, turnScreen, easeInOut } from '../src/pageturn.mjs';
+
+const query = new URLSearchParams(location.search);
+if (query.has('clean')) document.body.classList.add('clean');
+
+// --- art ---------------------------------------------------------------------------------------------
+const manifest = await (await fetch('../assets/manifest.json', { cache: 'no-store' })).json();
+const IMG = {};
+await Promise.all(['bg-beach', 'bg-steppe', 'bg-bay', 'mat-paper', 'mat-sand', 'paper-tooth', 'desk-wood'].map(async (name) => {
+    const im = manifest.images[name];
+    const t = await PIXI.Assets.load(`../assets/${im.file}`);
+    if (im.repeat) { t.source.style.addressMode = 'repeat'; t.source.style.update?.(); }
+    IMG[name] = t;
+}));
+const PROPS = (await PIXI.Assets.load('../assets/props.json')).textures;
+if (query.has('grid')) {
+    // ?grid: a numbered checker on every picture, to see how the sheet bends
+    const c = document.createElement('canvas'); c.width = 2048; c.height = 1024;
+    const g = c.getContext('2d');
+    for (let y = 0; y < 8; y++) for (let x = 0; x < 16; x++) {
+        g.fillStyle = (x + y) % 2 ? `hsl(${x * 22},60%,62%)` : `hsl(${x * 22},45%,82%)`;
+        g.fillRect(x * 128, y * 128, 128, 128);
+        g.fillStyle = '#222'; g.font = 'bold 44px sans-serif'; g.fillText(String.fromCharCode(65 + y) + x, x * 128 + 14, y * 128 + 78);
+    }
+    const grid = PIXI.Texture.from(c);
+    IMG['bg-beach'] = grid;
+}
+
+const app = new PIXI.Application();
+await app.init({
+    resizeTo: window, preference: 'webgl', background: 0xfbf8f1, antialias: false, autoStart: false,
+    resolution: Math.min(2, window.devicePixelRatio || 1), autoDensity: true
+});
+document.getElementById('stage').appendChild(app.canvas);
+
+// like the game: backdrops in screen space, a camera-scaled world, a paper tooth over everything
+const bgLayer = new PIXI.Container();
+const world = new PIXI.Container();
+const desk = new PIXI.Container();
+const tooth = new PIXI.TilingSprite({ texture: IMG['paper-tooth'], width: 16, height: 16 });
+tooth.blendMode = 'multiply';
+tooth.alpha = 0.55;
+app.stage.addChild(bgLayer, world, desk, tooth);
+const backdrop = new PIXI.Sprite(IMG['bg-beach']);
+bgLayer.addChild(backdrop);
+
+const state = { mode: 'screen', hinge: 'left', curl: 0.35, perspective: 1, lift: 0.08, slant: 0.05, less: false, t: 0 };
+const look = () => ({ hinge: state.hinge, curl: state.curl, perspective: state.perspective, lift: state.lift, slant: state.slant });
+let busy = false;       // an animation is running
+let frozen = false;     // the t slider holds the current demo
+
+function fit(s) {
+    const W = app.screen.width, H = app.screen.height, tw = s.texture.width, th = s.texture.height;
+    const k = Math.max(W / tw, H / th);
+    s.scale.set(k);
+    s.position.set((W - tw * k) / 2, (H - th * k) / 2);
+}
+
+// --- (a) screen: turnScreen between two backdrops ------------------------------------------------------
+const PICS = ['bg-beach', 'bg-steppe'];
+let shown = 0;          // the backdrop that is on screen
+let still = null;       // { turn, rt, key }: a frozen screen turn for the slider
+
+function snapshot() {
+    const rt = PIXI.RenderTexture.create({ width: app.screen.width, height: app.screen.height, resolution: app.renderer.resolution });
+    layout();
+    app.renderer.render({ container: app.stage, target: rt, clear: true });
+    return rt;
+}
+async function playScreen() {
+    dropStill();
+    const rt = snapshot();                                  // the old picture …
+    shown = 1 - shown;
+    backdrop.texture = IMG[PICS[shown]];                    // … and the new scene underneath
+    fit(backdrop);
+    await turnScreen(PIXI, app, { texture: rt, hinge: state.hinge, duration: 1.0, lessMotion: state.less, ...look() });
+    rt.destroy(true);
+}
+function stillScreen(k) {
+    const key = [shown, app.screen.width, app.screen.height, ...Object.values(look())].join();
+    if (!still || still.key !== key) {
+        dropStill();
+        backdrop.texture = IMG[PICS[shown]]; fit(backdrop);
+        const rt = snapshot();
+        backdrop.texture = IMG[PICS[1 - shown]]; fit(backdrop);
+        still = { rt, key, turn: createScreenTurn(PIXI, app, { texture: rt, ...look() }) };
+    }
+    still.turn.at(k);
+}
+function dropStill() {
+    if (!still) return;
+    still.turn.destroy();
+    still.rt.destroy(true);
+    still = null;
+    backdrop.texture = IMG[PICS[shown]]; fit(backdrop);
+}
+
+// --- (b) cover: a paper cover in world space peels away from its edge ----------------------------------
+const HL = 200;                           // one horse length in world units
+const cam = { x: 0, y: 0, zoom: 0.7 };
+const EDGE = 150;                         // the cover's free edge (world x); its hinge is 3000 further on
+const COVER = { x: EDGE, y: -1800, w: 3000, h: 3000 };
+const groundY = (x) => -Math.sin(x * 0.0021) * 26 - Math.sin(x * 0.0007 + 1) * 40;
+{
+    const pts = [];
+    for (let x = -2400; x <= 3600; x += 40) pts.push(x, groundY(x));
+    const sand = new PIXI.Graphics();
+    sand.poly([...pts, 3600, 1600, -2400, 1600]).fill({ texture: IMG['mat-sand'], textureSpace: 'global' });
+    const line = new PIXI.Graphics();
+    line.moveTo(pts[0], pts[1]);
+    for (let i = 2; i < pts.length; i += 2) line.lineTo(pts[i], pts[i + 1]);
+    line.stroke({ width: 4, color: 0x5b4a38, alpha: 0.65 });
+    world.addChild(sand, line);
+    const items = [['driftwood-1', -520], ['rock-1', -300], ['shell-2', -120], ['dune-grass-1', 60], ['rock-2', 240],
+        ['hut-color', 520], ['dune-grass-2', 700], ['flagpole', 860], ['shell-4', 1000], ['boat-color', 1230], ['rock-3', 1500],
+        ['windmill-color', 1800], ['dune-grass-3', 2050], ['kite-color', 2300]];
+    for (const [name, x] of items) {
+        const s = new PIXI.Sprite(PROPS[name]);
+        s.anchor.set(0.5, 1);
+        s.position.set(x, groundY(x) + 6);
+        world.addChild(s);
+    }
+}
+const coverDemo = { page: null, clock: null, key: '', k: 0, t0: 0, dur: 1.5, fade: false, done: null };
+const coverEye = { x: 0, y: 0 };
+const coverOpts = { hinge: 'right', curl: 0, perspective: 0, lift: 0, slant: 0, eye: coverEye };
+function buildCover() {
+    coverDemo.page?.destroy();
+    // like view.mjs's cover: mat-paper tiled at one texel per world unit; its hinge on the far side
+    const page = createPage(PIXI, { front: IMG['mat-paper'], tile: true, width: COVER.w, height: COVER.h });
+    page.view.position.set(COVER.x, COVER.y);
+    world.addChild(page.view);
+    coverDemo.page = page;
+    coverDemo.clock = null;
+    showCover(coverDemo.k);
+}
+/** Peel progress k (time / duration) → the cover; the clock spreads the peel over the camera's view. */
+function showCover(k) {
+    const page = coverDemo.page;
+    Object.assign(coverOpts, look(), { hinge: 'right' });
+    coverEye.x = cam.x - COVER.x; coverEye.y = cam.y - COVER.y;   // the camera centre, in the cover's units
+    const half = app.screen.width / 2 / cam.zoom;
+    const key = [cam.x, half, ...Object.values(look())].join();
+    if (!coverDemo.clock || coverDemo.key !== key) {
+        coverDemo.clock = page.timeline(cam.x - half - COVER.x, cam.x + half - COVER.x, coverOpts);
+        coverDemo.key = key;
+    }
+    page.set(k > 0 ? coverDemo.clock(k) : 0, coverOpts);
+    page.view.alpha = 1;
+    page.view.visible = k < 1;   // in the game: destroy it here
+}
+function playCover() {
+    coverDemo.fade = state.less;  // reduced motion: the cover just fades
+    coverDemo.t0 = performance.now();
+    coverDemo.dur = state.less ? 0.5 : 1.5;
+    return new Promise((r) => { coverDemo.done = r; });
+}
+function stepCover(now) {
+    if (!coverDemo.done) return;
+    const k = Math.min(1, (now - coverDemo.t0) / (coverDemo.dur * 1000));
+    coverDemo.k = k;
+    if (coverDemo.fade) { showCover(0); coverDemo.page.view.alpha = 1 - easeInOut(k); coverDemo.page.view.visible = k < 1; }
+    else showCover(k);
+    if (k >= 1) { const r = coverDemo.done; coverDemo.done = null; r(); }
+}
+
+// --- (c) sheet: a notebook on a desk -------------------------------------------------------------------
+const book = { page: null, left: null, under: null, rts: [], t: 0, from: 0, to: 0, t0: 0, done: null, pw: 0, ph: 0 };
+const deskWood = new PIXI.TilingSprite({ texture: IMG['desk-wood'], width: 16, height: 16 });
+const bookShadow = new PIXI.Graphics();
+const gutter = new PIXI.Sprite(gutterTexture());
+desk.addChild(deskWood, bookShadow);
+
+/** A notebook page: paper with a picture drawn on it, rendered once into a texture. */
+function pageTexture(pic, w, h, fx) {
+    const c = new PIXI.Container();
+    c.addChild(new PIXI.TilingSprite({ texture: IMG['mat-paper'], width: w, height: h }));
+    const src = IMG[pic], m = Math.round(w * 0.09), iw = w - 2 * m, ih = h - 2 * m;
+    const k = Math.max(iw / src.width, ih / src.height);
+    const fw = iw / k, fh = ih / k;
+    const tex = new PIXI.Texture({ source: src.source, frame: new PIXI.Rectangle(fx * (src.width - fw), (src.height - fh) * 0.55, fw, fh) });
+    const s = new PIXI.Sprite(tex);
+    s.position.set(m, m); s.width = iw; s.height = ih;
+    const frame = new PIXI.Graphics().rect(m, m, iw, ih).stroke({ width: 1.2, color: 0x4a443e, alpha: 0.55 });
+    c.addChild(s, frame);
+    const rt = PIXI.RenderTexture.create({ width: w, height: h, resolution: app.renderer.resolution });
+    app.renderer.render({ container: c, target: rt, clear: true });
+    c.destroy({ children: true });
+    tex.destroy();
+    book.rts.push(rt);
+    return rt;
+}
+function buildBook() {
+    for (const o of [book.page, book.left, book.under]) o?.destroy?.();
+    for (const rt of book.rts) rt.destroy(true);
+    book.rts = [];
+    const W = app.screen.width, H = app.screen.height;
+    const top = query.has('clean') ? 0 : 34;
+    const ph = Math.round(Math.min((H - top) * 0.84, (W * 0.46) / 0.8)), pw = Math.round(ph * 0.8);
+    const x0 = Math.round(W / 2), y0 = Math.round(top + (H - top - ph) / 2);
+    book.pw = pw; book.ph = ph; book.x0 = x0; book.y0 = y0;
+    deskWood.width = W; deskWood.height = H;
+    bookShadow.clear().roundRect(x0 - pw - 3, y0 + 5, 2 * pw + 10, ph + 4, 6).fill({ color: 0x3b2a1a, alpha: 0.22 });
+    book.left = new PIXI.Sprite(pageTexture('bg-steppe', pw, ph, 0.3));
+    book.left.position.set(x0 - pw, y0);
+    book.under = new PIXI.Sprite(pageTexture('bg-bay', pw, ph, 0.5));
+    book.under.position.set(x0, y0);
+    gutter.position.set(x0, y0); gutter.height = ph; gutter.width = pw * 0.16; gutter.anchor.set(0.5, 0);
+    desk.addChild(book.left, book.under, gutter);
+    book.page = createPage(PIXI, { front: pageTexture('bg-beach', pw, ph, 0.6), width: pw, height: ph });
+    book.page.view.position.set(x0, y0);
+    desk.addChild(book.page.view);
+    setSheet(book.t);
+}
+const bookEye = { x: 0, y: 0 };
+function setSheet(t) { bookEye.y = book.ph / 2; book.page.set(t, { ...look(), eye: bookEye }); }  // the eye above the spine
+function playSheet() {
+    book.from = book.t; book.to = book.t < 0.5 ? 1 : 0; book.t0 = performance.now();
+    return new Promise((r) => { book.done = r; });
+}
+function stepSheet(now) {
+    if (!book.done) return;
+    const k = Math.min(1, (now - book.t0) / 1200);
+    book.t = book.from + (book.to - book.from) * k;
+    setSheet(book.t);
+    if (k >= 1) { const r = book.done; book.done = null; r(); }
+}
+/** The soft shade in the gutter of an open notebook. */
+function gutterTexture() {
+    const c = document.createElement('canvas'); c.width = 64; c.height = 1;
+    const g = c.getContext('2d'), gr = g.createLinearGradient(0, 0, 64, 0);
+    gr.addColorStop(0, 'rgba(60,45,30,0)'); gr.addColorStop(0.5, 'rgba(60,45,30,0.28)'); gr.addColorStop(1, 'rgba(60,45,30,0)');
+    g.fillStyle = gr; g.fillRect(0, 0, 64, 1);
+    return PIXI.Texture.from(c);
+}
+
+// --- modes, controls and the loop ----------------------------------------------------------------------
+function layout() {
+    const W = app.screen.width, H = app.screen.height;
+    tooth.width = W; tooth.height = H;
+    fit(backdrop);
+    cam.zoom = Math.min(160, Math.max(110, H * 0.36)) / HL;     // as view.mjs does in landscape
+    cam.x = 0; cam.y = -(H / cam.zoom) * 0.12;
+    world.scale.set(cam.zoom);
+    world.position.set(W / 2 - cam.x * cam.zoom, H / 2 - cam.y * cam.zoom);
+}
+function setMode(m) {
+    if (busy) return;
+    dropStill();
+    frozen = false;
+    state.mode = m;
+    bgLayer.visible = m !== 'sheet';
+    world.visible = m === 'cover';
+    desk.visible = m === 'sheet';
+    backdrop.texture = IMG[m === 'cover' ? 'bg-beach' : PICS[shown]];
+    layout();
+    if (m === 'cover') { coverDemo.k = 0; buildCover(); }
+    if (m === 'sheet') { book.t = 0; buildBook(); }
+    state.t = 0;
+    syncUI();
+}
+async function play() {
+    if (busy) return;
+    busy = true; frozen = false;
+    syncUI();
+    try {
+        if (state.mode === 'screen') await playScreen();
+        if (state.mode === 'cover') { coverDemo.k = 0; showCover(0); await playCover(); }
+        if (state.mode === 'sheet') await playSheet();
+    } finally { busy = false; syncUI(); }
+}
+/** Freeze the current demo at progress t (screen and cover: through their clocks; sheet: page.set(t)). */
+function at(t) {
+    if (busy) return;
+    state.t = Math.min(1, Math.max(0, +t));
+    frozen = true;
+    if (state.mode === 'screen') stillScreen(state.t);
+    if (state.mode === 'cover') { coverDemo.k = state.t; showCover(state.t); }
+    if (state.mode === 'sheet') { book.t = state.t; setSheet(state.t); }
+    syncUI();
+}
+function refresh() {
+    if (busy) return;
+    if (state.mode === 'screen') { if (frozen) stillScreen(state.t); }
+    if (state.mode === 'cover') showCover(coverDemo.k);
+    if (state.mode === 'sheet') setSheet(book.t);
+}
+
+const $ = (id) => document.getElementById(id);
+for (const b of document.querySelectorAll('[data-mode]')) b.onclick = () => setMode(b.dataset.mode);
+$('play').onclick = () => play();
+$('hinge').onclick = () => { state.hinge = state.hinge === 'left' ? 'right' : 'left'; syncUI(); refresh(); };
+$('t').oninput = (e) => at(e.target.value);
+for (const k of ['curl', 'perspective', 'lift', 'slant']) $(k).oninput = (e) => { state[k] = +e.target.value; syncUI(); refresh(); };
+$('less').onchange = (e) => { state.less = e.target.checked; };
+function syncUI() {
+    for (const b of document.querySelectorAll('[data-mode]')) b.classList.toggle('on', b.dataset.mode === state.mode);
+    $('hinge').textContent = 'hinge ' + state.hinge;
+    $('t').value = state.t; $('t-out').textContent = state.t.toFixed(2);
+    for (const k of ['curl', 'perspective', 'lift', 'slant']) { $(k).value = state[k]; $(k + '-out').textContent = (+state[k]).toFixed(2); }
+    $('less').checked = state.less;
+    $('play').disabled = busy;
+}
+
+let last = performance.now();
+const info = $('info');
+function frame(now) {
+    requestAnimationFrame(frame);            // our own loop, like the game: no Pixi ticker
+    const dt = now - last; last = now;
+    stepCover(now);
+    stepSheet(now);
+    app.render();
+    if (!query.has('clean')) info.textContent = `${state.mode}${frozen ? ' · t ' + state.t.toFixed(2) : ''}${busy ? ' · playing' : ''} · ${(1000 / Math.max(1, dt)).toFixed(0)} fps`;
+}
+requestAnimationFrame(frame);
+window.addEventListener('resize', () => requestAnimationFrame(() => { const m = state.mode; setMode(m); }));
+
+setMode(['cover', 'sheet'].includes(query.get('mode')) ? query.get('mode') : 'screen');
+const nextFrame = () => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+window.pageturnDemo = {
+    get state() { return { ...state, busy, frozen }; },
+    mode(m) { setMode(m); return state.mode; },
+    set(o) { Object.assign(state, o); syncUI(); refresh(); return { ...state }; },
+    async at(t) { at(t); await nextFrame(); return { ...state }; },
+    play,
+    app, PIXI,
+    ready: true
+};
+if (!query.has('still') && state.mode === 'screen') setTimeout(() => play(), 450);
+</script>
+</body>
+</html>

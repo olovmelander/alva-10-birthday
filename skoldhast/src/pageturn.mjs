@@ -34,16 +34,18 @@ const CURL = 0.6;          // how far (in t) the hinge lags behind the free edge
 const EYE = 6;             // eye height above the sheet, in page widths, at perspective 1
 const NEAR = 0.8;          // paper never comes closer to the eye than 20 % of its height
 const LIGHT = 0.15;        // the light leans in a little from the hinge side
-const DIM = 0.3;           // how much the front darkens when it faces away from the light
-const DIM_BACK = 0.24;     // … and the back (thin paper: the lamp shines through it)
+const DIM = 0.32;          // how much the front darkens when it faces away from the light
+const DIM_BACK = 0.26;     // … and the back (thin paper: the lamp shines through it)
 const GLOW = 0.6;          // how much of the brightening beyond flat shows
 const SHADOW = 0.36;       // darkest shadow on what lies beneath (paper close to it)
 const SHADOW_FAR = 0.25;   // height (in page widths) at which the shadow has faded to half
 const SHADOW_X = 0.3;      // shadow offset per unit of height, away from the hinge …
 const SHADOW_Y = 0.08;     // … and down the page
 const BLUR = 0.1;          // shadow softness per unit of height
+const SHADOW_MAX_PX = 110; // the shadow never reaches further than this from the fold, in screen pixels
 const PAPER = 0xfbf8f1;
 const PENCIL = 0x4a443e;
+const SHADE_RGB = [59, 45, 34];   // shade and shadow: warm graphite, not black
 
 /**
  * A sheet of paper with a front and a back that turns around a vertical hinge on its left or right edge.
@@ -211,7 +213,7 @@ export function createPage(PIXI, {
         const ds = W / C;
         const D = o.perspective > 0 ? (EYE * W) / o.perspective : 0, zMax = D * NEAR;
         const bump = Math.sin(PI * t);
-        const zl = Math.max(0, o.lift) * W * bump * bump;
+        const zl = Math.max(0, o.lift) * W * bump * bump;  // rises from nothing at the hinge
         const ex = hl ? o.eyeX : W - o.eyeX, ey = o.eyeY;
         const sl = o.slant * bump;
         let reach = -Infinity;
@@ -229,7 +231,7 @@ export function createPage(PIXI, {
                 }
                 prev = phi;
                 const id = i * C1 + (hl ? k : C - k);
-                const zz = z + zl;
+                const zz = z + (k < C / 2 ? zl * smoothstep(0, C / 2, k) : zl);
                 const f = D > 0 ? D / (D - (zz < zMax ? zz : zMax)) : 1;
                 const X = ex + (x - ex) * f;
                 HX[id] = x; HZ[id] = zz; PHI[id] = phi;
@@ -247,7 +249,11 @@ export function createPage(PIXI, {
     const litFront = (phi) => LIGHT * Math.sin(phi) + Math.cos(phi);
     const litBack = (phi) => -LIGHT * Math.sin(phi) - Math.cos(phi);
     /** Light → ramp u: 0.5 clear, above it black (paper turned from the lamp), below it white. */
-    const shadeU = (d, dim, k) => (d < 1 ? 0.5 + 0.5 * Math.min(1, dim * (1 - (d > 0 ? d : 0)) * k) : 0.5 - 0.5 * Math.min(1, GLOW * (d - 1) * k));
+    const shadeU = (d, dim, k) => {
+        if (d >= 1) return 0.5 - 0.5 * Math.min(1, GLOW * (d - 1) * k);
+        const away = 1 - (d > 0 ? d : 0);
+        return 0.5 + 0.5 * Math.min(1, dim * away * Math.sqrt(away) * k);
+    };
     const shadowAlpha = (z) => SHADOW * smoothstep(0, 0.025 * W, z) * (SHADOW_FAR * W) / (SHADOW_FAR * W + z);
 
     function write() {
@@ -290,41 +296,41 @@ export function createPage(PIXI, {
 
     function writeShadow(hl) {
         const k = Math.max(0, o.shadow);
-        const tuck = 1.5 * o.px;
+        const tuck = 1.5 * o.px, cap = SHADOW_MAX_PX * o.px;
         let any = false;
         for (let i = 0; i <= R; i++) {
             const crest = CREST[i];
             const cid = i * C1 + (hl ? crest : C - crest);
-            // from the fold (the sheet's outermost point, as seen) …
-            const sx = PX[cid] - tuck, sy = PY[cid], sz = HZ[cid];
-            // … out to where the lifted paper's shadow ends on the surface below
-            let rx = -Infinity, rz = 0;
+            // from the fold (the sheet's outermost point, as seen), darkest there …
+            const sx = PX[cid] - tuck, sy = PY[cid];
+            // … out to where the lifted paper's shadow ends on the surface below, plus its blur
+            let rx = sx + tuck, rz = HZ[cid];
             for (let c = 0; c <= C; c++) {
                 const id = i * C1 + (hl ? c : C - c);
                 const xs = HX[id] + SHADOW_X * HZ[id];
                 if (xs > rx) { rx = xs; rz = HZ[id]; }
             }
-            if (rx < sx + tuck) rx = sx + tuck;
-            const ry = (i / R) * H + SHADOW_Y * rz;
-            const blur = 2 * o.px + BLUR * rz;
-            const as = shadowAlpha(sz) * k, ar = shadowAlpha(rz) * k;
-            if (as > 0.003 || ar > 0.003) any = true;
-            shadowRow(i + 1, sx, sy, rx, ry, blur, 0, 0, as, ar, hl);
-            if (i === 0) shadowRow(0, sx, sy, rx, ry, blur, -blur, 1, as, ar, hl);
-            if (i === R) shadowRow(R + 2, sx, sy, rx, ry, blur, blur, 1, as, ar, hl);
+            const ex = Math.min(rx + 2 * o.px + BLUR * rz, sx + cap);
+            const ey = (i / R) * H + SHADOW_Y * rz;
+            const a = shadowAlpha(rz) * k;   // as strong as the paper casting it is close to the surface
+            if (a > 0.003) any = true;
+            shadowRow(i + 1, sx, sy, ex, ey, 0, 0, a, hl);
+            if (i === 0) shadowRow(0, sx, sy, ex, ey, -(ex - sx) * 0.5, 1, a, hl);
+            if (i === R) shadowRow(R + 2, sx, sy, ex, ey, (ex - sx) * 0.5, 1, a, hl);
         }
         shadowMesh.visible = any;
         if (any) { pos(shadowMesh).update(); uvb(shadowMesh).update(); }
     }
-    /** One shadow row: fold, shadow edge, fringe. UVs index the shadow LUT: u across the soft edge, v alpha. */
-    function shadowRow(r, sx, sy, rx, ry, blur, dy, fringe, as, ar, hl) {
-        const j = r * 6;
+    /** One shadow row from the fold (sx, sy) to where it has faded (ex, ey); fringe rows fade out above and
+     *  below. UVs index the shadow LUT: u runs across the soft edge, v is the strength. */
+    function shadowRow(r, sx, sy, ex, ey, dy, fringe, a, hl) {
+        const j = r * 6, mx = 0.5 * (sx + ex), my = 0.5 * (sy + ey);
         SP[j] = hl ? sx : W - sx; SP[j + 1] = sy + dy;
-        SP[j + 2] = hl ? rx : W - rx; SP[j + 3] = ry + dy;
-        SP[j + 4] = hl ? rx + blur : W - rx - blur; SP[j + 5] = ry + dy;
-        SU[j] = fringe; SU[j + 1] = as;
-        SU[j + 2] = fringe; SU[j + 3] = ar;
-        SU[j + 4] = 1; SU[j + 5] = ar;
+        SP[j + 2] = hl ? mx : W - mx; SP[j + 3] = my + dy;
+        SP[j + 4] = hl ? ex : W - ex; SP[j + 5] = ey + dy;
+        SU[j] = fringe; SU[j + 1] = a;
+        SU[j + 2] = fringe ? 1 : 0.5; SU[j + 3] = a;
+        SU[j + 4] = 1; SU[j + 5] = a;
     }
 
     function writeLine(m, P, hl) {
@@ -376,6 +382,48 @@ export function createPage(PIXI, {
             resolve(opts);
             return compute(t);
         },
+        /**
+         * A clock for a turn watched through the band x0 … x1 of the sheet's own x (the screen, the camera's
+         * view): returns k ↦ t for k = 0 … 1 (time / duration). A short lift, then the fold eases across the
+         * band, and at k = 1 no part of the sheet is left in it (or it has turned fully over, if the band
+         * reaches past the hinge), so the turn fills its time whatever the size, curl and perspective.
+         * Build it when the turn starts, with the options it will run with; the clock allocates nothing.
+         */
+        timeline(x0 = 0, x1 = W, opts) {
+            if (destroyed) return clamp01;
+            resolve(opts);
+            const hl = o.hinge !== 'right';
+            const a = hl ? Math.min(x0, x1) : W - Math.max(x0, x1);
+            const b = Math.min(hl ? Math.max(x0, x1) : W - Math.min(x0, x1), compute(0));
+            if (!(b > a)) return clamp01; // the band never sees the sheet
+            // when the sheet has left the band
+            const gone = (t) => compute(t) <= a;
+            let lo = 0, hi = 1;
+            for (let n = 1; n <= 32; n++) if (gone(n / 32)) { lo = (n - 1) / 32; hi = n / 32; break; }
+            if (hi < 1 || gone(1)) for (let n = 0; n < 10; n++) { const m = 0.5 * (lo + hi); if (gone(m)) hi = m; else lo = m; }
+            const tEnd = hi;
+            // visible progress along t: the lift (a few %), then how much of the band is uncovered
+            const N = 48, LIFT = 0.04, P = new Float32Array(N + 1);
+            let lifted = 0;
+            for (let n = 0; n <= N; n++) {
+                const sw = 1 - clamp01((compute((tEnd * n) / N) - a) / (b - a));
+                if (!lifted && sw > 0.004) lifted = Math.max(1, n);
+                P[n] = sw;
+            }
+            if (!lifted) lifted = N;
+            for (let n = 0; n <= N; n++) {
+                const p = LIFT * Math.min(1, n / lifted) + (1 - LIFT) * P[n];
+                P[n] = Math.max(p, n > 0 ? P[n - 1] + 1e-5 : 0);
+            }
+            const top = P[N];
+            return (k) => {
+                const p = timing(clamp01(k)) * top;
+                let n = 1;
+                while (n < N && P[n] < p) n++;
+                const u = P[n] > P[n - 1] ? clamp01((p - P[n - 1]) / (P[n] - P[n - 1])) : 1;
+                return (tEnd * (n - 1 + u)) / N;
+            };
+        },
         /** Frees what createPage made (meshes, geometry, generated textures), not the textures passed in. */
         destroy() {
             if (destroyed) return;
@@ -394,7 +442,7 @@ export function createPage(PIXI, {
 /**
  * A full-screen turn under manual control: the old picture as a page over the screen, hinged at the
  * left or right screen edge. at(k) shows progress k ∈ [0, 1] (eased; at 1 the page has just left the
- * screen). turnScreen() drives one of these from requestAnimationFrame.
+ * screen). turnScreen() drives one of these from requestAnimationFrame; the dev page scrubs it.
  */
 export function createScreenTurn(PIXI, app, {
     texture, hinge = 'left', back = null, parent = app.stage,
@@ -406,42 +454,15 @@ export function createScreenTurn(PIXI, app, {
         hinge, curl, perspective, lift, slant, px: 1
     });
     parent.addChild(page.view);
-    // the t at which no part of the page is on screen any more
-    const gone = (t) => page.reach(t) <= 0;
-    let lo = 0, hi = 1;
-    for (let n = 1; n <= 32; n++) if (gone(n / 32)) { lo = (n - 1) / 32; hi = n / 32; break; }
-    for (let n = 0; n < 10; n++) { const m = 0.5 * (lo + hi); if (gone(m)) hi = m; else lo = m; }
-    const tEnd = hi;
-    // Visible progress along t: a short lift (the free edge rises, still off screen), then the sweep,
-    // measured by how much of the screen is uncovered. at(k) eases through that, not through t, so the
-    // turn fills its time evenly whatever the curl and perspective.
-    const N = 48, LIFT = 0.04;
-    const P = new Float32Array(N + 1), SW = new Float32Array(N + 1);
-    let lifted = N;
-    for (let n = 0; n <= N; n++) {
-        SW[n] = 1 - clamp01(page.reach((tEnd * n) / N) / width);
-        if (lifted === N && SW[n] > 0.004) lifted = Math.max(1, n);
-    }
-    for (let n = 0; n <= N; n++) {
-        const p = LIFT * Math.min(1, n / lifted) + (1 - LIFT) * SW[n];
-        P[n] = Math.max(p, n > 0 ? P[n - 1] + 1e-5 : 0);
-    }
-    const scale = 1 / P[N];
-    const tAt = (p) => {
-        p /= scale;
-        let n = 1;
-        while (n < N && P[n] < p) n++;
-        const a = P[n - 1], b = P[n], u = b > a ? clamp01((p - a) / (b - a)) : 1;
-        return (tEnd * (n - 1 + u)) / N;
-    };
+    const clock = page.timeline(0, width);
     const frame = { shadow: 1, outline: 0 };
     const turn = {
-        page, tEnd,
+        page,
         at(k) {
             k = clamp01(k);
             frame.outline = smoothstep(0, 0.06, k);
             frame.shadow = 1 - smoothstep(0.85, 1, k);
-            page.set(tAt(timing(k)), frame);
+            page.set(clock(k), frame);
             return turn;
         },
         destroy() { page.destroy(); }
@@ -449,7 +470,7 @@ export function createScreenTurn(PIXI, app, {
     turn.at(0);
     return turn;
 }
-/** Ease in, and out only a little: the page leaves the screen still moving, as a turned page does. */
+/** Ease in, and out only a little: the sheet leaves the view still moving, as a turned page does. */
 function timing(k) { return k * k * (2 - k); }
 
 /**
@@ -512,12 +533,14 @@ function toTexture(PIXI, c, repeat) {
 }
 function rng(seed) { return () => ((seed = (seed * 16807) % 2147483647) / 2147483647); }
 
-/** 256 × 1: white fading out to clear at the middle, then black fading in (light and shade overlay). */
+/** 256 × 1: white fading out to clear at the middle, then shade fading in (the light overlay). */
 function rampTexture(PIXI) {
     const n = 256, c = canvas(n, 1), g = c.getContext('2d'), im = g.createImageData(n, 1);
     for (let i = 0; i < n; i++) {
         const u = (i + 0.5) / n, white = u < 0.5;
-        im.data[i * 4] = im.data[i * 4 + 1] = im.data[i * 4 + 2] = white ? 255 : 0;
+        im.data[i * 4] = white ? 255 : SHADE_RGB[0];
+        im.data[i * 4 + 1] = white ? 255 : SHADE_RGB[1];
+        im.data[i * 4 + 2] = white ? 255 : SHADE_RGB[2];
         im.data[i * 4 + 3] = Math.round(255 * (white ? 0.5 - u : u - 0.5) * 2);
     }
     g.putImageData(im, 0, 0);
@@ -529,7 +552,9 @@ function shadowTexture(PIXI) {
     for (let y = 0; y < h; y++) {
         for (let x = 0; x < w; x++) {
             const u = x / (w - 1), v = y / (h - 1);
-            im.data[(y * w + x) * 4 + 3] = Math.round(255 * v * (1 - u * u * (3 - 2 * u)));
+            const q = (y * w + x) * 4;
+            im.data[q] = SHADE_RGB[0]; im.data[q + 1] = SHADE_RGB[1]; im.data[q + 2] = SHADE_RGB[2];
+            im.data[q + 3] = Math.round(255 * v * (1 - u * u * (3 - 2 * u)));
         }
     }
     g.putImageData(im, 0, 0);
