@@ -147,6 +147,34 @@ export function createGuide(root, { img, heroScreen, onGoalTap } = {}) {
         }
     }
 
+    // --- Klo's hint on a short landscape screen: in the top band, on the side away from the sköldhäst -----------
+    let hintKey = '';
+    function placeHint() {
+        const r = box();
+        const short = r.width > r.height && r.height <= 520;
+        let side = '', width = 0;
+        if (short) {
+            const s = heroScreen?.();
+            if (s) {
+                const sc = (s.scale || 0.8) * HL_PX;
+                const headX = s.x - r.left + (s.facing || 1) * 0.3 * sc, headTop = s.y - r.top - 0.6 * sc;
+                // only when the head is up in the band the hint uses: then beside it, in the wider free side
+                if (headTop < 140) {
+                    const left = headX - 0.55 * sc - 62 - 10, right = r.width - 62 - (headX + 0.55 * sc) - 10;
+                    const room = Math.max(left, right);
+                    if (room >= 250) { side = right >= left ? 'right' : 'left'; width = Math.min(520, room); }
+                }
+            }
+        }
+        const key = side + Math.round(width / 20);
+        if (key === hintKey) return;
+        hintKey = key;
+        hintEl.style.alignSelf = side === 'left' ? 'flex-start' : side === 'right' ? 'flex-end' : '';
+        hintEl.style.width = side ? Math.round(width) + 'px' : '';
+        hintEl.style.marginLeft = side === 'left' ? '62px' : '';
+        hintEl.style.marginRight = side === 'right' ? '62px' : '';
+    }
+
     // --- the thought bubble: above the head, or beside it when the sky is taken ----------------
     function placeThink() {
         const s = heroScreen?.();
@@ -191,6 +219,7 @@ export function createGuide(root, { img, heroScreen, onGoalTap } = {}) {
             hintEl.className = 'sk-hintbubble who-' + who;
             top.classList.add('hinting');
             showFor(hintEl, ms, hintDone);
+            placeHint();
             freeTop();
         },
         think(text, ms = 2600) {
@@ -212,6 +241,7 @@ export function createGuide(root, { img, heroScreen, onGoalTap } = {}) {
             if (!shown) return;
             if (thinking) placeThink();
             if (tipEl.classList.contains('on')) placeTip();
+            if (hintEl.classList.contains('on')) placeHint();
         },
         show(on) {
             on = !!on;
