@@ -33,6 +33,16 @@ const MAT_IMAGE = {
 
 export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
     const T = (name) => assets.tex(name);
+    let destroyed = false;
+    const pendingFrames = new Set();
+    function nextFrame(callback) {
+        if (destroyed) return;
+        const id = requestAnimationFrame((time) => {
+            pendingFrames.delete(id);
+            if (!destroyed) callback(time);
+        });
+        pendingFrames.add(id);
+    }
     const root = new PIXI.Container();
     app.stage.addChild(root);
 
@@ -609,6 +619,7 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
     }
 
     function setScene(id, { keepCam = false, turn = null } = {}) {
+        if (destroyed) return null;
         // the old picture becomes a page that turns away over the new one
         const rt = turn && S ? capture() : null;
         clearScene();
@@ -701,7 +712,7 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
         }
     }
     function endTurns() {
-        for (const tr of turns.splice(0)) { tr.destroy(); tr.rt.destroy(true); tr.resolve(); }
+        for (const tr of turns.splice(0)) { tr.destroy(); tr.rt.destroy(true); if (!destroyed) tr.resolve(); }
         held = null;
     }
 
@@ -727,7 +738,7 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
                 const tick = () => {
                     if (!S || !S.paper.includes(pc)) { resolve(); return; }
                     pc.c.alpha = Math.max(0, pc.c.alpha - 1 / 30);
-                    if (pc.c.alpha <= 0) { finish(); resolve(); } else requestAnimationFrame(tick);
+                    if (pc.c.alpha <= 0) { finish(); resolve(); } else nextFrame(tick);
                 };
                 tick();
             });
@@ -765,8 +776,8 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
         for (const pc of S?.paper || []) {
             if (pc.state !== 'turning') continue;
             pc.page?.destroy(); pc.page = null; pc.step = null;
-            pc.state = 'gone'; G.flags.add('peeled_' + pc.pc.id);
-            pc.resolve?.();
+            pc.state = 'gone';
+            if (!destroyed) { G.flags.add('peeled_' + pc.pc.id); pc.resolve?.(); }
         }
     }
     /** true when the scene was built with all of its art (no placeholders) */
@@ -1304,10 +1315,11 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
         if (color !== undefined) fadeColor = color;
         const from = fadeAlpha; const t0 = performance.now();
         return new Promise((r) => {
+            if (destroyed) return;
             const tick = () => {
                 const u = Math.min(1, (performance.now() - t0) / (dur * 1000));
                 fadeAlpha = from + (a - from) * u;
-                if (u < 1) requestAnimationFrame(tick); else r();
+                if (u < 1) nextFrame(tick); else r();
             };
             tick();
         });
@@ -1315,6 +1327,7 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
 
     // --- effects the story asks for -------------------------------------------------------------------
     async function fx(name, data) {
+        if (destroyed) return new Promise(() => {});
         const def = S?.def;
         switch (name) {
             case 'foldDemo': {
@@ -1325,7 +1338,7 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
                     const tick = () => {
                         const u = (time - t0) / 1.6;
                         s.scale.y = u < 0.5 ? 1 - Math.sin(u * Math.PI) * 1.8 : Math.max(-0.8, 1 - Math.sin(u * Math.PI) * 1.8);
-                        if (u >= 1) { s.destroy(); r(); } else requestAnimationFrame(tick);
+                        if (u >= 1) { s.destroy(); r(); } else nextFrame(tick);
                     };
                     tick();
                 });
@@ -1400,23 +1413,27 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
                 cam.snap = false;
                 try {
                     if (t1) await t1.done; else await fadeTo(0, 0.4);
+                    if (destroyed) return;
                     if (S.vista) S.vista.phase = 'holding';
                     if (data.peek) {
                         const fig = G.actors.figure, lamp = S.def.lamp;
                         Object.assign(fig, { scene: data.scene, x: lamp?.x ?? data.x, y: lamp ? lamp.y + 45 : data.y - h(1.0), visible: true, pose: 'kv-peek', facing: -1 });
                         await G.wait(1.2);
+                        if (destroyed) return;
                         fig.visible = false;
                         onFx?.('sfx', 'latch');
                     }
                     await G.wait(data.hold ?? Math.max(0.5, (data.t || 2) - 1.6));
                 } finally {
-                    if (S.vista) S.vista.phase = 'leaving';
-                    Object.assign(G.actors.figure, figureBefore);
-                    const t2 = setScene(back, { turn: 'right' });
-                    G.vista = vistaBefore; G.hideHero = hiddenBefore;
-                    G.camHint = hintBefore;
-                    Object.assign(cam, save); cam.snap = false;
-                    if (t2) await t2.done; else fadeAlpha = 0;
+                    if (!destroyed) {
+                        if (S.vista) S.vista.phase = 'leaving';
+                        Object.assign(G.actors.figure, figureBefore);
+                        const t2 = setScene(back, { turn: 'right' });
+                        G.vista = vistaBefore; G.hideHero = hiddenBefore;
+                        G.camHint = hintBefore;
+                        Object.assign(cam, save); cam.snap = false;
+                        if (t2) await t2.done; else fadeAlpha = 0;
+                    }
                 }
                 break;
             }
@@ -1434,6 +1451,10 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
     }
 
     function destroy() {
+        if (destroyed) return;
+        destroyed = true;
+        for (const id of pendingFrames) cancelAnimationFrame(id);
+        pendingFrames.clear();
         offs.forEach((o) => o());
         endTurns();
         clearScene();

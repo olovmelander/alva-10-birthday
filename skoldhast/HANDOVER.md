@@ -231,6 +231,9 @@ or additional chapter release is part of this branch.
 - The table prologue also cancels its own waits and animation frames on close.
   `tests/browser/skoldhast-prologue-lifecycle.mjs` reproduces closing during the
   opening wait and Klo's first tween, then verifies a clean reopen at both phone sizes.
+- Renderer fades, fold demonstrations and page turns stop on close as well;
+  destroying a lighthouse glimpse cannot rebuild the abandoned scene.
+  `tests/browser/skoldhast-view-lifecycle.mjs` covers each interruption.
 - Collection foundations now allow colouring while swimming, keep hidden or
   fast-moving players out of contextual colouring, and share chapter/clue gates
   between pickup, props and rendering. The HUD counts the current region; the
