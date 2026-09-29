@@ -82,8 +82,8 @@
    "images": [
     "props.webp"
    ],
-   "bytes": 396962,
-   "frames": 64
+   "bytes": 407676,
+   "frames": 68
   },
   "props-land": {
    "bundle": "land",
@@ -94,7 +94,7 @@
    "images": [
     "props-land.webp"
    ],
-   "bytes": 114368,
+   "bytes": 114704,
    "frames": 19
   },
   "props-sea": {
@@ -106,7 +106,7 @@
    "images": [
     "props-sea.webp"
    ],
-   "bytes": 295908,
+   "bytes": 295914,
    "frames": 13
   },
   "props-bay": {
@@ -118,7 +118,7 @@
    "images": [
     "props-bay.webp"
    ],
-   "bytes": 277384,
+   "bytes": 277618,
    "frames": 14
   }
  },
@@ -571,7 +571,7 @@
     "assets/ui-icons.webp",
     "assets/hero-rig.json"
    ],
-   "bytes": 1476364
+   "bytes": 1487078
   },
   "sea": {
    "files": [
@@ -584,7 +584,7 @@
     "assets/mat-seabed.webp",
     "assets/mat-deep.webp"
    ],
-   "bytes": 644532
+   "bytes": 644538
   },
   "land": {
    "files": [
@@ -598,7 +598,7 @@
     "assets/mat-grass.webp",
     "assets/mat-earth.webp"
    ],
-   "bytes": 762022
+   "bytes": 762358
   },
   "bay": {
    "files": [
@@ -610,7 +610,7 @@
     "assets/bg-bay-evening.webp",
     "assets/mat-cream.webp"
    ],
-   "bytes": 655230
+   "bytes": 655464
   }
  },
  "built": "2026-09-29"

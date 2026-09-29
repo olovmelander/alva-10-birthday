@@ -8,6 +8,7 @@
  *
  *   node scripts/build-skoldhast-assets.mjs            # everything
  *   node scripts/build-skoldhast-assets.mjs --only hero,props
+ *   node scripts/build-skoldhast-assets.mjs --check   # refresh manifest/files and check existing assets
  *
  * Each art module exports `build(api)`:
  *   api.atlas(name, { scale, bundle })          declare an atlas (scale = texture px per world unit)
@@ -26,7 +27,7 @@ import { writeAtlas, writeImage } from './skoldhast-art/atlas.mjs';
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const OUT = path.join(ROOT, 'skoldhast', 'assets');
 const MODULES = ['hero', 'npcs', 'props', 'materials', 'backdrops', 'ui'];
-const BOOT_BUDGET = 3 * 1024 * 1024; // first playable, compressed
+const BOOT_BUDGET = 3_000_000; // first playable, compressed: the requested decimal 3 MB limit
 
 const args = process.argv.slice(2);
 const onlyIdx = args.indexOf('--only');
@@ -38,6 +39,7 @@ async function main() {
     fs.mkdirSync(PARTS, { recursive: true });
 
     for (const mod of MODULES) {
+        if (args.includes('--check')) continue;
         if (only && !only.includes(mod)) continue;
         const file = path.join(ROOT, 'scripts', 'skoldhast-art', `${mod}.mjs`);
         if (!fs.existsSync(file)) { console.log(`- ${mod}: (no module yet)`); continue; }
@@ -120,11 +122,11 @@ async function main() {
     let total = 0;
     for (const f of files) {
         const p = path.join(ROOT, 'skoldhast', f);
-        if (!fs.existsSync(p)) continue;
+        if (!fs.existsSync(p)) throw new Error(`missing first-playable file: ${f}`);
         const buf = fs.readFileSync(p);
         total += /\.(mjs|js|css|json)$/.test(f) ? zlib.gzipSync(buf).length : buf.length;
     }
-    console.log(`first playable: ${(total / 1024 / 1024).toFixed(2)} MB (budget ${(BOOT_BUDGET / 1024 / 1024).toFixed(1)} MB)`);
+    console.log(`first playable: ${total} bytes (${(total / 1e6).toFixed(3)} MB; budget ${(BOOT_BUDGET / 1e6).toFixed(1)} MB)`);
     for (const [b, v] of Object.entries(bundles)) console.log(`  bundle ${b}: ${(v.bytes / 1024).toFixed(0)} KB in ${v.files.length} files`);
     if (total > BOOT_BUDGET) { console.error('first-playable budget exceeded'); process.exitCode = 1; }
 }

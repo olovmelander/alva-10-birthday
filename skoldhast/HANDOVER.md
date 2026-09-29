@@ -239,6 +239,14 @@ or additional chapter release is part of this branch.
   between pickup, props and rendering. The HUD counts the current region; the
   notebook lists visited regions. Counts use authored IDs, preserving existing
   collected/coloured pencils while ignoring stray save flags.
+- All **15 pencils** now exist: **7** on land, **4** in Kelpskogen and **4** in
+  Spegelviken. New shell/pebble drawings have matching grey/colour frames.
+  Four pure route checks and four keyboard/touch browser variants verify every
+  pickup, colouring and regional counter. The completed P8 current now switches
+  off, so free exploration can ride the pipe back to the gallery and return by
+  the stairs. Run `tests/browser/skoldhast-collection.mjs` (see its header).
+  `npm run build:skoldhast -- --check` refreshes the prefetch list and enforces
+  a strict **3,000,000-byte** first-playable limit without rebuilding art.
 - The finale now revisits the distant lighthouse view introduced in Kapitel 2:
   the real lamp and its reflection both glow in evening light, followed by a
   quiet 1.8-second hold. Klo stands beside the hero for his conclusion. Focused
@@ -253,7 +261,6 @@ or additional chapter release is part of this branch.
 - **Audio** has passed automatic checks (levels, seams, tuning) but needs a listen.
 - **Not built** (optional in the plan):
   - O7 Flytbryggan (stretch);
-  - the Kapitel 2–3 färgpennor (5 of about 15 exist, all in Kapitel 1);
   - the "Publicerad!" clipping;
 - **Design changes the robot forced (worth knowing):**
   - Klo's hole moved east among the shells (106.2 HL), so the pool's reflection and Klo's "Ja" don't fire together.

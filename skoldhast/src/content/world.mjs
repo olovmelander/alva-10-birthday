@@ -171,7 +171,10 @@ SCENES.land = {
         { id: 'p-flowers', x: h(61), y: h(-1.26), prop: 'flowers', propAt: { x: h(58.8), y: h(-0.82) } },
         { id: 'p-hut', x: h(86.4), y: h(-0.92), prop: 'hut', propAt: { x: h(81.6), y: h(-0.63) } },
         { id: 'p-bucket', x: h(33.2), y: h(-4.05), prop: 'bucket', propAt: { x: h(106.9), y: h(-0.38) } },
-        { id: 'p-windmill', x: h(27.9), y: h(-6.4), prop: 'windmill', propAt: { x: h(71.2), y: h(-0.77) } }
+        { id: 'p-windmill', x: h(27.9), y: h(-6.4), prop: 'windmill', propAt: { x: h(71.2), y: h(-0.77) } },
+        // Kapitel 2: small discoveries on the far side of Stora språnget.
+        { id: 'p-udden-flowers', chapter: 2, x: h(2.6), y: h(-4.045), prop: 'flowers', propAt: { x: h(1.5), y: h(-4.03125) } },
+        { id: 'p-udden-kite', chapter: 2, x: h(5.6), y: h(-3.98933), prop: 'kite', propAt: { x: h(6.6), y: h(-3.98615) } }
     ],
     pinwheels: [{ id: 'pw-70', x: h(70.4), y: h(-0.78) }, { id: 'pw-88', x: h(88.6), y: h(-0.9) }],
     // Smaktestet (O1): tufts of steppe grass to taste
@@ -254,6 +257,13 @@ SCENES.land = {
 // ===========================================================================
 SCENES.kelp = {
     id: 'kelp', title: SCENE_TITLES.kelp, underwater: true,
+    pencils: [
+        // Pickups float just above the seabed; the drawings rest on its contour.
+        { id: 'p-kelp-bucket', chapter: 2, x: h(23.7), y: h(11.4), prop: 'bucket', propAt: { x: h(24.6), y: h(12.05882) } },
+        { id: 'p-kelp-shell', chapter: 2, when: 'p5_lit', x: h(28.8), y: h(12.22), prop: 'sea-shell', propAt: { x: h(29.8), y: h(12.59333) } },
+        { id: 'p-kelp-boat', chapter: 2, when: 'p5_lit', x: h(32.1), y: h(11.34), prop: 'boat', propAt: { x: h(33.1), y: h(11.20667) } },
+        { id: 'p-kelp-pebbles', chapter: 2, when: 'p5_lit', x: h(43), y: h(9.53), prop: 'pebbles', propAt: { x: h(44.2), y: h(9.46667) } }
+    ],
     bounds: { x0: h(-1), x1: h(50), y0: h(-3), y1: h(14) },
     backdrop: [{ image: 'bg-under', x0: h(-1), x1: h(50) }],
     surfaces: [
@@ -348,6 +358,12 @@ SCENES.kelp = {
 // ===========================================================================
 SCENES.viken = {
     id: 'viken', title: SCENE_TITLES.viken,
+    pencils: [
+        { id: 'p-bay-boat', chapter: 3, x: h(0.9), y: h(-0.16), prop: 'boat', propAt: { x: h(0.4), y: h(-0.16) } },
+        { id: 'p-bay-windmill', chapter: 3, x: h(7), y: h(-0.62), prop: 'windmill', propAt: { x: h(8.1), y: h(-0.62) } },
+        { id: 'p-bay-shell', chapter: 3, x: h(19.2), y: h(6.47), prop: 'sea-shell', propAt: { x: h(20.2), y: h(6.735) } },
+        { id: 'p-gallery-flowers', chapter: 3, x: h(30.2), y: h(-7.3), prop: 'flowers', propAt: { x: h(31.1), y: h(-7.3) } }
+    ],
     bounds: { x0: h(-1), x1: h(36), y0: h(-11), y1: h(9) },
     backdrop: [{ image: 'bg-bay', x0: h(-1), x1: h(36) }],
     evening: { 'bg-bay': 'bg-bay-evening' },
@@ -380,7 +396,7 @@ SCENES.viken = {
     lanes: [
         { id: 'pipe', pts: L([26.5, 5.2], [26.5, 0.6], [26.5, -7.1]), width: h(0.9), speed: 520, eject: true, suck: h(2.2) },
         // the sea half of P8 starts where the pier leap lands and ends in a calm pool at the lower window
-        { id: 'p8-lane', pts: L([25.6, 0.85], [25.95, 1.7], [26.2, 2.3], [26.35, 2.6]), width: h(1.4), speed: 260, dashed: true, endHold: true, priority: 1, when: 'p8_land' }
+        { id: 'p8-lane', pts: L([25.6, 0.85], [25.95, 1.7], [26.2, 2.3], [26.35, 2.6]), width: h(1.4), speed: 260, dashed: true, endHold: true, priority: 1, when: ['p8_land', '!p8_done'] }
     ],
     spots: {
         fromLand: { x: h(0.6), y: h(-0.16), facing: 1 },

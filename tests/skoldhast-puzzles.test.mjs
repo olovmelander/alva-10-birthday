@@ -127,7 +127,7 @@ test('free-play guidance celebrates the complete collection and keeps Signe as a
     assert.equal(story.goal(), GOALS.free);
     const pencils = Object.values(G.scenes).flatMap(sc => sc.pencils || []);
     for (const pc of pencils.slice(0, -1)) G.flags.add('penna_' + pc.id);
-    assert.equal(story.objective(), 'free', '4/5 still asks for pencils');
+    assert.equal(story.objective(), 'free', 'one remaining pencil still gives a collection goal');
     G.flags.add('penna_' + pencils.at(-1).id); G.emit('pickup', {});
     assert.equal(story.objective(), 'freeComplete');
     assert.equal(story.goal(), GOALS.freeComplete);
