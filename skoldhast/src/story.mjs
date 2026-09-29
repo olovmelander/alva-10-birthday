@@ -30,16 +30,16 @@ export function createStory(G, io) {
     G.actors.klo = { id: 'klo', scene: null, x: 0, y: 0, pose: 'idle', facing: -1, visible: false, pop: 0, walk: null, holding: null };
     G.actors.kv = { id: 'kv', scene: null, x: 0, y: 0, pose: 'stand', facing: -1, visible: false, walk: null };
     G.actors.figure = { id: 'figure', scene: null, x: 0, y: 0, pose: 'kv-walk-1', facing: 1, visible: false, walk: null };
-    G.actors.signe = { id: 'signe', scene: null, x: 0, y: 0, pose: 'idle', facing: -1, visible: false, walk: null };
+    G.actors.signe = { id: 'signe', scene: null, x: 0, y: 0, pose: 'idle', facing: -1, visible: false, walk: null, speed: 0, walkPhase: 0 };
     let lastTaste = 'grass';
     G.on('taste', (e) => { lastTaste = e.kind; });
 
     const reactions = createKloReactions(KLO_JOKES);
     const say = async (lines) => {
         const list = Array.isArray(lines[0]) ? lines : [lines];
-        G.actors.klo.talking = list.some(([who]) => who === 'klo');
+        for (const id of ['klo', 'kv']) G.actors[id].talking = list.some(([who]) => who === id);
         try { return await io.ui.say(list); }
-        finally { G.actors.klo.talking = false; }
+        finally { for (const id of ['klo', 'kv']) G.actors[id].talking = false; }
     };
     function tapKlo({ visible = false } = {}) {
         const actor = G.actors.klo;
@@ -122,6 +122,46 @@ export function createStory(G, io) {
     const inScene = (s) => G.sceneId === s;
     const inArea = (a) => G.areas.has(a);
     const P = () => G.player;
+
+    // Actors are presentation of committed story state, not saved objects. A
+    // one-time introduction must not make its character disappear on reload.
+    // Authored transitions during a beat retain full control of their staging.
+    function restoreActors() {
+        if (!G.sceneDef || running) return;
+        const sc = G.sceneDef, p = P(), klo = G.actors.klo, kv = G.actors.kv, sg = G.actors.signe;
+        const place = (actor, at, extra = {}) => Object.assign(actor, at, {
+            scene: sc.id, visible: true, walk: null, pose: 'idle', inHole: false,
+            holding: null, talking: false, speed: 0, ...extra
+        });
+        if (sc.id === 'land') {
+            if (F.has('b:k1_enter') || F.has('klo_hidden') || F.has('ended')) {
+                let at = sc.spots.kloBeach;
+                if (F.has('klo_hidden') && !F.has('klo_ja')) {
+                    place(klo, sc.spots.kloHole, { pose: 'peek', inHole: true });
+                } else {
+                    if (p.x < h(13) && F.has('p4_leap')) at = sc.spots.kloUdden;
+                    else if (p.x < h(38.5) && F.has('p3_done')) at = sc.spots.kloLedge;
+                    else if (p.x < h(65) && F.has('b:k1_branten')) at = sc.spots.kloBranten;
+                    else if (p.x < h(94) && F.has('note1_read')) at = sc.spots.kloNote;
+                    place(klo, at, { facing: Math.sign(p.x - at.x) || -1 });
+                }
+            }
+            if (F.has('ended') && F.has('signe_met')) {
+                place(sg, sc.race.signe, { facing: -1, racing: false });
+                groundSigne();
+            }
+        } else if (sc.id === 'kelp' && (F.has('kelp_entered') || F.has('ch2_open'))) {
+            place(klo, p.x > h(20) ? sc.spots.kloTrench : sc.spots.klo, { facing: 1 });
+        } else if (sc.id === 'viken') {
+            if (F.has('viken_arrived')) place(klo, p.x < h(3) ? sc.spots.kloShore : sc.spots.klo, { facing: -1 });
+            if (F.has('kv_met')) {
+                place(kv, sc.spots.kvPier, { pose: F.has('talk1') && !F.has('talk_done') ? 'point' : 'stand',
+                    facing: -1, map: F.has('talk1') ? 'open' : 'closed' });
+                if (F.has('talk2') && !F.has('talk_done')) place(klo, { x: kv.x - h(0.5), y: kv.y - h(0.45) }, { pose: 'point', facing: 1 });
+            }
+        }
+    }
+    G.on('scene', restoreActors);
 
     // =========================================================================
     // KAPITEL 1
@@ -532,6 +572,7 @@ export function createStory(G, io) {
 
     beat('k3_lamp', {
         on: 'lampLit',
+        when: () => inScene('viken') && F.has('lamp_lit') && !F.has('kv_met'),
         async run(s) {
             const L = G.sceneDef.lamp;
             await s.cam({ x: L.x, y: L.y + h(2.5), zoom: 0.72, t: 1.2, hold: 0.6 });
@@ -670,30 +711,42 @@ export function createStory(G, io) {
             Object.assign(sg, { x: r.start.x - h(0.2), y: r.start.y, facing: -1, pose: 'idle', visible: true, scene: 'land' });
             await s.say(F.has('signe_race') ? STORY.after.signeAgain : STORY.after.signeGo);
             G.busy--;
-            race.active = true; race.wave = 0;
+            race.active = true; race.wave = 0; sg.racing = true;
             const won = await new Promise((resolve) => { race.done = resolve; });
             race.active = false;
-            sg.pose = 'idle';
+            sg.pose = 'idle'; sg.speed = 0; sg.racing = false;
             G.busy++;
             await s.say(won ? STORY.after.signeLose : STORY.after.signeGiveUp);
             G.busy--;
             if (won) { G.flag('signe_race'); s.stinger('aha'); }
             // back to her place by the shells
-            await s.walk('signe', r.signe.x, 160);
+            await s.walk('signe', r.signe.x, r.speed);
         }
     });
+    function groundSigne() {
+        const sg = G.actors.signe;
+        if (sg.scene !== G.sceneId) return;
+        const ground = G.terrain.support(sg.x, sg.y, h(0.6), h(0.6));
+        if (ground) sg.y = ground.y;
+    }
+    function moveSigne(x, dt) {
+        const sg = G.actors.signe, dx = x - sg.x;
+        sg.x = x; sg.speed = Math.abs(dx) / dt;
+        sg.walkPhase = (sg.walkPhase + Math.abs(dx) / h(0.5)) % 1;
+        groundSigne();
+    }
     function stepRace(dt) {
         if (!race.active) return;
         const r = G.sceneDef?.race, sg = G.actors.signe, p = G.player;
         if (!r || !inScene('land')) { race.done?.(false); return; }
         if (p.x <= r.finish) { race.done?.(true); return; }
         if (p.x > r.start.x + h(3)) { race.done?.(false); return; }
-        // a steady turtle trot; near the line she stops to wave to the crowd until you pass
+        // A gentle turtle stroll. Near the line she waits as long as the player
+        // needs, so even a pause or the lightest stick movement can still win.
         const ahead = sg.x < p.x;
         const nearLine = sg.x - r.finish < h(0.8);
-        if (nearLine && ahead) { sg.pose = 'wave'; race.wave += dt; return; }
-        const v = h(1.25);
-        sg.x = Math.max(r.finish + h(0.2), sg.x - v * dt);
+        if (nearLine && ahead) { sg.pose = 'wave'; sg.speed = 0; race.wave += dt; return; }
+        moveSigne(Math.max(r.finish + h(0.2), sg.x - r.speed * dt), dt);
         sg.facing = -1; sg.pose = 'walk';
     }
 
@@ -784,8 +837,15 @@ export function createStory(G, io) {
             }
             if (!a.walk) continue;
             const d = a.walk.x - a.x, st = a.walk.speed * dt;
-            if (Math.abs(d) <= st) { a.x = a.walk.x; const r = a.walk.resolve; a.walk = null; r(); }
-            else { a.x += Math.sign(d) * st; a.facing = Math.sign(d); }
+            if (Math.abs(d) <= st) {
+                if (a.id === 'signe') { moveSigne(a.walk.x, dt); a.speed = 0; }
+                else a.x = a.walk.x;
+                const r = a.walk.resolve; a.walk = null; r();
+            } else {
+                if (a.id === 'signe') moveSigne(a.x + Math.sign(d) * st, dt);
+                else a.x += Math.sign(d) * st;
+                a.facing = Math.sign(d);
+            }
         }
         hints(dt);
         stepRace(dt);
@@ -970,6 +1030,7 @@ export function createStory(G, io) {
         if (G.context && G.context.id !== 'skaka') tipOnce('act');
     }
 
+    restoreActors();
     return {
         step(dt) { step(dt); watch(); },
         actions,

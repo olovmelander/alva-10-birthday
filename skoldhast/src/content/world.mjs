@@ -180,7 +180,7 @@ SCENES.land = {
     // Smaktestet (O1): tufts of steppe grass to taste
     tastes: [{ id: 'grass-74', kind: 'grass', x: h(74.8), y: h(-0.76) }, { id: 'grass-51', kind: 'grass', x: h(50.8), y: h(-0.81) }, { id: 'grass-30', kind: 'grass', x: h(30.5), y: h(-5.9) }],
     // Kapplöpning mot Sköldpaddan Signe (O8, after the ending): from the shells to the pool
-    race: { start: { x: h(107.4), y: h(-0.37) }, finish: h(103.6), signe: { x: h(106.9), y: h(-0.39) } },
+    race: { start: { x: h(107.4), y: h(-0.37) }, finish: h(103.6), speed: h(0.35), signe: { x: h(106.9), y: h(-0.39) } },
     // Sandpapperet (O4): hoofprints stay on these materials (walk prints fade, gallop prints turn to graphite)
     printMats: ['sand', 'wetsand'],
     drums: [{ id: 'spangen-flag', surface: 'spangen', x0: h(88.5), x1: h(91.4), notches: 10, flag: 'spangen_flag' }],

@@ -216,6 +216,18 @@ or additional chapter release is part of this branch.
 
 ## Known issues and next steps
 
+### Deeper visual and mechanics polish (29 September)
+
+- Audit and exact before views: `docs/skoldhast/polish-round3.md`. Text-to-speech
+  is explicitly excluded from this round by the user.
+- Signe now strolls at 70 world units/s, down from 250, with ground-following
+  feet and distance-driven walk phase. She still waits before the finish so
+  the player can pause or walk gently and win; her return is equally slow.
+- Saved story phases reconstruct Kartväktaren, Signe and Klo. Reloading the
+  lighthouse checkpoint no longer loses the keeper and blocks the last puzzle;
+  saved conversations resume without replaying introductions. Six focused
+  story/race regressions and the full-game robot pass.
+
 ### Continued implementation, small pushed steps (29 September)
 
 - Baseline for this continuation: 66 passing tests; fresh before contact sheets
