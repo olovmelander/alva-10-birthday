@@ -164,7 +164,9 @@ export function stepPuzzles(G, events, dt) {
             // the fluff lands a moment later
             G.later(1.25, () => {
                 if (F.has(target.flag)) return;
-                F.add(target.flag); G.terrain.dirty = true; G.terrain.refresh();
+                F.add(target.flag);
+                if (target.ramp) G.terrain.startRampGrowth(target.ramp);
+                G.terrain.dirty = true; G.terrain.refresh();
                 G.emit('grow', { id: target.id, flag: target.flag, decor: !!target.decor });
             });
         }
@@ -380,14 +382,20 @@ export function contextAction(G) {
             const at = pc.propAt;
             // An unfinished drawing wins a close tie with a chat. In
             // particular, Signe stands beside the grey bucket after the end.
-            if (Math.abs(p.x - at.x) < h(1.1) && Math.abs(p.y - at.y) < h(0.8)) add(Math.abs(p.x - at.x) / HL - 0.25, { id: 'farglagg', label: CONTEXT_LABELS.color, run: () => { F.add('color_' + pc.id); G.emit('colorin', { id: pc.id, prop: pc.prop }); } });
+            const dist = Math.abs(p.x - at.x) / HL;
+            if (dist < 1.1 && Math.abs(p.y - at.y) < h(0.8)) add(dist - (dist < 0.2 ? 0.25 : 0), { id: 'farglagg', label: CONTEXT_LABELS.color, run: () => { F.add('color_' + pc.id); G.emit('colorin', { id: pc.id, prop: pc.prop }); } });
         }
         // Skaka: wet and standing still, out of the water (in a pool it would only flicker between Skaka and Hoppa)
         // (not on the pier, where the button offers Hoppa i instead)
         const shellDistance = !F.has('shells_tune') ? Math.min(...(sc.shells || []).filter(s => !S.shells[s.id]).map(s => Math.abs(s.x - p.x))) : Infinity;
         const unfinishedShell = shellDistance < h(0.7);
+        const hopRewardAbove = (sc.hoppstallen || []).some(hs => !F.has('hopp_' + hs.id) && Math.abs(p.x - hs.x) < h(0.45) && p.y > hs.y + h(0.2));
+        // Leave a small, reliable Prata area around Signe. The neighbouring
+        // shells can all be rung from outside it, so neither activity steals
+        // the other's button when the player stops walking.
+        const besideSpeaker = cands.some(a => (a.id === 'race' || a.id.startsWith('talk')) && a.dist < 0.5);
         const stillEnough = Math.abs(p.vx) < (G.context?.id === 'skaka' ? 65 : 40);
-        if ((p.wet > 0 || unfinishedShell || p.action === 'shake') && p.submerge < 0.05 && stillEnough && !p.surface?.dropIn) add(p.action === 'shake' ? 0 : unfinishedShell ? shellDistance / HL + 0.15 : 1.5, { id: 'skaka', label: CONTEXT_LABELS.shake, run: () => { if (p.action !== 'shake') G.shake(); } });
+        if ((p.wet > 0 || unfinishedShell || p.action === 'shake') && !hopRewardAbove && p.submerge < 0.05 && stillEnough && !p.surface?.dropIn) add(p.action === 'shake' ? 0 : unfinishedShell && !besideSpeaker ? shellDistance / HL + 0.15 : 1.5, { id: 'skaka', label: CONTEXT_LABELS.shake, run: () => { if (p.action !== 'shake') G.shake(); } });
         // Hoppa i: off the pier into the bay (where there is water under it)
         if (p.surface?.dropIn) {
             const col = G.terrain.waterColumn(p.x + p.facing * 60);

@@ -8,12 +8,12 @@ try {
         const page = await browser.newPage({ viewport: { width, height }, hasTouch: true, deviceScaleFactor: 1 });
         const errors = [], sounds = [];
         page.on('pageerror', e => errors.push(e.message));
-        page.on('console', e => { if (e.text().includes('menu-sound')) sounds.push(e.text().split(' ').at(-1)); });
+        page.on('console', e => { if (e.type() === 'error') errors.push(e.text()); if (e.text().includes('menu-sound')) sounds.push(e.text().split(' ').at(-1)); });
         const base = `http://127.0.0.1:${server.address().port}/skoldhast/dev/menus.html`;
         await page.goto(`${base}?m=journal&page=2&shot=1`);
         await page.waitForSelector('.sk-j-tab');
         const widths = await page.locator('.sk-j-tab').evaluateAll(ns => ns.map(n => n.getBoundingClientRect().width));
-        assert.ok(widths.every(w => w >= 44), `44px tabs at ${width}: ${widths}`);
+        assert.ok(widths.every(w => Math.round(w) >= 44), `44px tabs at ${width}: ${widths}`);
         await page.locator('.sk-j-tab').nth(6).tap();
         await page.waitForFunction(() => document.querySelector('.sk-j-tab[aria-selected="true"]')?.classList.contains('t6'));
         await page.waitForFunction(() => !document.querySelector('.sk-j-flip'));

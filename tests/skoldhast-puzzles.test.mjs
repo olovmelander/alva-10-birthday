@@ -3,6 +3,8 @@ import assert from 'node:assert/strict';
 import { createGame } from '../skoldhast/src/game.mjs';
 import { contextAction, countPencils } from '../skoldhast/src/puzzles.mjs';
 import { HL, STEP } from '../skoldhast/src/sim.mjs';
+import { createStory } from '../skoldhast/src/story.mjs';
+import { GOALS, HINTS } from '../skoldhast/src/content/sv.mjs';
 
 function beach(x = 105.35) {
     const G = createGame();
@@ -67,6 +69,16 @@ test('the grey bucket can be coloured even when Signe stands beside it', () => {
     assert.equal(contextAction(G)?.id, 'race');
 });
 
+test('a wet coat does not replace Hoppa beneath an uncollected hoppställe', () => {
+    const G = beach(94.55);
+    G.player.wet = 1;
+    assert.equal(contextAction(G), null, 'Hoppa stays available under the pencil');
+    G.step({ act: true });
+    hold(G, 1.5);
+    assert.ok(G.flags.has('hopp_hs-94'));
+    assert.ok(G.flags.has('penna_p-kite'));
+});
+
 test('Spången note order is identical across display schedules and silent while standing still', () => {
     const sequences = [];
     for (const fps of [30, 60, 120, 144]) {
@@ -106,4 +118,22 @@ test('a pencil colours its own prop once and stays recorded after leaving the sc
     G.goto('land', { x: 86.4 * HL, y: -.92 * HL });
     G.step({});
     assert.equal(countPencils(G), 1);
+});
+
+test('free-play guidance celebrates the complete collection and keeps Signe as an unfinished goal', () => {
+    const G = beach(), hints = [];
+    const story = createStory(G, { ui: {}, guide: { hint: text => hints.push(text) } });
+    G.flags.add('ended');
+    assert.equal(story.goal(), GOALS.free);
+    const pencils = Object.values(G.scenes).flatMap(sc => sc.pencils || []);
+    for (const pc of pencils.slice(0, -1)) G.flags.add('penna_' + pc.id);
+    assert.equal(story.objective(), 'free', '4/5 still asks for pencils');
+    G.flags.add('penna_' + pencils.at(-1).id); G.emit('pickup', {});
+    assert.equal(story.objective(), 'freeComplete');
+    assert.equal(story.goal(), GOALS.freeComplete);
+    assert.equal(hints.at(-1), HINTS.freeComplete.note, 'a stale search hint is replaced at pickup');
+    G.flags.add('signe_met');
+    assert.equal(story.objective(), 'signe');
+    G.flags.add('signe_race');
+    assert.equal(story.objective(), 'freeComplete');
 });

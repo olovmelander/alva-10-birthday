@@ -242,7 +242,8 @@ export const HINTS = {
     talk: { q: 'Vem bor i Pappersfyren?', note: 'Kartväktaren väntar vid bryggans slut.', sketch: 'Gå fram till honom och tryck Prata.' },
     p8: { q: 'Var fortsätter linjen?', note: 'Linjen går längs bryggan och sedan ner i vattnet.', sketch: 'Galoppera längs linjen från stranden, hoppa i vattnet och göm dig där.' },
     signe: { q: 'Vem är snabbast?', note: 'Signe väntar vid snäckorna.', sketch: 'Gå fram till Signe och tryck Prata.' },
-    free: { q: 'Snabbaste sköldpaddan eller långsammaste hästen?', note: 'Forskningen fortsätter. Leta efter färgpennor!', sketch: '' }
+    free: { q: 'Snabbaste sköldpaddan eller långsammaste hästen?', note: 'Forskningen fortsätter. Leta efter färgpennor!', sketch: '' },
+    freeComplete: { q: 'Vad vill du upptäcka nu?', note: 'Du har hittat alla färgpennor! Havet är öppet för nya upptäckter.', sketch: 'Ta en simtur, galoppera över stäppen eller hälsa på Signe igen.' }
 };
 
 // ---------------------------------------------------------------------------
@@ -267,7 +268,8 @@ export const GOALS = {
     talk: 'Prata med Kartväktaren på bryggan.',
     p8: 'Följ den lysande linjen – hela vägen!',
     signe: 'Tävla mot Sköldpaddan Signe till pölen!',
-    free: 'Utforska fritt – och leta färgpennor!'
+    free: 'Utforska fritt – och leta färgpennor!',
+    freeComplete: 'Alla färgpennor är hittade – utforska fritt!'
 };
 
 // ---------------------------------------------------------------------------

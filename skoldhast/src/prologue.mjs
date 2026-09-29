@@ -198,8 +198,10 @@ export function createTable({ PIXI, app, view, G, ui, audio, assets, makeHero })
         const gs = new PIXI.Sprite(gull.texture); gs.x = gull.box.x; gs.y = gull.box.y; gs.scale.set(0.5); onPaper.addChild(gs);
         audio?.sfx('gull');
         tween(2.2, (u) => { gs.x = gull.box.x - u * 260; gs.y = gull.box.y - u * 120 + Math.sin(u * 12) * 10; gs.alpha = 1 - Math.max(0, u - 0.7) / 0.3; });
-        const [cx, cy] = toCss(870, 330);
-        const cloudPts = await ui.draw({ prompt: UI.drawCloud, ghost: ghostCloud(cx, cy).map(([x, y]) => [x * 1, y * 1]) });
+        // The cloud is authored in paper units, just like the gull. Applying
+        // the paper transform to every point keeps its start inside a portrait
+        // phone and prevents an oversized cloud in the finished picture.
+        const cloudPts = await ui.draw({ prompt: UI.drawCloud, ghost: ghostCloud(870, 330).map(([x, y]) => toCss(x, y)) });
         const cloud = strokeTexture(cloudPts, { color: '#3b3530' });
         G.userCloud = cloud.texture; G.userStrokes.cloud = cloud.pts;
         const cs = new PIXI.Sprite(cloud.texture); cs.x = cloud.box.x; cs.y = cloud.box.y; cs.scale.set(0.5); onPaper.addChild(cs);

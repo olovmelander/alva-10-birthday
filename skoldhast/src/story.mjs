@@ -20,6 +20,7 @@ const h = (v) => v * HL;
 
 export function createStory(G, io) {
     const F = G.flags;
+    const pencilFlags = Object.values(G.scenes).flatMap(sc => (sc.pencils || []).map(pc => 'penna_' + pc.id));
     const beats = [];
     let running = null;
     const queue = [];
@@ -797,7 +798,10 @@ export function createStory(G, io) {
     // Objectives and hints (plan §4.4)
     // =========================================================================
     function objective() {
-        if (F.has('ended')) return F.has('signe_met') && !F.has('signe_race') ? 'signe' : 'free';
+        if (F.has('ended')) {
+            if (F.has('signe_met') && !F.has('signe_race')) return 'signe';
+            return pencilFlags.length && pencilFlags.every(flag => F.has(flag)) ? 'freeComplete' : 'free';
+        }
         // Kapitel 3: find the way to Spegelviken, light the lamp, talk, draw the last line
         if (F.has('ch2_end')) {
             if (!F.has('viken_arrived')) return 'toViken';
@@ -859,8 +863,9 @@ export function createStory(G, io) {
         p8: () => inScene('viken') && { x: h(24.1), y: h(-0.62) },
         signe: () => inScene('land') && G.actors.signe.visible && { x: G.actors.signe.x, y: G.actors.signe.y }
     };
-    const PROGRESS = new Set(['inked', 'grow', 'opened', 'latch', 'lit', 'mark', 'flattened', 'push', 'reflectionSeen', 'scene', 'bigLanding', 'streckDone', 'ratchet', 'taste']);
+    const PROGRESS = new Set(['inked', 'grow', 'opened', 'latch', 'lit', 'mark', 'flattened', 'push', 'reflectionSeen', 'scene', 'bigLanding', 'streckDone', 'ratchet', 'taste', 'pickup', 'colorin']);
     G.on('*', (type) => { if (PROGRESS.has(type)) { hintState.t = 0; hintState.level = 0; hintState.said = 0; } });
+    G.on('pickup', () => { if (objective() === 'freeComplete') io.guide?.hint(HINTS.freeComplete.note); });
 
     /**
      * When the player seems stuck, Klo helps without stopping play: first a nudge (the margin note),
