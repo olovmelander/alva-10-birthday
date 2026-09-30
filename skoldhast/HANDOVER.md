@@ -1,5 +1,57 @@
 # Sköldhästen – handover
 
+## The hill opens through seeds, roots and a freed stone (30 September)
+
+Pappa asked what actually unfolds the uphill path and how that puzzle could have
+more depth. P3 now opens three local grass-covered paper strips through visible
+physical actions. Finding the underwater map piece does not change this hillside.
+
+- Galloping past a backsippa launches a real seed toward its authored tuft. The
+  seed must arrive, roots grow underneath the folded strip, and that strip rises
+  into a walkable ramp. The drawing follows the actual collision surface, with a
+  cream paper edge, rooted underside and relaxing curl. The camera follows the
+  local cause and result instead of showing perpetual imitation seed flights.
+- A small stone pins the middle strip. **Knuffa** slides it aside. Planting its
+  seed and moving its stone can happen in either order; both are required. The
+  final flower now stands on the higher terrace, so reaching it requires the
+  second ramp and carrying gallop wind up from the lower shelf. One pass along
+  the middle terrace can no longer finish both upper ramps.
+- Goals, controls, requested Klo help and reading holds follow the actual phase.
+  Stopping beside a flower gives a usable run-up target. The first view explains
+  its nearby flower and fold; the summit examines the actual rock marks; only
+  the later cliff vista reveals the map piece. Exploring west keeps the local
+  task active even if Vattenporten has already opened.
+- P4 genuinely needs Galoppbacken's downhill speed. A short run beside the gap
+  stops safely, while a continuous run from the crest earns the required speed.
+  The held views show the gap and then the actual starting hill. Guidance stays
+  with a valid descent and points toward the landing during the jump. Reading
+  the first explanation preserves earned momentum across display frame rates.
+- Landed seeds, the freed stone and completed ramps save independently.
+  Unfinished flights and pushes cannot finish after leaving or reloading. Old
+  completed-ramp saves remain traversable. No save-format or release change;
+  `RELEASED_CHAPTER` remains 3 and the ticket gate remains hidden.
+- Automated verification: **311/311 tests pass**, including both fragment orders,
+  the full ending and Signe's race, seed-first and stone-first solutions,
+  interrupted actions, legacy saves, shared drawing/collision geometry, safe
+  short-run failures and first-time dialogue at 1/2/4/8 simulation steps per
+  display frame. Both new runtime/render modules are in the ticket prefetch
+  list. First playable is **2,678,669 bytes**, below the 3 MB budget.
+- Browser verification passes at **390×844, 844×390 and 1440×900**: two phone
+  hill journeys and both complete desktop map-piece orders, using real controls.
+  Together they cover **70,231 simulation steps, 88 held evidence cards, 40 hill
+  phase captures and 12 sea phase captures**, with no browser errors. Each hill
+  route safely refuses a short approach, then succeeds with the real downhill
+  run. Seed, stone and paper positions match the simulation, reading frames fit,
+  controls restore, and both story orders finish the map assembly. Phone checks
+  use large text; landscape also uses reduced motion. Reviewed WebP evidence
+  stays local under `docs/skoldhast/shots/hill-depth/`. Reproduce with the
+  hill-depth and exploration-order browser checks under `tests/browser/`.
+  All five ticket-launcher checks also pass, including hidden gating, loading,
+  cancellation, close/reopen and switching from Mira's loader.
+- No new question for Pappa. Normal-play timing has not been measured for the
+  deeper hill route. This entry supersedes the former one-pass upper-ramp puzzle
+  and the ordinary-speed requirement for P4.
+
 ## One visible cause for each step: the hill route and Kelphjärtat (30 September)
 
 Pappa found that the sea fragment seemed to unfold a distant hill, and that merely

@@ -1,8 +1,9 @@
 /* Pure descriptions of the next useful action. No timers, DOM or story writes. */
-import { HL, nearestOnLine } from './sim.mjs';
+import { HL, nearestOnLine, p4MomentumProgress } from './sim.mjs';
 import { GOALS, HINTS, TIPS, GUIDANCE as W } from './content/sv.mjs';
 import { describeThread } from './story-thread.mjs';
 import { p6Progress } from './kelp-puzzle.mjs';
+import { p3Progress } from './hill-puzzle.mjs';
 
 const clamp = (n, a = 0, b = 1) => Math.max(a, Math.min(b, n));
 const at = (scene, x, y) => ({ scene, x: x * HL, y: y * HL });
@@ -31,12 +32,22 @@ export function describeGuidance(G, settings = {}) {
         : ['p3', 'p3b'].includes(objective) ? count(F, 'p3_t1', 'p3_t2', 'p3_t3')
         : objective === 'p2' ? Number(S.stone === scenes.land.rail.target) + Number(F.has('p2_plank'))
         : count(F, 'mark_land', 'mark_sea');
+    const p3 = ['p3', 'p3b'].includes(objective) ? p3Progress(G) : null;
+    const p4 = objective === 'p4' && !F.has('p4_leap') ? p4MomentumProgress(p, scenes.land) : null;
+    const p4Airborne = p4 && p.mode === 'leap' && p.leap?.id === 'sprang-p4';
+    const p4Running = p4 && (p4Airborne || p4.active
+        || (p.mode === 'ground' && p.surface?.id === 'plateau' && p.x <= 30 * HL
+            && (p.x >= 25 * HL || p.vx < 0)));
+    const p3Text = p3 && ({ 'seed-flight': 'p3Flight', 'grow-roots': 'p3Roots', 'move-pin': 'p3Pin',
+        'unfold-ramp': 'p3Unfold', 'reach-ledge': 'p3Ledge', complete: 'p3Ledge' }[p3.phase]
+        || (p3.stage === 3 ? 'p3Upper' : p3.stage === 2 ? 'p3SecondSeed' : F.has('ch2_open') ? 'p3Map' : 'p3'));
     const p6 = objective === 'p6' ? p6Progress(G) : null;
     const p6Text = { 'free-kelp': 'p6Free', 'pull-kelp': 'p6Pull', 'reach-fold': 'p6Reach',
         'press-fold': 'p6Press', 'collect-fragment': 'p6Collect', complete: 'p6Collect' };
-    const textKey = p6 ? p6Text[p6.phase]
+    const textKey = p3Text || (p6 ? p6Text[p6.phase]
+        : p4 && !p4Running && F.has('b:k2_leap_purpose') ? 'p4Runup'
         : objective === 'p4' && !F.has('ch2_open') ? F.has('b:k2_leap_purpose') ? 'p4Find' : 'p4Explore'
-        : F.has('ch2_open') && ['p1', 'p3', 'p3b'].includes(objective) ? objective + 'Map' : objective;
+        : F.has('ch2_open') && ['p1', 'p3', 'p3b'].includes(objective) ? objective + 'Map' : objective);
     const text = GOALS[textKey];
     const cue = { key: objective, objective, goal: typeof text === 'function' ? text(n) : text || '',
         hint: HINTS[textKey] || null, action: null, state: 'approach', instruction: '', controlText: '', progress: null, target: null };
@@ -93,25 +104,26 @@ export function describeGuidance(G, settings = {}) {
         const dl = scenes.land.dashed.find(d => d.flag === 'p1_inked');
         if (S.inkT[dl.id] > 0) { cue.state = 'working'; progress(S.inkT[dl.id], 1, W.progress.ink); }
     } else if (objective === 'p3' || objective === 'p3b') {
-        const tuft = scenes.land.tussocks.find(t => !t.decor && !F.has(t.flag));
-        const clump = tuft && scenes.land.clumps.find(c => !c.teach && Math.abs(c.x - 5 * HL - tuft.x) < 1.5 * HL);
-        const flying = tuft && S.fluff.some(f => f.target === tuft.id);
-        if (!tuft) {
-            // Growing the last ramp opens the route, but the player still
-            // needs to reach the ledge to discover where the land trail leads.
-            step('waveLedge', point('land', scenes.land.spots.kloLedge));
-        } else {
-            step(flying ? 'rampWait' : 'ramp', point('land', flying ? tuft : clump), flying ? null : 'move', flying ? 'working' : 'approach');
-            control = flying ? null : 'gallop';
-        }
-        progress(n, 3, W.progress.ramps(n));
+        const key = p3.phase === 'move-pin' ? p3.action === 'act' ? 'p3PinPush' : 'p3PinApproach'
+            : p3.phase === 'seed-flight' ? 'p3Flight' : p3.phase === 'grow-roots' ? 'p3Roots'
+            : p3.phase === 'unfold-ramp' ? 'p3Unfold' : ['reach-ledge', 'complete'].includes(p3.phase) ? 'p3Ledge'
+            : p3.runup ? p3.stage === 3 ? 'p3UpperRunup' : 'p3SeedRunup'
+            : p3.stage === 3 ? 'p3UpperSeed' : p3.stage === 2 ? 'p3SecondSeed' : 'ramp';
+        step(key, p3.target, p3.action, ['seed-flight', 'grow-roots', 'unfold-ramp'].includes(p3.phase) ? 'working' : 'approach');
+        control = p3.control;
+        const label = { 'seed-flight': W.progress.seedFlight, 'grow-roots': W.progress.roots,
+            'unfold-ramp': W.progress.unfold }[p3.phase];
+        if (label) progress(p3.fraction, 1, label);
+        else progress(p3.completed, 3, W.progress.ramps(p3.completed));
     } else if (objective === 'p4') {
         if (F.has('mark_land') && !F.has('p4_plank')) step('returnRope', point('land', scenes.land.ropes[0]), 'act');
         else if (F.has('p4_leap')) step('landmark', point('land', scenes.land.spots.landmark));
-        else {
-            const running = p.x < 29 * HL && p.y < -3 * HL;
-            step(running ? 'leap' : 'leapRunup', running ? at('land', 13.1, -4) : at('land', 27.5, -6.4));
-            control = running ? 'gallop' : 'move';
+        else if (p4Airborne) {
+            step('leapFlight', at('land', 7, -4), null, 'working');
+        } else {
+            step(p4Running ? 'leap' : 'leapRunup', p4Running ? at('land', 13.1, -4) : p4.target);
+            control = p4Running ? 'gallop' : 'move';
+            if (p4.active) progress(p4.fraction, 1, W.progress.runupSpeed);
         }
     } else if (objective === 'p5') {
         const lane = scenes.kelp.lanes.find(l => l.id === 'lane-vault'), target = point('kelp', { x: lane.pts[0][0], y: lane.pts[0][1] });

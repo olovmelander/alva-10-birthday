@@ -9,7 +9,7 @@
  *
  * The view never changes game state; it reads G every frame.
  */
-import { HL, cond, heightOn, lineLength, pointAt } from './sim.mjs';
+import { HL, cond, heightOn, lineLength, pointAt, p4MomentumProgress } from './sim.mjs';
 import { createPage, createScreenTurn } from './pageturn.mjs';
 import { terrainShape, clipX } from './terrain-shape.mjs';
 import { createKlo } from './klo.mjs';
@@ -24,6 +24,8 @@ import { createMapFragmentProp, createGuardianMapPaper } from './map-props.mjs';
 import { createFoldedSeabed } from './folded-seabed.mjs';
 import { createKelpPuzzleScene } from './kelp-scene.mjs';
 import { p6Pose } from './kelp-puzzle.mjs';
+import { createHillPuzzleScene } from './hill-scene.mjs';
+import { p3Pose } from './hill-puzzle.mjs';
 import { createVaultDiscovery } from './vault-discovery.mjs';
 import { createKvMemory } from './kv-memory.mjs';
 import { createWorldCoastFold, createShoreTrial, sampleShoreTrial } from './shore-trial.mjs';
@@ -1226,23 +1228,10 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
             O.pushArrow.moveTo(-30, 0).lineTo(22, 0).stroke({ width: 7, color: 0xe0782a, cap: 'round' });
             O.pushArrow.moveTo(8, -15).lineTo(26, 0).lineTo(8, 15).stroke({ width: 7, color: 0xe0782a, cap: 'round', join: 'round' });
             O.pushArrow.alpha = 0; L.hints.addChild(O.pushArrow);
-            // where each backsippa's fluff will fly: a few seeds drifting along the arc to its dotted tuft
-            O.fluffPaths = [];
-            for (const c of def.clumps || []) {
-                const tx = c.x - h(5);
-                const t = (def.tussocks || []).filter((q) => Math.abs(q.x - tx) < h(1.5)).sort((a, b) => Math.abs(a.x - tx) - Math.abs(b.x - tx))[0];
-                if (!t) continue;
-                const at = (u) => [lerp(c.x, t.x, u), lerp(c.y - h(0.5), t.y - h(0.15), u) - Math.sin(u * Math.PI) * h(1.1)];
-                // a faint dotted trail (dots, not dashes: dashes mean a line to draw) and seeds drifting along it
-                const trail = new PIXI.Graphics();
-                for (let u = 0.04; u < 0.97; u += 0.045) { const [x, y] = at(u); trail.circle(x, y, 5).fill({ color: 0x7d6aa8, alpha: 0.55 }); }
-                trail.alpha = 0; L.mid.addChild(trail);
-                const motes = [];
-                for (let i = 0; i < 7; i++) { const m = spr('p-fluff'); m.anchor?.set?.(0.5); m.alpha = 0; m.scale.set(1.6); m.tint = 0xb7a3e0; L.fx.addChild(m); motes.push({ m, u: i / 7 }); }
-                O.fluffPaths.push({ c, t, at, trail, motes, vis: 0 });
-            }
+            O.hillPuzzle = createHillPuzzleScene(PIXI, { sprite: spr, def });
+            L.objects.addChild(O.hillPuzzle.container);
             // backsippa clumps and tussocks
-            O.clumps = (def.clumps || []).map((c) => { const s = spr('backsippa'); s.x = c.x; s.y = c.y; L.mid.addChild(s); const b = spr('backsippa-bare'); b.x = c.x; b.y = c.y; b.visible = false; L.mid.addChild(b); return { c, s, b }; });
+            O.clumps = (def.clumps || []).map((c) => { const s = spr('backsippa'); s.label = `p3-flower-${c.id}`; s.x = c.x; s.y = c.y; L.mid.addChild(s); const b = spr('backsippa-bare'); b.label = `p3-flower-bare-${c.id}`; b.x = c.x; b.y = c.y; b.visible = false; L.mid.addChild(b); return { c, s, b }; });
             // a pair of little butterflies over each backsippa
             O.butterflies = [];
             for (const [k, c] of (def.clumps || []).entries()) {
@@ -1258,7 +1247,7 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
                     O.butterflies.push({ g, c, ph: k * 2.1 + i * 3.7, r: h(0.5 + i * 0.25) });
                 }
             }
-            O.tussocks = (def.tussocks || []).map((t) => { const s = spr('tussock-dotted'); s.x = t.x; s.y = t.y; L.objects.addChild(s); return { t, s }; });
+            O.tussocks = (def.tussocks || []).filter(t => t.decor).map((t) => { const s = spr('tussock-dotted'); s.x = t.x; s.y = t.y; L.objects.addChild(s); return { t, s }; });
             O.pinwheels = (def.pinwheels || []).map((pw) => { const s = spr('pinwheel'); s.x = pw.x; s.y = pw.y; L.mid.addChild(s); const hd = spr('pinwheel-head'); hd.anchor?.set?.(0.5); hd.x = pw.x; hd.y = pw.y - 110; L.mid.addChild(hd); return { pw, s, hd, a: 0 }; });
             O.shells = (def.shells || []).map((sh, i) => { const s = spr('shell-' + (1 + (i % 6))); s.x = sh.x; s.y = heightOn(def.surfaces.find((q) => q.id === 'beach').pts, sh.x) ?? -80; L.mid.addChild(s); return { sh, s, glow: 0 }; });
             O.flagpole = spr('flagpole'); O.flagpole.x = def.spots.flagpole.x; O.flagpole.y = def.spots.flagpole.y; L.mid.addChild(O.flagpole);
@@ -2054,25 +2043,8 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
                 O.pushArrow.x = O.stone.x + (want || 1) * (Math.sin(time * 4) * 8 + 10);
                 O.pushArrow.y = def.rail.y - h(0.62);
             }
-            // fluff paths near a backsippa whose tuft still waits
-            for (const fp of O.fluffPaths) {
-                const bare = (Z.clumps[fp.c.id] || 0) > 0;
-                const on = !F.has(fp.t.flag) && !bare && Math.abs(snap.x - fp.c.x) < h(7) && Math.abs(snap.y - fp.c.y) < h(1.2) && !G.busy;
-                fp.vis = damp(fp.vis, on ? 1 : 0, 2.5, dt);
-                fp.trail.alpha = fp.vis * (0.55 + Math.sin(time * 2.2) * 0.15);
-                fp.trail.visible = fp.vis > 0.02;
-                for (const mo of fp.motes) {
-                    mo.m.visible = fp.vis > 0.02;
-                    if (!mo.m.visible) continue;
-                    mo.u = (mo.u + dt * 0.3) % 1;
-                    const [x, y] = fp.at(mo.u);
-                    mo.m.x = x; mo.m.y = y + Math.sin(time * 3 + mo.u * 9) * 8;
-                    mo.m.alpha = fp.vis * 0.95 * Math.sin(mo.u * Math.PI);
-                    mo.m.rotation += dt * 1.5;
-                }
-                const tu = O.tussocks.find((q) => q.t === fp.t);
-                if (tu) tu.s.scale.set(1 + fp.vis * 0.07 * Math.sin(time * 4));
-            }
+            O.hillPuzzle.update(p3Pose(G), { player: G.player, momentum: p4MomentumProgress(G.player, def),
+                showRunup: F.has('chapter2_available') && !F.has('p4_plank') && !G.finalRun, lessMotion: G.lessMotion });
             for (const c of O.clumps) { const bare = (Z.clumps[c.c.id] || 0) > 0; c.s.visible = !bare; c.b.visible = bare; }
             for (const t of O.tussocks) { t.s.visible = !F.has(t.t.flag) || t.t.decor; if (t.t.decor && F.has(t.t.flag)) setTex(t.s, 'feathergrass-2'); }
             for (const pw of O.pinwheels) { pw.a += (Z.pinwheels[pw.pw.id] || 0.3) * dt * 2; pw.hd.rotation = pw.a; }
@@ -2324,6 +2296,44 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
             cam.snap = false;
             return;
         }
+        if (S.id === 'land' && !hint && !G.busy && !G.hideHero && !mapAssembly && !landFocus) {
+            const pose = p3Pose(G);
+            const stage = pose.stages.find(s => {
+                const active = ['flight', 'roots', 'unfolding'].includes(s.phase)
+                    || (s.phase === 'pinned' && Math.abs(snap.x - s.receiver.x) < h(3));
+                return active && Math.abs(snap.x - s.receiver.x) < h(7) && Math.abs(snap.y - s.receiver.y) < h(3);
+            });
+            if (stage) {
+                // Follow this seed and this sheet only. The next terrace is
+                // discovered by climbing the real surface after it opens.
+                const points = [{ x: snap.x - h(.65), y: snap.y - h(1.5) }, { x: snap.x + h(.65), y: snap.y + h(.15) },
+                    ...stage.points.map(([x, y]) => ({ x, y: y - h(.15) })),
+                    { x: stage.receiver.x, y: stage.receiver.y + h(.2) }];
+                for (const seed of pose.flights.filter(f => f.target === stage.id)) points.push({ x: seed.x, y: seed.y - h(.3) });
+                if (stage.pinned || pose.stone.moving && stage.id === 't2') points.push(
+                    { x: pose.stone.x - h(.5), y: pose.stone.y - h(.75) },
+                    { x: pose.stone.to.x + h(.5), y: pose.stone.to.y });
+                const x0 = Math.min(...points.map(p => p.x)) - h(.3), x1 = Math.max(...points.map(p => p.x)) + h(.3);
+                const y0 = Math.min(...points.map(p => p.y)) - h(.3), y1 = Math.max(...points.map(p => p.y)) + h(.3);
+                const shortLandscape = !portrait && (H < 500 || (W / H > 1.6 && H < 600));
+                const pad = shortLandscape ? { left: 190, right: 220, top: 66, bottom: 18 }
+                    : { left: 18, right: 18, top: portrait ? 112 : 66, bottom: portrait ? 235 : 150 };
+                const uiRoot = app.canvas.parentElement?.querySelector('.sk-ui');
+                const guideBottom = Number.parseFloat(uiRoot?.style.getPropertyValue('--sk-guide-free')) || 0;
+                pad.top = Math.max(pad.top, guideBottom * H / (app.canvas.clientHeight || H) + 12);
+                const framedZoom = Math.min(zoom, Math.max(100, W - pad.left - pad.right) / (x1 - x0),
+                    Math.max(100, H - pad.top - pad.bottom) / (y1 - y0));
+                const framedX = (x0 + x1) / 2 + (pad.right - pad.left) / (2 * framedZoom);
+                const framedY = (y0 + y1) / 2 + (pad.bottom - pad.top) / (2 * framedZoom);
+                // A launched seed cannot wait for a cosmetic camera tween.
+                // Expand immediately, then ease back in as the cause converges.
+                const expanding = cam.snap || cam.zoom > framedZoom;
+                cam.zoom = expanding ? framedZoom : damp(cam.zoom, framedZoom, 3.5, dt);
+                cam.x = expanding ? framedX : damp(cam.x, framedX, 5, dt);
+                cam.y = expanding ? framedY : damp(cam.y, framedY, 5, dt);
+                cam.snap = false; return;
+            }
+        }
         if (S.id === 'kelp' && S.def.kelpPuzzle && !hint && !G.busy && !G.hideHero && !mapAssembly && !landFocus) {
             const mechanism = S.def.kelpPuzzle, pose = p6Pose(G);
             const near = snap.x > mechanism.tether.root.x - h(3) && snap.x < mechanism.tether.pullTarget.x + h(3)
@@ -2418,8 +2428,8 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
         for (const it of S?.sky || []) if (it.kind === 'gull' && Math.abs(it.x - x) < range && it.scatter === undefined) { it.scatter = time; it.dir = Math.sign(it.x - x) || 1; }
     }
     on('shake', (e) => emit('drop', e.x, e.y - h(0.5), 24, { speed: 420, spread: 6.2, angle: 0 }));
-    on('grow', (e) => { const t = S?.def.tussocks?.find((q) => q.id === e.id); if (t) { emit('fluff', t.x, t.y - 20, 14, { speed: 160, g: 60 }); emit('star', t.x, t.y - 40, 6, { g: 0, speed: 140 }); } });
-    on('fluff', (e) => { const c = S?.def.clumps?.find((q) => q.id === e.id); if (c) emit('fluff', c.x, c.y - 70, 16, { angle: e.dir > 0 ? -0.5 : -2.6, spread: 0.9, speed: 520, g: 90, life: 1.4, drag: 0.8 }); });
+    on('grow', (e) => { const t = S?.def.tussocks?.find((q) => q.id === e.id); if (t?.decor) emit('fluff', t.x, t.y - 20, 6, { speed: 100, g: 60 }); });
+    on('fluff', (e) => { const c = S?.def.clumps?.find((q) => q.id === e.id); if (c && !G.lessMotion) emit('dust', c.x, c.y - 70, 3, { angle: e.dir > 0 ? -0.5 : -2.6, spread: .4, speed: 90, g: 40, life: .3 }); });
     on('latch', () => emit('star', G.player.x, G.player.y - h(0.8), 8, { g: 0, speed: 200 }));
     on('enter', (e) => { if (G.finalRun && (e.id === 'note1' || e.id === 'spangen' || e.id === 'galoppbanan')) scatterGulls(G.player.x, h(14)); });
     on('pickup', () => emit('star', G.player.x, G.player.y - h(0.9), 10, { g: 0, speed: 220 }));

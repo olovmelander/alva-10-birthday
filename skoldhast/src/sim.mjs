@@ -105,6 +105,25 @@ export function cond(c, flags) {
 // ---------------------------------------------------------------------------
 // Terrain view of a scene under the current flags
 // ---------------------------------------------------------------------------
+/** The same lower shelf and final incline drive collision and the drawn grass strip. */
+export function rampGrowthGeometry(raw, surfaces) {
+    const x0 = raw.pts[0][0], x1 = raw.pts.at(-1)[0];
+    const underneath = surfaces.filter(s => s.id !== raw.id && !s.thin);
+    const xs = [...new Set([x0, x1, ...raw.pts.map(p => p[0]), ...underneath.flatMap(s => s.pts.map(p => p[0]).filter(x => x > x0 && x < x1))])].sort((a, b) => a - b);
+    const base = [], target = [], pts = [];
+    for (const x of xs) {
+        const sx = x === x0 ? x + 0.1 : x === x1 ? x - 0.1 : x;
+        let floor = Infinity;
+        for (const s of underneath) {
+            const y = heightOn(s.pts, sx);
+            if (y !== null && y < floor) floor = y;
+        }
+        const to = heightOn(raw.pts, x), from = floor === Infinity ? to : Math.max(to, floor);
+        base.push(from); target.push(to); pts.push([x, from]);
+    }
+    return { base, target, pts };
+}
+
 export class Terrain {
     constructor(scene, flags) {
         this.scene = scene;
@@ -136,22 +155,7 @@ export class Terrain {
     startRampGrowth(id, duration = 0.65) {
         const raw = this.scene.surfaces.find(s => s.id === id && s.ramp);
         if (!raw || this.rampGrowth.has(id) || this.surfaces.some(s => s.id === id)) return false;
-        const x0 = raw.pts[0][0], x1 = raw.pts.at(-1)[0];
-        const underneath = this.surfaces.filter(s => s.id !== id && !s.thin);
-        const xs = [...new Set([x0, x1, ...raw.pts.map(p => p[0]), ...underneath.flatMap(s => s.pts.map(p => p[0]).filter(x => x > x0 && x < x1))])].sort((a, b) => a - b);
-        const base = [], target = [], pts = [];
-        for (const x of xs) {
-            // At a terrace endpoint, sample inward so the old upper ledge does not
-            // masquerade as the lower shelf from which the ramp grows.
-            const sx = x === x0 ? x + 0.1 : x === x1 ? x - 0.1 : x;
-            let floor = Infinity;
-            for (const s of underneath) {
-                const y = heightOn(s.pts, sx);
-                if (y !== null && y < floor) floor = y;
-            }
-            const to = heightOn(raw.pts, x), from = floor === Infinity ? to : Math.max(to, floor);
-            base.push(from); target.push(to); pts.push([x, from]);
-        }
+        const { base, target, pts } = rampGrowthGeometry(raw, this.surfaces);
         this.rampGrowth.set(id, { elapsed: 0, duration: Math.max(STEP, duration), base, target, surface: { ...raw, pts, growing: true } });
         return true;
     }
@@ -427,6 +431,18 @@ function unhide(p, events) {
     events.push({ type: 'unhide' });
 }
 
+/** P4 reads the speed carried down Galoppbacken, never a saved run-up token. */
+export function p4MomentumProgress(p, sceneDef) {
+    const edge = sceneDef.edges?.find(e => e.id === 'sprang-p4');
+    if (!edge?.downhill) return null;
+    const speed = Math.max(0, p.vx * edge.dir), required = edge.minSpeed;
+    const active = p.mode === 'ground' && p.surface?.id === edge.downhill.surface
+        && !p.hidden && !p.hideQueued && speed > C.gallop;
+    return { speed, required, fraction: Math.max(0, Math.min(1, (speed - C.gallop) / (required - C.gallop))),
+        active, ready: active && speed >= required, direction: edge.dir,
+        target: { scene: sceneDef.id, ...edge.downhill.runup } };
+}
+
 // --- ground -----------------------------------------------------------------
 function stepGround(p, ix, input, world, dt, events) {
     const T = world.terrain;
@@ -442,6 +458,14 @@ function stepGround(p, ix, input, world, dt, events) {
     p.groundSlope += (slope - p.groundSlope) * (1 - Math.exp(-10 * dt));
     const along = p.groundSlope * Math.sign(p.vx || dir || p.facing);
     target *= 1 + Math.max(-0.1, Math.min(0.08, along * 0.22));
+
+    // Only Galoppbacken's long descent carries speed above ordinary gallop.
+    // Gravity supplies it from the actual slope underfoot; holding the run
+    // retains it across the short flat approach. Stopping, turning or hiding
+    // uses the ordinary brakes, so no stored charge survives an interrupted run.
+    const downhillEdge = T.edges.find(e => e.downhill?.surface === p.surface?.id && e.dir === dir);
+    const downhill = downhillEdge && defl >= C.gallopDefl && !p.hidden && !p.hideQueued
+        && p.skid <= 0 && p.vx * dir >= 0 ? downhillEdge.downhill : null;
 
     // skid when reversing at speed
     if (p.skid > 0) {
@@ -461,13 +485,17 @@ function stepGround(p, ix, input, world, dt, events) {
             const v = Math.abs(p.vx) * (Math.sign(p.vx) === dir ? 1 : -1);
             let nv;
             if (v < target) nv = Math.min(target, v + C.accel * (v < 300 ? 1.5 : 1) * dt * (p.auto ? 1.4 : 1));
-            else nv = Math.max(target, v - C.brake * dt);
+            else nv = Math.max(target, v - (downhill ? downhill.coastDrag : C.brake) * dt);
             p.vx = nv * dir;
         } else {
             const s = Math.sign(p.vx);
             p.vx -= s * Math.min(Math.abs(p.vx), C.brake * dt);
             void cur;
         }
+    }
+    if (downhill && p.vx * dir > 0 && p.skid <= 0) {
+        const speed = Math.abs(p.vx), drop = Math.max(0, slope * dir) * speed * dt;
+        p.vx = dir * Math.min(downhill.maxSpeed, Math.sqrt(speed * speed + 2 * downhill.gravity * drop));
     }
     if (p.action === 'balk' || p.action === 'shake' || p.action === 'stamp') p.vx *= 0.8;
 
@@ -490,9 +518,9 @@ function stepGround(p, ix, input, world, dt, events) {
         // edges
         const e = T.edgeCrossed(p.x, nx, p.y, mdir);
         if (e) {
-            if (e.kind === 'sprang' && Math.abs(p.vx) >= C.gallopMin && cond(e.needs, world.flags)) { startLeap(p, e, events); return; }
+            if (e.kind === 'sprang' && Math.abs(p.vx) >= (e.minSpeed || C.gallopMin) && cond(e.needs, world.flags)) { startLeap(p, e, events); return; }
             if (e.kind !== 'pass') {
-                const reason = e.kind === 'sprang' ? (!cond(e.needs, world.flags) ? (e.needsReason || 'edge') : 'slow') : (e.reason || e.kind);
+                const reason = e.kind === 'sprang' ? (!cond(e.needs, world.flags) ? (e.needsReason || 'edge') : (e.speedReason || 'slow')) : (e.reason || e.kind);
                 balk(p, e.x - mdir * C.edgeMargin, reason, events, e); return;
             }
         }

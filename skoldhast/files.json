@@ -17,6 +17,8 @@
   "src/guidance-state.mjs",
   "src/guide.mjs",
   "src/hero.mjs",
+  "src/hill-puzzle.mjs",
+  "src/hill-scene.mjs",
   "src/input.mjs",
   "src/kelp-puzzle.mjs",
   "src/kelp-scene.mjs",

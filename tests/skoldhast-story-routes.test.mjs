@@ -20,10 +20,10 @@ function cue(G, objective, options = {}) {
 test('all three grown ramps lead to the cliff evidence before the final leap', () => {
     const G = stage('land', 39, -2.95, ['p1_inked', 'p3_t1', 'p3_t2', 'p3_t3']);
     const ledge = G.scenes.land.areas.find(a => a.id === 'ledge');
-    assert.equal(typeof W.steps.waveLedge, 'string');
+    assert.equal(typeof W.steps.p3Ledge, 'string');
     for (const objective of ['p3', 'p3b']) for (const touch of [false, true]) {
         const next = cue(G, objective, { touch });
-        assert.equal(next.instruction, W.steps.waveLedge);
+        assert.equal(next.instruction, W.steps.p3Ledge);
         assert.equal(next.action, 'move');
         assert.equal(next.controlText, W.controls.move[touch ? 'touch' : 'keys']);
         assert.ok(next.target.x > ledge.x0 && next.target.x < ledge.x1 && next.target.y < ledge.y1,
@@ -51,8 +51,8 @@ test('the map search guides the real bridge, ramp and leap route without skippin
     const routes = [
         { flags: [], objective: 'p1', copy: 'p1Map' },
         { flags: ['p1_inked'], objective: 'p3', copy: 'p3Map' },
-        { flags: ['p1_inked', 'p3_t1'], objective: 'p3b', copy: 'p3bMap' },
-        { flags: ['p1_inked', 'p3_t1', 'p3_t2', 'p3_t3'], objective: 'p3', copy: 'p3Map' },
+        { flags: ['p1_inked', 'p3_t1'], objective: 'p3b', copy: 'p3SecondSeed' },
+        { flags: ['p1_inked', 'p3_t1', 'p3_t2', 'p3_t3'], objective: 'p3', copy: 'p3Ledge' },
         { flags: ['p1_inked', 'p3_done'], objective: 'p4', copy: 'p4' }
     ];
     for (const route of routes) for (const scene of ['land', 'kelp']) {
@@ -65,7 +65,7 @@ test('the map search guides the real bridge, ramp and leap route without skippin
             : ['p3_t1', 'p3_t2', 'p3_t3'].filter(flag => G.has(flag)).length;
         assert.ok(goal, 'the map route has an authored goal');
         assert.equal(story.goal(), typeof goal === 'function' ? goal(n) : goal);
-        assert.equal(story.guidance().hint.q, HINTS[route.copy].q, 'local instructions retain the map-search question');
+        assert.equal(story.guidance().hint.q, HINTS[route.copy].q, 'local instructions explain the current physical step');
         assert.equal(story.guidance().thread.why, THREAD.why[route.copy]);
         if (scene === 'kelp') {
             assert.equal(story.guidance().target.x, 0, 'the first local step is the cave exit');

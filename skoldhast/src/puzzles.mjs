@@ -12,6 +12,7 @@
 import { HL, C, cond, nearestOnLine, dropIn } from './sim.mjs';
 import { CONTEXT_LABELS } from './content/sv.mjs';
 import { createP6State, resetP6, stepP6, p6Context } from './kelp-puzzle.mjs';
+import { createP3State, resetP3, stepP3, p3Context } from './hill-puzzle.mjs';
 
 const near = (a, b, r) => Math.abs(a - b) <= r;
 
@@ -23,6 +24,7 @@ export function createPuzzleState() {
         plates: {},           // id → held seconds
         clumps: {},           // id → regrow timer (0 = full)
         fluff: [],            // flying fluff for the view: { x, y, tx, ty, t, dur }
+        p3: createP3State(),
         school: { state: 'home', x: 0, y: 0, t: 0 },
         p6: createP6State(),
         shy: {},              // id → out 0..1
@@ -50,6 +52,7 @@ export function resetUncommitted(G) {
     for (const k of Object.keys(S.plates)) S.plates[k] = 0;
     if (!G.flags.has('p5_lit')) { const home = G.scenes.kelp?.school?.home; S.school.state = 'home'; S.school.t = 0; if (home) { S.school.x = home.x; S.school.y = home.y; } }
     resetP6(G);
+    resetP3(G);
 }
 
 function findDrum(G, id) {
@@ -63,7 +66,6 @@ function findDrum(G, id) {
 export function stepPuzzles(G, events, dt) {
     const S = G.puz, p = G.player, sc = G.sceneDef, F = G.flags;
     const hidden = p.hidden && p.hide > 0.9;
-    const galloping = (p.mode === 'ground' || p.mode === 'streck') && Math.abs(p.vx) >= C.gallopMin;
 
     // Spången's tune follows the boards crossed in simulation time. A slow
     // display must not repeat a note or change the pace of the tune.
@@ -151,39 +153,8 @@ export function stepPuzzles(G, events, dt) {
         }
     }
 
-    // --- P3: backsippa fluff (Galoppvind) -----------------------------------
-    for (const c of sc.clumps || []) {
-        if (S.clumps[c.id] > 0) { S.clumps[c.id] = Math.max(0, S.clumps[c.id] - dt); continue; }
-        const crossed = (p.px - c.x) * (p.x - c.x) <= 0 && p.px !== p.x;
-        if (!crossed || !galloping || !near(p.y, c.y, h(0.3))) continue;
-        const dir = Math.sign(p.x - p.px);
-        const tx = c.x + dir * h(5);
-        // the fluff drifts to the nearest dotted tuft around where it comes down (forgiving: 1.5 HL either way)
-        let target = null;
-        for (const t of sc.tussocks || []) {
-            if (F.has(t.flag)) continue;
-            if (Math.abs(t.x - tx) < h(1.5) && t.y <= c.y + h(0.3) && t.y >= c.y - h(1.45) && (!target || Math.abs(t.x - tx) < Math.abs(target.x - tx))) target = t;
-        }
-        // a flower whose fluff found a tuft rests a while; after a miss (a run-up the other way) it is back at once
-        S.clumps[c.id] = target ? 4 : 0.9;
-        const ty = target ? target.y : c.y - h(0.2);
-        S.fluff.push({ x: c.x, y: c.y - h(0.5), tx: target ? target.x : tx, ty, t: 0, dur: 1.3, target: target?.id });
-        G.emit('fluff', { id: c.id, dir, target: target?.id || null });
-        // no dotted tuft where it lands: tell the story, so the sköldhäst can wonder why
-        if (!target && !c.teach && (sc.tussocks || []).some((t) => !F.has(t.flag) && !t.decor)) G.emit('fluffMiss', { id: c.id, dir });
-        if (target) {
-            // the fluff lands a moment later
-            G.later(1.25, () => {
-                if (F.has(target.flag)) return;
-                F.add(target.flag);
-                if (target.ramp) G.terrain.startRampGrowth(target.ramp);
-                G.terrain.dirty = true; G.terrain.refresh();
-                G.emit('grow', { id: target.id, flag: target.flag, decor: !!target.decor });
-            });
-        }
-    }
-    for (const f of S.fluff) f.t += dt / f.dur;
-    S.fluff = S.fluff.filter((f) => f.t < 1);
+    // --- P3: real seed flights, roots and the locally pinned grass strip -----
+    stepP3(G, dt);
 
     // pinwheels spin in the gallop wind
     for (const pw of sc.pinwheels || []) {
@@ -400,6 +371,8 @@ export function contextAction(G) {
     const kelpAction = p6Context(G);
     if (kelpAction) add(kelpAction.dist, { ...kelpAction,
         label: kelpAction.id === 'p6-grab' ? CONTEXT_LABELS.kelpPull : CONTEXT_LABELS.kelpRelease });
+    const hillAction = p3Context(G);
+    if (hillAction) add(hillAction.dist, { ...hillAction, label: CONTEXT_LABELS.push });
 
     if (p.mode === 'ground' && !p.hidden) {
         // exits with an action (Vattenporten)

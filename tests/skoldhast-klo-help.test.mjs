@@ -47,7 +47,7 @@ test('the first pool clue notices the mystery; only the third describes controls
     assert.notEqual(ready.nudge, ready.instruction);
 });
 
-test('stone, plank and each grown ramp are distinct committed tasks', () => {
+test('Klo distinguishes stone, plank, flying seeds and each physical ramp stage', () => {
     const G = stage('land', 100, -.4, ['p2_seen']);
     const stone = help(G, 'p2');
     G.player.hidden = true;
@@ -59,13 +59,14 @@ test('stone, plank and each grown ramp are distinct committed tasks', () => {
     G.player.hidden = false;
     const first = help(G, 'p3');
     G.puz.fluff.push({ target: 't1', t: .5 });
-    assert.equal(help(G, 'p3').key, first.key, 'flying fluff is still the same uncommitted ramp');
+    assert.notEqual(help(G, 'p3').key, first.key, 'a flying seed replaces the invitation to launch it');
+    assert.equal(help(G, 'p3').observation, W.help.p3Flight[0]);
     G.flags.add('p3_t1');
     const second = help(G, 'p3b');
     assert.notEqual(second.key, first.key);
     assert.equal(second.key, help(G, 'p3').key, 'legacy objective names share the same help record');
     G.flags.add('p3_t2'); G.flags.add('p3_t3');
-    assert.equal(help(G, 'p3').observation, W.help.waveLedge[0]);
+    assert.equal(help(G, 'p3').observation, W.help.foldedLedge[0]);
 });
 
 test('routing and the return rope answer the reachable task instead of an off-page puzzle', () => {

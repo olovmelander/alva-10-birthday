@@ -386,15 +386,35 @@ export function createStory(G, io) {
     });
 
     beat('k1_branten', {
-        when: () => inScene('land') && inArea('branten') && F.has('p1_inked'),
+        when: () => inScene('land') && F.has('p1_inked') && !F.has('p3_t1')
+            && P().x < h(55.5) && P().x > h(48.5) && P().mode === 'ground',
         async run(s) {
             await s.appear('klo', { scene: 'land', x: G.sceneDef.spots.kloBranten.x, y: G.sceneDef.spots.kloBranten.y, pose: 'point', facing: -1 });
             const mapSearch = F.has('ch2_open');
-            await landLook(s, 'ramp', () => s.say(discovery(mapSearch ? STORY.k1.wavemarksMapSeen : STORY.k1.wavemarksSeen, mapSearch ? 'brantenMap' : 'branten')));
+            await landLook(s, 'ramp', () => s.say(mapSearch ? STORY.k1.brantenMapIntro : STORY.k1.brantenIntro));
             G.actors.klo.pose = 'notebook';
             await s.wait(0.4);
             if (!F.has('p3_t1')) hintOnce('tufts', STORY.k1.brantenTufts);
         }
+    });
+
+    beat('k1_p3_pin', {
+        when: () => inScene('land') && F.has('p3_t1') && !F.has('p3_t2') && !F.has('p3_stone_clear')
+            && P().mode === 'ground' && P().x > h(38.4) && P().x < h(42.3) && P().y < h(-1.35),
+        async run(s) { await landLook(s, 'rampMiddle', () => s.say(STORY.k1.pinSeen)); }
+    });
+    beat('k1_p3_upper', {
+        when: () => inScene('land') && F.has('p3_t2') && !F.has('p3_t3')
+            && P().mode === 'ground' && P().x > h(36) && P().x < h(39.2) && P().y < h(-2.5),
+        async run(s) { await landLook(s, 'rampUpper', () => s.say(STORY.k1.upperFlowerSeen)); }
+    });
+    beat('k1_p3_seed_waiting', {
+        on: 'seedLanded', filter: e => e.pinned && !e.decor, lock: false,
+        async run(s) { await s.remark(STORY.k1.seedWaiting); }
+    });
+    beat('k1_p3_unpinned', {
+        on: 'hillUnpinned', lock: false,
+        async run(s) { s.stinger('aha'); await s.remark(STORY.k1.pinFreed); }
     });
 
     beat('k1_p3', {
@@ -627,12 +647,14 @@ export function createStory(G, io) {
     });
 
     beat('k2_leap_purpose', {
+        lock: false, // landLook freezes the world without braking an earned run-up first.
         when: () => inScene('land') && F.has('chapter2_available') && !F.has('mark_land') && !F.has('p4_leap')
             && P().x > h(13.1) && P().x < h(17) && P().mode === 'ground',
         async run(s) {
             // The climb reveals an existing cliff. Finding something in the
             // sea never creates land or removes a distant paper curtain.
             await landLook(s, 'leap', () => s.say(F.has('ch2_open') ? STORY.k2.landmarkPurpose : STORY.k2.landmarkPurposeEarly));
+            await landLook(s, 'runup', () => s.say(STORY.k2.runupPurpose));
         }
     });
 
@@ -1199,7 +1221,13 @@ export function createStory(G, io) {
         // the land fragment; they never block an already opened sea passage.
         if (inScene('kelp')) return 'hook';
         if (F.has('mark_land')) return F.has('p2_open') ? 'kelp' : F.has('p2_seen') ? 'p2' : 'pool';
-        if (F.has('chapter2_available') && F.has('p3_done') && P().x < h(80)) return 'p4';
+        // Choosing the western route is a real investigation even when the
+        // beach cave is already open. Keep its local task until we return.
+        if (P().x < h(80)) {
+            if (!F.has('p1_inked')) return 'p1';
+            if (!F.has('p3_done')) return landSearchObjective();
+            if (F.has('chapter2_available')) return 'p4';
+        }
         if (F.has('p2_open')) return 'kelp';
         // the nearest unfinished puzzle: the pool by her beach, the arch in the west, the steppe beyond it
         const x = P().x / HL;
@@ -1217,7 +1245,7 @@ export function createStory(G, io) {
         return describeGuidance(G, { objective: key, touch: io.touch, ...io.settings?.(), p8: key === 'p8' ? p8Progress(G) : undefined });
     }
     function goal() { return guidance().goal; }
-    const PROGRESS = new Set(['inked', 'grow', 'opened', 'latch', 'lit', 'mark', 'flattened', 'kelpFreed', 'push', 'reflectionSeen', 'scene', 'bigLanding', 'streckDone', 'ratchet', 'taste', 'pickup', 'colorin']);
+    const PROGRESS = new Set(['inked', 'grow', 'seedLanded', 'hillUnpinned', 'opened', 'latch', 'lit', 'mark', 'flattened', 'kelpFreed', 'push', 'reflectionSeen', 'scene', 'bigLanding', 'streckDone', 'ratchet', 'taste', 'pickup', 'colorin']);
     G.on('*', (type) => { if (PROGRESS.has(type)) { hintState.t = 0; hintState.level = 0; hintState.said = 0; hintState.reminded = false; } });
     G.on('pickup', () => { if (objective() === 'freeComplete') io.guide?.hint(HINTS.freeComplete.note); });
 
@@ -1280,7 +1308,7 @@ export function createStory(G, io) {
     G.on('balk', (e) => {
         if (!guided()) return;
         if (e.reason === 'thin' && !F.has('p1_inked')) hintOnce('thin', STORY.k1.firstThin);
-        if (e.reason === 'slow' && e.id === 'sprang-p4') hintOnce('leap', STORY.k2.leapHint);
+        if (['slow', 'runup'].includes(e.reason) && e.id === 'sprang-p4') hintOnce('leap', STORY.k2.leapHint);
         if (e.id === 'klipp-edge' && F.has('p4_leap') && !F.has('p4_plank')) hintOnce('rope', STORY.k2.ropeHint);
         const key = e.reason + ':' + (e.id || '');
         if (key !== balks.key || G.time - balks.t > 25) { balks.key = key; balks.n = 0; }
@@ -1299,8 +1327,10 @@ export function createStory(G, io) {
     G.on('fluffMiss', (e) => { if (fluffMisses++ < 2) io.guide?.think(guided() ? (e.dir > 0 ? STORY.k1.fluffWrongWay : STORY.k1.fluffMiss) : KLO_COMPANION.story.fluffMiss); });
     G.on('grow', (e) => {
         if (e.decor) hintOnce('fluff', STORY.k1.teachFluff);
-        else hintOnce('ramp', STORY.k1.rampGrew);
+        else { io.save(); hintOnce('ramp', STORY.k1.rampGrew); }
     });
+    G.on('seedLanded', e => { if (!e.decor) io.save(); });
+    G.on('hillUnpinned', () => io.save());
     G.on('swimStart', () => { if (inScene('kelp') || inScene('viken')) tipOnce('swim'); });
     function watch() {
         const p = P();

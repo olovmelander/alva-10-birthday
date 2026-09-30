@@ -8,6 +8,7 @@
  * node tests/browser/skoldhast-exploration-order.mjs [--order cave-first|land-first]
  *   [--viewport 390x844] [--out docs/skoldhast/shots/exploration-order]
  * Default: cave-first at both phone sizes + desktop, land-first on desktop.
+ * --hill-only stops after the early land route; the dedicated hill entry uses it.
  */
 import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';
@@ -19,20 +20,21 @@ const routeModule = await import('../skoldhast-playthrough.test.mjs');
 const routeNames = ['meetKlo', 'openCave', 'landApproach', 'caveReveal', 'chapter1', 'kelpFragment', 'seaFragment', 'returnToLand', 'landFragment', 'earlyLandFirst'];
 const routeSource = routeNames.map(name => `const ${name} = (${routeModule[name].toString()});`).join('\n');
 const arg = name => { const at = process.argv.indexOf(name); return at < 0 ? null : process.argv[at + 1]; };
+const hillOnly = process.argv.includes('--hill-only');
 const out = path.resolve(arg('--out') || 'docs/skoldhast/shots/exploration-order');
-const orders = arg('--order') ? [arg('--order')] : ['cave-first', 'land-first'];
-const sizes = arg('--viewport') ? [arg('--viewport')] : ['390x844', '844x390', '1440x900'];
+const orders = hillOnly ? ['land-first'] : arg('--order') ? [arg('--order')] : ['cave-first', 'land-first'];
+const sizes = arg('--viewport') ? [arg('--viewport')] : hillOnly ? ['390x844', '844x390'] : ['390x844', '844x390', '1440x900'];
 const errors = [], results = [];
 await fs.mkdir(out, { recursive: true });
 const server = await serve(), browser = await launch();
 let current = null, active = '';
 try {
     for (const order of orders) for (const size of sizes) {
-        if (!arg('--order') && !arg('--viewport') && order === 'land-first' && size !== '1440x900') continue;
+        if (!hillOnly && !arg('--order') && !arg('--viewport') && order === 'land-first' && size !== '1440x900') continue;
         const [width, height] = size.split('x').map(Number), touchMode = width < 1000;
-        const mode = { order, size, touchMode, big: touchMode, reduced: size === '844x390' };
+        const mode = { order, size, touchMode, hillOnly, big: touchMode, reduced: size === '844x390' };
         const page = current = await browser.newPage({ viewport: { width, height }, hasTouch: touchMode, isMobile: touchMode, deviceScaleFactor: 1 });
-        active = `${order}-${size}`;
+        active = `${hillOnly ? 'hill' : order}-${size}`;
         page.on('pageerror', e => errors.push(`${active}: ${e.message}`));
         await page.exposeFunction('explorationShot', async name => {
             await sharp(await page.screenshot()).webp({ quality: 90 }).toFile(path.join(out, `${active}-${name}.webp`));
@@ -61,10 +63,11 @@ try {
             ui.showControls(true); guide.clear();
             const draw = ui.draw; ui.draw = opts => { window.__journeyDraw = opts; return draw(opts); };
         }, mode);
-        const result = await page.evaluate(async ({ order, touchMode, routeSource }) => {
+        const result = await page.evaluate(async ({ order, touchMode, routeSource, hillOnly }) => {
         const api = window.__skoldhast, d = api.debug;
         const { G, input, view, app, ui, story, guide } = d;
-        const { snapshot, C, STEP } = await import('/skoldhast/src/sim.mjs');
+        const { snapshot, C, STEP, p4MomentumProgress } = await import('/skoldhast/src/sim.mjs');
+        const { p3Pose, p3Progress } = await import('/skoldhast/src/hill-puzzle.mjs');
         const { p6Pose, p6Progress } = await import('/skoldhast/src/kelp-puzzle.mjs');
         const { seabedFoldGeometry } = await import('/skoldhast/src/folded-seabed.mjs');
         api.pause();
@@ -73,7 +76,7 @@ try {
         // free to service visual effects without clearing our held DOM input.
         input.release = () => {};
         const assert = { ok(v, m) { if (!v) throw Error(m || 'assertion failed'); }, equal(a, b, m) { if (a !== b) throw Error(`${m || 'not equal'}: ${a} !== ${b}`); } };
-        const routes = new Function('assert', `${routeSource}; return {chapter1, seaFragment, returnToLand, landFragment, earlyLandFirst};`)(assert);
+        const routes = new Function('assert', `${routeSource}; return {meetKlo, chapter1, seaFragment, returnToLand, landFragment, earlyLandFirst};`)(assert);
         const log = [], events = [], notes = [];
         G.on('*', (type, e) => { if (!['hoof', 'paddle', 'ink'].includes(type)) events.push({ t: G.time, type, ...e }); });
         G.on('plankNote', e => notes.push(e.note));
@@ -169,6 +172,7 @@ try {
             await Promise.resolve();
             if (++steps % 12 === 0) render();
             await inspectPuzzle();
+            await inspectHill();
             // Effects such as the map demonstration own RAF callbacks. Give
             // them a real frame: a zero-time timer can exhaust the virtual
             // deadline before software WebGL delivers an animation frame.
@@ -182,6 +186,7 @@ try {
         const has = f => G.flags.has(f), p = () => G.player;
         async function hold(sec, inp = {}) { for (let i = 0; i < sec / STEP; i++) await step(i ? { ...inp, act: false, hide: false } : inp); }
         async function settle(max = 60) { let n = 0; await until(() => { n = !G.busy && !story.running() ? n + 1 : 0; return n > 30; }, {}, max, 'settle'); }
+        let shortRunChecked = false;
         async function walkTo(x, { gallop = false, tol = .12, max = 90 } = {}) {
             await until(() => Math.abs(p().x - x * 200) < tol * 200 && Math.abs(p().vx) < 40 && p().mode === 'ground', () => {
                 const dx = x * 200 - p().x;
@@ -189,6 +194,18 @@ try {
                 const mag = gallop && Math.abs(dx) > 800 ? 1 : Math.min(.7, Math.max(.15, Math.abs(dx) / 440));
                 return { x: Math.sign(dx) * mag };
             }, max, `walk ${x}`);
+            if (x === 34 && has('p3_done') && !has('p4_leap') && !shortRunChecked) {
+                shortRunChecked = true;
+                // Earn the short-run lesson from rest at the actual cliff, then
+                // the shared route returns to the real hill for its full run-up.
+                await walkTo(15.5, { max: 120 });
+                const began = G.time;
+                await until(() => events.some(e => e.t >= began && e.type === 'balk' && e.id === 'sprang-p4' && e.reason === 'runup'), { x: -1 }, 10, 'short run-up safely stops');
+                drive(0, 0);
+                assert.ok(!has('p4_leap') && p().x > 13 * 200, 'short approach cannot cross the cleft');
+                await settle();
+                await captureHill('p4-short-runup', { momentum: p4MomentumProgress(p(), G.sceneDef) });
+            }
         }
         async function swimTo(x, y, { tol = .3, max = 90 } = {}) {
             const scene = G.sceneId;
@@ -209,7 +226,67 @@ try {
             gallopPast: async (x, { max = 60, hopHeld = false } = {}) => { const dir = Math.sign(x * 200 - p().x); await until(() => (p().x - x * 200) * dir > 0, { x: dir, hopHeld }, max, `gallop ${x}`); },
             context: async id => { await until(() => G.context?.id === id, {}, 5, `context ${id}`); await step({ act: true }); }
         };
-        const held = [], captured = new Set(), puzzle = [], puzzleCaptured = new Set();
+        const held = [], captured = new Set(), puzzle = [], puzzleCaptured = new Set(), hill = [], hillCaptured = new Set();
+        async function captureHill(kind, detail, points = []) {
+            if (hillCaptured.has(kind)) return;
+            hillCaptured.add(kind);
+            for (let i = 0; i < 45; i++) render();
+            app.render(); await sleep(100);
+            // ResizeObserver publishes live guide clearance on a real frame.
+            for (let i = 0; i < 30; i++) render();
+            app.render();
+            const find = (node, label) => node.label === label ? node : (node.children || []).map(n => find(n, label)).find(Boolean);
+            assert.ok(find(view.world, 'hill-puzzle-scene'), 'physical hill illustration exists');
+            const rect = r => ({ x: r.x, y: r.y, width: r.width, height: r.height });
+            const obstacles = [...document.querySelectorAll('.sk-hintbubble.on, .sk-think.on, .sk-goal:not(.empty), .sk-controls:not(.off) .sk-btn')]
+                .filter(el => getComputedStyle(el).visibility !== 'hidden' && Number(getComputedStyle(el).opacity) > .1)
+                .map(el => rect(el.getBoundingClientRect()));
+            points = [{ name: 'horse', x: p().x, y: p().y - 100 }, ...points];
+            const projected = points.map(pt => ({ name: pt.name, x: (pt.x - view.cam.x) * view.cam.zoom + innerWidth / 2, y: (pt.y - view.cam.y) * view.cam.zoom + innerHeight / 2 }));
+            for (const pt of projected) {
+                assert.ok(pt.x >= 0 && pt.x <= innerWidth && pt.y >= 0 && pt.y <= innerHeight, `${kind}: ${pt.name} stays in view ${JSON.stringify(pt)}`);
+                for (const box of obstacles) assert.ok(pt.x < box.x || pt.x > box.x + box.width || pt.y < box.y || pt.y > box.y + box.height, `${kind}: ${pt.name} clears live UI`);
+            }
+            if (detail.flight) {
+                const seed = find(view.world, `p3-flight-${detail.flight.id}`);
+                assert.ok(seed?.visible && Math.abs(seed.x - detail.flight.x) < .01 && Math.abs(seed.y - detail.flight.y) < .01, `${kind}: drawn seed follows its actual flight`);
+            }
+            if (detail.stone) {
+                const stone = find(view.world, 'p3-pin-stone');
+                assert.ok(stone && Math.abs(stone.x - detail.stone.x) < .01 && Math.abs(stone.y - detail.stone.y) < .01, 'visible boulder follows actual push');
+            }
+            if (detail.stage?.phase === 'unfolding') {
+                const surface = G.terrain.surfaces.find(s => s.id === 'ramp' + detail.stage.id.slice(1));
+                assert.equal(JSON.stringify(detail.stage.points), JSON.stringify(surface.pts), 'paper upper edge equals current collision surface');
+            }
+            assert.ok(!ui.controls.classList.contains('off'), `${kind}: physical action keeps controls`);
+            const flags = [...G.flags].join('|'), before = JSON.stringify(p3Pose(G));
+            view.render(snapshot(p(), 1, G.terrain, G.time), 2); app.render();
+            assert.equal([...G.flags].join('|'), flags, `${kind}: drawing cannot solve the puzzle`);
+            assert.equal(JSON.stringify(p3Pose(G)), before, `${kind}: picture has no independent progress clock`);
+            hill.push({ kind, detail, progress: p3Progress(G), player: { x: p().x, y: p().y, vx: p().vx }, projected, obstacles, flags: [...G.flags] });
+            await window.explorationShot(kind);
+        }
+        async function inspectHill() {
+            if (G.sceneId !== 'land' || G.busy || ui.dialogueOpen()) return;
+            const pose = p3Pose(G);
+            for (const stage of pose.stages) {
+                const flight = pose.flights.find(f => f.target === stage.receiver.id && f.t > .35 && f.t < .9);
+                if (flight && ['t1', 't3'].includes(stage.id)) await captureHill(`p3-${stage.id}-flight`, { stage, flight }, [
+                    { name: 'seed', x: flight.x, y: flight.y },
+                    { name: 'receiver', ...stage.receiver }
+                ]);
+                if (stage.id === 't1' && stage.phase === 'roots' && stage.root > .4) await captureHill('p3-t1-roots', { stage }, [{ name: 'root bed', ...stage.receiver }]);
+                if (stage.id === 't2' && stage.phase === 'pinned') {
+                    assert.ok(stage.seeded && !has('p3_t2') && !has('p3_stone_clear'), 'seed waits for the real pin to move');
+                    await captureHill('p3-t2-pinned', { stage, stone: pose.stone }, [{ name: 'seeded bed', ...stage.receiver }, { name: 'pin', x: pose.stone.x, y: pose.stone.y - 60 }]);
+                }
+                if (stage.phase === 'unfolding' && stage.unfold > .4 && stage.unfold < .9) await captureHill(`p3-${stage.id}-unfolding`, { stage }, stage.points.map(([x, y], i) => ({ name: `paper edge${i}`, x, y })));
+            }
+            if (pose.stone.moving && pose.stone.progress > .35 && pose.stone.progress < .9) await captureHill('p3-pin-slide', { stone: pose.stone }, [{ name: 'sliding stone', x: pose.stone.x, y: pose.stone.y - 60 }]);
+            const momentum = p4MomentumProgress(p(), G.sceneDef);
+            if (momentum?.ready && !has('p4_leap')) await captureHill('p4-downhill-ready', { momentum });
+        }
         async function inspectPuzzle() {
             if (G.sceneId !== 'kelp' || !has('ch2_open') || has('mark_sea') || G.busy || ui.dialogueOpen()) return;
             const pose = p6Pose(G), def = G.scenes.kelp.kelpPuzzle;
@@ -253,7 +330,7 @@ try {
             const record = { kind, pose, progress: p6Progress(G), player: { x: p().x, y: p().y, hidden: p().hidden, hide: p().hide }, projected, obstacles, guidance: G.guidance };
             puzzle.push(record); await window.explorationShot(`p6-${kind}`);
         }
-        const selectedFocus = new Set(['pool', 'sea-fold-reveal', 'vault-approach', 'ramp', 'waveMarks', 'land-search', 'land-route', 'landmark', 'leap', 'seabed-fold']);
+        const selectedFocus = new Set(['pool', 'sea-fold-reveal', 'vault-approach', 'ramp', 'rampMiddle', 'rampUpper', 'runup', 'waveMarks', 'land-search', 'land-route', 'landmark', 'leap', 'seabed-fold']);
         async function inspectHold() {
             const focus = view.landFocus, map = view.mapAssembly;
             if (!(focus && selectedFocus.has(focus.id)) && !map) return;
@@ -315,7 +392,10 @@ try {
             const record = { kind, line, card, art, flags: [...G.flags], objective: story.objective() };
             held.push(record); await window.explorationShot(`${String(held.length).padStart(2, '0')}-${kind}`);
         }
-        if (order === 'cave-first') {
+        if (hillOnly) {
+            await routes.meetKlo(R); await routes.landFragment(R); await settle();
+            assert.ok(has('mark_land') && !has('p2_open') && !has('ch2_open'), 'hill journey earns its paper before the cave');
+        } else if (order === 'cave-first') {
             await routes.chapter1(R);
             assert.ok(has('ch1_end') && has('ch2_open') && has('b:k2_open'), 'cave reaches the full discovery and fragment plan');
             assert.ok(!has('p1_inked') && !has('p3_done') && !has('mark_land'), 'cave-first did not require the hills');
@@ -324,6 +404,7 @@ try {
             assert.ok(has('mark_land') && !has('mark_sea'), 'land piece is earned before entering the sea');
             assert.ok(held.some(h => h.kind === 'map-fragment-land' && !h.flags.includes('p2_open') && !h.flags.includes('ch2_open')), 'early land discovery is shown before cave or sea unlock');
         }
+        if (!hillOnly) {
         await routes.seaFragment(R);
         assert.ok(has('mark_sea'), 'physical sea puzzle ends in actual collection');
         if (order === 'cave-first') {
@@ -331,22 +412,27 @@ try {
             await routes.returnToLand(R);
             await routes.landFragment(R);
         }
+        }
         await settle();
-        for (const flag of ['p1_inked', 'p3_done', 'p4_leap', 'mark_land', 'mark_sea', 'marks_both', 'ch2_end']) assert.ok(has(flag), `natural route earns ${flag}`);
+        for (const flag of ['p1_inked', 'p3_done', 'p4_leap', 'mark_land', ...(hillOnly ? [] : ['mark_sea', 'marks_both', 'ch2_end'])]) assert.ok(has(flag), `natural route earns ${flag}`);
+        if (!hillOnly) {
         assert.ok(held.some(h => h.kind === 'sea-fold-reveal'), 'sea reveal was player paced');
         assert.ok(held.some(h => h.kind.startsWith('map-search')), 'missing-fragment plan was visible');
-        assert.ok(held.some(h => h.kind === 'ramp') && held.some(h => h.kind === 'waveMarks'), 'real hill path was explained');
         for (const phase of ['grab', 'pull', 'carry', 'press', 'rising', 'pocket']) assert.ok(puzzle.some(p => p.kind === phase), `physical puzzle shows ${phase}`);
         assert.ok(held.some(h => h.kind === 'map-fragment-sea'), 'actual collection opens the sea piece closeup');
+        }
+        for (const phase of ['p3-t1-flight', 'p3-t1-roots', 'p3-t1-unfolding', 'p3-t2-pinned', 'p3-pin-slide', 'p3-t2-unfolding', 'p3-t3-flight', 'p3-t3-unfolding', 'p4-short-runup', 'p4-downhill-ready']) assert.ok(hill.some(h => h.kind === phase), `hill route shows ${phase}`);
+        assert.ok(shortRunChecked && events.some(e => e.type === 'leapStart' && e.id === 'sprang-p4'), 'failed short approach leads to a real downhill leap');
+        for (const focus of ['ramp', 'rampMiddle', 'rampUpper', 'runup', 'waveMarks', 'leap']) assert.ok(held.some(h => h.kind === focus), `hill explanation frames ${focus}`);
         assert.equal(view.landFocus, null); assert.equal(view.mapAssembly, null);
         assert.ok(!ui.controls.classList.contains('off'), 'normal controls return after the story');
         assert.ok(getComputedStyle(document.querySelector('.sk-toasts')).visibility !== 'hidden', 'notifications restore after held evidence');
-        return { order, steps, flags: [...G.flags], held, puzzle, log };
-        }, { order, touchMode, routeSource });
+        return { order, steps, flags: [...G.flags], held, puzzle, hill, log };
+        }, { order, touchMode, routeSource, hillOnly });
         results.push({ ...mode, ...result });
         await fs.writeFile(path.join(out, `${active}-results.json`), JSON.stringify({ mode, result }, null, 2));
         await fs.rm(path.join(out, `FAIL-${active}.webp`), { force: true });
-        console.log(`${active}: passed ${result.steps} steps, ${result.held.length} held evidence cards`);
+        console.log(`${active}: passed ${result.steps} steps, ${result.held.length} held evidence cards, ${result.hill.length} hill phases`);
         await page.close(); current = null;
     }
     assert.deepEqual(errors, [], 'no browser errors');

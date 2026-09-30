@@ -54,24 +54,55 @@ test('control instructions respect touch, hold-to-hide and follow-finger setting
 });
 
 test('P3 follows the next unfilled tuft and its actual flying fluff', () => {
-    const G = stage('land', 53, -.8);
-    assert.equal(cue(G, 'p3').target.x, G.scenes.land.clumps.find(c => c.id === 'c1').x);
+    const G = stage('land', 53, -.8), first = G.scenes.land.clumps.find(c => c.id === 'c1');
+    assert.equal(cue(G, 'p3').target.x, first.runup.x);
+    G.player.x = 55.6 * HL;
+    assert.equal(cue(G, 'p3').target.x, first.x);
     G.puz.fluff.push({ target: 't1', t: .4 });
-    assert.equal(cue(G, 'p3').instruction, W.steps.rampWait);
+    assert.equal(cue(G, 'p3').instruction, W.steps.p3Flight);
+    assert.equal(cue(G, 'p3').progress.value, .4);
+    assert.equal(cue(G, 'p3').action, null, 'a flying seed needs time rather than another gallop');
     G.puz.fluff = []; G.flags.add('p3_t1');
     assert.equal(cue(G, 'p3b').target.x, G.scenes.land.clumps.find(c => c.id === 'c2').x);
     assert.equal(cue(G, 'p3b').progress.value, 1);
 });
 
+test('the seeded middle ramp guides the real stone before asking for the upper flower', () => {
+    const G = stage('land', 44, -1.91, ['p3_t1', 'p3_seed_t2']);
+    const approach = cue(G, 'p3b');
+    assert.equal(approach.instruction, W.steps.p3PinApproach);
+    assert.equal(approach.action, 'move');
+    G.player.x = 39.5 * HL; G.player.y = -1.91 * HL; G.player.facing = 1;
+    assert.equal(cue(G, 'p3b').instruction, W.steps.p3PinPush);
+    assert.equal(cue(G, 'p3b').action, 'act');
+    G.flags.add('p3_stone_clear'); G.step({});
+    assert.equal(cue(G, 'p3b').instruction, W.steps.p3Unfold);
+    assert.equal(cue(G, 'p3b').action, null);
+});
+
 test('P4 changes from runup to leap to landmark and return rope', () => {
     const G = stage('land', 50, -.8);
     assert.equal(cue(G, 'p4').instruction, W.steps.leapRunup);
-    G.player.x = 26 * HL; G.player.y = -6 * HL;
+    G.player.x = 26 * HL; G.player.y = -6 * HL; G.player.vx = -1200;
+    G.player.surface = G.scenes.land.surfaces.find(surface => surface.id === 'plateau');
     assert.equal(cue(G, 'p4').instruction, W.steps.leap);
     G.flags.add('p4_leap');
     assert.equal(cue(G, 'p4').target.x, G.scenes.land.spots.landmark.x);
     G.flags.add('mark_land');
     assert.equal(cue(G, 'p4').instruction, W.steps.returnRope);
+});
+
+test('the real long leap keeps its landing goal while airborne instead of pointing back up the hill', () => {
+    const G = stage('land', 11.8, -4.8, ['ch2_open', 'b:k2_leap_purpose']);
+    const edge = G.scenes.land.edges.find(edge => edge.id === 'sprang-p4');
+    G.player.mode = 'leap';
+    G.player.leap = { id: edge.id, to: { x: edge.to[0], y: edge.to[1] } };
+    G.player.vx = -1400;
+    const airborne = cue(G, 'p4');
+    assert.equal(airborne.instruction, W.steps.leapFlight);
+    assert.equal(airborne.action, null, 'a committed jump needs no new input');
+    assert.equal(airborne.target.x, edge.to[0]);
+    assert.ok(airborne.target.x < G.player.x, 'the goal stays ahead on the actual landing side');
 });
 
 test('fish guidance uses the lane, real wait and drift; a stranded shell can recover', () => {

@@ -98,7 +98,10 @@ SCENES.land = {
         // Klippudden's east edge over the cleft
         { id: 'klipp-edge', x: h(7.95), y: h(-4.0), dir: 1, kind: 'balk', reason: 'edge', when: (F) => !F.has('p4_plank') || F.has('final_run') },
         // Stora språnget (P4): from the plateau edge onto Klippudden
-        { id: 'sprang-p4', x: h(13.05), y: h(-4.0), dir: -1, kind: 'sprang', to: [h(7.0), h(-4.0)], peak: h(1.2), slow: 0.55, pan: true, needs: 'chapter2_available', needsReason: 'paper', when: (F) => !F.has('p4_plank') || F.has('final_run') },
+        { id: 'sprang-p4', x: h(13.05), y: h(-4.0), dir: -1, kind: 'sprang', to: [h(7.0), h(-4.0)], peak: h(1.2), slow: 0.55, pan: true,
+            minSpeed: 1350, speedReason: 'runup',
+            downhill: { surface: 'plateau', gravity: 900, coastDrag: 60, maxSpeed: 1580, runup: { x: h(27.5), y: h(-6.4) } },
+            needs: 'chapter2_available', needsReason: 'paper', when: (F) => !F.has('p4_plank') || F.has('final_run') },
         // the little ditch on Galoppbanan (both ways)
         { id: 'ditch-w', x: h(67.52), y: h(-0.8), dir: -1, kind: 'sprang', to: [h(65.6), h(-0.8)], peak: h(0.55) },
         { id: 'ditch-e', x: h(65.98), y: h(-0.8), dir: 1, kind: 'sprang', to: [h(67.9), h(-0.8)], peak: h(0.55) }
@@ -183,12 +186,16 @@ SCENES.land = {
         { id: 'udden', x0: h(-1), x1: h(8), y1: h(-3.5) },
         { id: 'jetty', x0: h(112.3), x1: h(118.5) }
     ],
-    // P3: backsippa clumps and dotted tussocks (fluff flies 5 HL in the running direction)
+    // P3: each flower has a visible, authored seed receiver. The high flower
+    // belongs to L2, so the middle strip must really open before it is reached.
     clumps: [
-        { id: 'c-teach', x: h(73.6), y: h(-0.77), teach: true },
-        { id: 'c1', x: h(52.3), y: h(-0.79) },
-        { id: 'c2', x: h(44.6), y: h(-1.91) },
-        { id: 'c3', x: h(42.45), y: h(-1.92) }
+        { id: 'c-teach', x: h(73.6), y: h(-0.77), teach: true, target: 't-teach', dir: -1, duration: 1.3, arc: h(1.1) },
+        { id: 'c1', x: h(52.3), y: h(-0.79), target: 't1', dir: -1, duration: 1.3, arc: h(1.1),
+            runup: { x: h(55.6), y: h(-.7944), readyX: h(54.4) } },
+        { id: 'c2', x: h(44.6), y: h(-1.91), target: 't2', dir: -1, duration: 1.3, arc: h(1.1), needs: 'p3_t1',
+            runup: { x: h(48.7), y: h(-.8135), readyX: h(46.8) } },
+        { id: 'c3', x: h(38.2), y: h(-2.95), target: 't3', dir: -1, duration: .8, arc: h(.55), needs: 'p3_t2',
+            runup: { x: h(44.8), y: h(-1.906), readyX: h(42.5) } }
     ],
     tussocks: [
         { id: 't-teach', x: h(68.6), y: h(-0.78), flag: 'entrance_fluff', decor: true },
@@ -196,6 +203,16 @@ SCENES.land = {
         { id: 't2', x: h(39.55), y: h(-1.9), flag: 'p3_t2', ramp: 'ramp2' },
         { id: 't3', x: h(37.2), y: h(-2.95), flag: 'p3_t3', ramp: 'ramp3' }
     ],
+    hillPuzzle: {
+        rootsSeconds: .55, rampSeconds: 1.1,
+        stages: [
+            { id: 't1', source: 'c1', receiver: 't1', seedFlag: 'p3_seed_t1', flag: 'p3_t1', ramp: 'ramp1' },
+            { id: 't2', source: 'c2', receiver: 't2', seedFlag: 'p3_seed_t2', flag: 'p3_t2', ramp: 'ramp2', pin: true },
+            { id: 't3', source: 'c3', receiver: 't3', seedFlag: 'p3_seed_t3', flag: 'p3_t3', ramp: 'ramp3' }
+        ],
+        stone: { id: 'p3-pin', x: h(40.15), y: h(-1.90943),
+            to: { x: h(41.25), y: h(-1.91571) }, flag: 'p3_stone_clear', duration: .55, reach: h(1.3) }
+    },
     // P2: the stone on its rail (notch 0 … 4; the reflection wants notch 4)
     rail: { id: 'p2-stone', x0: h(100.1), step: h(0.45), notches: 4, target: 4, y: h(-0.1) },
     // P4: the rope plank on the far side (Dra after landing)

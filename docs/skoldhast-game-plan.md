@@ -391,8 +391,13 @@ the map-piece search begins, any unfinished land puzzles gain matching search go
   - Galoppbanan: a free gallop of 40 s or more, fjädergräs, and low hurdles cleared automatically.
   - The first distant sköldhäst watches from the ridge, then lies down under its shell and becomes a "rock" as
     you approach. Sköldhästen: "Det finns fler!"
-  - P3 Backsippornas fjun, up Vågmärkesbranten to the wave-mark ledge. Its old sea marks lead toward
-    Klippudden. The route continues over Galoppbacken to the cliff-side vista and P4, including before the cave.
+  - P3 Backsippornas fjun opens three local, folded sections of the grassy path. The first seeds and roots
+    teach the cause; the second strip is pinned by a pushable stone; the third flower requires climbing to
+    the next shelf and galloping up from below. Every seed, growing root and unfolding strip is visible.
+  - The opening conversation frames the nearby flower, tuft and folded path. At the top, the actual rock
+    displays wave marks and shell impressions high above the beach. This is an observation for the mystery,
+    not a drawn trail or proof of how the whole coastline moved. The walking route continues over
+    Galoppbacken to the cliff-side vista and P4, including before the cave.
     The hilltop never requires a return to the sea. Before the fragment is seen, the goal is exploration;
     once the cliff-side vista reveals it, the goal becomes reaching that visible piece.
 - **P2 Spegelpölen** opens Vattenporten into the sea.
@@ -422,8 +427,8 @@ the map-piece search begins, any unfinished land puzzles gain matching search go
     return to Stäppen. Objectives follow the chosen scene until one piece remains.
   - The land branch uses P1, then P3, if those were not already explored. Their purpose is now to find the
     land piece by reaching a lookout over Stäppen. The flying scrap leaves no invented physical trail.
-    The hilltop connects the sea marks to the route toward Klippudden and sends the player onward over
-    Galoppbacken. The scrap is not visible from the hilltop camera: the held cliff-side vista reveals it
+    The hilltop shows sea marks on the nearby rock, then sends the player along the path over Galoppbacken.
+    The marks do not form a continuous trail. The scrap is not visible from this camera: the cliff-side vista reveals it
     when the player reaches the cleft. The hilltop never sends them back to the already explored cave.
   - Every geographical map uses the same artwork and torn edges: world pickups, discovery close-ups,
     the notebook and the assembly. Missing pieces remain silhouettes in the notebook.
@@ -433,6 +438,9 @@ the map-piece search begins, any unfinished land puzzles gain matching search go
     referring to an unseen current or an already introduced sea search. The rope plank provides the way home;
     goals then return to the pool, its repair or entering the cave according to actual completed progress.
   - Klo: "Fem hästlängder! Nytt rekord för sköldpaddor. Och för krabbor."
+  - A separate held view of the real crest shows where to start the downhill run. The jump needs actual
+    speed gained on the descent, and its progress display reads that speed. The edge safely stops an
+    under-speed attempt and directs the player back to the top.
   - From Klippudden: "Fyren lyser – men bara i spegelbilden."
 - **P5 Lyktfiskarnas väg** lights the route through the vault toward **P6 Strömkarusellen** in Kelphjärtat.
   The fish do not switch on a distant whirlpool: the player can also swim over the vault and approach P6.
@@ -729,8 +737,8 @@ The original audit remains local in the ignored `docs/skoldhast/klo-companion-au
 | --- | --- | --- | --- | --- |
 | P1 | Streckbron | The dry tide gully between Stranden and Stäppen | Springa (Streck) | "Galoppen ritar färdigt." |
 | P2 | Spegelpölen | Stranden, the rock pool by the sealed Vattenporten | Göm dig (still), Knuffa, Streck | "The reflection shows the page as it should be. Make it match." |
-| P3 | Backsippornas fjun | Stäppen, Vågmärkesbranten | Galoppvind | "The fluff flies the way I run." |
-| P4 | Stora språnget | Stäppen plateau → Klippudden | Springa (Språng) | "I need a longer run-up. Where can I get one?" |
+| P3 | Backsippornas fjun | Stäppen, Vågmärkesbranten | Galoppvind, Knuffa, climbing and an uphill run-up | "The seed grows roots under this folded path; the pinning stone must move too." |
+| P4 | Stora språnget | Stäppen plateau → Klippudden | Downhill gallop, Språng | "The long descent gives the extra speed this gap needs." |
 | P5 | Lyktfiskarnas väg | Kelpskogen, Mörka valvet | Simma, Göm dig (drift, shy creatures) | "Drifting counts as hiding." |
 | P6 | Strömkarusellen | Kelpskogen, Kelphjärtat | Dra, Simma, Göm dig (drift, weight), Simma | "Free the flow, ride it onto the fold, then use the shell's weight." |
 | P7 | Pappersfyrens tre luckor | Spegelviken, Pappersfyren | Trumma, Göm dig (weight, drift), Dra | "Each shutter needs a different half of me." |
@@ -756,27 +764,44 @@ The original audit remains local in the ignored `docs/skoldhast/klo-companion-au
 - **Margin note:** "Göm dig vid pölen och jämför spegelbilden med stranden."
 
 **P3 Backsippornas fjun**
-- **Setup:** three dotted empty tussocks sit on ledges up the escarpment. Galloping through a clump of giant
-  backsippa seed heads blows its fluff on a fixed arc in the running direction. Fluff landing on a dotted tussock
-  grows it into a walkable grass ramp (35° or less) up to the next ledge.
-- **Solution:**
-  - The first ledge works with a natural rightward run.
-  - The second needs a leftward run, because a boulder leaves the runway only on the right.
-  - The third needs a run along the first ledge.
-  - Fluff regrows in 4 s, and the landing spot is fixed for each clump and direction.
-- **Result:** the third ramp reaches the wave-mark ledge at the top. Klo measures the marks.
-- **Taught:** at the steppe entrance, one lone backsippa fills a small tussock by the path.
-- **Margin note:** "Titta vart fjunet flyger när du springer förbi."
+- **Setup:** three sections of the grassy paper path are locally folded against the escarpment. A dotted
+  tuft marks a place where backsippa fluff can take root. Each flower, target and folded strip belongs to
+  the same nearby obstacle; the first held view includes those objects, rather than an unseen hilltop clue.
+- **Three related actions:**
+  1. Gallop left past the first flower. The real seed flies to the tuft, lands and grows roots underneath
+     that folded strip. The roots visibly push it out into a walkable slope; collision follows the same shape.
+  2. A stone visibly pins the next strip. Use **Knuffa** to slide it off the lip, and send a seed to its tuft.
+     Either order works. A seed-first attempt remains planted while the stone holds the fold down; a
+     stone-first attempt leaves the tuft ready for its seed. Only those two local conditions open the strip.
+  3. The third flower stands on L2, above the second one. Climb the opened path, then build galloping speed
+     on the lower shelf and carry it uphill past the flower. Its seed grows the roots for the final strip.
+- **Readable phases:** `approach-seed` with stage 1/2/3, `seed-flight`, `grow-roots`, `move-pin`,
+  `unfold-ramp`, `reach-ledge`, and `complete`. Goals and optional hints follow the current physical task.
+  The landed seed and freed stone remain understandable when the player does them in either order.
+- **Result:** the three local strips make a continuous route to the upper shelf. There Klo examines actual
+  wave marks and shell impressions on the rock: sea evidence far above the beach. The story asks how it
+  got there without presenting an unshown coastline displacement as an observed fact. The path then
+  continues over Galoppbacken toward the real fragment reveal at the cleft.
+- **World rule:** roots unfold the strip where their seed landed. This repairs a local path on Alva's page;
+  it never removes a distant chapter curtain or unfolds the whole sea. The final release of the sea remains
+  Kartväktaren's decision after the wave experiment.
+- **Taught:** at the steppe entrance, a lone backsippa grows a small tuft. The first folded strip then shows
+  the entire seed → roots → unfolding → walking sequence before the stone and elevation add difficulty.
+- **Margin note:** "Följ fjunet till tuvan. Vad växer under den vikta kanten?"
 
 **P4 Stora språnget**
-- **Setup:** Klippudden lies across a 5 HL dry cleft. The near runway is short and uphill, so the sköldhäst only
-  reaches trot and balks.
+- **Setup:** Klippudden lies across a 5 HL dry cleft. The fragment is visible from the nearby cliff. Even
+  ordinary flat-ground galloping speed is insufficient for this gap; the actual descent supplies extra momentum.
 - **Order:** when chapter 2 content is released, the land and its jump are available from the start. There is
   no white chapter curtain over Klippudden and no cave prerequisite. The real bridge, ramps and run-up form
   the approach; the cliff-side vista reveals the fragment before the leap.
-- **Solution:** gallop the long Galoppbanan loop around the hill and come down the long slope, reaching full
-  gallop at the edge. That gives the biggest leap in the game, with a short slow-down at the top of the arc, a
-  scripted pan to the landing, and a music sting.
+- **Solution:** start high on Galoppbacken and gallop left all the way down its long slope. The simulation's
+  current earned speed at the edge determines whether the leap can cross; there is no visited-top flag or
+  automatic success for holding gallop on flat ground. The speed indicator uses the same physical value.
+- **Feedback and framing:** the cliff vista explains the visible fragment and gap. A separate held crest
+  view explains the uphill return and where the run begins. An insufficient-speed attempt safely stops
+  with “Jag behöver backens fart för det här språnget!” and makes the top the next useful goal. A successful
+  leap retains the scripted landing pan, brief apex slow-down and music sting.
 - **Taught:** the small språngkant on Galoppbanan, which has a flat runway.
 - **Reward:** Landmärket, Klo's measurement, and the view of the reflection-only lighthouse. A rope plank lowered
   with *Dra* makes the way back a walk.

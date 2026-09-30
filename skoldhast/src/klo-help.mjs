@@ -3,9 +3,9 @@
 import { KLO_COMPANION as W, GUIDANCE } from './content/sv.mjs';
 import { HL } from './sim.mjs';
 import { p6Progress } from './kelp-puzzle.mjs';
+import { p3Progress } from './hill-puzzle.mjs';
 
 const total = (F, keys) => keys.filter(key => F.has(key)).length;
-const rampFlags = ['p3_t1', 'p3_t2', 'p3_t3'];
 const shutterFlags = ['shutter1', 'shutter2', 'shutter3'];
 const lineFlags = ['p8_s1', 'p8_s2', 'p8_s3'];
 
@@ -46,9 +46,12 @@ export function describeKloHelp(G, cue = {}) {
         key = `p2:${topic}:${Number(F.has('p2_plank'))}`;
     } else if (objective === 'p1') topic = 'bridge';
     else if (objective === 'p3' || objective === 'p3b') {
-        const n = total(F, rampFlags);
-        topic = n === 3 ? 'waveLedge' : n ? 'upperRamp' : 'ramp';
-        key = `p3:${n}`;
+        const climb = p3Progress(G);
+        topic = ({ 'seed-flight': 'p3Flight', 'grow-roots': 'p3Roots', 'unfold-ramp': 'p3Unfold' }[climb.phase])
+            || (climb.phase === 'move-pin' ? 'pin'
+            : ['reach-ledge', 'complete'].includes(climb.phase) ? 'foldedLedge'
+            : climb.stage === 3 ? 'upperSeed' : climb.stage === 2 ? 'secondSeed' : 'ramp');
+        key = `p3:${climb.id || 'ledge'}:${climb.phase}`;
     } else if (objective === 'p4') {
         topic = F.has('p4_leap') ? 'landmark' : 'leap';
         key = `p4:${topic}`;

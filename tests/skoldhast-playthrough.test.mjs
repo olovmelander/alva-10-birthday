@@ -80,14 +80,28 @@ export async function landApproach(R) {
     await R.flag('b:k1_branten', {}, 10);
     await R.settle();
 
-    // P3: gallop past the backsippa clumps; the fluff grows ramps
+    // First seed: wind carries it to the dotted soil, roots take hold, then the strip unfolds.
     await R.walkTo(59.5);
     await R.gallopPast(49.0);
+    await R.flag('p3_seed_t1', {}, 5);
     await R.flag('p3_t1', {}, 5);
+    await R.hold(1.3);
+    // The middle seed lands on L1, but a real stone still pins that grass strip down.
     await R.walkTo(58.5);
-    await R.until(() => R.p().x < 39.2 * 200 || (R.has('p3_t2') && R.has('p3_t3') && R.p().x < 41 * 200), { x: -1 }, 20, 'run along L1');
+    await R.gallopPast(41.0);
+    await R.flag('p3_seed_t2', {}, 5);
+    assert.equal(R.has('p3_t2'), false, 'the seeded strip needs its stone moved');
+    await R.walkTo(39.0, { tol: .04 }); await R.walkTo(39.5, { tol: .04 });
+    await R.context('p3-push');
+    await R.flag('p3_stone_clear', {}, 5);
+    await R.flag('p3_t2', {}, 5);
+    await R.hold(1.3);
+    // Only the upper terrace reaches the last flower; a separate gallop sends its seed.
+    await R.walkTo(46.0);
+    await R.gallopPast(37.8);
+    await R.flag('p3_seed_t3', {}, 5);
     await R.flag('p3_t3', {}, 5);
-    assert.ok(R.has('p3_t2'), 'the second ramp grew');
+    await R.hold(1.3);
     await R.walkTo(41.0); // back to the foot of the new ramp, then up
     await R.walkTo(35.0);
     await R.flag('p3_done', {}, 10);
