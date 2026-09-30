@@ -48,7 +48,16 @@ export function createThoughtScene(PIXI, kind, { texture, makeHero, rx, ry, redu
         // --- a little piece of the game world, in world units -----------------------------
         const steppe = kind === 'steppe';
         const sc = (ry * 2 * (steppe ? .5 : .44)) / 330; // the sköldhäst is about half the bubble
-        cover(steppe ? 'bg-steppe' : 'bg-under');
+        const sky = cover(steppe ? 'bg-steppe' : 'bg-under');
+        // The steppe's hills are separate bands in the game, each at its own depth.
+        const bands = steppe ? [['bg-steppe-far', .3, .04], ['bg-steppe-mid', .35, .1], ['bg-steppe-near', .43, .2]]
+            .filter(([name]) => T(name)).map(([name, y, par]) => {
+                const t = T(name), fw = T('bg-steppe').width * sky.scale.x, k = fw / t.width;
+                const band = new PIXI.TilingSprite({ texture: t, width: rx * 2.4, height: t.height * k });
+                band.tileScale.set(k); band.label = 'thought-' + name;
+                container.addChild(band);
+                return { band, y: y * T('bg-steppe').height * sky.scale.y, par };
+            }) : [];
         const world = new PIXI.Container();
         world.scale.set(sc);
         container.addChild(world);
@@ -87,6 +96,7 @@ export function createThoughtScene(PIXI, kind, { texture, makeHero, rx, ry, redu
         if (steppe) {
             // her steppe: feather grass, pasque flowers, tussocks and boulders rushing past
             const kinds = ['feathergrass-1', 'feathergrass-2', 'feathergrass-3', 'feathergrass-4', 'backsippa', 'feathergrass-3', 'boulder', 'feathergrass-2'];
+            const nearKinds = ['feathergrass-1', 'feathergrass-2', 'feathergrass-3', 'feathergrass-4', 'backsippa'];
             const spacing = 260;
             const props = Array.from({ length: Math.ceil(halfW * 2 / spacing) + 3 }, () => { const s = new PIXI.Sprite(); s.anchor.set(.5, 1); back.addChild(s); return s; });
             const nearProps = Array.from({ length: Math.ceil(halfW * 2 / 520) + 3 }, () => { const s = new PIXI.Sprite(); s.anchor.set(.5, 1); front.addChild(s); return s; });
@@ -94,10 +104,10 @@ export function createThoughtScene(PIXI, kind, { texture, makeHero, rx, ry, redu
             let dustAt = 0, dustIndex = 0;
             if (hero) world.addChild(hero.view);
             world.addChild(front);
-            const place = (pool, step, seed, scaleRange) => {
+            const place = (pool, step, seed, scaleRange, list = kinds) => {
                 const k0 = Math.floor((cam - halfW) / step) - 1;
                 pool.forEach((s, i) => {
-                    const k = k0 + i, name = kinds[Math.floor(hash(k * 3.1 + seed) * kinds.length)];
+                    const k = k0 + i, name = list[Math.floor(hash(k * 3.1 + seed) * list.length)];
                     const t = T(name);
                     s.visible = !!t;
                     if (!t) return;
@@ -115,8 +125,14 @@ export function createThoughtScene(PIXI, kind, { texture, makeHero, rx, ry, redu
                 camY += ((ground(heroX) - 90) - camY) * (1 - Math.exp(-4 * dt));
                 world.position.set(-cam * sc, -camY * sc + ry * .12);
                 drawGround();
-                place(props, spacing, 11, [.9, 1.3]);
-                place(nearProps, 520, 57, [1.3, 1.8]);
+                place(props, spacing, 11, [.75, 1.15]);
+                place(nearProps, 520, 57, [1.2, 1.6], nearKinds);
+                // the hill bands stand on the horizon and slide past at their own depth
+                const horizon = world.y + (camY + 90) * sc - ry * .08;
+                for (const b of bands) {
+                    b.band.position.set(-rx * 1.2, horizon - b.y);
+                    b.band.tilePosition.x = -heroX * sc * b.par * 1.6;
+                }
                 if (hero) {
                     hero.view.position.set(heroX, ground(heroX));
                     hero.update(dt, { x: heroX, y: ground(heroX), vx: speed, vy: 0, facing: 1, gait: speed ? 'gallop' : 'stand',
