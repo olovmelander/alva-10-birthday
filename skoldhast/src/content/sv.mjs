@@ -19,7 +19,7 @@ const HER = [
     'Ingen vet om det är världens snabbaste sköldpadda eller världens långsammaste häst.',
     'Jag hoppas att någon forskare ska ta sig an det mysteriet.'
 ];
-export const HER_TEXT = { full: HER.join(' '), question: HER[2], first: HER[0], lastTwo: `${HER[2]} ${HER[3]}` };
+export const HER_TEXT = { full: HER.join(' '), question: HER[2], first: HER[0], lastTwo: `${HER[2]} ${HER[3]}`, hope: HER[3] };
 
 /** Family touches (plan §0 Q6). Pappa decides; these are the defaults. */
 export const FAMILY = {
@@ -67,6 +67,7 @@ export const UI = {
     chapter1: 'Kapitel 1: Stranden och Stäppen', chapter2: 'Kapitel 2: Udden och djupet', chapter3: 'Kapitel 3: Pappersfyren',
     prologue: 'Ett streck till', finale: 'Havet hittar hem',
     theEnd: 'Slut – men forskningen fortsätter.', playOn: 'Utforska vidare',
+    notesSkip: 'Hoppa över',
     drawWake: 'Dra pennan längs skalets båge!',
     drawGull: 'Rita en mås!', drawCloud: 'Rita ett moln!', drawShore: 'Rita strandkanten vidare – ut på det vita papperet!',
     drawLast: 'Förena strandkantens två ändar!',
@@ -79,7 +80,9 @@ export const UI = {
 export const STORY = {
     prolog: {
         captionFull: null, // HER_TEXT.lastTwo when allowed
-        wakeCaption: 'Alvas sköldhäst. Alldeles stilla – än så länge.',
+        // the opening starts in Alva's head, as she writes her field note
+        thinking: 'Alva tänker på sin sköldhäst …',
+        wakeCaption: 'Precis som Alva tänker sig den. Alldeles stilla – än så länge.',
         awake: ['horse', 'Alva? Det kittlas i hovarna!'],
         captionFallback: 'Häst eller sköldpadda? Ingen vet. Det behövs en forskare!',
         klo2: ['klo', 'Hittills mest krabbor.'],

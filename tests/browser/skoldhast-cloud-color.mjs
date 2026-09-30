@@ -18,6 +18,7 @@ try {
         await page.goto(`http://127.0.0.1:${server.address().port}/skoldhast/dev/play.html`);
         await page.waitForSelector('.sk-title');
         await page.locator('.sk-title button').first().tap();
+        await page.waitForFunction(() => { const b = document.querySelector('.sk-notes-skip'); b?.click(); return !!b || !!document.querySelector('.sk-draw.on'); }, null, { timeout: 60000, polling: 100 }); // skip Alva's notes (skoldhast-notes.mjs plays them)
         await page.waitForFunction(cloud => {
             const d = window.__skoldhast.debug;
             if (d.ui.dialogueOpen()) d.ui.advance();

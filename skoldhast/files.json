@@ -23,6 +23,7 @@
   "src/opening-canvas.mjs",
   "src/opening-fold.mjs",
   "src/opening-klo.mjs",
+  "src/opening-notes.mjs",
   "src/pageturn.mjs",
   "src/presses.mjs",
   "src/prologue.mjs",

@@ -58,6 +58,7 @@ async function start(page, lessMotion = false) {
     await page.evaluate(less => { window.__skoldhast.debug.G.lessMotion = less; }, lessMotion);
     await page.waitForFunction(prompt => {
         const d = window.__skoldhast.debug;
+        document.querySelector('.sk-notes-skip')?.click();
         if (d.ui.dialogueOpen()) d.ui.advance();
         return document.querySelector('.sk-draw.on .sk-draw-prompt')?.textContent === prompt;
     }, UI.drawWake);
@@ -169,7 +170,7 @@ try {
             const emerging = recorded.samples.filter(s => (s.phase === 'klo-entrance' || s.phase === 'klo-take') && s.klo).map(s => s.klo);
             // Her question sets the scene before the researcher's eyes come up.
             assert.ok(recorded.samples.some(s => s.phase === 'klo-entrance' && (!s.klo || ['hidden', 'drop'].includes(s.klo.stage))
-                && s.caption === (HER_TEXT.lastTwo || STORY.prolog.captionFallback)), 'her own question and hope for a researcher come before Klo appears');
+                && s.caption === (HER_TEXT.hope ? `”${HER_TEXT.hope}”` : STORY.prolog.captionFallback)), 'her hope for a researcher returns just before Klo appears');
             const lines = [];
             let reading = false;
             for (const s of recorded.samples) {

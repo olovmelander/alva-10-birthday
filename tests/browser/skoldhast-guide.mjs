@@ -30,6 +30,7 @@ const text = (sel) => pg.locator(sel).first().textContent();
 await pg.goto(`${base}/skoldhast/dev/play.html`, { waitUntil: 'load' });
 await pg.waitForSelector('.sk-title');
 await pg.locator('.sk-title button').first().click(); // Börja
+await pg.waitForFunction(() => { const b = document.querySelector('.sk-notes-skip'); b?.click(); return !!b || !!document.querySelector('.sk-draw.on'); }, null, { timeout: 60000, polling: 100 }); // skip Alva's notes (skoldhast-notes.mjs plays them)
 
 // Alva's table: tap through the words, confirm the pencil prompts with Enter, take the first choice
 for (let i = 0; i < 400; i++) {

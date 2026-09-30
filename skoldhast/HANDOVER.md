@@ -1,5 +1,24 @@
 # Sköldhästen – handover
 
+## Latest: the opening begins in Alva's head (30 September)
+
+Branch `claude/skoldhast-her-words`. Pappa: her note should open the game and set the scene, so the
+player understands they are inside her thoughts; then, as she imagines it, the horse wakes and the
+professor appears. See [`docs/skoldhast/alva-notes-opening.md`](../docs/skoldhast/alva-notes-opening.md).
+
+- The room dims ("Alva tänker på sin sköldhäst …"), her notebook card slides in and her own pencil
+  writes her four sentences in her handwriting. Her words turn into pictures as they are written:
+  the sköldhäst colours in on a blank page, her world colours in around it, and thought bubbles
+  rise (a steppe gallop, hiding in the kelp, turtle-or-horse race, a researcher's lens). Then the
+  card slides away and the camera goes into her picture: "Precis som Alva tänker sig den." The
+  awakening and Klo follow; her last sentence returns as the caption before Klo's drop.
+- Tap/Enter hurries, *Hoppa över*/Esc skips. Reduced motion keeps every beat without movement.
+  About 28 s at full pace on a device (40 s in the slow test browser), about 13 s when tapping.
+- New `src/opening-notes.mjs`, `tests/skoldhast-opening-notes.test.mjs`,
+  `tests/browser/skoldhast-notes.mjs`; the other browser checks skip her note. First playable
+  2,794,317 bytes.
+- Frågor till Pappa: is ~28 s of her note the right length before the first drawing?
+
 ## Latest: Klo's slow-motion awakening (30 September)
 
 Branch `claude/skoldhast-slowmo-drop`, from `main` at `8323bf0`. Pappa asked for a longer, more
