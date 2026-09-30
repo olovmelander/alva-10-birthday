@@ -5,14 +5,21 @@
  * boxes before control returns, Swedish quotation marks and dashes, "du" to the
  * player, plain child words.
  *
- * Alva's printed text (plan §0 Q5). Until Pappa decides, the game only uses the
- * fallback lines marked (c). If he allows it, put her exact words here:
- *   HER_TEXT.full     – all four sentences, for the journal page "Fältanteckning av Alva" (answer a)
- *   HER_TEXT.question – her question sentence (answer a or b)
- *   HER_TEXT.first    – her first sentence (answer a or b)
- *   HER_TEXT.lastTwo  – her last two sentences, for the prologue caption (answer a)
+ * Alva's printed text (plan §0 Q5): Pappa allowed it on 30 September (answer a).
+ * Her exact words, as printed under her drawing, spelling and hyphen included:
+ *   HER_TEXT.full     – all four sentences, for the journal page "Fältanteckning av Alva"
+ *   HER_TEXT.question – her question sentence, for the evening note
+ *   HER_TEXT.first    – her first sentence, for the journal's conclusion
+ *   HER_TEXT.lastTwo  – her last two sentences, for the prologue caption
+ * The fallback lines marked (c) remain for the case that these are ever set to null.
  */
-export const HER_TEXT = { full: null, question: null, first: null, lastTwo: null };
+const HER = [
+    'Sköldhästar är fantastiska.',
+    'De trivs lika bra med att sträcka ut benen i en galopp över stäpperna, som att gömma sig i kelp-skogarna i havets djup.',
+    'Ingen vet om det är världens snabbaste sköldpadda eller världens långsammaste häst.',
+    'Jag hoppas att någon forskare ska ta sig an det mysteriet.'
+];
+export const HER_TEXT = { full: HER.join(' '), question: HER[2], first: HER[0], lastTwo: `${HER[2]} ${HER[3]}` };
 
 /** Family touches (plan §0 Q6). Pappa decides; these are the defaults. */
 export const FAMILY = {
@@ -411,7 +418,7 @@ export const JOURNAL = {
     halves: 'Två halvor av samma märke',
     yourNote: 'Din anteckning:',
     conclusion: 'Slutsats: Mer forskning behövs.',
-    conclusionFull: null, // `Slutsats: ${HER_TEXT.first} Forskningen fortsätter.` when allowed
+    conclusionFull: HER_TEXT.first ? `Slutsats: ${HER_TEXT.first} Forskningen fortsätter.` : null,
     empty: 'Inga mätningar än.',
     experiments: {
         fart: 'Fartfällan: 42,7 km/h. För en sköldpadda – världsrekord!',

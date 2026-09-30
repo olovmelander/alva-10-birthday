@@ -354,10 +354,10 @@ export function createTable({ PIXI, app, view, G, ui, audio, assets, makeHero })
             while (fired < at) cues[OPENING_KLO_STAGES[++fired]]?.();
         };
         setPhase('klo-entrance');
-        // Her question sets the scene while the camera finds the sand behind the
-        // horse: "Häst eller sköldpadda? Ingen vet. Det behövs en forskare!"
+        // Her own last two sentences set the scene while the camera finds the sand
+        // behind the horse: her question, and her hope that a researcher will come.
         const capText = HER_TEXT.lastTwo || STORY.prolog.captionFallback;
-        const capMs = Math.round(1000 * Math.min(8, Math.max(4.2, 1.2 + .055 * capText.length)));
+        const capMs = Math.round(1000 * Math.min(10, Math.max(4.2, 1.2 + .055 * capText.length)));
         ui.caption(capText, capMs);
         const lead = Math.max(1.2, capMs / 1000 - 2.8);
         if (G.lessMotion) { kloFrame = 1; layout(); await wait(lead); }

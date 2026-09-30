@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { serve, launch } from '../../scripts/skoldhast-shot.mjs';
-import { UI, STORY } from '../../skoldhast/src/content/sv.mjs';
+import { UI, STORY, HER_TEXT } from '../../skoldhast/src/content/sv.mjs';
 
 const outAt = process.argv.indexOf('--out');
 const out = outAt >= 0 ? process.argv[outAt + 1] : '/tmp/skoldhast-awakening';
@@ -169,7 +169,7 @@ try {
             const emerging = recorded.samples.filter(s => (s.phase === 'klo-entrance' || s.phase === 'klo-take') && s.klo).map(s => s.klo);
             // Her question sets the scene before the researcher's eyes come up.
             assert.ok(recorded.samples.some(s => s.phase === 'klo-entrance' && (!s.klo || ['hidden', 'drop'].includes(s.klo.stage))
-                && s.caption === STORY.prolog.captionFallback), 'the caption asks "Häst eller sköldpadda?" before Klo appears');
+                && s.caption === (HER_TEXT.lastTwo || STORY.prolog.captionFallback)), 'her own question and hope for a researcher come before Klo appears');
             const lines = [];
             let reading = false;
             for (const s of recorded.samples) {

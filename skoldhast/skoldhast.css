@@ -669,7 +669,8 @@ html.skoldhast-lock, html.skoldhast-lock body { overflow: hidden !important; ove
 .sk-ui.table-mode .sk-dialogue:not(.on) { visibility: hidden; }
 .sk-ui.table-mode .sk-choice { bottom: max(20px, env(safe-area-inset-bottom)); width: max-content; max-width: calc(100% - 32px); gap: 14px; }
 .sk-ui.table-mode .sk-choice-btn { min-width: 0; flex: 1; }
-.sk-ui.table-mode .sk-caption { top: max(16px, env(safe-area-inset-top)); bottom: auto; max-width: calc(100% - 32px); }
+.sk-ui.table-mode .sk-caption { top: max(16px, env(safe-area-inset-top)); bottom: auto; width: max-content;
+    max-width: min(620px, calc(100% - 32px)); white-space: normal; text-align: center; line-height: 1.35; }
 
 /* short landscape phones: the settings card uses two columns, with Stäng beside the heading */
 @media (orientation: landscape) and (max-height: 560px) {
