@@ -101,7 +101,7 @@ try {
             const state = await page.evaluate(t => {
                 const { G, view, app } = window.__skoldhast.debug;
                 view.render(window.__foldSim.snapshot(G.player, 1, G.terrain, G.time), t - view.mapAssembly.elapsed); app.render();
-                const overlay = view.root.children[3], effect = overlay.children.find(c => c.label === 'map-assemble'), b = effect.getBounds();
+                const effect = view.root.children.flatMap(c => c.children).find(c => c.label === 'map-assemble'), b = effect.getBounds();
                 return { ...view.mapAssembly, fitted: b.x >= 0 && b.x + b.width <= app.screen.width && b.y >= 0 && b.y + b.height <= app.screen.height };
             }, t);
             assert.equal(state.fitted, true, `${mode}: map assembly fits`);

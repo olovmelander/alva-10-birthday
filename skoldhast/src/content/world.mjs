@@ -369,6 +369,8 @@ SCENES.kelp = {
         corner: { x: h(36), y: h(8.4) },
         vault: { x: h(25.8), y: h(11.4) },
         lyktbed: { x: h(23.9), y: h(11.4) },
+        // his second note, sealed in a bottle at the trench's lip (Kapitel 2)
+        note2: { x: h(21.65), y: h(6.1) },
         figure: { x: h(47.1), y: h(1.6) }
     },
     areas: [
@@ -405,6 +407,7 @@ SCENES.kelp = {
         { sprite: 'seabed-rock-2', x: h(19.8), y: h(6.05), layer: 'fore' },
         { sprite: 'seabed-rock-3', x: h(33.6), y: h(11.25), layer: 'mid', chapter: 2 },
         { sprite: 'shell-under', x: h(16.4), y: h(6.1), layer: 'mid' },
+        { sprite: 'note-bottle', x: h(21.65), y: h(6.29), layer: 'mid', chapter: 2 },
         { sprite: 'veckmuren', x: h(47.9), y: h(9.1), layer: 'mid' }
     ],
     paper: [{ id: 'trench-paper', x0: h(22.2), x1: h(46.5), until: 'ch2_open', note: { x: h(26), y: h(4) }, under: true }],

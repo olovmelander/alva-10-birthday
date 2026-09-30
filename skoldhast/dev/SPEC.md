@@ -201,7 +201,9 @@ surface, 160 wu, anchor centre), `seabed-rock-1`…`seabed-rock-3`, `shell-under
 placed: Mörka valvet is drawn by the engine from its `slabs` roof in `world.mjs`), `paper-flap` (a small paper flap sticking up from
 the seabed, 60 wu, and `paper-flap-flat`), `paper-corner` (a folded paper corner sticking up in the vortex
 eye, 120 wu, and `paper-corner-flat`), `veckmuren` (the crease wall seen from the side: a vertical, glassy,
-ruler-straight wall with water piled up behind it, 360 wu wide × 1400 high, anchor [0.5, 1]).
+ruler-straight wall with water piled up behind it, 360 wu wide × 1400 high, anchor [0.5, 1]), `note-bottle`
+(Kartväktaren's second note sealed in a glass bottle, lying on the seabed at the trench's lip, 108 wu, anchor
+[0.5, 1]: he could not bear to let paper get wet).
 
 **Spegelviken (bay):** `lighthouse` (Pappersfyren: a tall folded-paper lighthouse, cream paper with ink-blue
 lines, ~1300 wu high × 420 wide, anchor [0.5, 1]; the lamp room at the top with three shutter openings),

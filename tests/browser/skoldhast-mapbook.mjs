@@ -46,7 +46,10 @@ try {
             }
             if(input==='touch')await locator.tap();else {await locator.focus();await pg.keyboard.press('Enter');}
         };
-        const waitBook=()=>pg.waitForFunction(()=>document.querySelector('.sk-mapbook')&&!document.querySelector('.sk-j-flip'));
+        // Measure the settled page: until its entry animation ends the sheet is tilted and
+        // scaled, and a slow first frame (software GL) can hold it there for over a second.
+        const waitBook=()=>pg.waitForFunction(()=>document.querySelector('.sk-mapbook')&&!document.querySelector('.sk-j-flip')
+            &&document.getAnimations().filter(a=>a.animationName==='sk-sheet-in').every(a=>a.playState==='finished'));
         const box=()=>pg.locator('.sk-mapbook-stage svg').getAttribute('viewBox').then(v=>v.split(/\s+/).map(Number));
         const shot=async name=>{
             if(!out||input!=='touch')return;

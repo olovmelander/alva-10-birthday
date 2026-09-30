@@ -17,6 +17,7 @@
   "src/hero.mjs",
   "src/input.mjs",
   "src/klo.mjs",
+  "src/kv-memory.mjs",
   "src/main.mjs",
   "src/map-assemble.mjs",
   "src/mapbook.mjs",

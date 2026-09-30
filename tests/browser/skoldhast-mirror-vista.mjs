@@ -80,7 +80,12 @@ try {
         }
         if (out) await pg.screenshot({ path: `${out}/p7-mirror-${width}x${height}.png` });
         await pg.evaluate(() => window.__skoldhast.resume());
-        await pg.keyboard.press('Space');
+        // A dialogue ignores presses for 350 ms after a line appears (no accidental
+        // double taps), so press again like a player would until it closes.
+        for (let n = 0; n < 12 && await pg.evaluate(() => window.__skoldhast.debug.ui.dialogueOpen()); n++) {
+            await pg.keyboard.press('Space');
+            await pg.waitForTimeout(250);
+        }
         await pg.waitForFunction(() => {
             const { G, view, story } = window.__skoldhast.debug;
             return G.has('b:k3_mirror') && !story.running() && !view.vista;

@@ -20,6 +20,7 @@ import { createRouteCue, createPencilBeam } from './route-cue.mjs';
 import { createActionCue } from './action-cue.mjs';
 import { createFoldDemo } from './fold-demo.mjs';
 import { createMapAssemble } from './map-assemble.mjs';
+import { createKvMemory } from './kv-memory.mjs';
 import { cloudSkyLayout } from './cloud-sky.mjs';
 import { createStuckWave, STILL_CLOCK } from './stuck-wave.mjs';
 import { STORY } from './content/sv.mjs';
@@ -46,6 +47,7 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
     const comparisonObservers = new Set();
     let foldDemo = null;
     let mapAssembly = null;
+    let kvMemory = null; // Kartväktaren's memory card while he explains the fold
     function nextFrame(callback) {
         if (destroyed) return;
         const id = requestAnimationFrame((time) => {
@@ -1626,6 +1628,11 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
             if (previous < 1.15 && mapAssembly.elapsed >= 1.15) onFx?.('sfx', 'pencil');
             if (mapAssembly.state.done) endMapAssembly(true);
         }
+        if (kvMemory) {
+            kvMemory.effect.update(dt);
+            kvMemory.measureIn -= dt;
+            if (kvMemory.measureIn <= 0) fitKvMemory();
+        }
         if (foldDemo) {
             foldDemo.elapsed += dt;
             foldDemo.state = foldDemo.effect.update(foldDemo.elapsed);
@@ -2317,6 +2324,20 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
     }
 
     // --- effects the story asks for -------------------------------------------------------------------
+    /** Keep the memory card clear of the dialogue box above it (measured a few times a second, not every frame). */
+    function fitKvMemory() {
+        if (!kvMemory || destroyed) return;
+        kvMemory.measureIn = .25;
+        const W = app.screen.width, H = app.screen.height, insets = { top: 24, bottom: 24 };
+        const dialog = app.canvas.closest('.sk-root')?.querySelector('.sk-dialogue.on') || document.querySelector('.sk-dialogue.on');
+        if (dialog) {
+            const box = dialog.getBoundingClientRect(), canvas = app.canvas.getBoundingClientRect();
+            const sy = H / (canvas.height || H), top = (box.top - canvas.top) * sy, bottom = (box.bottom - canvas.top) * sy;
+            if ((top + bottom) / 2 < H / 2) insets.top = Math.min(H - 160, bottom + 10);
+            else insets.bottom = Math.min(H - 160, H - top + 10);
+        }
+        kvMemory.effect.fit(W, H, insets);
+    }
     function endMapAssembly(completed) {
         if (!mapAssembly) return;
         const effect = mapAssembly; mapAssembly = null;
@@ -2345,11 +2366,36 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
         switch (name) {
             case 'mapAssemble': {
                 endMapAssembly(false);
-                const effect = createMapAssemble(PIXI, { texture: T, caption: STORY.k2.mapAssemble, lessMotion: G.lessMotion });
+                const effect = createMapAssemble(PIXI, { texture: T, caption: data.caption || STORY.k2.mapAssemble, route: data.route !== false, lessMotion: G.lessMotion });
                 overlay.addChild(effect.container);
                 effect.fit(app.screen.width, app.screen.height);
                 onFx?.('sfx', 'rustle');
                 await new Promise((resolve) => { mapAssembly = { effect, elapsed: 0, state: effect.update(0), resolve }; });
+                break;
+            }
+            case 'kvMemory': {
+                // why he folded: his memory on a card, one picture for each line he speaks
+                kvMemory?.effect.destroy();
+                const effect = createKvMemory(PIXI, { texture: T, makeHero: heroFactory ? () => heroFactory() : null,
+                    caption: STORY.k3.memoryCaption, lessMotion: G.lessMotion });
+                overlay.addChild(effect.container);
+                kvMemory = { effect, measureIn: 0 };
+                fitKvMemory();
+                onFx?.('sfx', 'rustle');
+                try {
+                    await data.whileVisible?.({
+                        stage(i) {
+                            if (effect.stageIndex >= i) return;
+                            effect.stage(i);
+                            onFx?.('sfx', i === 2 ? 'rustle' : 'pencil');
+                            if (kvMemory?.effect === effect) kvMemory.measureIn = .05;
+                        }
+                    });
+                    if (!destroyed && kvMemory?.effect === effect) await Promise.race([effect.close(), new Promise(r => setTimeout(r, 900))]);
+                } finally {
+                    if (kvMemory?.effect === effect) kvMemory = null;
+                    effect.destroy();
+                }
                 break;
             }
             case 'foldDemo': {
@@ -2516,6 +2562,7 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
         cam.snap = true;
         frameFoldDemo();
         mapAssembly?.effect.fit(app.screen.width, app.screen.height);
+        fitKvMemory();
     }
 
     function destroy() {
@@ -2545,6 +2592,8 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
         get stuckWave() { return S?.items.find(q => q.wave)?.wave || null; },
         get foldDemo() { return foldDemo ? { ...foldDemo.state, elapsed: foldDemo.elapsed, bounds: { ...foldDemo.hint.frame } } : null; },
         get mapAssembly() { return mapAssembly ? { ...mapAssembly.state, elapsed: mapAssembly.elapsed } : null; },
+        /** Kartväktaren's memory card while it is shown (for checks) */
+        get kvMemory() { return kvMemory ? { stage: kvMemory.effect.stageIndex } : null; },
         kloBounds() { return S?.obj?.klo?.visible ? S.obj.klo.getBounds() : null; },
         built(id) { return S?.id === id && S.placeholders === 0; },
         replaceHero(newHero) { L.hero.removeChild(hero.view); hero.destroy?.(); hero = newHero; L.hero.addChild(hero.view); },
