@@ -8,17 +8,24 @@
  * paper, the sand and seabed follow the playable world's own bed, and nothing
  * ends in a ruled edge. The sea surface there is left for Alva's stroke.
  *
- * Kartväktaren stands on the islet by his paper tower, small and far off: the
- * game's own paper rig (guardian.mjs), a little faded by distance. The player
- * can see someone there, with a ruler, long before they learn who or why
+ * Pappersfyren stands on a far islet in her margin: the game's own drawing of
+ * it (props-bay `lighthouse`, shutters open and its lamp alight: the page as it
+ * should be, before the fold; afterwards only its reflection shines). On its
+ * gallery stands Kartväktaren, small and far off: the game's own paper rig
+ * (guardian.mjs), a little faded by distance. The player can see someone there,
+ * with a ruler, long before they learn who or why
  * (docs/skoldhast/story-kartvaktaren.md). The prologue sets his pose:
  * 'stand' → 'point' (measuring her line) → 'worry' (the sea is coming) →
- * 'fold' (his ruler has gone to the fold). Until his art has loaded, a small
- * pencil figure stands in for him. */
+ * 'fold' (his ruler has gone to the fold). Until the bay art has loaded, a small
+ * folded-paper sketch of the tower and a pencil figure on its islet stand in. */
 import { createGuardian } from './guardian.mjs';
 
-// his size on the paper: about a third of his tower's height, readable on a phone
-const KEEPER_SCALE = .18;
+// The lighthouse on her paper: its drawing is 1320 px high; about 200 paper units here.
+const LH_SCALE = .152;
+const LH_GALLERY = 1000, LH_LAMP = 1100, LH_SHUTTER = 78; // px above its base / from its axis (world.mjs viken)
+const LH_GAME = 1.37;                                   // the game draws it ×1.37; shutters and lamp are sized for that
+// his size: on the gallery about as in the game (a little larger to read on a phone); on the sketch's islet larger
+const KEEPER_SCALE = .165, KEEPER_SKETCH_SCALE = .18;
 
 export function createOpeningCanvas(PIXI, { parent, texture, picture, waterY, bed = [], sample = () => null, lessMotion = false }) {
     const container = new PIXI.Container();
@@ -27,13 +34,18 @@ export function createOpeningCanvas(PIXI, { parent, texture, picture, waterY, be
     const { x, w } = picture;
     const right = x + w, edge = Math.min(980, right + 194);
     const towerX = right + 140, towerBase = waterY - 38, lightY = towerBase - 48;
-    const keeperX = towerX - 23, keeperY = towerBase - 2.5;
+    // where he stands: on the lighthouse's gallery, or on the islet beside the sketch
+    const place = {
+        gallery: { x: towerX - 13, y: towerBase - LH_GALLERY * LH_SCALE, scale: KEEPER_SCALE },
+        islet: { x: towerX - 23, y: towerBase - 2.5, scale: KEEPER_SKETCH_SCALE }
+    };
+    let at = place.islet;
     const landmarks = Object.freeze({
         tower: Object.freeze({ x: towerX, y: towerBase }),
         light: Object.freeze({ x: towerX + 8, y: lightY }),
-        keeper: Object.freeze({ x: keeperX, y: keeperY }),
-        // his measuring hand: the ruler that folds the page starts here
-        hand: Object.freeze({ x: keeperX - 40 * 1.06 * KEEPER_SCALE, y: keeperY - 112 * 1.06 * KEEPER_SCALE }),
+        get keeper() { return { x: at.x, y: at.y }; },
+        // his measuring hand (the 'point' pose): the ruler that folds the page starts here
+        get hand() { return { x: at.x - 40 * 1.06 * at.scale, y: at.y - 112 * 1.06 * at.scale }; },
         shore: Object.freeze({ x: right + 74, y: waterY })
     });
     const ridge = new PIXI.Graphics(); ridge.label = 'opening-distant-steppe';
@@ -43,11 +55,13 @@ export function createOpeningCanvas(PIXI, { parent, texture, picture, waterY, be
     const light = new PIXI.Graphics(); light.label = 'opening-measuring-light';
     const figure = new PIXI.Graphics(); figure.label = 'opening-distant-observer';
     const motion = new PIXI.Graphics(); motion.label = 'opening-water-breath';
+    const sketch = new PIXI.Graphics(); sketch.label = 'opening-tower-sketch';
+    const lighthouse = new PIXI.Container(); lighthouse.label = 'opening-lighthouse';
     const keeper = new PIXI.Container(); keeper.label = 'opening-keeper';
-    keeper.position.set(keeperX, keeperY); keeper.scale.set(KEEPER_SCALE);
     // distance: a little paler than the picture in front
-    keeper.tint = 0xd9d3c6;
-    container.addChild(ridge, water, reeds, light, tower, figure, keeper, motion);
+    keeper.tint = 0xe6e1d6;
+    container.addChild(ridge, water, reeds, light, tower, sketch, lighthouse, figure, keeper, motion);
+    let lamp = null;
     let rig = null;
     const actor = { id: 'kv', visible: true, x: 0, y: 0, pose: 'stand', facing: -1, walk: null, pop: 0 };
     const random = n => { const a = Math.sin(n * 127.1 + 31.7) * 43758.5453; return a - Math.floor(a); };
@@ -175,35 +189,52 @@ export function createOpeningCanvas(PIXI, { parent, texture, picture, waterY, be
         }
     }
 
-    // A folded-paper tower on a far islet, small enough that its inhabitant is
-    // a question. Two faces and sparse diagonal grain.
+    // The islet, and its reflection: broken pale strokes under it.
     const base = towerBase, roof = lightY - 17;
-    const islet = [[towerX - 30, base + 3], [towerX - 22, base - 2], [towerX - 8, base - 5], [towerX + 9, base - 4],
-        [towerX + 22, base - 1], [towerX + 31, base + 3]];
+    const islet = [[towerX - 46, base + 4], [towerX - 34, base - 3], [towerX - 12, base - 7], [towerX + 14, base - 6],
+        [towerX + 34, base - 2], [towerX + 47, base + 4]];
     tower.poly(islet.flat()).fill({ color: 0x9d998f, alpha: .75 });
     line(tower, islet, 0x5d574f, 1.3, .7);
-    for (let i = 0; i < 4; i++) line(tower, [[towerX - 24 + i * 13, base - 1], [towerX - 19 + i * 13, base - 4]], 0x6e6960, .8, .45);
-    // its reflection: broken pale strokes under the islet
+    for (let i = 0; i < 6; i++) line(tower, [[towerX - 38 + i * 14, base - 1], [towerX - 33 + i * 14, base - 4]], 0x6e6960, .8, .45);
     for (let i = 0; i < 4; i++) {
-        const ry = base + 5 + i * 3.4, half = 26 - i * 5;
+        const ry = base + 6 + i * 3.4, half = 40 - i * 7;
         line(tower, [[towerX - half, ry], [towerX - half * .2, ry]], 0xeef4f8, 1.2, .55 - i * .1);
         line(tower, [[towerX + half * .15, ry + .4], [towerX + half, ry + .4]], 0x5f7f97, 1, .32 - i * .06);
     }
-    tower.poly([towerX - 15, base - 3, towerX - 11, roof + 17, towerX + 9, roof + 17,
+    // The stand-in: a small folded-paper tower, two faces and sparse diagonal grain.
+    sketch.poly([towerX - 15, base - 3, towerX - 11, roof + 17, towerX + 9, roof + 17,
         towerX + 15, base - 3]).fill(paper ? { texture: paper, textureSpace: 'global' } : { color: 0xf8f0da });
-    tower.poly([towerX + 1, roof + 17, towerX + 9, roof + 17, towerX + 15, base - 3,
+    sketch.poly([towerX + 1, roof + 17, towerX + 9, roof + 17, towerX + 15, base - 3,
         towerX + 3, base - 3]).fill({ color: 0x89909a, alpha: .24 });
-    line(tower, [[towerX - 15, base - 3], [towerX - 11, roof + 17], [towerX + 9, roof + 17], [towerX + 15, base - 3]], 0x766d61, 1.5, .66);
-    line(tower, [[towerX + 1, roof + 17], [towerX + 3, base - 3]], 0x9d9280, 1, .5);
-    tower.poly([towerX - 15, roof + 18, towerX - 8, roof + 8, towerX + 1, roof,
+    line(sketch, [[towerX - 15, base - 3], [towerX - 11, roof + 17], [towerX + 9, roof + 17], [towerX + 15, base - 3]], 0x766d61, 1.5, .66);
+    line(sketch, [[towerX + 1, roof + 17], [towerX + 3, base - 3]], 0x9d9280, 1, .5);
+    sketch.poly([towerX - 15, roof + 18, towerX - 8, roof + 8, towerX + 1, roof,
         towerX + 8, roof + 9, towerX + 15, roof + 18]).fill({ color: 0xd9c897, alpha: .85 });
-    line(tower, [[towerX - 15, roof + 18], [towerX + 1, roof], [towerX + 15, roof + 18]], 0x796f64, 1.3, .7);
-    tower.rect(towerX - 8, lightY - 3, 15, 10).fill({ color: 0x5b747a, alpha: .75 });
-    // Its lamp is still dark. The short reflection below belongs to a ruler;
-    // the lighthouse itself cannot be lit until its later puzzle is solved.
-    tower.rect(towerX - 6, lightY - 1, 11, 6).fill({ color: 0x93a0a1, alpha: .19 });
-    for (let i = 0; i < 6; i++) line(tower, [[towerX - 9 + i % 2 * 3, base - 7 - i * 5],
+    line(sketch, [[towerX - 15, roof + 18], [towerX + 1, roof], [towerX + 15, roof + 18]], 0x796f64, 1.3, .7);
+    sketch.rect(towerX - 8, lightY - 3, 15, 10).fill({ color: 0x5b747a, alpha: .75 });
+    for (let i = 0; i < 6; i++) line(sketch, [[towerX - 9 + i % 2 * 3, base - 7 - i * 5],
         [towerX - 4 + i % 2 * 3, base - 10 - i * 5]], 0x9e967c, .8, .33);
+    /** The game's own lighthouse, once its art is here: shutters open, lamp alight. */
+    function buildLighthouse() {
+        const art = texture?.('lighthouse');
+        if (!art) return false;
+        const k = LH_SCALE / LH_GAME, lampY = base - LH_LAMP * LH_SCALE;
+        const body = new PIXI.Sprite(art); body.anchor.set(.5, 1); body.scale.set(LH_SCALE); body.position.set(towerX, base + 1);
+        lighthouse.addChild(body);
+        for (const dx of [-LH_SHUTTER, 0, LH_SHUTTER]) {
+            const shutter = texture('shutter-open');
+            if (!shutter) continue;
+            const sh = new PIXI.Sprite(shutter); sh.anchor.set(.5); sh.scale.set(k); sh.position.set(towerX + dx * LH_SCALE, lampY);
+            lighthouse.addChild(sh);
+        }
+        if (texture('lamp-lit')) {
+            lamp = new PIXI.Sprite(texture('lamp-lit')); lamp.anchor.set(.5); lamp.scale.set(k); lamp.position.set(towerX, lampY);
+            lighthouse.addChild(lamp);
+        }
+        sketch.visible = false;
+        at = place.gallery;
+        return true;
+    }
 
     let measure = 0, lastTime = null, waterTime = 0, aliveAmount = 0, dead = false;
     function setMeasure(progress) { measure = Math.max(0, Math.min(1, progress)); }
@@ -232,9 +263,12 @@ export function createOpeningCanvas(PIXI, { parent, texture, picture, waterY, be
         line(light, [[hand.x, hand.y], [endX, endY]], 0xfff4d6, 1.8, .66 * measure * aliveAmount);
         // Kartväktaren by his tower: the real paper rig once its art is here,
         // otherwise a small pencil stand-in in the same place and pose.
+        if (sketch.visible) buildLighthouse();
+        if (lamp) lamp.alpha = .82 + (reduced ? 0 : Math.sin(time * 1.6) * .08) * aliveAmount;
         if (!rig && texture?.('kv-part-coat')) { rig = createGuardian(PIXI, { texture }); keeper.addChild(rig.container); }
         const fright = actor.pose === 'worry' && !frozen && !reduced;
-        keeper.x = keeperX + (fright ? Math.sin(time * 38) * .45 : 0);
+        keeper.position.set(at.x + (fright ? Math.sin(time * 38) * .45 : 0), at.y); keeper.scale.set(at.scale);
+        const keeperX = at.x, keeperY = at.y;
         if (rig) rig.update(actor, { time, dt: dt || 1 / 60, reducedMotion: reduced, figure: true });
         else {
             const up = actor.pose === 'worry' ? 1 : 0, reach = actor.pose === 'point' ? 1 : 0;

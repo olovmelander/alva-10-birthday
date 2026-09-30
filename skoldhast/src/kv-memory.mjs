@@ -8,9 +8,10 @@
  *      wave rises towards his tower; he throws up his arms
  *   2  his ruler comes down across the end of her line, the sea corner folds
  *      under the page, the splash stops in mid-air and scraps of his map fly
- * The fold is the prologue's own geometry (opening-fold.mjs), seen small, and he
- * stands where the prologue showed him, on the islet by his tower (the same
- * paper rig, the same poses), so the player recognises the moment they drew.
+ * The fold is the prologue's own geometry (opening-fold.mjs), seen small, and the
+ * picture is the prologue's: the game's own lighthouse, lamp alight, with him on
+ * its gallery (the same paper rig, the same poses), so the player recognises the
+ * moment they drew. Until the bay art has loaded, pencil stand-ins take their place.
  *
  *   sampleKvMemory(stage, since, { lessMotion }) → progress of every part (pure)
  *   createKvMemory(PIXI, { texture, makeHero, caption, lessMotion })
@@ -31,9 +32,14 @@ export const KV_MEMORY = Object.freeze({
     shoreX: 212,                 // where her sand meets the sea inside the picture
     endpoint: Object.freeze([506, 232]), // where her new line stops: the fold crosses it here
     tower: Object.freeze({ x: 560, y: 226 }),
-    keeper: Object.freeze({ x: 532, y: 221.8 }) // on the islet, left of the tower, as in the prologue
+    // on the lighthouse's gallery, in front of its left window, as in the prologue
+    keeper: Object.freeze({ x: 550, y: 112 }),
+    // (on the islet beside the pencil stand-in tower, when the lighthouse art is not here)
+    keeperSketch: Object.freeze({ x: 532, y: 221.8 })
 });
-const KEEPER_SCALE = .2;
+const KEEPER_SCALE = .14, KEEPER_SKETCH_SCALE = .2;
+// the lighthouse drawing (1320 px high) at about 150 card units; its gallery and lamp heights and shutters
+const LH_SCALE = .114, LH_GAME = 1.37, LH_LAMP = 1100, LH_SHUTTER = 78;
 const INK = 0x625b50, GRAPHITE = 0x514e41, BLUE = 0x457d98, SEA = 0x8db5bf, SAND = 0xe3c797, PAPER = 0xf7eed8;
 
 /** How far along each part of the memory is, for a stage and the seconds since it began. */
@@ -68,7 +74,7 @@ const LETTERS = {
 
 export function createKvMemory(PIXI, { texture, makeHero, caption = '', lessMotion = false }) {
     const T = (name) => (typeof texture === 'function' ? texture(name) : null) || null;
-    const { width: W, height: H, picture: PIC, seaY, shoreX, endpoint: E, tower: TW, keeper: KP } = KV_MEMORY;
+    const { width: W, height: H, picture: PIC, seaY, shoreX, endpoint: E, tower: TW } = KV_MEMORY;
     const crease = openingCrease(W, H, E);
     const { a, b } = crease;
     const creaseX = (y) => a[0] + (b[0] - a[0]) * (y / H);
@@ -170,8 +176,29 @@ export function createKvMemory(PIXI, { texture, makeHero, caption = '', lessMoti
     const keeperActor = { id: 'kv', visible: true, x: 0, y: 0, pose: 'stand', facing: -1, walk: null, pop: 0 };
     const keeperRigs = [];
     const keeperHomes = [art, flapFront];
-    // where his measuring hand is in the 'point' pose (the ruler that folds the page starts here)
-    const hand = { x: KP.x - 40 * 1.06 * KEEPER_SCALE, y: KP.y - 112 * 1.06 * KEEPER_SCALE };
+    // where he stands (the gallery once the lighthouse art is here) and his measuring hand
+    // in the 'point' pose (the ruler that folds the page starts there)
+    let spot = { ...KV_MEMORY.keeperSketch, scale: KEEPER_SKETCH_SCALE };
+    const hand = () => ({ x: spot.x - 40 * 1.06 * spot.scale, y: spot.y - 112 * 1.06 * spot.scale });
+    // the game's own lighthouse, one on the page and one on the folding corner
+    const lighthouses = [];
+    function buildLighthouses() {
+        if (!texture?.('lighthouse')) return;
+        const k = LH_SCALE / LH_GAME, lampY = -LH_LAMP * LH_SCALE;
+        for (const [home, after] of [[art, tower], [flapFront, towerCopies[2]]]) {
+            const c = new PIXI.Container(); c.label = 'kv-memory-lighthouse';
+            const body = new PIXI.Sprite(texture('lighthouse')); body.anchor.set(.5, 1); body.scale.set(LH_SCALE); body.y = 1;
+            c.addChild(body);
+            for (const dx of [-LH_SHUTTER, 0, LH_SHUTTER]) if (texture('shutter-open')) {
+                const sh = new PIXI.Sprite(texture('shutter-open')); sh.anchor.set(.5); sh.scale.set(k); sh.position.set(dx * LH_SCALE, lampY);
+                c.addChild(sh);
+            }
+            if (texture('lamp-lit')) { const lamp = new PIXI.Sprite(texture('lamp-lit')); lamp.anchor.set(.5); lamp.scale.set(k); lamp.y = lampY; c.addChild(lamp); }
+            home.addChildAt(c, home.getChildIndex(after) + 1);
+            lighthouses.push(c);
+        }
+        spot = { ...KV_MEMORY.keeper, scale: KEEPER_SCALE };
+    }
     const flapBack = paperFill(new PIXI.Graphics(), [a, [W, 0], b], .5); flapBack.tint = 0xe8dfca;
     const flapEdge = new PIXI.Graphics();
     flap.addChild(flapFront, flapBack, flapMask, flapEdge); flapFront.mask = flapMask;
@@ -254,29 +281,34 @@ export function createKvMemory(PIXI, { texture, makeHero, caption = '', lessMoti
         const t = freezeTime ?? time;
         const shake = lessMotion ? 0 : Math.sin(t * 31) * 1.1 * p.fright * (p.frozen ? 0 : 1);
         for (const g of towerCopies) { g.position.set(TW.x + shake, TW.y); g.scale.set(TOWER_SCALE); }
+        if (!lighthouses.length) buildLighthouses();
+        for (const c of lighthouses) c.position.set(TW.x + shake, TW.y);
         const roof = -76;
         tower.poly([-30, 4, -20, -3, 0, -6, 18, -4, 30, 4]).fill({ color: 0x9d998f, alpha: .8 });
         line(tower, [[-30, 4], [-20, -3], [0, -6], [18, -4], [30, 4]], 0x5d574f, .8, 1.4);
-        paperFill(tower, [[-13, -4], [-9, roof + 18], [9, roof + 18], [13, -4]], .9);
-        tower.poly([1, roof + 18, 9, roof + 18, 13, -4, 3, -4]).fill({ color: 0x89909a, alpha: .24 });
-        line(tower, [[-13, -4], [-9, roof + 18], [9, roof + 18], [13, -4], [-13, -4]], 0x766d61, .8, 1.5);
-        tower.poly([-14, roof + 18, 0, roof, 14, roof + 18]).fill({ color: 0xd9c897, alpha: .9 });
-        line(tower, [[-14, roof + 18], [0, roof], [14, roof + 18]], 0x796f64, .8, 1.4);
-        tower.rect(-7, roof + 22, 14, 9).fill({ color: 0x5b747a, alpha: .6 }).stroke({ color: 0x766d61, width: 1 });
-        line(tower, [[-16, roof + 34], [16, roof + 34]], 0x766d61, .8, 1.4); // the gallery rail
-        // Kartväktaren on the islet: he measures her line, shrinks back as the sea
+        if (!lighthouses.length) { // the pencil stand-in tower
+            paperFill(tower, [[-13, -4], [-9, roof + 18], [9, roof + 18], [13, -4]], .9);
+            tower.poly([1, roof + 18, 9, roof + 18, 13, -4, 3, -4]).fill({ color: 0x89909a, alpha: .24 });
+            line(tower, [[-13, -4], [-9, roof + 18], [9, roof + 18], [13, -4], [-13, -4]], 0x766d61, .8, 1.5);
+            tower.poly([-14, roof + 18, 0, roof, 14, roof + 18]).fill({ color: 0xd9c897, alpha: .9 });
+            line(tower, [[-14, roof + 18], [0, roof], [14, roof + 18]], 0x796f64, .8, 1.4);
+            tower.rect(-7, roof + 22, 14, 9).fill({ color: 0x5b747a, alpha: .6 }).stroke({ color: 0x766d61, width: 1 });
+            line(tower, [[-16, roof + 34], [16, roof + 34]], 0x766d61, .8, 1.4); // the gallery rail
+        }
+        // Kartväktaren on the gallery: he measures her line, shrinks back as the sea
         // comes, and his ruler goes to the fold (the prologue's own poses)
         keeperActor.pose = p.fold > 0 || p.ruler > .2 ? 'fold' : p.fright > .5 ? 'worry' : p.line > 0 ? 'point' : 'stand';
         if (!keeperRigs.length && texture?.('kv-part-coat')) for (const home of keeperHomes) {
             const rig = createGuardian(PIXI, { texture }), wrap = new PIXI.Container();
-            wrap.position.set(KP.x, KP.y); wrap.scale.set(KEEPER_SCALE); wrap.addChild(rig.container);
+            wrap.addChild(rig.container);
             home.addChild(wrap); keeperRigs.push({ rig, wrap });
         }
         for (const { rig, wrap } of keeperRigs) {
-            wrap.x = KP.x + shake;
+            wrap.position.set(spot.x + shake, spot.y); wrap.scale.set(spot.scale);
             rig.update(keeperActor, { time: t, dt: 1 / 60, reducedMotion: lessMotion, figure: true });
         }
-        const k = p.fright, kx = -20, ky = -3; // (tower units; the pencil stand-in when the rig is not loaded)
+        // (in tower units: where he stands, and the pencil stand-in when the rig is not loaded)
+        const k = p.fright, kx = (spot.x - TW.x) / TOWER_SCALE, ky = (spot.y - TW.y) / TOWER_SCALE;
         if (!keeperRigs.length) {
             keeper.circle(kx, ky - 21, 3.2).fill({ color: 0xf2ebd8 }).stroke({ color: 0x5d574f, width: 1 });
             keeper.poly([kx - 4, ky - 17, kx + 4, ky - 17, kx + 6, ky - 7, kx - 6, ky - 7]).fill({ color: 0xe8e0c8 }).stroke({ color: 0x5d574f, width: 1 });
@@ -317,7 +349,8 @@ export function createKvMemory(PIXI, { texture, makeHero, caption = '', lessMoti
         if (ruler.visible) {
             const ang = Math.atan2(b[1] - a[1], b[0] - a[0]);
             const cx = E[0] + 8, cy = E[1] - 90;
-            ruler.position.set(lerp(hand.x, cx, p.ruler) + p.fold * 70, lerp(hand.y, cy, p.ruler));
+            const from = hand();
+            ruler.position.set(lerp(from.x, cx, p.ruler) + p.fold * 70, lerp(from.y, cy, p.ruler));
             ruler.rotation = lerp(-.3, ang, p.ruler);
             ruler.scale.set(lessMotion ? 1 : lerp(.08, 1, p.ruler));
             ruler.alpha = p.ruler * (1 - clamp01((p.fold - .4) / .4));
@@ -378,7 +411,7 @@ export function createKvMemory(PIXI, { texture, makeHero, caption = '', lessMoti
             if (dead) return;
             dead = true;
             hero?.destroy?.();
-            keeperRigs.length = 0;
+            keeperRigs.length = 0; lighthouses.length = 0;
             container.parent?.removeChild(container);
             if (!container.destroyed) container.destroy({ children: true });
         }
