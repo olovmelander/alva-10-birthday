@@ -2,6 +2,7 @@
 import { HL, nearestOnLine } from './sim.mjs';
 import { GOALS, HINTS, TIPS, GUIDANCE as W } from './content/sv.mjs';
 import { describeThread } from './story-thread.mjs';
+import { p6Progress } from './kelp-puzzle.mjs';
 
 const clamp = (n, a = 0, b = 1) => Math.max(a, Math.min(b, n));
 const at = (scene, x, y) => ({ scene, x: x * HL, y: y * HL });
@@ -30,11 +31,16 @@ export function describeGuidance(G, settings = {}) {
         : ['p3', 'p3b'].includes(objective) ? count(F, 'p3_t1', 'p3_t2', 'p3_t3')
         : objective === 'p2' ? Number(S.stone === scenes.land.rail.target) + Number(F.has('p2_plank'))
         : count(F, 'mark_land', 'mark_sea');
-    const textKey = F.has('ch2_open') && ['p1', 'p3', 'p3b'].includes(objective) ? objective + 'Map' : objective;
+    const p6 = objective === 'p6' ? p6Progress(G) : null;
+    const p6Text = { 'free-kelp': 'p6Free', 'pull-kelp': 'p6Pull', 'reach-fold': 'p6Reach',
+        'press-fold': 'p6Press', 'collect-fragment': 'p6Collect', complete: 'p6Collect' };
+    const textKey = p6 ? p6Text[p6.phase]
+        : objective === 'p4' && !F.has('ch2_open') ? F.has('b:k2_leap_purpose') ? 'p4Find' : 'p4Explore'
+        : F.has('ch2_open') && ['p1', 'p3', 'p3b'].includes(objective) ? objective + 'Map' : objective;
     const text = GOALS[textKey];
     const cue = { key: objective, objective, goal: typeof text === 'function' ? text(n) : text || '',
         hint: HINTS[textKey] || null, action: null, state: 'approach', instruction: '', controlText: '', progress: null, target: null };
-    cue.thread = describeThread(F, objective);
+    cue.thread = describeThread(F, objective, textKey);
     if (cue.thread.conversation) {
         cue.goal = cue.thread.conversation.goal;
         cue.hint = cue.thread.conversation.hint;
@@ -60,7 +66,7 @@ export function describeGuidance(G, settings = {}) {
 
     const returnRope = scenes.land.ropes[0];
     const cliffEdge = scenes.land.edges.find(e => e.id === 'klipp-edge');
-    const needsCliffExit = ['toSea', 'toViken'].includes(objective) && scene === 'land'
+    const needsCliffExit = ['toSea', 'toViken', 'pool', 'p2', 'kelp'].includes(objective) && scene === 'land'
         && F.has('p4_leap') && !F.has('p4_plank') && p.x <= cliffEdge.x && p.y < cliffEdge.y + HL;
 
     if (hidden && F.has('klo_ja') && !F.has('rule_demo') && scene === 'land') {
@@ -121,10 +127,13 @@ export function describeGuidance(G, settings = {}) {
         } else if (hidden && S.school.state === 'follow') step('fishRecover', target, 'emerge', 'ready');
         else hiding('fish', target, ready);
     } else if (objective === 'p6') {
-        const v = scenes.kelp.vortices[0], target = point('kelp', v), dist = Math.hypot(p.x - v.x, p.y - v.y);
-        hiding('vortex', target, scene === 'kelp' && (p.inVortex?.id === v.id || dist < v.r), {
-            label: W.progress.drifting, value: 1 - (dist - v.eye) / (v.r - v.eye)
-        });
+        const key = p6.phase === 'free-kelp' ? p6.action === 'act' ? 'p6GrabKelp' : 'p6ApproachKelp'
+            : p6.phase === 'pull-kelp' ? 'p6PullKelp'
+            : p6.phase === 'reach-fold' ? hidden ? 'p6Drift' : p6.action === 'hide' ? 'p6Hide' : 'p6ReachFold'
+            : p6.phase === 'press-fold' ? 'p6Press' : 'p6Collect';
+        step(key, p6.target, p6.action, ['pull-kelp', 'press-fold'].includes(p6.phase) ? 'working' : 'approach');
+        if (p6.phase === 'pull-kelp') progress(p6.fraction, 1, W.progress.kelpLoose);
+        if (p6.phase === 'press-fold') progress(p6.fraction, 1, W.progress.flattening);
     } else if (objective === 'toViken' && hidden && scene === 'kelp' && p.inLane?.id === 'lane-out') {
         step('toViken', at('kelp', 46.8, 1.8), 'hide', 'working', HINTS.toViken.sketch);
     } else if (objective === 'p7') {

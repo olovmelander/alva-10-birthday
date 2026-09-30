@@ -16,7 +16,7 @@ import sharp from 'sharp';
 import { serve, launch } from '../../scripts/skoldhast-shot.mjs';
 process.env.NO_TEST = '1';
 const routeModule = await import('../skoldhast-playthrough.test.mjs');
-const routeNames = ['openCave', 'chapter1', 'landApproach', 'seaFragment', 'returnToLand', 'landFragment'];
+const routeNames = ['meetKlo', 'openCave', 'landApproach', 'caveReveal', 'chapter1', 'kelpFragment', 'seaFragment', 'returnToLand', 'landFragment', 'earlyLandFirst'];
 const routeSource = routeNames.map(name => `const ${name} = (${routeModule[name].toString()});`).join('\n');
 const arg = name => { const at = process.argv.indexOf(name); return at < 0 ? null : process.argv[at + 1]; };
 const out = path.resolve(arg('--out') || 'docs/skoldhast/shots/exploration-order');
@@ -65,13 +65,15 @@ try {
         const api = window.__skoldhast, d = api.debug;
         const { G, input, view, app, ui, story, guide } = d;
         const { snapshot, C, STEP } = await import('/skoldhast/src/sim.mjs');
+        const { p6Pose, p6Progress } = await import('/skoldhast/src/kelp-puzzle.mjs');
+        const { seabedFoldGeometry } = await import('/skoldhast/src/folded-seabed.mjs');
         api.pause();
         // The paused production RAF releases controls defensively every frame.
         // This test owns input while it drives fixed steps, so leave that RAF
         // free to service visual effects without clearing our held DOM input.
         input.release = () => {};
         const assert = { ok(v, m) { if (!v) throw Error(m || 'assertion failed'); }, equal(a, b, m) { if (a !== b) throw Error(`${m || 'not equal'}: ${a} !== ${b}`); } };
-        const routes = new Function('assert', `${routeSource}; return {openCave, chapter1, landApproach, seaFragment, returnToLand, landFragment};`)(assert);
+        const routes = new Function('assert', `${routeSource}; return {chapter1, seaFragment, returnToLand, landFragment, earlyLandFirst};`)(assert);
         const log = [], events = [], notes = [];
         G.on('*', (type, e) => { if (!['hoof', 'paddle', 'ink'].includes(type)) events.push({ t: G.time, type, ...e }); });
         G.on('plankNote', e => notes.push(e.note));
@@ -114,10 +116,13 @@ try {
         drive.pulse = 0;
         function render() {
             if (G.sceneId !== view.sceneId && !G.vista) view.setScene(G.sceneId);
+            G.guidance = story.guidance();
             view.render(snapshot(G.player, 0, G.terrain, G.time), STEP * 12);
             ui.setContext(G.context?.label, G.player.hidden);
             ui.updateSpeaker(ui.speaker(), view.speakerBounds(ui.speaker()));
-            guide.goal(story.goal()); guide.show(!G.busy && !ui.dialogueOpen() && !ui.panelOpen()); guide.update();
+            const free = !G.busy && !ui.dialogueOpen() && !ui.panelOpen();
+            G.showGuidance = free; guide.goal(G.guidance.goal);
+            guide.context({ ...G.guidance, requested: false }); guide.show(free); guide.update();
         }
         async function panels() {
             while (ui.dialogueOpen() || ui.panelOpen() || document.querySelector('.sk-draw.on')) {
@@ -163,6 +168,7 @@ try {
             G.step({ ...cont, hop: e.hop, act: e.act, duck: e.duck, hide: e.hide, tapHero: e.tapHero || e.neigh });
             await Promise.resolve();
             if (++steps % 12 === 0) render();
+            await inspectPuzzle();
             // Effects such as the map demonstration own RAF callbacks. Give
             // them a real frame: a zero-time timer can exhaust the virtual
             // deadline before software WebGL delivers an animation frame.
@@ -192,17 +198,65 @@ try {
             }, max, `swim ${x},${y}`);
         }
         const R = { G, log, events, story, p, has, where, step, hold, until, settle, walkTo, swimTo,
-            flag: (f, inp, max = 30) => until(() => has(f), inp, max, `flag ${f}`),
+            flag: async (f, inp, max = 30) => {
+                await until(() => has(f), inp, max, `flag ${f}`);
+                // Watch the released paper rise before emerging to collect it.
+                // All movement still comes from the real current and physics.
+                if (f === 'p6_flat') await until(() => p6Pose(G).fragment.rise === 1, {}, 8, 'paper reaches its safe kelp pocket');
+            },
             act: () => step({ act: true }), hide: () => step({ hide: true }),
             hop: () => step({ hop: true }),
             gallopPast: async (x, { max = 60, hopHeld = false } = {}) => { const dir = Math.sign(x * 200 - p().x); await until(() => (p().x - x * 200) * dir > 0, { x: dir, hopHeld }, max, `gallop ${x}`); },
             context: async id => { await until(() => G.context?.id === id, {}, 5, `context ${id}`); await step({ act: true }); }
         };
-        const held = [], captured = new Set();
-        const selectedFocus = new Set(['pool', 'sea-fold-reveal', 'ramp', 'waveMarks', 'land-search', 'land-route', 'landmark', 'leap', 'seabed-fold', 'freed-map-fragment']);
+        const held = [], captured = new Set(), puzzle = [], puzzleCaptured = new Set();
+        async function inspectPuzzle() {
+            if (G.sceneId !== 'kelp' || !has('ch2_open') || has('mark_sea') || G.busy || ui.dialogueOpen()) return;
+            const pose = p6Pose(G), def = G.scenes.kelp.kelpPuzzle;
+            const kind = G.context?.id === 'p6-grab' ? 'grab'
+                : pose.pulling && pose.pull > .35 ? 'pull'
+                : pose.phase === 'reach-fold' && p().hidden && p().hide > .95 ? 'carry'
+                : pose.phase === 'press-fold' && pose.flat > .45 ? 'press'
+                : pose.fragment.visible && pose.fragment.rise > .3 && pose.fragment.rise < .9 ? 'rising'
+                : pose.fragment.visible && pose.fragment.rise === 1 ? 'pocket' : null;
+            if (!kind || puzzleCaptured.has(kind)) return;
+            puzzleCaptured.add(kind);
+            for (let i = 0; i < 45; i++) render();
+            app.render(); await sleep(100);
+            const find = (node, label) => node.label === label ? node : (node.children || []).map(n => find(n, label)).find(Boolean);
+            for (const label of ['kelp-puzzle-scene', 'p6-tether', 'p6-current', 'p6-pocket', 'p6-fragment', 'folded-illustrated-seabed']) assert.ok(find(view.world, label), `P6 renders ${label}`);
+            const geometry = seabedFoldGeometry({ ...def.fold, flat: pose.flat });
+            if (kind === 'press') {
+                assert.ok(p().hidden, 'shell remains hidden while pressing');
+                assert.ok(Math.abs(p().x - geometry.peak[0]) < 1 && Math.abs(p().y - (geometry.peak[1] - def.shellContactOffset)) < 1, 'visible shell and paper descend at the same contact point');
+            }
+            if (kind === 'rising' || kind === 'pocket') {
+                assert.ok(p().hidden && !has('mark_sea'), 'released paper remains uncollected beneath the hidden shell');
+                const prop = find(view.world, 'p6-fragment');
+                assert.ok(prop.visible && Math.abs(prop.x - pose.fragment.x) < 1 && Math.abs(prop.y - pose.fragment.y) < 1, 'loose paper is drawn at its actual pickup position');
+            }
+            const points = [{ name: 'horse', x: p().x, y: p().y - 100 }];
+            if (kind === 'grab') points.push({ name: 'loose end', ...def.tether.loose });
+            if (kind === 'pull') points.push({ name: 'snag', ...def.tether.hook }, { name: 'grip', ...pose.tetherEnd });
+            if (kind === 'carry' || kind === 'press') points.push({ name: 'crease', x: geometry.peak[0], y: geometry.peak[1] });
+            if (kind === 'rising' || kind === 'pocket') points.push({ name: 'paper', x: pose.fragment.x, y: pose.fragment.y - 40 });
+            const projected = points.map(pt => ({ name: pt.name, x: (pt.x - view.cam.x) * view.cam.zoom + innerWidth / 2, y: (pt.y - view.cam.y) * view.cam.zoom + innerHeight / 2 }));
+            for (const pt of projected) assert.ok(pt.x >= 0 && pt.x <= innerWidth && pt.y >= 0 && pt.y <= innerHeight, `P6 ${kind}: ${pt.name} stays visible ${JSON.stringify(pt)}`);
+            const obstacles = [...document.querySelectorAll('.sk-hintbubble.on, .sk-think.on, .sk-goal:not(.empty), .sk-controls:not(.off) .sk-btn')]
+                .filter(el => getComputedStyle(el).visibility !== 'hidden' && Number(getComputedStyle(el).opacity) > .1)
+                .map(el => { const r = el.getBoundingClientRect(); return { x: r.x, y: r.y, width: r.width, height: r.height }; });
+            for (const pt of projected) for (const box of obstacles) assert.ok(pt.x < box.x || pt.x > box.x + box.width || pt.y < box.y || pt.y > box.y + box.height, `P6 ${kind}: ${pt.name} clears live guidance`);
+            if (kind === 'rising' || kind === 'pocket') {
+                const box = find(view.world, 'p6-fragment').getBounds();
+                for (const card of obstacles) assert.ok(box.x + box.width <= card.x || card.x + card.width <= box.x || box.y + box.height <= card.y || card.y + card.height <= box.y, `P6 ${kind}: actual paper clears live guidance`);
+            }
+            const record = { kind, pose, progress: p6Progress(G), player: { x: p().x, y: p().y, hidden: p().hidden, hide: p().hide }, projected, obstacles, guidance: G.guidance };
+            puzzle.push(record); await window.explorationShot(`p6-${kind}`);
+        }
+        const selectedFocus = new Set(['pool', 'sea-fold-reveal', 'vault-approach', 'ramp', 'waveMarks', 'land-search', 'land-route', 'landmark', 'leap', 'seabed-fold']);
         async function inspectHold() {
             const focus = view.landFocus, map = view.mapAssembly;
-            if (!(focus && selectedFocus.has(focus.id)) && !(map && G.has('ch2_open'))) return;
+            if (!(focus && selectedFocus.has(focus.id)) && !map) return;
             const line = document.querySelector('.sk-dlg-text')?.textContent;
             const kind = focus?.id || `map-${map.variant}-${map.fragment || map.focus || 'route'}`;
             const key = `${kind}:${line}`;
@@ -238,8 +292,12 @@ try {
                 if (map.variant === 'search') {
                     const sheet = effect.children.find(n => n.label === 'map-scene-sheet');
                     const labels = sheet.children.map(n => n.label);
-                    assert.equal(labels.filter(l => l?.startsWith('map-scene-piece-')).join(','), 'map-scene-piece-corner', 'planning reveals only the earned corner artwork');
-                    for (const id of ['map-scene-missing-land', 'map-scene-missing-sea', 'map-search-directions']) assert.ok(labels.includes(id), `search has ${id}`);
+                    const earnedLand = has('mark_land') || has('clue_mark_land');
+                    const expected = ['map-scene-piece-corner', ...(earnedLand ? ['map-scene-piece-land'] : [])].sort().join(',');
+                    assert.equal(labels.filter(l => l?.startsWith('map-scene-piece-')).sort().join(','), expected, 'planning shows exactly the earned artwork');
+                    for (const id of ['map-scene-missing-sea', 'map-search-directions']) assert.ok(labels.includes(id), `search has ${id}`);
+                    assert.equal(labels.includes('map-scene-missing-land'), !earnedLand, 'land is missing only until collected');
+                    if (earnedLand) assert.ok(labels.includes('map-search-earned-land'), 'search acknowledges the early land discovery');
                     assert.equal(map.route, 0, 'search cannot show the completed route');
                 }
             }
@@ -262,32 +320,28 @@ try {
             assert.ok(has('ch1_end') && has('ch2_open') && has('b:k2_open'), 'cave reaches the full discovery and fragment plan');
             assert.ok(!has('p1_inked') && !has('p3_done') && !has('mark_land'), 'cave-first did not require the hills');
         } else {
-            await routes.openCave(R); await routes.landApproach(R);
-            await walkTo(101.8, { gallop: true, max: 150 }); await R.context('exit'); await settle();
-            await swimTo(20.8, 3.4); await R.flag('ch1_end', {}, 60); await settle();
-            assert.ok(has('p3_done') && has('ch2_open') && has('b:k2_open'), 'land-first still reaches the fragment plan');
+            await routes.earlyLandFirst(R);
+            assert.ok(has('mark_land') && !has('mark_sea'), 'land piece is earned before entering the sea');
+            assert.ok(held.some(h => h.kind === 'map-fragment-land' && !h.flags.includes('p2_open') && !h.flags.includes('ch2_open')), 'early land discovery is shown before cave or sea unlock');
         }
         await routes.seaFragment(R);
-        assert.ok(has('mark_sea') && !has('mark_land') && !has('marks_both'), 'sea discovery does not bypass the missing land fragment');
-        await routes.returnToLand(R);
-        if (order === 'cave-first') await routes.landFragment(R);
-        else {
-            // The legacy route already grew the ramps and tasted the grass.
-            // Return along that earned route without replaying one-time actions.
-            await walkTo(34.0, { gallop: true, max: 150 }); await walkTo(30.0);
-            await R.gallopPast(9.0); await R.flag('p4_leap', {}, 10); await settle();
-            await walkTo(3.2); await R.flag('mark_land', {}, 60);
+        assert.ok(has('mark_sea'), 'physical sea puzzle ends in actual collection');
+        if (order === 'cave-first') {
+            assert.ok(!has('mark_land') && !has('marks_both'), 'sea discovery does not bypass the missing land fragment');
+            await routes.returnToLand(R);
+            await routes.landFragment(R);
         }
         await settle();
         for (const flag of ['p1_inked', 'p3_done', 'p4_leap', 'mark_land', 'mark_sea', 'marks_both', 'ch2_end']) assert.ok(has(flag), `natural route earns ${flag}`);
         assert.ok(held.some(h => h.kind === 'sea-fold-reveal'), 'sea reveal was player paced');
         assert.ok(held.some(h => h.kind.startsWith('map-search')), 'missing-fragment plan was visible');
         assert.ok(held.some(h => h.kind === 'ramp') && held.some(h => h.kind === 'waveMarks'), 'real hill path was explained');
-        assert.ok(held.some(h => h.kind === 'freed-map-fragment'), 'freed underwater piece precedes its closeup');
+        for (const phase of ['grab', 'pull', 'carry', 'press', 'rising', 'pocket']) assert.ok(puzzle.some(p => p.kind === phase), `physical puzzle shows ${phase}`);
+        assert.ok(held.some(h => h.kind === 'map-fragment-sea'), 'actual collection opens the sea piece closeup');
         assert.equal(view.landFocus, null); assert.equal(view.mapAssembly, null);
         assert.ok(!ui.controls.classList.contains('off'), 'normal controls return after the story');
         assert.ok(getComputedStyle(document.querySelector('.sk-toasts')).visibility !== 'hidden', 'notifications restore after held evidence');
-        return { order, steps, flags: [...G.flags], held, log };
+        return { order, steps, flags: [...G.flags], held, puzzle, log };
         }, { order, touchMode, routeSource });
         results.push({ ...mode, ...result });
         await fs.writeFile(path.join(out, `${active}-results.json`), JSON.stringify({ mode, result }, null, 2));

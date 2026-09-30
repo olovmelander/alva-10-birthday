@@ -18,6 +18,8 @@
   "src/guide.mjs",
   "src/hero.mjs",
   "src/input.mjs",
+  "src/kelp-puzzle.mjs",
+  "src/kelp-scene.mjs",
   "src/klo-arrival.mjs",
   "src/klo-companion.mjs",
   "src/klo-help.mjs",

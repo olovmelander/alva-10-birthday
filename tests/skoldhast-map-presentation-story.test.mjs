@@ -90,13 +90,13 @@ test('the repaired route stays closed until its visible reveal and every assembl
     assert.deepEqual(R.motions, ['arrive', 'join', 'reveal', 'depart']);
 });
 
-test('the chapter-two plan shows the missing pieces while their two search routes are explained', async () => {
-    const R = reader(chapter2.filter(flag => flag !== 'b:k2_open'));
+for (const landFoundEarly of [false, true]) test(`the chapter-two plan explains only the missing pieces with early land discovery ${landFoundEarly}`, async () => {
+    const R = reader([...chapter2.filter(flag => flag !== 'b:k2_open'), ...(landFoundEarly ? ['mark_land', 'b:k2_mark_land'] : [])]);
     await R.until(() => R.effects.length > 0);
     assert.equal(R.effects[0].variant, 'search');
     assert.equal(R.effects[0].fragment, undefined, 'a plan does not present uncollected pieces as discoveries');
     await R.motion();
-    for (const expected of STORY.k2.open) {
+    for (const expected of landFoundEarly ? STORY.k2.openWithLand : STORY.k2.open) {
         assert.deepEqual(R.cards.at(-1).line, expected);
         assert.equal(R.cards.at(-1).phase, 'observe');
         await R.card();
@@ -110,17 +110,16 @@ for (const fragment of ['land', 'sea']) test(`the newly found ${fragment} fragme
     const R = reader([...chapter2, `mark_${fragment}`], fragment === 'land' ? 'udden' : 'trench');
     R.G.emit('mark', { id: `mark_${fragment}` });
     await R.step();
-    if (fragment === 'sea') {
-        await R.until(() => R.cards.length > 0);
-        assert.deepEqual(R.cards.at(-1).line, STORY.k2.cornerFlat, 'the freed real paper fold is acknowledged before its map close-up');
-        assert.equal(R.effects.length, 0);
-        await R.card();
-    }
     await R.until(() => R.effects.length > 0);
     const firstMapCard = R.cards.length;
     assert.equal(R.effects[0].variant, 'fragment');
     assert.equal(R.effects[0].fragment, fragment, 'only the actual discovery is presented');
     await R.motion();
+    if (fragment === 'sea') {
+        assert.deepEqual(R.cards.at(-1).line, STORY.k2.cornerFlat, 'the collected piece is acknowledged inside its map close-up');
+        assert.equal(R.cards.at(-1).variant, 'fragment');
+        await R.card();
+    }
     assert.deepEqual(R.cards.at(-1).line, fragment === 'land' ? STORY.k2.landFound : STORY.k2.seaFound);
     await R.card();
     assert.deepEqual(R.cards.at(-1).line, fragment === 'land' ? STORY.k2.halfSea : STORY.k2.half);

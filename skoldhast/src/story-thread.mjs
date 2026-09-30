@@ -1,7 +1,7 @@
 /* A recap of committed discoveries, not a second progression system. */
 import { THREAD } from './content/sv.mjs';
 
-export function describeThread(flags, objective) {
+export function describeThread(flags, objective, textKey) {
     const has = flag => flags.has(flag);
     let stage = 'start';
     if (has('ended')) stage = 'end';
@@ -18,10 +18,11 @@ export function describeThread(flags, objective) {
     else if (has('rule_demo')) stage = 'map';
     const conversation = objective === 'talk' && has('talk1')
         ? (has('talk2') ? THREAD.talkShore : THREAD.talkMap) : null;
-    const why = has('ch2_open') && ['p1', 'p3', 'p3b'].includes(objective) ? objective + 'Map' : objective;
+    const why = textKey || (has('ch2_open') && ['p1', 'p3', 'p3b'].includes(objective) ? objective + 'Map' : objective);
     return {
         stage, mission: has('ended') ? THREAD.complete : THREAD.mission,
-        recap: THREAD.recap[stage], why: conversation?.why || THREAD.why[why] || THREAD.why.explore,
+        recap: stage === 'land' && !has('ch2_open') ? THREAD.recap.landEarly : THREAD.recap[stage],
+        why: conversation?.why || THREAD.why[why] || THREAD.why.explore,
         conversation
     };
 }

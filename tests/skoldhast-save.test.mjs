@@ -87,3 +87,17 @@ test('storage that throws (private mode) is reported as unavailable', () => {
         assert.deepEqual(s.slots(), []);
     } finally { globalThis.window.localStorage = keep; }
 });
+
+
+test('chapter availability comes from the running release and cannot be injected by a saved flag', async () => {
+    const { createGame } = await import('../skoldhast/src/game.mjs');
+    const full = createGame();
+    assert.ok(full.has('chapter2_available'));
+    assert.equal(full.serialize().flags.includes('chapter2_available'), false);
+    const limited = createGame({ released: 1 });
+    limited.restore({ flags: [...CODE_RESTORE[1].flags, 'chapter2_available'], checkpoint: 'ledge' });
+    assert.equal(limited.has('chapter2_available'), false);
+    assert.equal(limited.has('p4_leap'), false);
+    full.restore({ flags: ['intro_done'], checkpoint: 'start' });
+    assert.ok(full.has('chapter2_available'), 'loading an older save does not erase released land');
+});

@@ -6,8 +6,10 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { createRobot } from './skoldhast-robot.mjs';
+import { kelpFragment } from './skoldhast-kelp-route.mjs';
+export { kelpFragment };
 
-export async function openCave(R) {
+export async function meetKlo(R) {
     const { G } = R;
     G.flag('intro_done');
     G.goto('land', 'start');
@@ -25,7 +27,11 @@ export async function openCave(R) {
     await R.hide();
     await R.flag('rule_demo', {}, 10);
     await R.settle();
+}
 
+export async function openCave(R) {
+    if (!R.has('rule_demo')) await meetKlo(R);
+    const { G } = R;
     // P2 Spegelpölen: hidden by the pool, the reflection shows the page as it should be
     await R.walkTo(104.1);
     await R.hide();
@@ -49,8 +55,6 @@ export async function openCave(R) {
     await R.settle();
 
     assert.equal(R.story.objective(), 'kelp', 'opening the cave invites the player inside');
-    assert.equal(R.has('p1_inked'), false);
-    assert.equal(R.has('p3_done'), false);
 }
 
 export async function landApproach(R) {
@@ -90,8 +94,7 @@ export async function landApproach(R) {
     await R.settle();
 }
 
-export async function chapter1(R) {
-    await openCave(R);
+export async function caveReveal(R) {
     const { G } = R;
     // The newly opened cave leads straight into its underwater discovery.
     await R.walkTo(101.8, { gallop: true, max: 120 });
@@ -106,6 +109,11 @@ export async function chapter1(R) {
     await R.flag('ch1_end', {}, 60);
     await R.settle();
     assert.ok(R.log.some((l) => l.kind === 'report' && l.n === 1), 'the Kapitel 1 report is shown');
+}
+
+export async function chapter1(R) {
+    await openCave(R);
+    await caveReveal(R);
     assert.equal(R.has('p1_inked'), false, 'the cave reveal needs no unrelated land puzzle');
     assert.equal(R.has('p3_done'), false, 'the hills belong to the route to the land fragment');
 }
@@ -126,12 +134,7 @@ export async function seaFragment(R) {
     // the lane carries on inside the vault; wait until the shell rests, then come out
     await R.until(() => R.p().resting || R.p().anchored, {}, 20, 'rest in the vault');
     await R.hide();
-    // P6 Strömkarusellen: hide in the ring and let the whirl take the shell to the corner
-    await R.swimTo(33.2, 9.2);
-    await R.hide();
-    await R.flag('mark_sea', {}, 25);
-    await R.settle();
-    await R.hide();
+    await kelpFragment(R);
 }
 
 export async function returnToLand(R) {
@@ -157,6 +160,21 @@ export async function landFragment(R) {
     await R.walkTo(3.2);
     await R.flag('mark_land', {}, 60);
     await R.settle();
+}
+
+export async function earlyLandFirst(R) {
+    await meetKlo(R);
+    await landFragment(R);
+    assert.equal(R.has('p2_open'), false, 'the land route does not require opening the cave');
+    assert.equal(R.has('ch1_end'), false, 'no underwater discovery unlocks the physical hills');
+    assert.equal(R.has('ch2_open'), false);
+    assert.ok(R.has('mark_land'));
+    await R.walkTo(7.6);
+    await R.context('dra');
+    await R.walkTo(101.8, { gallop: true, max: 200 });
+    await openCave(R);
+    await caveReveal(R);
+    assert.equal(R.story.objective(), 'p5', 'the remaining piece is under the sea');
 }
 
 export async function chapter2(R) {
@@ -291,6 +309,19 @@ if (!process.env.NO_TEST) {
         assert.ok(R.has('marks_both') && R.has('ch3_open'));
         assert.equal(R.log.filter(e => e.kind === 'report' && e.n === 2).length, 1);
         assert.equal(R.log.filter(e => e.kind === 'report' && e.n === 1).length, 0, 'the saved cave discovery is not repeated');
+        assert.equal(R.story.objective(), 'toViken');
+    });
+
+    test('the land fragment is reachable before any cave discovery and the later search remembers it', { timeout: 300000 }, async () => {
+        const R = createRobot();
+        await earlyLandFirst(R);
+        assert.ok(R.has('p1_inked') && R.has('p3_done') && R.has('p4_leap') && R.has('mark_land'));
+        assert.equal(R.has('mark_sea'), false);
+        const mapPlans = R.log.filter(event => event.kind === 'fx' && event.name === 'mapAssemble' && event.variant === 'search');
+        assert.equal(mapPlans.length, 1, 'the cave reveal still introduces the remaining search');
+        await seaFragment(R);
+        await R.flag('ch2_end', {}, 60); await R.settle();
+        assert.ok(R.has('marks_both'));
         assert.equal(R.story.objective(), 'toViken');
     });
 

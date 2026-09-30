@@ -404,7 +404,8 @@ export function createStory(G, io) {
             s.stinger('discovery');
             await landLook(s, 'waveMarks', async () => {
                 await s.say(F.has('ch2_open') ? STORY.k1.wavemarksMap : STORY.k1.wavemarks);
-                const route = F.has('ch2_open') ? STORY.k1.wavesToLandPiece
+                const route = F.has('chapter2_available') && !F.has('mark_land')
+                    ? F.has('ch2_open') ? STORY.k1.wavesToLandPiece : STORY.k1.wavesToCliff
                     : F.has('p2_open') ? STORY.k1.wavesToSea : STORY.k1.wavesToPool;
                 // The reason to continue belongs to every player, including
                 // requested-only hints, and stays with the visible evidence.
@@ -562,7 +563,7 @@ export function createStory(G, io) {
         async run(s) {
             if (inScene('kelp')) await s.appear('klo', { scene: 'kelp', x: P().x - h(1.2), y: P().y + h(0.2), pose: 'map-corner', facing: 1 });
             else await s.appear('klo', { scene: 'land', x: P().x - h(1.2) * P().facing, y: P().y, pose: 'map-corner', facing: P().facing });
-            await s.map({ variant: 'search' }, () => s.say(STORY.k2.open));
+            await s.map({ variant: 'search' }, () => s.say(F.has('mark_land') ? STORY.k2.openWithLand : STORY.k2.open));
             await s.fx('paperFill', {});
             G.actors.klo.pose = 'idle';
         }
@@ -609,19 +610,29 @@ export function createStory(G, io) {
         when: () => inScene('kelp') && F.has('ch2_open') && !F.has('p6_flat')
             && P().x > h(32) && P().x < h(39) && P().y > h(6.4),
         async run(s) {
-            await landLook(s, 'seabed-fold', () => s.say(STORY.k2.cornerPurpose),
-                { x0: h(32.5), y0: h(7.2), x1: h(38.3), y1: h(11.8) });
+            await landLook(s, 'seabed-fold', () => s.say(F.has('p6_kelp_freed') ? STORY.k2.kelpFreed : STORY.k2.cornerPurpose),
+                { x0: h(32.5), y0: h(7.2), x1: h(42), y1: h(12.2) });
         }
     });
 
+    // These acknowledgements leave swimming and the physical unfolding live.
+    // The same frond, current, fold and loose fragment explain each next action.
+    beat('k2_kelp_freed', {
+        on: 'kelpFreed', lock: false,
+        async run(s) { io.save(); s.stinger('aha'); await s.remark(STORY.k2.kelpFreed); }
+    });
+    beat('k2_fold_flat', {
+        on: 'flattened', filter: (e) => e.id === 'corner', lock: false,
+        async run(s) { io.save(); s.stinger('discovery'); await s.remark(STORY.k2.foldFlat); }
+    });
+
     beat('k2_leap_purpose', {
-        when: () => inScene('land') && F.has('ch2_open') && !F.has('mark_land') && !F.has('p4_leap')
+        when: () => inScene('land') && F.has('chapter2_available') && !F.has('mark_land') && !F.has('p4_leap')
             && P().x > h(13.1) && P().x < h(17) && P().mode === 'ground',
         async run(s) {
-            // Reveal the actual destination before pointing at its map scrap.
-            // Automatic page peeling otherwise waits until this beat unlocks.
-            await s.fx('paperFill', {});
-            await landLook(s, 'leap', () => s.say(STORY.k2.landmarkPurpose));
+            // The climb reveals an existing cliff. Finding something in the
+            // sea never creates land or removes a distant paper curtain.
+            await landLook(s, 'leap', () => s.say(F.has('ch2_open') ? STORY.k2.landmarkPurpose : STORY.k2.landmarkPurposeEarly));
         }
     });
 
@@ -644,7 +655,7 @@ export function createStory(G, io) {
             s.clue('mark_land');
             await s.map({ variant: 'fragment', fragment: 'land' }, async () => {
                 await s.say(STORY.k2.landFound);
-                if (!F.has('mark_sea')) await s.say(STORY.k2.halfSea);
+                if (!F.has('mark_sea')) await s.say(F.has('ch2_open') ? STORY.k2.halfSea : STORY.k2.halfSeaEarly);
             });
             await s.cam({ x: G.sceneDef.spots.cleftView.x + h(2.5), y: h(-5), zoom: 0.75, t: 1.2, hold: 1.2, lookSea: true });
             await s.say(STORY.k2.lighthouse);
@@ -654,20 +665,14 @@ export function createStory(G, io) {
     });
     beat('k2_mark_sea', {
         on: 'mark', filter: (e) => e.id === 'mark_sea',
-        // The shell commits its contact before the player reads the discovery.
-        // A save at that moment may restore on land, so recover from inventory
-        // before joining the map; never replay a kelp camera over another scene.
+        // Collection is distinct from freeing the fold. Recover its reading
+        // from saved inventory without replaying a world effect in another scene.
         when: () => F.has('mark_sea') && !F.has('ch2_end') && !done('k2_mark_sea'),
         async run(s) {
             s.stinger('discovery');
-            if (inScene('kelp') && !F.has('clue_mark_sea')) {
-                await landLook(s, 'freed-map-fragment', async () => {
-                    await s.wait(G.lessMotion ? .15 : 1.0);
-                    await s.say(STORY.k2.cornerFlat);
-                }, { x0: h(33.4), y0: h(7.6), x1: h(38.2), y1: h(11.9) });
-            }
             s.clue('mark_sea');
             await s.map({ variant: 'fragment', fragment: 'sea' }, async () => {
+                await s.say(STORY.k2.cornerFlat);
                 await s.say(STORY.k2.seaFound);
                 if (!F.has('mark_land')) await s.say(STORY.k2.half);
             });
@@ -1179,8 +1184,9 @@ export function createStory(G, io) {
                 if (F.has('mark_sea')) return landSearchObjective();
                 // Light reveals the inviting route through the cave. An
                 // explorer can also discover the fold by swimming over it;
-                // fish are not a remote switch for a natural whirlpool.
-                const foundHeart = F.has('b:k2_corner_purpose') || (P().x > h(31.5) && P().y > h(6.4));
+                // The frond and paper form their own local physical puzzle.
+                const foundHeart = F.has('b:k2_corner_purpose') || F.has('p6_kelp_freed') || F.has('p6_flat')
+                    || (P().x > h(31.5) && P().y > h(6.4));
                 return F.has('p5_lit') || foundHeart ? 'p6' : 'p5';
             }
             if (!F.has('mark_land')) return landSearchObjective();
@@ -1192,6 +1198,8 @@ export function createStory(G, io) {
         // Opening Vattenporten earns a usable route. The hills later lead to
         // the land fragment; they never block an already opened sea passage.
         if (inScene('kelp')) return 'hook';
+        if (F.has('mark_land')) return F.has('p2_open') ? 'kelp' : F.has('p2_seen') ? 'p2' : 'pool';
+        if (F.has('chapter2_available') && F.has('p3_done') && P().x < h(80)) return 'p4';
         if (F.has('p2_open')) return 'kelp';
         // the nearest unfinished puzzle: the pool by her beach, the arch in the west, the steppe beyond it
         const x = P().x / HL;
@@ -1209,7 +1217,7 @@ export function createStory(G, io) {
         return describeGuidance(G, { objective: key, touch: io.touch, ...io.settings?.(), p8: key === 'p8' ? p8Progress(G) : undefined });
     }
     function goal() { return guidance().goal; }
-    const PROGRESS = new Set(['inked', 'grow', 'opened', 'latch', 'lit', 'mark', 'flattened', 'push', 'reflectionSeen', 'scene', 'bigLanding', 'streckDone', 'ratchet', 'taste', 'pickup', 'colorin']);
+    const PROGRESS = new Set(['inked', 'grow', 'opened', 'latch', 'lit', 'mark', 'flattened', 'kelpFreed', 'push', 'reflectionSeen', 'scene', 'bigLanding', 'streckDone', 'ratchet', 'taste', 'pickup', 'colorin']);
     G.on('*', (type) => { if (PROGRESS.has(type)) { hintState.t = 0; hintState.level = 0; hintState.said = 0; hintState.reminded = false; } });
     G.on('pickup', () => { if (objective() === 'freeComplete') io.guide?.hint(HINTS.freeComplete.note); });
 
@@ -1307,7 +1315,6 @@ export function createStory(G, io) {
             const home = G.sceneDef.school.home;
             if (Math.hypot(p.x - home.x, p.y - home.y) < h(5)) hintOnce('lykt', STORY.k2.lyktHint);
         }
-        if (inScene('kelp') && p.inVortex && !p.hidden && !F.has('p6_flat')) hintOnce('whirl', STORY.k2.whirlHint);
         // the school stopped when the sköldhäst came out; it waits for the shell to hide near it again
         if (inScene('kelp') && F.has('ch2_open') && !F.has('p5_lit') && !p.hidden && G.puz.school.state === 'wait') hintOnce('lyktWait', STORY.k2.lyktWait);
         // hidden by the fish but lying still, outside the current that would carry the shell into the vault

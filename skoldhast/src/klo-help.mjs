@@ -2,6 +2,7 @@
  * exact action keeps following the shared guidance selector and current controls. */
 import { KLO_COMPANION as W, GUIDANCE } from './content/sv.mjs';
 import { HL } from './sim.mjs';
+import { p6Progress } from './kelp-puzzle.mjs';
 
 const total = (F, keys) => keys.filter(key => F.has(key)).length;
 const rampFlags = ['p3_t1', 'p3_t2', 'p3_t3'];
@@ -54,7 +55,12 @@ export function describeKloHelp(G, cue = {}) {
     } else if (objective === 'p5') {
         topic = step === 'fishRecover' ? 'fishRecover' : 'fish';
         key = 'p5:fish';
-    } else if (objective === 'p6') topic = 'vortex';
+    } else if (objective === 'p6') {
+        const phase = p6Progress(G).phase;
+        topic = { 'free-kelp': 'p6Free', 'pull-kelp': 'p6Pull', 'reach-fold': 'p6Reach',
+            'press-fold': 'p6Press', 'collect-fragment': 'p6Collect', complete: 'p6Collect' }[phase];
+        key = `p6:${phase}`;
+    }
     else if (objective === 'p7') {
         topic = /^mirror/.test(step) ? 'mirror' : /^pipe/.test(step) ? 'pipe'
             : /^plate/.test(step) ? 'plate' : step === 'rope' ? 'rope' : 'drum';

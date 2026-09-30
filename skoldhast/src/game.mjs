@@ -155,7 +155,7 @@ export function createGame({ released = RELEASED_CHAPTER } = {}) {
         // --- save ------------------------------------------------------------------
         serialize() {
             return {
-                flags: [...G.flags].sort(),
+                flags: [...G.flags].filter(flag => flag !== 'chapter2_available').sort(),
                 checkpoint: G.checkpoint,
                 puz: { deepest: G.puz.deepest, tally: G.puz.tally, shells: G.puz.shells }
             };
@@ -206,6 +206,10 @@ export function createGame({ released = RELEASED_CHAPTER } = {}) {
     G.neigh = neigh;
 
     function chapterFlags() {
+        // Released land exists independently of the sea investigation. This
+        // capability is derived again on restore, never earned or saved.
+        if (G.released >= 2) G.flags.add('chapter2_available');
+        else G.flags.delete('chapter2_available');
         // Earlier completed saves predate the explicit splash state.
         if (G.flags.has('ended')) G.flags.add('plask');
         if (G.flags.has('ch1_end') && G.released >= 2) G.flags.add('ch2_open');
@@ -213,6 +217,7 @@ export function createGame({ released = RELEASED_CHAPTER } = {}) {
     }
     G.chapterFlags = chapterFlags;
     G.on('flag', chapterFlags);
+    chapterFlags();
     return G;
 }
 

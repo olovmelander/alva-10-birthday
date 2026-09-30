@@ -22,6 +22,8 @@ import { createFoldDemo, FOLD_BEACH } from './fold-demo.mjs';
 import { createMapAssemble } from './map-assemble.mjs';
 import { createMapFragmentProp, createGuardianMapPaper } from './map-props.mjs';
 import { createFoldedSeabed } from './folded-seabed.mjs';
+import { createKelpPuzzleScene } from './kelp-scene.mjs';
+import { p6Pose } from './kelp-puzzle.mjs';
 import { createVaultDiscovery } from './vault-discovery.mjs';
 import { createKvMemory } from './kv-memory.mjs';
 import { createWorldCoastFold, createShoreTrial, sampleShoreTrial } from './shore-trial.mjs';
@@ -478,6 +480,11 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
             if (it.kelp) {
                 for (let i = 0; i < it.kelp; i++) {
                     const x = lerp(it.x0, it.x1, (i + 0.5) / it.kelp) + (Math.random() - 0.5) * h(0.8);
+                    // Authored puzzle plants own these openings. Random scenery
+                    // must not conceal the fish, the snag or the rising paper.
+                    if (def.id === 'kelp' && (Math.abs(x - def.school.home.x) < h(.9)
+                        || (def.kelpPuzzle && x > def.kelpPuzzle.tether.root.x - h(.45)
+                            && x < def.kelpPuzzle.fragment.to.x + h(1.35)))) continue;
                     const fy = floorAt(def, x);
                     if (fy === null) continue;
                     let H = h(2.2 + Math.random() * 2.6);
@@ -643,7 +650,7 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
                 { texture: T, x: pc.x0, top: y0, bottom: y1 }));
             L.cover.addChild(c);
             // covered → (the chapter is out) waiting → turning (peels away like a page) → gone
-            const state = !G.flags.has(pc.until) ? 'covered' : G.flags.has('peeled_' + pc.id) ? 'gone' : 'waiting';
+            const state = !G.flags.has(pc.until) ? 'covered' : pc.instant || G.flags.has('peeled_' + pc.id) ? 'gone' : 'waiting';
             if (state === 'gone') c.visible = false;
             d.paper.push({ pc, c, state, wait: 0 });
         }
@@ -1300,16 +1307,11 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
                     groundY: f.y + 10, width: 210, flat: G.flags.has(f.flag) });
                 L.mid.addChild(fold.container); return { f, fold };
             });
-            O.corners = (def.corners || []).map((c) => {
-                const groundY = drawnGround(def)(c.x) ?? c.y + h(2.8);
-                const fold = createFoldedSeabed(PIXI, { texture: T, x: c.x, y: c.y + 24,
-                    groundY, width: h(3.1), flat: G.flags.has(c.flag) });
-                const m = createMapFragmentProp(PIXI, { texture: T, fragment: 'sea', width: 154 });
-                m.x = c.x + h(1.3); m.y = groundY - 8;
-                // A torn, blue printed edge peeks out BEFORE the fold is pressed.
-                // It becomes the same full fragment shown in the notebook.
-                L.mid.addChild(m, fold.container); return { c, fold, m, groundY };
-            });
+            if (def.kelpPuzzle) {
+                O.kelpPuzzle = createKelpPuzzleScene(PIXI, { texture: T, def: def.kelpPuzzle,
+                    groundAt: drawnGround(def), flat: Number(G.has('p6_flat')) });
+                L.mid.addChild(O.kelpPuzzle.container);
+            }
             O.school = [];
             if (def.school) for (let i = 0; i < def.school.count; i++) { const s = spr('lyktfisk-' + (1 + (i % 2))); s.anchor?.set?.(0.5); L.actors.addChild(s); const g = spr('p-glow'); g.anchor?.set?.(0.5); g.alpha = 0.6; g.scale.set(1.4); L.fx.addChild(g); O.school.push({ s, g, a: i * 0.9, r: 40 + i * 9 }); }
             O.shy = (def.shy || []).map((c) => { const s = spr(c.kind + '-1'); s.anchor?.set?.(0.5, 1); s.x = c.x; s.y = c.y; L.actors.addChild(s); return { c, s }; });
@@ -1960,6 +1962,7 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
                 pc.c.visible = !(pc.pc.id === 'trench-paper' && landFocus?.id === 'sea-fold-reveal');
                 continue;
             }
+            if (pc.pc.instant) { pc.state = 'gone'; pc.c.visible = false; continue; }
             if (pc.state === 'covered') { pc.state = 'waiting'; pc.wait = 0; }
             if (pc.state === 'waiting') {
                 pc.c.visible = true;
@@ -2093,17 +2096,15 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
             O.glimpseRidge.position.set(O.glimpse.view.x, gp.y);
             O.glimpse.view.visible = !G.finalRun;
             O.glimpse.update(dt, { x: gp.x, y: gp.y, facing: -1, gait: 'stand', mode: 'ground', hide: lie, speed: 0, time, groundAt: () => gp.y });
-            O.landmark.visible = F.has('ch2_open') && !F.has('mark_land');
+            O.landmark.visible = F.has('chapter2_available') && !F.has('mark_land');
             if (O.landmark.visible) O.landmark.refreshTexture();
             O.ropeDown.visible = F.has('p4_plank') && !F.has('final_run');
         }
         if (def.id === 'kelp') {
             for (const f of O.flaps) f.fold.update({ flat: F.has(f.f.flag), dt, reducedMotion: G.lessMotion });
-            for (const c of O.corners) {
-                const shape = c.fold.update({ flat: F.has(c.c.flag), dt, reducedMotion: G.lessMotion });
-                c.m.visible = !F.has('clue_mark_sea');
-                c.m.y = c.groundY - 8 - shape.flat * h(.32);
-                if (c.m.visible) c.m.refreshTexture();
+            if (O.kelpPuzzle) {
+                O.kelpPuzzle.container.visible = F.has('ch2_open');
+                O.kelpPuzzle.update(p6Pose(G), { lessMotion: G.lessMotion });
             }
             const sch = Z.school;
             const lamps = S.vaults.find(v => v.v.id === 'vault')?.lamps;
@@ -2323,6 +2324,56 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
             cam.snap = false;
             return;
         }
+        if (S.id === 'kelp' && S.def.kelpPuzzle && !hint && !G.busy && !G.hideHero && !mapAssembly && !landFocus) {
+            const mechanism = S.def.kelpPuzzle, pose = p6Pose(G);
+            const near = snap.x > mechanism.tether.root.x - h(3) && snap.x < mechanism.tether.pullTarget.x + h(3)
+                && snap.y > mechanism.fold.y - h(4) && snap.y < mechanism.fold.groundY + h(3);
+            const collecting = pose.phase === 'collect-fragment';
+            const pressing = pose.phase === 'press-fold';
+            const pulling = pose.phase === 'pull-kelp';
+            const riding = pose.phase === 'reach-fold' && snap.hiddenMode;
+            if (near && (pulling || pressing || collecting || riding)) {
+                // Keep the hand and its snag, or shell and crease, together.
+                // This never owns input and yields immediately to story frames,
+                // help conversations, map reading or swimming out of the area.
+                const points = [{ x: snap.x - h(.65), y: snap.y - h(1.55) }, { x: snap.x + h(.65), y: snap.y + h(.2) }];
+                if (pulling || riding) points.push(mechanism.tether.hook);
+                if (pressing) points.push({ x: mechanism.fold.x - mechanism.fold.width * .56, y: mechanism.fold.groundY },
+                    { x: mechanism.fold.x + mechanism.fold.width * .44, y: mechanism.fold.groundY });
+                if (collecting) points.push(mechanism.fragment.to, { x: pose.fragment.x, y: pose.fragment.y });
+                const x0 = Math.min(...points.map(p => p.x)) - h(.4), x1 = Math.max(...points.map(p => p.x)) + h(.4);
+                const y0 = Math.min(...points.map(p => p.y)) - h(.35), y1 = Math.max(...points.map(p => p.y)) + h(.35);
+                const shortLandscape = !portrait && (H < 500 || (W / H > 1.6 && H < 600));
+                // On a sideways phone the controls occupy the lower corners,
+                // so use the taller clear centre instead of shrinking the
+                // mechanism above an unnecessary full-width control band.
+                const pad = shortLandscape ? { left: 190, right: 220, top: 66, bottom: 18 }
+                    : { left: 18, right: 18, top: portrait ? 112 : 66, bottom: portrait ? 235 : 150 };
+                // The guide already measures its changing text/large-type
+                // stack with ResizeObserver. Reuse that real clearance so a
+                // quiet remark cannot cover the paper while play continues.
+                const uiRoot = app.canvas.parentElement?.querySelector('.sk-ui');
+                const guideBottom = Number.parseFloat(uiRoot?.style.getPropertyValue('--sk-guide-free')) || 0;
+                pad.top = Math.max(pad.top, guideBottom * H / (app.canvas.clientHeight || H) + 12);
+                const framedZoom = Math.min(zoom, Math.max(100, W - pad.left - pad.right) / (x1 - x0),
+                    Math.max(100, H - pad.top - pad.bottom) / (y1 - y0));
+                let framedX = (x0 + x1) / 2 + (pad.right - pad.left) / (2 * framedZoom);
+                let framedY = (y0 + y1) / 2 + (pad.bottom - pad.top) / (2 * framedZoom);
+                if (shortLandscape) {
+                    const bounds = S.def.bounds, hw = W / (2 * framedZoom), hh = H / (2 * framedZoom);
+                    const boundedX = clamp(framedX, bounds.x0 + hw, Math.max(bounds.x0 + hw, bounds.x1 - hw));
+                    const boundedY = clamp(framedY, bounds.y0 + hh, Math.max(bounds.y0 + hh, bounds.y1 - hh));
+                    if (points.every(p => (p.x - boundedX) * framedZoom + W / 2 >= pad.left
+                        && (p.x - boundedX) * framedZoom + W / 2 <= W - pad.right)) framedX = boundedX;
+                    if (points.every(p => (p.y - boundedY) * framedZoom + H / 2 >= pad.top
+                        && (p.y - boundedY) * framedZoom + H / 2 <= H - pad.bottom)) framedY = boundedY;
+                }
+                cam.x = cam.snap ? framedX : damp(cam.x, framedX, 3.5, dt);
+                cam.y = cam.snap ? framedY : damp(cam.y, framedY, 3.5, dt);
+                cam.zoom = cam.snap ? framedZoom : damp(cam.zoom, framedZoom, 3.5, dt);
+                cam.snap = false; return;
+            }
+        }
         // keep inside the scene
         const b = S.def.bounds;
         const hw = W / zoom / 2, hh = H / zoom / 2;
@@ -2375,7 +2426,18 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
     on('colorin', (e) => { const pc = S?.def.pencils?.find((q) => q.id === e.id); if (pc) emit('star', pc.propAt.x, pc.propAt.y - 60, 14, { g: 0, speed: 240 }); });
     on('shellNote', (e) => { const sh = S?.def.shells?.find((q) => q.id === e.id); if (sh) emit('note', sh.x, -h(0.9), 2, { g: -60, speed: 60, life: 1.3 }); });
     on('balk', (e) => { if (e.reason === 'foam' || e.reason === 'edge' || e.reason === 'slow') emit('sand', G.player.x + G.player.facing * h(0.4), G.player.y, 5, { speed: 140 }); });
-    on('flattened', () => emit('bubble', G.player.x, G.player.y - h(0.3), 12, { g: -300, speed: 160 }));
+    on('flag', ({ flag }) => {
+        if (flag !== 'p6_kelp_freed' || S?.id !== 'kelp' || !S.def.kelpPuzzle) return;
+        const hook = S.def.kelpPuzzle.tether.hook;
+        emit('bubble', hook.x, hook.y - 10, G.lessMotion ? 3 : 9, { g: -130, speed: 70, life: 1.4 });
+    });
+    on('flattened', (e) => {
+        if (e.id === 'corner' && S?.id === 'kelp' && S.def.kelpPuzzle) {
+            const crease = S.def.kelpPuzzle.fold;
+            emit('sand', crease.x, crease.groundY - 5, G.lessMotion ? 3 : 10, { g: 35, speed: 95, life: 1.3 });
+            emit('bubble', crease.x, crease.groundY - 25, G.lessMotion ? 3 : 8, { g: -110, speed: 65, life: 1.6 });
+        } else emit('bubble', G.player.x, G.player.y - h(0.3), 12, { g: -300, speed: 160 });
+    });
     on('ratchet', () => { if (Math.random() < 0.3) emit('dust', G.player.x, G.player.y, 1, { speed: 60 }); });
     on('stair', () => { fadeTo(1, 0.25).then(() => fadeTo(0, 0.35)); });
 
@@ -2577,7 +2639,7 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
                 if (destroyed || request !== mapRequest || S?.id !== sceneAtStart) return new Promise(() => {});
                 const variant = data.variant || 'assembly';
                 const caption = data.caption || (variant === 'fragment' ? MAP.pieces[data.fragment || 'corner'].name
-                    : variant === 'search' ? MAP.search.title : STORY.k2.mapAssemble);
+                    : variant === 'search' ? (G.has('mark_land') || G.has('clue_mark_land') ? MAP.search.seaOnlyTitle : MAP.search.title) : STORY.k2.mapAssemble);
                 const effect = createMapAssemble(PIXI, { ...data, variant, texture: T, caption, flags: G.flags, lessMotion: G.lessMotion });
                 overlay.addChild(effect.container);
                 const demo = mapAssembly = { effect, variant, fragment: data.fragment, measureIn: 0, state: effect.update(0) };

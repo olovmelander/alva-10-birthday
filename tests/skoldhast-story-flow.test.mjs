@@ -6,6 +6,7 @@ import { STORY } from '../skoldhast/src/content/sv.mjs';
 import { CODE_RESTORE } from '../skoldhast/src/save.mjs';
 import { HL, STEP } from '../skoldhast/src/sim.mjs';
 import { createRobot } from './skoldhast-robot.mjs';
+import { kelpFragment } from './skoldhast-kelp-route.mjs';
 
 const tick = () => new Promise(resolve => setImmediate(resolve));
 function stage(flags, spawn) {
@@ -64,7 +65,7 @@ for (const first of ['land', 'sea']) test(`the map story joins both pieces with 
             await R.flag('mark_land', {}, 3);
         } else {
             R.G.goto('kelp', { x: 33.2 * HL, y: 9.2 * HL, mode: 'swim' });
-            await R.hide(); await R.flag('mark_sea', {}, 25);
+            await kelpFragment(R);
         }
         await R.settle();
     }
@@ -98,10 +99,14 @@ test('asking for hints only still introduces the cave purpose and the trapped fr
     R.G.flag('p5_lit');
     R.G.goto('kelp', { x: 33.2 * HL, y: 9.2 * HL, mode: 'swim' });
     await R.settle();
-    assert.ok(lines().includes(STORY.k2.cornerPurpose[1]));
-    assert.equal(R.has('mark_sea'), false, 'the fragment remains trapped until actual shell contact');
-    await R.hide(); await R.flag('mark_sea', {}, 25); await R.settle();
-    assert.ok(lines().indexOf(STORY.k2.cornerFlat[1]) > lines().indexOf(STORY.k2.cornerPurpose[1]));
+    assert.ok(lines().includes(STORY.k2.cornerPurpose[0][1]));
+    assert.equal(R.has('mark_sea'), false, 'the fragment remains trapped until the kelp is pulled and the fold pressed');
+    await kelpFragment(R); await R.settle();
+    const freed = R.events.find(e => e.type === 'kelpFreed');
+    const flat = R.events.find(e => e.type === 'flattened' && e.id === 'corner');
+    const collected = R.events.find(e => e.type === 'mark' && e.id === 'mark_sea');
+    assert.ok(freed && flat && collected && freed.t < flat.t && flat.t < collected.t, 'physical freeing, pressing and pickup are distinct ordered actions');
+    assert.ok(lines().indexOf(STORY.k2.cornerFlat[1]) > lines().indexOf(STORY.k2.cornerPurpose[0][1]));
     assert.ok(lines().indexOf(STORY.k2.seaFound[1]) > lines().indexOf(STORY.k2.cornerFlat[1]),
         'the player sees the physical release before the fragment close-up');
 });
@@ -114,7 +119,7 @@ test('an explorer can discover the fold over the roof, save it, repair the map a
     await R.swimTo(30, 8, { max: 45 });
     await R.swimTo(33.2, 9.2); await R.settle();
     assert.equal(R.story.objective(), 'p6', 'finding the fold never sends an explorer back for an unrelated switch');
-    await R.hide(); await R.flag('mark_sea', {}, 25); await R.settle();
+    await kelpFragment(R); await R.settle();
     assert.equal(R.has('p5_lit'), false);
     const saved = R.G.serialize(); R = createRobot(); R.G.restore(saved);
     assert.ok(R.has('p6_flat') && R.has('mark_sea'));
@@ -142,7 +147,7 @@ for (const checkpoint of ['trench', 'udden']) test(`a save during the sea fragme
     if (checkpoint === 'udden') {
         assert.ok(R.has('ch2_end'));
         assert.ok(lines.indexOf(STORY.k2.seaFound[1]) < lines.indexOf(STORY.k2.bothHalves[1]));
-        assert.equal(lines.includes(STORY.k2.cornerFlat[1]), false, 'no underwater camera over a land checkpoint');
+        assert.equal(R.log.some(e => e.kind === 'fx' && e.name === 'landFocus' && e.id === 'freed-map-fragment'), false, 'no underwater world effect replays over a land checkpoint');
     }
 });
 

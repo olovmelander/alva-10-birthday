@@ -8,8 +8,8 @@ import { createGame } from '../skoldhast/src/game.mjs';
 import { STEP, HL } from '../skoldhast/src/sim.mjs';
 
 /** Run main.mjs's accumulator loop at a display rate: input is read once per frame, presses go to the first step. */
-function run(hz, seconds, input, setup) {
-    const G = createGame();
+function run(hz, seconds, input, setup, options) {
+    const G = createGame(options);
     setup(G);
     let acc = 0;
     const frames = Math.round(seconds * hz);
@@ -68,15 +68,17 @@ test('Göm dig on land needs the sköldhäst to be nearly still', () => {
     }
 });
 
-test('the big leap needs Kapitel 2 and a gallop', () => {
+test('the released land route needs a real gallop but no underwater chapter discovery', () => {
     const onHill = (flags) => (G) => { flags.forEach((f) => G.flags.add(f)); G.goto('land', { x: 28 * HL, y: -6.35 * HL, facing: -1 }); };
     const early = run(60, 8, () => ({ x: -1 }), onHill(['intro_done']));
-    assert.ok(early.player.x > 12.9 * HL, 'the white page stops the leap before Kapitel 2');
-    const later = run(60, 8, () => ({ x: -1 }), onHill(['intro_done', 'ch2_open']));
-    assert.ok(later.flags.has('p4_leap'), 'the leap lands on Klippudden');
-    assert.ok(later.player.x < 8 * HL);
-    const walk = run(60, 30, () => ({ x: -0.3 }), onHill(['intro_done', 'ch2_open']));
-    assert.ok(!walk.flags.has('p4_leap'), 'no leap at a walk');
+    assert.ok(early.flags.has('p4_leap'), 'a full gallop reaches the already drawn Klippudden');
+    assert.ok(early.player.x < 8 * HL);
+    assert.equal(early.has('ch2_open'), false, 'crossing the hills cannot invent the sea reveal');
+    const walk = run(60, 30, () => ({ x: -0.3 }), onHill(['intro_done']));
+    assert.ok(!walk.flags.has('p4_leap'), 'a slow walk still cannot leap across the real gap');
+    const release1 = run(60, 8, () => ({ x: -1 }), onHill(['intro_done']), { released: 1 });
+    assert.equal(release1.has('p4_leap'), false, 'unreleased content retains its boundary');
+    assert.ok(release1.player.x > 12.9 * HL);
 });
 
 // --- forgiving puzzle mechanics (hidden shells are heavy and blind, so the world meets them halfway) ---

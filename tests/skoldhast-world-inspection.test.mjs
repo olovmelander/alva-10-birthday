@@ -13,12 +13,12 @@ test('reading the seabed purpose holds currents for a slow reader and then resto
     G.goto('kelp', { x: 33.2 * HL, y: 9.2 * HL, mode: 'swim' });
     let dismiss, line, timerDone = false;
     G.story = createStory(G, {
-        ui: { say: async lines => { line = lines[0][1]; await new Promise(resolve => { dismiss = resolve; }); }, toast() {}, pulse() {} },
+        ui: { say: async lines => { for (const spoken of lines) { line = spoken[1]; await new Promise(resolve => { dismiss = resolve; }); } }, toast() {}, pulse() {} },
         guide: { hint() {}, think() {} },
         fx: async (name, data) => { await G.wait(.1); await data.whileVisible?.(); }, save() {}
     });
     for (let i = 0; i < 240 && !dismiss; i++) { G.step({}); await tick(); }
-    assert.equal(line, STORY.k2.cornerPurpose[1]);
+    assert.equal(line, STORY.k2.cornerPurpose[0][1]);
     assert.ok(G.worldInspection);
     const pose = { x: G.player.x, y: G.player.y, vx: G.player.vx, vy: G.player.vy };
     const puzzle = JSON.stringify(G.puz), time = G.time;
@@ -28,6 +28,11 @@ test('reading the seabed purpose holds currents for a slow reader and then resto
     assert.equal(JSON.stringify(G.puz), puzzle, 'reading never advances a puzzle hold');
     assert.ok(timerDone && G.time >= time + 29, 'story timers still finish while the world is inspected');
     assert.equal(G.has('mark_sea'), false);
+    dismiss(); await tick();
+    assert.equal(line, STORY.k2.cornerPurpose[1][1]);
+    assert.ok(G.worldInspection, 'the second observation also waits for its reader');
+    for (let i = 0; i < 2 / STEP; i++) { G.step({ x: 1 }); await tick(); }
+    assert.deepEqual({ x: G.player.x, y: G.player.y, vx: G.player.vx, vy: G.player.vy }, pose);
     dismiss(); await tick();
     for (let i = 0; i < 30; i++) { G.step({}); await tick(); }
     assert.equal(G.worldInspection, null);

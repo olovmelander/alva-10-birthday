@@ -11,6 +11,7 @@
  */
 import { HL, C, cond, nearestOnLine, dropIn } from './sim.mjs';
 import { CONTEXT_LABELS } from './content/sv.mjs';
+import { createP6State, resetP6, stepP6, p6Context } from './kelp-puzzle.mjs';
 
 const near = (a, b, r) => Math.abs(a - b) <= r;
 
@@ -23,6 +24,7 @@ export function createPuzzleState() {
         clumps: {},           // id → regrow timer (0 = full)
         fluff: [],            // flying fluff for the view: { x, y, tx, ty, t, dur }
         school: { state: 'home', x: 0, y: 0, t: 0 },
+        p6: createP6State(),
         shy: {},              // id → out 0..1
         shells: {},           // id → true once rung
         pencils: 0,           // carried, unused pencils
@@ -47,6 +49,7 @@ export function resetUncommitted(G) {
     }
     for (const k of Object.keys(S.plates)) S.plates[k] = 0;
     if (!G.flags.has('p5_lit')) { const home = G.scenes.kelp?.school?.home; S.school.state = 'home'; S.school.t = 0; if (home) { S.school.x = home.x; S.school.y = home.y; } }
+    resetP6(G);
 }
 
 function findDrum(G, id) {
@@ -230,16 +233,7 @@ export function stepPuzzles(G, events, dt) {
             if (!F.has(fl.flag) && Math.hypot(p.x - fl.x, p.y - fl.y) < h(0.6)) { F.add(fl.flag); G.emit('flattened', { id: fl.id }); }
         }
     }
-    if (hidden && p.inVortex && Math.hypot(p.x - p.inVortex.x, p.y - p.inVortex.y) < p.inVortex.eye + 10) {
-        for (const cn of sc.corners || []) {
-            if (!F.has(cn.flag)) {
-                F.add(cn.flag); F.add('mark_sea');
-                G.terrain.dirty = true; G.terrain.refresh();
-                G.emit('flattened', { id: cn.id }); G.emit('mark', { id: 'mark_sea' });
-                checkMarks(G);
-            }
-        }
-    }
+    if (stepP6(G, dt)) checkMarks(G);
 
     // --- pressure plates ------------------------------------------------------------
     for (const pl of sc.plates || []) {
@@ -403,6 +397,9 @@ export function contextAction(G) {
 
     // NPC talk and reading notes come from the story
     for (const a of G.storyActions()) add(a.dist ?? 0.1, a);
+    const kelpAction = p6Context(G);
+    if (kelpAction) add(kelpAction.dist, { ...kelpAction,
+        label: kelpAction.id === 'p6-grab' ? CONTEXT_LABELS.kelpPull : CONTEXT_LABELS.kelpRelease });
 
     if (p.mode === 'ground' && !p.hidden) {
         // exits with an action (Vattenporten)

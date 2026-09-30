@@ -31,7 +31,7 @@ export function createRobot({ released = 3, verbose = false } = {}) {
         audio: null,
         save: () => log.push({ t: G.time, kind: 'save', checkpoint: G.checkpoint }),
         fx: async (name, data) => {
-            log.push({ t: G.time, kind: 'fx', name, variant: data?.variant, fragment: data?.fragment, focus: data?.focus });
+            log.push({ t: G.time, kind: 'fx', name, id: data?.id, variant: data?.variant, fragment: data?.fragment, focus: data?.focus });
             data?.onCovered?.();
             await G.wait(name === 'plask' ? 1 : 0.3);
             const phases = name === 'foldDemo' ? ['arrive', 'fold', 'unfold', 'depart'] : name === 'mapAssemble' ? ['arrive', 'join', 'reveal', 'depart'] : null;

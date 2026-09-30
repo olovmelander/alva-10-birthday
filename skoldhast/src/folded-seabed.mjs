@@ -66,8 +66,10 @@ export function createFoldedSeabed(PIXI, { texture, x, y, groundY, width = 560, 
     }
     draw();
     return { container, update({ flat: next, dt = 0, reducedMotion = false }) {
-        const target = Number(!!next);
-        amount = reducedMotion ? target : amount + (target - amount) * (1 - Math.exp(-Math.max(0, dt) * 4.5));
+        const numeric = typeof next === 'number', target = numeric ? clamp(Number.isFinite(next) ? next : 0) : Number(!!next);
+        // Puzzle pressure supplies the collision's actual crease height. Only
+        // the older binary flap decoration needs its own settling animation.
+        amount = numeric || reducedMotion ? target : amount + (target - amount) * (1 - Math.exp(-Math.max(0, dt) * 4.5));
         if (Math.abs(target - amount) < .001) amount = target;
         draw();
         return seabedFoldGeometry({ x, y, groundY, width, flat: amount });

@@ -53,10 +53,11 @@ function inside(x, y, pts) {
 }
 export function createMapAssemble(PIXI, { texture, caption, lessMotion = false,
     route: showRoute = true, variant = 'assembly', fragment = 'corner', focus = 'route', flags = true }) {
+    const hasLand = !!(flags?.has?.('mark_land') || flags?.has?.('clue_mark_land'));
     const container = new PIXI.Container(); container.label = 'map-assemble';
     const shade = new PIXI.Graphics(); container.addChild(shade);
     const sheet = new PIXI.Container(); sheet.label = 'map-scene-sheet'; container.addChild(sheet);
-    const title = new PIXI.Text({ text: caption || (variant === 'search' ? MAP.search.title : MAP.title), style: {
+    const title = new PIXI.Text({ text: caption || (variant === 'search' ? (hasLand ? MAP.search.seaOnlyTitle : MAP.search.title) : MAP.title), style: {
         fontFamily: '"Patrick Hand", cursive', fontSize: 24, fill: 0x514d42,
         align: 'center', wordWrap: true, wordWrapWidth: 340,
         stroke: { color: 0xfff9e9, width: 5, join: 'round' }
@@ -77,7 +78,7 @@ export function createMapAssemble(PIXI, { texture, caption, lessMotion = false,
     if (variant === 'search') {
         // These are spaces in Klo's explanation, not recovered paper. Keep
         // their real torn edges, but never put the unseen map ink inside them.
-        for (const f of MAP_FRAGMENTS.filter(f => f.id !== 'corner')) {
+        for (const f of MAP_FRAGMENTS.filter(f => f.id === 'sea' || (f.id === 'land' && !hasLand))) {
             const points = fragmentPoints(f), color = f.id === 'land' ? 0x66804f : 0x4b8396;
             const missing = new PIXI.Graphics(); missing.label = 'map-scene-missing-' + f.id;
             missing.poly(points.flat()).fill({ color, alpha: .075 });
@@ -97,9 +98,10 @@ export function createMapAssemble(PIXI, { texture, caption, lessMotion = false,
         guardian = createGuardianMapPaper(PIXI, { texture }); sheet.addChild(guardian.container);
     } else {
         const art = texture('map-page');
-        const names = mapLabels(flags).filter(l => variant === 'search' ? l.key === 'beach'
+        const names = mapLabels(flags).filter(l => variant === 'search' ? ['beach', ...(hasLand ? ['cliff', 'steppe'] : [])].includes(l.key)
             : variant === 'fragment' || ['cliff', 'beach', 'heart', 'tower', 'fold'].includes(l.key));
-        for (const f of MAP_FRAGMENTS.filter(f => variant === 'search' ? f.id === 'corner' : variant !== 'fragment' || f.id === selected.id)) {
+        for (const f of MAP_FRAGMENTS.filter(f => variant === 'search' ? f.id === 'corner' || (f.id === 'land' && hasLand)
+            : variant !== 'fragment' || f.id === selected.id)) {
             const c = new PIXI.Container(); c.label = 'map-scene-piece-' + f.id;
             const points = fragmentPoints(f), flat = points.flat(), back = new PIXI.Graphics();
             const xs = points.map(p => p[0]), ys = points.map(p => p[1]);
@@ -136,15 +138,19 @@ export function createMapAssemble(PIXI, { texture, caption, lessMotion = false,
         const landInk = 0x5b7148, seaInk = 0x3e7487;
         // Small storybook symbols distinguish the two search directions. These
         // are deliberately not the secret geographical paths on the lost ink.
-        drawLine(searchSymbols, [[105, 88], [139, 49], [165, 78], [179, 63], [205, 88]], landInk, .85, 3.5);
-        drawLine(searchSymbols, [[103, 96], [204, 96]], landInk, .32, 2);
+        if (!hasLand) {
+            drawLine(searchSymbols, [[105, 88], [139, 49], [165, 78], [179, 63], [205, 88]], landInk, .85, 3.5);
+            drawLine(searchSymbols, [[103, 96], [204, 96]], landInk, .32, 2);
+        }
         for (let i = 0; i < 3; i++) {
             const x = 278 + i * 31;
             searchSymbols.moveTo(x, 276).bezierCurveTo(x + 8, 263, x + 22, 289, x + 31, 276)
                 .stroke({ color: seaInk, alpha: .84, width: 3.5, cap: 'round' });
         }
-        drawLine(directions, [[307, 184], [285, 184], [253, 166]], landInk, .8, 3);
-        drawLine(directions, [[254, 178], [253, 166], [266, 165]], landInk, .8, 3);
+        if (!hasLand) {
+            drawLine(directions, [[307, 184], [285, 184], [253, 166]], landInk, .8, 3);
+            drawLine(directions, [[254, 178], [253, 166], [266, 165]], landInk, .8, 3);
+        }
         drawLine(directions, [[425, 211], [425, 238], [414, 259]], seaInk, .8, 3);
         drawLine(directions, [[412, 247], [414, 259], [426, 254]], seaInk, .8, 3);
         sheet.addChild(searchSymbols, directions);
@@ -157,8 +163,14 @@ export function createMapAssemble(PIXI, { texture, caption, lessMotion = false,
             t.label = 'map-search-' + key; t.anchor.set(.5); t.position.set(x, y);
             sheet.addChild(t); searchTexts.push({ key, t, size, minimum, y });
         };
-        addSearchText('land', MAP.search.land, 153, 127, 224, 30, 14, landInk);
-        addSearchText('land-hint', MAP.search.landHint, 153, 174, 220, 22, 12, landInk);
+        if (!hasLand) {
+            addSearchText('land', MAP.search.land, 153, 127, 224, 30, 14, landInk);
+            addSearchText('land-hint', MAP.search.landHint, 153, 174, 220, 22, 12, landInk);
+        } else {
+            const landNote = new PIXI.Graphics().roundRect(40, 164, 225, 43, 12).fill({ color: 0xfff8e8, alpha: .92 });
+            landNote.label = 'map-search-land-note'; sheet.addChild(landNote);
+            addSearchText('earned-land', MAP.search.earnedLand, 153, 185, 220, 25, 12, landInk);
+        }
         addSearchText('sea', MAP.search.sea, 320, 321, 500, 30, 14, seaInk);
         addSearchText('sea-hint', MAP.search.seaHint, 320, 364, 510, 22, 12, seaInk);
         const cornerNote = new PIXI.Graphics().roundRect(348, 164, 245, 43, 12).fill({ color: 0xfff8e8, alpha: .92 });
@@ -238,12 +250,15 @@ export function createMapAssemble(PIXI, { texture, caption, lessMotion = false,
             if (searchSymbols) {
                 // On a short phone screen keep the words readable instead of
                 // compressing three rows of ink into the narrow land fragment.
-                const landHeading = searchTexts.find(l => l.key === 'land').t;
-                const landHint = searchTexts.find(l => l.key === 'land-hint').t;
-                const compact = landHeading.y + landHeading.height / 2 + 4 / layout.scale > landHint.y - landHint.height / 2
-                    || landHeading.y - landHeading.height / 2 < 102;
+                const landHeading = searchTexts.find(l => l.key === 'land')?.t;
+                const landHint = searchTexts.find(l => l.key === 'land-hint')?.t;
+                const seaHeading = searchTexts.find(l => l.key === 'sea').t;
+                const seaHint = searchTexts.find(l => l.key === 'sea-hint').t;
+                const compact = (landHeading && (landHeading.y + landHeading.height / 2 + 4 / layout.scale > landHint.y - landHint.height / 2
+                    || landHeading.y - landHeading.height / 2 < 102))
+                    || seaHeading.y + seaHeading.height / 2 + 4 / layout.scale > seaHint.y - seaHint.height / 2;
                 searchSymbols.visible = !compact;
-                if (compact) for (const [id, middle] of [['land', 125], ['sea', 319]]) {
+                if (compact) for (const [id, middle] of hasLand ? [['sea', 319]] : [['land', 125], ['sea', 319]]) {
                     const heading = searchTexts.find(l => l.key === id).t;
                     const hint = searchTexts.find(l => l.key === id + '-hint').t;
                     const gap = 4 / layout.scale;

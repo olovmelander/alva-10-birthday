@@ -52,7 +52,7 @@ SCENES.land = {
     },
     surfaces: [
         // Klippudden (Kapitel 2)
-        { id: 'klipp', pts: L([-1, -4.0], [3, -4.05], [6, -3.98], [7.95, -4.0]), mat: 'grass', edgeMat: 'rock', cliff: true, chapter: 2 },
+        { id: 'klipp', pts: L([-1, -4.0], [3, -4.05], [6, -3.98], [7.95, -4.0]), mat: 'grass', edgeMat: 'rock', cliff: true, when: 'chapter2_available' },
         { id: 'cleft-floor', pts: L([7.95, -0.9], [13.05, -0.9]), mat: 'rock', hidden: true },
         { id: 'rope-plank', thin: true, pts: L([7.95, -4.0], [13.05, -4.0]), mat: 'wood', when: ['p4_plank', '!final_run'], bridge: true },
         // the plateau and Galoppbacken
@@ -98,7 +98,7 @@ SCENES.land = {
         // Klippudden's east edge over the cleft
         { id: 'klipp-edge', x: h(7.95), y: h(-4.0), dir: 1, kind: 'balk', reason: 'edge', when: (F) => !F.has('p4_plank') || F.has('final_run') },
         // Stora språnget (P4): from the plateau edge onto Klippudden
-        { id: 'sprang-p4', x: h(13.05), y: h(-4.0), dir: -1, kind: 'sprang', to: [h(7.0), h(-4.0)], peak: h(1.2), slow: 0.55, pan: true, needs: 'ch2_open', needsReason: 'paper', when: (F) => !F.has('p4_plank') || F.has('final_run') },
+        { id: 'sprang-p4', x: h(13.05), y: h(-4.0), dir: -1, kind: 'sprang', to: [h(7.0), h(-4.0)], peak: h(1.2), slow: 0.55, pan: true, needs: 'chapter2_available', needsReason: 'paper', when: (F) => !F.has('p4_plank') || F.has('final_run') },
         // the little ditch on Galoppbanan (both ways)
         { id: 'ditch-w', x: h(67.52), y: h(-0.8), dir: -1, kind: 'sprang', to: [h(65.6), h(-0.8)], peak: h(0.55) },
         { id: 'ditch-e', x: h(65.98), y: h(-0.8), dir: 1, kind: 'sprang', to: [h(67.9), h(-0.8)], peak: h(0.55) }
@@ -219,8 +219,8 @@ SCENES.land = {
         { id: 'p-bucket', x: h(33.2), y: h(-4.05), prop: 'bucket', propAt: { x: h(106.9), y: h(-0.38) } },
         { id: 'p-windmill', x: h(27.9), y: h(-6.4), prop: 'windmill', propAt: { x: h(71.2), y: h(-0.77) } },
         // Kapitel 2: small discoveries on the far side of Stora språnget.
-        { id: 'p-udden-flowers', chapter: 2, x: h(2.6), y: h(-4.045), prop: 'flowers', propAt: { x: h(1.5), y: h(-4.03125) } },
-        { id: 'p-udden-kite', chapter: 2, x: h(5.6), y: h(-3.98933), prop: 'kite', propAt: { x: h(6.6), y: h(-3.98615) } }
+        { id: 'p-udden-flowers', when: 'chapter2_available', x: h(2.6), y: h(-4.045), prop: 'flowers', propAt: { x: h(1.5), y: h(-4.03125) } },
+        { id: 'p-udden-kite', when: 'chapter2_available', x: h(5.6), y: h(-3.98933), prop: 'kite', propAt: { x: h(6.6), y: h(-3.98615) } }
     ],
     pinwheels: [{ id: 'pw-70', x: h(70.4), y: h(-0.78) }, { id: 'pw-88', x: h(88.6), y: h(-0.9) }],
     // Smaktestet (O1): tufts of steppe grass to taste
@@ -284,16 +284,16 @@ SCENES.land = {
         { sprite: 'feathergrass-4', x: h(30.5), y: h(-5.9), layer: 'mid' },
         { sprite: 'feathergrass-2', x: h(24.2), y: h(-5.75), layer: 'fore' },
         { sprite: 'feathergrass-1', x: h(18.2), y: h(-4.35), layer: 'mid' },
-        { sprite: 'feathergrass-3', x: h(2.4), y: h(-4.03), layer: 'mid', chapter: 2 },
-        { sprite: 'boulder', x: h(0.6), y: h(-4.0), layer: 'mid', chapter: 2 },
-        { sprite: 'edge-tick', x: h(13.1), y: h(-4.0), layer: 'mid', chapter: 2 },
+        { sprite: 'feathergrass-3', x: h(2.4), y: h(-4.03), layer: 'mid', when: 'chapter2_available' },
+        { sprite: 'boulder', x: h(0.6), y: h(-4.0), layer: 'mid', when: 'chapter2_available' },
+        { sprite: 'edge-tick', x: h(13.1), y: h(-4.0), layer: 'mid', when: 'chapter2_available' },
         { sprite: 'edge-tick', x: h(67.45), y: h(-0.8), layer: 'mid' },
         { sprite: 'edge-tick', x: h(66.05), y: h(-0.8), layer: 'mid', flip: true },
-        { sprite: 'rope-plank-up', x: h(7.4), y: h(-4.0), layer: 'mid', when: '!p4_plank', chapter: 2 }
+        { sprite: 'rope-plank-up', x: h(7.4), y: h(-4.0), layer: 'mid', when: ['!p4_plank', 'chapter2_available'] }
     ],
     // white paper where the page is not drawn yet (release boundaries, plan §4.8)
     paper: [
-        { id: 'udden-paper', x0: h(-2), x1: h(12.9), until: 'ch2_open', note: { x: h(10.4), y: h(-4.6) } }
+        { id: 'udden-paper', x0: h(-2), x1: h(12.9), until: 'chapter2_available', instant: true, note: { x: h(10.4), y: h(-4.6) } }
     ],
     exits: [
         { id: 'to-kelp', x0: h(101.0), x1: h(102.7), action: CONTEXT_LABELS.swimIn, when: 'p2_open', to: 'kelp', spawn: 'fromLand' },
@@ -347,11 +347,21 @@ SCENES.kelp = {
         { id: 'lane-entry', pts: L([8.2, 2.5], [11, 3.0], [14, 3.25], [17.5, 3.1], [20.4, 3.7]), width: h(1.3), speed: 380 },
         { id: 'lane-vault', pts: L([22.7, 7.8], [23.3, 9.4], [24.3, 10.4], [25.5, 11.35]), width: h(1.5), speed: 300, when: 'ch2_open' },
         { id: 'lane-vault-in', pts: L([25.5, 11.35], [27.5, 11.9], [30, 11.8], [31.4, 11.2]), width: h(1.3), speed: 320, when: 'p5_lit' },
+        { id: 'lane-kelp-release', pts: L([41, 9.25], [39.2, 8.1]), width: h(1.8), suck: h(2.3), speed: 330, when: ['p6_kelp_freed', '!p6_flat'] },
         { id: 'lane-out', pts: L([36, 8.5], [39, 6.5], [42, 4.5], [45, 2.8], [47.2, 1.6]), width: h(1.4), speed: 520, when: 'marks_both' }
     ],
     vortices: [
-        { id: 'kelphjartat', x: h(36), y: h(8.4), r: h(3), eye: h(0.45), speed: 620, pull: 160, spin: 1, when: ['ch2_open', '!p6_flat'] }
+        { id: 'kelphjartat', x: h(36), y: h(8.4), r: h(3), eye: h(0.45), speed: 620, pull: 160, spin: 1, when: ['ch2_open', 'p6_kelp_freed', '!p6_flat'] }
     ],
+    kelpPuzzle: {
+        tether: { root: { x: h(34.65), y: h(11.31) }, hook: { x: h(36), y: h(8.52) },
+            loose: { x: h(38.8), y: h(9.75) }, pullTarget: { x: h(41), y: h(9.25) },
+            grabRadius: h(1.1), pullDistance: h(1.7) },
+        fold: { x: h(36), y: h(8.52), groundY: h(11.4), width: h(3.1) },
+        // The rig's origin is the folded body's support line, so it meets the crease directly.
+        foldCaptureRadius: h(.62), shellContactOffset: 0, contactTolerance: h(.07), settleSpeed: h(1.8), pressSeconds: 3,
+        fragment: { from: { x: h(37.2), y: h(11.05) }, to: { x: h(39.5), y: h(7.1) }, riseSeconds: 4.5, pickupRadius: h(.8) }
+    },
     kelpBeds: [
         { id: 'bed-entry', x0: h(14.2), x1: h(16), y0: h(5.1), y1: h(6.1) },
         // the lyktfiskar's bed lies beside the vault lane (the lane passes along its edge, never through it)

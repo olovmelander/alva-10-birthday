@@ -1,5 +1,60 @@
 # Sköldhästen – handover
 
+## One visible cause for each step: the hill route and Kelphjärtat (30 September)
+
+Pappa found that the sea fragment seemed to unfold a distant hill, and that merely
+hiding was too weak a puzzle for the underwater discovery. This pass replaces
+those effects with a connected physical route and mechanism.
+
+- Klippudden already exists in the released world. Its white chapter curtain no
+  longer waits to peel away after the sea visit. The bridge, three grass ramps
+  and long leap are its real access route, so its fragment can be found before
+  opening Vattenporten. Klo then directs the player back via the return rope to
+  investigate the cave. Release 1 still keeps the unreleased cliff covered and
+  inaccessible; release availability is derived rather than stored in a save.
+- P6 now has a snagged kelp frond visibly hooked over the seabed fold. Take its
+  loose end with **Dra i kelpen**, then actually swim away to pull it free. The
+  released current carries a hidden shell onto the crease. Three seconds of
+  physical shell contact press the paper down; the shell and drawing follow the
+  same fold geometry. Coming out before completion cancels the unfinished press.
+- The actual torn map edge peeks from under the paper before solving. Flattening
+  releases that same piece from the outer crease; it rises into a quiet kelp
+  pocket. Emerging alone does not award it: the swimmer must touch the loose
+  fragment. It can be caught during its rise or collected later, and never expires.
+  Hiding alone, a remote vortex position, or a single action-button tap cannot
+  complete the puzzle.
+- Introductory dialogue holds the whole mechanism for reading. Pulling, carrying,
+  pressing and collecting retain playable controls while the camera frames the
+  relevant physical cause and result. Authored kelp replaces obscuring random
+  plants near this puzzle and the lyktfiskar. Goals, hints, Klo's requested help,
+  recap and notebook follow the actual phase. The cave's map scene shows an
+  already-earned land fragment and only the sea piece missing when appropriate.
+- Freed kelp and the completed press save separately; unfinished grips and partial
+  pressure reset on leaving or reloading. Older flat-fold saves leave the free
+  fragment waiting in its pocket, and older collected saves remain complete.
+  The repaired route to Pappersfyren still opens only after both fragments and
+  their visible assembly. No save-format or release change; `RELEASED_CHAPTER`
+  remains 3. New runtime/render modules are included in the ticket prefetch list.
+- Automated verification: **282/282 tests pass**, including the full game through
+  the ending and Signe's race, both fragment orders, genuine early land discovery,
+  the real kelp/current/pressure/pickup sequence, interruptions, old saves, held
+  explanations and shared physical/render geometry. The ticket launcher suite
+  passes. First playable is **2,668,741 bytes**, below the 3 MB budget.
+- Full browser journeys pass at **390×844, 844×390 and 1440×900**, plus true
+  land-first discovery on desktop: **81,584 real simulation steps, 112 held
+  evidence cards and 24 physical P6 captures** with no browser errors. The early
+  route collects land before P2/chapter 2 and shows its earned artwork in the cave
+  map scene. Phone checks use large text; landscape also uses reduced motion.
+  Browser evidence lives locally under `docs/skoldhast/shots/kelp-physical/`.
+  The exploration browser checks the floating fragment against visible UI cards.
+  After tuning the short-landscape camera, a focused rerun passes all six physical
+  phases, collection and control restoration in **3,026 further simulation steps**.
+  The mechanism stays readable between the side controls, its paper clears the
+  guide cards, and the scene boundary stays outside the view.
+- No new question for Pappa. This supersedes the previous entry's delayed cliff
+  reveal and its fixed two-missing-pieces search scene. Normal-play timing has
+  not been measured for the new puzzle.
+
 ## The opened cave leads forward; the hills lead to the missing map piece (30 September)
 
 Pappa found the old order confusing: solving the stone puzzle opened Vattenporten,

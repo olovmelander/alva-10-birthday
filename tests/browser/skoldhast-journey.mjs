@@ -16,7 +16,7 @@ import path from 'node:path';
 import { serve, launch } from '../../scripts/skoldhast-shot.mjs';
 
 process.env.NO_TEST = '1';
-const { openCave, landApproach, seaFragment, returnToLand, landFragment, chapter1, chapter2, chapter3 } = await import('../skoldhast-playthrough.test.mjs');
+const { meetKlo, openCave, landApproach, caveReveal, kelpFragment, seaFragment, returnToLand, landFragment, chapter1, chapter2, chapter3 } = await import('../skoldhast-playthrough.test.mjs');
 const args = Object.fromEntries(process.argv.slice(2).reduce((a, v, i, all) => v.startsWith('--') ? [...a, [v.slice(2), all[i + 1]]] : a, []));
 const [width, height] = (args.viewport || '844x390').split('x').map(Number);
 const touchMode = args.input === 'touch';
@@ -221,7 +221,7 @@ try {
             // otherwise photograph minutes of notifications in one stack.
             await sleep(4000); render(); app.render(); await window.journeyShot(name);
         };
-        // openCave's two initial lines set the prologue's existing flag/spawn;
+        // meetKlo's two initial lines set the prologue's existing flag/spawn;
         // both already came from the real prologue, so prevent that reset here.
         const realFlag = G.flag, realGoto = G.goto;
         let firstFlag = true, firstGoto = true;
@@ -245,7 +245,7 @@ try {
         assert.ok(notes.length > 8, 'Spången plays notes along the walk');
         await shot('05-extras');
         return { flags: [...G.flags], notes: notes.length, elapsedGameMinutes: G.time / 60, steps, errors: [] };
-    }, { touchMode, routes: [openCave, landApproach, seaFragment, returnToLand, landFragment, chapter1, chapter2, chapter3].map(f => f.toString()) });
+    }, { touchMode, routes: [meetKlo, openCave, landApproach, caveReveal, kelpFragment, seaFragment, returnToLand, landFragment, chapter1, chapter2, chapter3].map(f => f.toString()) });
     assert.deepEqual(errors, [], 'no browser errors');
     for (const flag of ['p1_inked', 'p2_open', 'p3_done', 'p4_leap', 'p5_lit', 'p6_flat', 'lamp_lit', 'p8_done', 'ended', 'exp_smak', 'signe_race', 'shells_tune']) assert.ok(result.flags.includes(flag), flag);
     fs.writeFileSync(path.join(out, `journey-${args.input || 'keyboard'}-${width}x${height}.json`), JSON.stringify(result, null, 2));

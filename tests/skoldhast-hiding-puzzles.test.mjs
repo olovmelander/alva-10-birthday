@@ -76,14 +76,7 @@ test('P5 opens collision and its next current at the same commit, without waitin
     assert.ok(!G.player.hidden && G.player.x < x - HL, 'emerging always gives swimming control back');
 });
 
-test('P6 and the P7 plate accept ordinary hiding approaches and allow emergence', () => {
-    for (const [x, y] of [[33.2, 9.2], [36, 5.4], [39, 8.4]]) {
-        const G = swimming('kelp', x, y, ['p5_lit']);
-        step(G, 14, { hide: true });
-        assert.ok(G.has('p6_flat') && G.has('mark_sea'));
-        G.step({ hide: true }); step(G, 1, { y: -1 });
-        assert.equal(G.player.hidden, false);
-    }
+test('the P7 plate accepts ordinary hiding approaches and allows emergence', () => {
     for (const x of [13.1, 14.2, 15.5]) {
         const G = swimming('viken', x, 6);
         step(G, 10, { hide: true });

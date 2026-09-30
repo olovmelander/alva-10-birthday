@@ -90,15 +90,29 @@ test('fish guidance uses the lane, real wait and drift; a stranded shell can rec
     assert.equal(cue(G, 'p5').instruction, W.steps.fishRecover);
 });
 
-test('vortex help asks for hiding only within the vortex and measures actual inward distance', () => {
-    const G = stage('kelp', 30, 8.4, ['p5_lit']);
+test('P6 guidance follows the real grip, pressure and loose-fragment phases', () => {
+    const G = stage('kelp', 30, 8.4, ['ch2_open', 'p5_lit']);
     assert.equal(cue(G, 'p6').action, 'move');
-    G.player.x = 34 * HL;
+    assert.equal(cue(G, 'p6').instruction, W.steps.p6ApproachKelp);
+    G.player.x = 38.8 * HL; G.player.y = 9.75 * HL; G.player.mode = 'swim';
+    assert.equal(cue(G, 'p6').action, 'act');
+    assert.equal(cue(G, 'p6').instruction, W.steps.p6GrabKelp);
+    G.step({ act: true });
+    assert.equal(cue(G, 'p6').instruction, W.steps.p6PullKelp);
+    assert.equal(cue(G, 'p6').progress.value, 0);
+    G.flags.add('p6_kelp_freed');
     assert.equal(cue(G, 'p6').action, 'hide');
-    hide(G);
-    const before = cue(G, 'p6').progress.value;
-    G.player.x = 35.3 * HL;
-    assert.ok(cue(G, 'p6').progress.value > before);
+    hide(G); G.puz.p6.contact = true; G.puz.p6.press = 1.5;
+    assert.equal(cue(G, 'p6').instruction, W.steps.p6Press);
+    assert.equal(cue(G, 'p6').progress.value, .5);
+    G.flags.add('p6_flat');
+    assert.equal(cue(G, 'p6').action, 'emerge');
+    G.player.hidden = false;
+    const collect = cue(G, 'p6');
+    assert.equal(collect.action, 'move');
+    assert.equal(collect.instruction, W.steps.p6Collect);
+    assert.equal(collect.target.x, 39.5 * HL);
+    assert.equal(collect.target.y, 7.1 * HL);
 });
 
 test('P7 plate explains sinking, actual hold progress, and departure after latching', () => {

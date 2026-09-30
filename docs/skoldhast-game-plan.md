@@ -352,9 +352,10 @@ and why.
 **Kapitel 1: Stranden och Stäppen (timing to remeasure after the 30 September route update)**
 
 Opening Vattenporten is an invitation to enter immediately. The default journey follows P2 into the sea,
-discovers Veckmuren and introduces the missing map pieces. P1 and P3 remain available to curious land-first
-explorers; completing them is not a condition for the underwater discovery. After the map-piece search
-begins, those same land puzzles become the route to the missing land piece, with matching goals and dialogue.
+discovers Veckmuren and introduces the missing map pieces. The entire released land route, P1 → P3 → P4,
+remains available to curious land-first explorers, including the actual land fragment. The cave never unlocks
+Klippudden or its jump. Completing the hills is not a condition for the underwater discovery either. After
+the map-piece search begins, any unfinished land puzzles gain matching search goals and dialogue.
 
 - **Her beach.** Walk, gallop, Hoppa and Gnägg; the gulls scatter.
   - The sea froze with the wave: beyond the foam line it stands still and glassy out to the horizon.
@@ -391,7 +392,9 @@ begins, those same land puzzles become the route to the missing land piece, with
   - The first distant sköldhäst watches from the ridge, then lies down under its shell and becomes a "rock" as
     you approach. Sköldhästen: "Det finns fler!"
   - P3 Backsippornas fjun, up Vågmärkesbranten to the wave-mark ledge. Its old sea marks lead toward
-    Klippudden. This can be explored early or become the later search for the missing land piece.
+    Klippudden. The route continues over Galoppbacken to the cliff-side vista and P4, including before the cave.
+    The hilltop never requires a return to the sea. Before the fragment is seen, the goal is exploration;
+    once the cliff-side vista reveals it, the goal becomes reaching that visible piece.
 - **P2 Spegelpölen** opens Vattenporten into the sea.
   - The kelp entry is the swim, sink and drift tutorial, with a stretch of open surface and floating kelp to
     dolphin-leap over.
@@ -410,9 +413,10 @@ begins, those same land puzzles become the route to the missing land piece, with
 
 **Kapitel 2: Udden och djupet (timing to remeasure; land and sea pieces in either order)**
 
-- **Opening after the underwater discovery.** Hold Klo's actual torn map corner beside two empty torn
-  silhouettes while he explains the missing pieces. The corner's broken current shows why the route needs
-  repair. Klo recalls seeing one scrap fly over Stäppen and another fall into the sea during the prologue.
+- **Opening after the underwater discovery.** Hold Klo's actual torn map corner beside the other two
+  fragment slots. If the land piece was already collected, show its earned artwork and explain that only
+  the sea piece remains; otherwise both missing slots are empty torn silhouettes. The broken current
+  shows why the route needs repair. Klo recalls the scraps flying over Stäppen and into the sea.
   - The silhouettes identify those two search directions, without showing unearned map art or pretending
     that a missing piece can reveal its own location. The player can continue into the kelp immediately or
     return to Stäppen. Objectives follow the chosen scene until one piece remains.
@@ -425,9 +429,15 @@ begins, those same land puzzles become the route to the missing land piece, with
     the notebook and the assembly. Missing pieces remain silhouettes in the notebook.
   - Each discovery shows its own piece while Klo explains what the player earned and what is still missing.
 - **P4 Stora språnget** onto Klippudden finds the *Landmärket* among the high wave marks.
+  - It can be completed before the cave. Early dialogue introduces an extra piece for Klo's corner without
+    referring to an unseen current or an already introduced sea search. The rope plank provides the way home;
+    goals then return to the pool, its repair or entering the cave according to actual completed progress.
   - Klo: "Fem hästlängder! Nytt rekord för sköldpaddor. Och för krabbor."
   - From Klippudden: "Fyren lyser – men bara i spegelbilden."
-- **P5 Lyktfiskarnas väg** and **P6 Strömkarusellen** in Kelpskogen find the *Havsmärket*.
+- **P5 Lyktfiskarnas väg** lights the route through the vault toward **P6 Strömkarusellen** in Kelphjärtat.
+  The fish do not switch on a distant whirlpool: the player can also swim over the vault and approach P6.
+  P6 shows one local chain of causes: pull the snagged kelp loose, ride the released current onto the folded
+  seabed, press it flat under the shell, then swim to the freed map piece in the calm pocket.
 - **Along the way:**
   - A second note, sealed in a bottle on the seabed: "Snälla, rör inte strecken. Det är för teckningens skull.
     /Kartväktaren" Klo: "Lappen låg i en flaska så att den inte blev blöt. Är Kartväktaren rädd för vatten?"
@@ -722,7 +732,7 @@ The original audit remains local in the ignored `docs/skoldhast/klo-companion-au
 | P3 | Backsippornas fjun | Stäppen, Vågmärkesbranten | Galoppvind | "The fluff flies the way I run." |
 | P4 | Stora språnget | Stäppen plateau → Klippudden | Springa (Språng) | "I need a longer run-up. Where can I get one?" |
 | P5 | Lyktfiskarnas väg | Kelpskogen, Mörka valvet | Simma, Göm dig (drift, shy creatures) | "Drifting counts as hiding." |
-| P6 | Strömkarusellen | Kelpskogen, Kelphjärtat | Göm dig (drift, weight) | "Don't fight the whirl. Let go." |
+| P6 | Strömkarusellen | Kelpskogen, Kelphjärtat | Dra, Simma, Göm dig (drift, weight), Simma | "Free the flow, ride it onto the fold, then use the shell's weight." |
 | P7 | Pappersfyrens tre luckor | Spegelviken, Pappersfyren | Trumma, Göm dig (weight, drift), Dra | "Each shutter needs a different half of me." |
 | P8 | Det sista strecket | Stranden → Trumbryggan → under Spegelviken | Streck, Språng, Göm dig (drift), Alvas penna | "The horse draws the land, the turtle draws the sea." |
 
@@ -761,6 +771,9 @@ The original audit remains local in the ignored `docs/skoldhast/klo-companion-au
 **P4 Stora språnget**
 - **Setup:** Klippudden lies across a 5 HL dry cleft. The near runway is short and uphill, so the sköldhäst only
   reaches trot and balks.
+- **Order:** when chapter 2 content is released, the land and its jump are available from the start. There is
+  no white chapter curtain over Klippudden and no cave prerequisite. The real bridge, ramps and run-up form
+  the approach; the cliff-side vista reveals the fragment before the leap.
 - **Solution:** gallop the long Galoppbanan loop around the hill and come down the long slope, reaching full
   gallop at the edge. That gives the biggest leap in the game, with a short slow-down at the top of the arc, a
   scripted pan to the landing, and a music sting.
@@ -782,19 +795,28 @@ The original audit remains local in the ignored `docs/skoldhast/klo-companion-au
 - **Margin note:** "Titta på lyktfiskarna när du har gömt dig. Vad gör de?"
 
 **P6 Strömkarusellen**
-- **Setup:** this is the current that "only goes round and round". A ring about 3 HL in radius circles a calm eye
-  where a folded paper corner sticks up. Swimmers in the ring keep only 30% control and are gently pushed out.
-  Loose kelp leaves visibly spiral into the eye.
-- **Solution:** hide. The hidden shell is drawn inward at about 0.8 HL/s and reaches the eye in about 4 s, then
-  sinks onto the corner and flattens it. Havsmärket appears.
-- **Result:**
-  - When both half-marks are in the journal, the ring unrolls into an outflow toward Spegelviken; that is the
-    Kapitel 2 end beat.
-  - Until then the eye stays calm, and Klo says: "Halva märket fattas. Den andra halvan ligger nog högt upp –
-    bland vågmärkena."
-- **Taught:** P5 (drift), and a small paper flap flattened by accident at the kelp entry.
-- **Framing:** zoom no lower than 0.8×, and the hidden shell never spins, for reduced motion.
-- **Margin note:** "Titta vart de lösa kelpbladen tar vägen i strömmen."
+- **Setup:** a single kelp frond is snagged across the lip of the folded seabed. The actual map fragment is
+  caught beneath the raised paper. The current cannot pass the snag, and its local flow is visible.
+- **Solution and physical payoffs:**
+  1. Swim to the kelp's loose end and choose **Dra i kelpen**. This takes hold; it does not solve the snag.
+     Swim outward while holding it so the frond visibly slips off the lip. **Släpp kelpen** releases the grip.
+  2. The released current reaches the fold. A hidden shell can ride it onto the actual crest of the paper.
+     Klo gives one quiet acknowledgement of the released flow, without interrupting the ride.
+  3. Remain hidden on the crest for three seconds. The shell physically descends with the paper as its
+     weight presses the fold flat; hiding elsewhere cannot complete this step.
+  4. The freed fragment rises into a safe, calm pocket. Emerge and swim into the visible fragment to collect
+     it. Flattening the fold does not automatically add the piece to the journal.
+- **State contract:** `p6Pose` distinguishes `free-kelp`, `pull-kelp`, `reach-fold`, `press-fold`,
+  `collect-fragment` and `complete`. Persistent milestones are `p6_kelp_freed`, `p6_flat` and `mark_sea`.
+  The goals, requested hints, Klo's help, progress and context labels describe the current physical step.
+- **Result:** only after both actual map pieces have been collected can Klo assemble the map and open the
+  outflow toward Spegelviken. A sea-first player can return for the land piece; an early-land player already
+  has it. Neither lanternfish completion nor a remote chapter trigger controls the kelp snag.
+- **Taught:** drifting at the kelp entry or in the optional lanternfish route, and the small paper flap that
+  demonstrates the hidden shell's weight. Pulling the snag is a local interaction with one clearly exposed end.
+- **Framing:** keep the kelp end, crest contact, descending shell and floating fragment readable in both phone
+  orientations. The hidden shell never spins, and reduced motion preserves every cause and payoff.
+- **Margin note:** "Kelpbladet har en lös ände. Vad händer om du drar den bort från vecket?"
 
 **P7 Pappersfyrens tre luckor**
 - **Setup:** the real lamp is dark. Hidden on the calm pier, the player sees in the reflection a lit lamp with
@@ -896,14 +918,15 @@ Kelpskogen (kelp entry, Mörka valvet, Kelphjärtat; Veckmuren along its seaward
 - **Release boundaries.**
   - `content/world.mjs` holds `releasedChapter`. Places in later chapters are white paper with the pencil note
     "Nästa sida kommer snart.", and nothing leads into them.
-  - In Kapitel 1 this covers the far side of the P4 cleft (its edge has no språngkant yet, so the sköldhäst
-    simply balks) and the paths from the kelp entry toward Mörka valvet and Kelphjärtat.
+  - Klippudden is only covered if that content is genuinely unreleased. Once released, the full land route
+    including P4 is open from the start, regardless of cave progress. The underwater chapter reveal still
+    introduces the paths beyond the kelp entry toward Mörka valvet and Kelphjärtat.
   - `?skoldhast-dev` shows unreleased work.
 
 | Chapter | Places | Required | Ends on | Estimate |
 | --- | --- | --- | --- | --- |
 | Prolog | Her table | Three margin strokes | The freeze | 1.5 min |
-| Kapitel 1 | Stranden, optional Stäppen, kelp entry | P2 and the underwater discovery; P1/P3 may be explored early | Veckmuren and the paper figure with a ruler | Re-time |
+| Kapitel 1 | Stranden, optional Stäppen and Klippudden, kelp entry | P2 and the underwater discovery; P1/P3/P4 and the land piece may be completed early | Veckmuren and the paper figure with a ruler | Re-time |
 | Kapitel 2 | Stäppen, Klippudden, Kelpskogen | Both map pieces: P1/P3 land approach if unfinished, P4; P5 discovery route and P6 underwater | The mouth of Spegelviken; the paper figure snaps a shutter shut | Re-time |
 | Kapitel 3 | Spegelviken, Pappersfyren, final | P7, P8 | Small wave proof, home-beach PLASK, the table and completion card | 15–25 min |
 

@@ -168,20 +168,13 @@ try {
             await restored();
             for (const fragment of ['land', 'sea']) {
                 if (fragment === 'sea') {
-                    // Start the hidden shell inside the actual vortex eye. Normal
-                    // simulation commits p6_flat and emits the sea discovery.
-                    await stage(chapter2, 'trench', { spawn: { scene: 'kelp', at: { x: 36 * 200, y: 8.4 * 200, mode: 'swim', hidden: true } } });
-                    activeName = `${name}-sea-freed-world`;
-                    await page.waitForFunction(text => document.querySelector('.sk-dialogue.on .sk-dlg-text')?.textContent === text, STORY.k2.cornerFlat[1], { timeout: 60000 });
-                    await page.waitForTimeout(420);
-                    assert.deepEqual(await page.evaluate(() => {
-                        const { G, view } = window.__skoldhast.debug;
-                        return { flat: G.has('p6_flat'), collected: G.has('mark_sea'), closeup: !!view.mapAssembly };
-                    }), { flat: true, collected: true, closeup: false });
-                    await sharp(await page.screenshot()).webp({ quality: 92 }).toFile(path.join(out, `${activeName}.webp`));
-                    await page.locator('.sk-dlg-next').click({ force: true });
+                    // This suite checks the reader-paced pickup presentation.
+                    // skoldhast-exploration-order drives the actual kelp pull,
+                    // shell pressure, floating paper and emerged collection.
+                    await stage([...chapter2, 'p6_kelp_freed', 'p6_flat', 'mark_sea'], 'trench', { trigger: 'mark_sea' });
                 } else await stage([...chapter2, 'mark_land'], 'udden', { trigger: 'mark_land' });
-                const lines = fragment === 'land' ? [STORY.k2.landFound, STORY.k2.halfSea] : [STORY.k2.seaFound, STORY.k2.half];
+                const lines = fragment === 'land' ? [STORY.k2.landFound, STORY.k2.halfSea]
+                    : [STORY.k2.cornerFlat, STORY.k2.seaFound, STORY.k2.half];
                 for (let i = 0; i < lines.length; i++) await read(lines[i], { variant: 'fragment', fragment, phase: 'observe', routeOpen: false }, `${fragment}-${i + 1}`);
                 await restored();
                 console.log(`${name}: ${fragment} discovery passed`);
