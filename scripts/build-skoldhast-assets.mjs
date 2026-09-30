@@ -13,7 +13,7 @@
  * Each art module exports `build(api)`:
  *   api.atlas(name, { scale, bundle })          declare an atlas (scale = texture px per world unit)
  *   api.frame(atlas, frameName, canvas, [ax, ay]) add a frame (anchor in 0..1)
- *   api.image(name, canvas, { bundle, repeat, quality })  a standalone texture (materials, backdrops)
+ *   api.image(name, canvas, { bundle, repeat, quality, mip })  a standalone texture (materials, backdrops)
  *   api.data(name, object, { bundle })          JSON data next to the art (e.g. the hero rig)
  * plus the pencil toolkit (api.Sheet, api.P, api.pencil.*).
  */
@@ -55,7 +55,7 @@ async function main() {
                 if (!atlases[atlas]) throw new Error(`declare atlas ${atlas} first`);
                 atlases[atlas].frames.push({ name, canvas, anchor });
             },
-            image(name, canvas, { bundle = 'boot', repeat = false, quality = 80, scale = 1 } = {}) { images.push({ name, canvas, bundle, repeat, quality, scale }); },
+            image(name, canvas, { bundle = 'boot', repeat = false, quality = 80, scale = 1, mip = false } = {}) { images.push({ name, canvas, bundle, repeat, quality, scale, mip }); },
             data(name, obj, { bundle = 'boot' } = {}) { datas.push({ name, obj, bundle }); }
         };
         const m = await import(pathToFileURL(file).href);
@@ -67,7 +67,7 @@ async function main() {
         }
         for (const im of images) {
             const f = await writeImage(OUT, im.name, im.canvas, { quality: im.quality });
-            part.images[im.name] = { bundle: im.bundle, file: f.image, bytes: f.bytes, w: f.w, h: f.h, repeat: im.repeat, scale: im.scale };
+            part.images[im.name] = { bundle: im.bundle, file: f.image, bytes: f.bytes, w: f.w, h: f.h, repeat: im.repeat, scale: im.scale, ...(im.mip ? { mip: true } : {}) };
         }
         for (const d of datas) {
             fs.writeFileSync(path.join(OUT, `${d.name}.json`), JSON.stringify(d.obj));

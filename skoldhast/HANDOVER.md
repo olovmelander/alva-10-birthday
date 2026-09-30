@@ -1,6 +1,38 @@
 # Sköldhästen – handover
 
-## Latest: the opening begins in Alva's head (30 September)
+## Latest: depth, shorelines and grounding (30 September)
+
+Branch `claude/skoldhast-visual-depth` (from `49ade5a`), merged to `main` after the opening-notes merge. Pappa asked for the
+recommended visual improvements, in order. Details, causes and before/after pairs:
+[`docs/skoldhast/visual-depth-review.md`](../docs/skoldhast/visual-depth-review.md).
+
+- **Layered backdrops.** Sky, then layers in front of the sun, clouds and gulls (`bgFront`): three
+  steppe hill bands standing on the ground line at their own depth; the bay's cliffs and water in
+  front of its sky, and its depths hung from the real surface (no sky under the pier). Clouds stay
+  above the bay's horizon; the backdrop no longer jumps every 40 HL. Contract: `dev/SPEC.md` §3.
+- **Shores and structure.** Wet sand and foam where water meets land (not her beach), pier posts
+  with ripples, a thinner jetty with its foam behind the deck, far walls in the gully, ditch and
+  cleft, a pool reflection that fades into the sand.
+- **Ground.** Dry sand and earth have their own strokes; on land the colouring thins into paper
+  below the ground (`paperBelow`), with roots, buried stones and shells, and grass lips on cliffs.
+- **Grounding.** Spången drawn as a plank walk on posts (collision unchanged), hop logs on humps,
+  contact shades, sagging chains.
+- **Under water, life, evening.** Depth gradient, shining surface underside, light on the seabed,
+  leaning kelp with holdfasts, lyktfisk light pool, far fish; one wind for grass, clouds and foam,
+  grass that bends, butterflies; a golden evening bay.
+- Her picture (105.8–112 HL, `pictureX` in `world.mjs`) is untouched. After merging onto the
+  opening-notes work: first playable **2,569,283 bytes** (evening art is its own background
+  bundle), pure suite **161/161**, browser matrix passing (launch needs to run alone: under heavy
+  parallel load its 30 s loader wait times out).
+- **Known flaky check:** `skoldhast-opening.mjs` "the surviving beach stays in place" samples one
+  pixel whose value depends on timing (217,190,147 vs 244,176,101). It failed and passed on both
+  clean `main` and this branch with the same two values.
+- After changing hill or bay art: `node scripts/build-skoldhast-assets.mjs --only backdrops`
+  (about 70 s).
+- **Frågor till Pappa:** paper showing at the bottom of the portrait screen: welcome, or keep the
+  ground coloured further down? Butterflies by the backsippa: keep?
+
+## The opening begins in Alva's head (30 September)
 
 Branch `claude/skoldhast-her-words`. Pappa: her note should open the game and set the scene, so the
 player understands they are inside her thoughts; then, as she imagines it, the horse wakes and the
@@ -19,7 +51,7 @@ professor appears. See [`docs/skoldhast/alva-notes-opening.md`](../docs/skoldhas
   2,794,317 bytes.
 - Frågor till Pappa: is ~28 s of her note the right length before the first drawing?
 
-## Latest: Klo's slow-motion awakening (30 September)
+## Klo's slow-motion awakening (30 September)
 
 Branch `claude/skoldhast-slowmo-drop`, from `main` at `8323bf0`. Pappa asked for a longer, more
 dramatic entrance: the water drop from the sköldhäst to the sand should wake Klo, and he should

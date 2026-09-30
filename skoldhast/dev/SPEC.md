@@ -119,17 +119,42 @@ be screenshotted with `node scripts/skoldhast-shot.mjs`.
 glowing P8 line), `stroke-chain` (the pencil chain linking shutters: small linked ovals), `stroke-crease` (a
 dead-straight fold: thin graphite line with a soft grey fold shadow on one side).
 
-### Backdrops — `api.image`, up to 2048×1024, drawn as full paper
+### Backdrops — `api.image`, up to 2048×1024
+
+A backdrop is a **sky** (full paper, covering the screen) plus optional **layers** drawn in front of the
+sun, clouds and gulls (`layer: true`: transparent above their silhouette, finished with `finish()`).
+A world backdrop entry (`world.mjs` `backdrop`) may list:
+
+- `layers: [{ image, par, y?, repeat?, fill? }]`. Each layer is as wide as the sky's frame and moves
+  sideways at `par` × the camera (farther = smaller). With `ref` (a ground height in wu) on the entry,
+  a layer's top row sits `y` frame heights above the ground line on screen, and climbing lowers
+  every layer by its own `par` (the steppe). Without `ref` it keeps the sky's frame (the bay).
+  `repeat` tiles it sideways; `fill` paints its own colour below it where no ground covers the screen.
+- `under: { image, water, span, par, fill }`: a tile hung from the named water's real surface, `span` wu
+  wide (the bay's depths, so a swimmer never sees the sky under the pier).
+- `horizon` (0–1 of the sky's height): clouds and gulls stay above it.
+- `ref`, `skyRow`: the sky's row `skyRow` sits just above the ground line.
+
+Evening swaps every image named in the scene's `evening` map. Day land art is in `boot`/`land`; the
+evening art is its own background bundle (only the finale needs it).
 
 | name | bundle | content |
 | --- | --- | --- |
 | `bg-beach` | boot | Her picture's sky and sea: soft blended blue sky (pale near the horizon), sea as dense horizontal blue strokes getting darker toward the bottom, **no horizon line**. No sun, clouds or gulls (those are props). The lower 30% is sea. |
-| `bg-beach-evening` | land | The same in golden evening light (warm yellow sky, orange-pink near the horizon, sea with warm highlights). |
-| `bg-steppe` | land | Pale sky, then rolling silver-green hill bands in the distance (2–3 layers), a far ridge line at ~60% height. |
-| `bg-steppe-evening` | land | The same, golden evening. |
+| `bg-beach-evening` | evening | The same in golden evening light (warm yellow sky, orange-pink near the horizon, sea with warm highlights). |
+| `bg-steppe` | land | The steppe's sky only: short slanting strokes in two directions (never long level ones, which read as sea), bluest high up, palest and a little warm just above the far hills. |
+| `bg-steppe-far` / `-mid` / `-near` | land | Layers, 2048×512 (the far one stored at half size), tiling sideways: the two farthest hill bands (lightest, most sky-coloured, thinnest outline), the middle band, the nearest band with grass strokes. Each band is clearest at its crest and hazes toward its foot. |
+| `bg-steppe-evening`, `bg-steppe-*-evening` | evening | The same, golden evening. |
 | `bg-under` | sea | Under water: light teal at the top with hatched daylight shafts slanting down, deepening to blue-green. |
-| `bg-bay` | bay | Spegelviken: cool blue-grey sky, a shaded bay, pale grey cliffs at both sides, calm sea. |
+| `bg-bay` | bay | Spegelviken's sky only: cool blue-grey, bluest high, palest in a haze just above the water. |
+| `bg-bay-front` | bay | Layer: pale grey cliffs at both sides and the calm sea with their reflections, horizon at 60%. |
+| `bg-bay-evening`, `bg-bay-front-evening` | bay | The same at golden evening (half size); the still water holds the warm sky. |
+| `bg-bay-under` | bay | Layer, 1024×1024, tiling sideways: the bay's water below its surface (clear above a ragged top), light shafts, pale far stones, darkening with depth. |
 | `bg-fold` | sea | Beyond Veckmuren: a pale, flattened grey-blue (the folded-under sea), for the white side of the crease. |
+
+Materials: `mat-sand` is **dry** sand (the dunes, the bay's shore) in short strokes turning this way and that,
+with grain specks and wind ripples; her beach and the runway keep `mat-wetsand`'s long strokes. `mat-earth`
+is hatched on a slant across wavy strata lines. Level parallel strokes are kept for water and wood.
 
 ### Props — atlas `props` (scale 1, bundle `boot`) unless stated; anchors `[0.5, 1]` unless stated
 

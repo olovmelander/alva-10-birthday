@@ -133,7 +133,7 @@
    "scale": 1
   },
   "bg-beach-evening": {
-   "bundle": "land",
+   "bundle": "evening",
    "file": "bg-beach-evening.webp",
    "bytes": 177424,
    "w": 2048,
@@ -144,20 +144,80 @@
   "bg-steppe": {
    "bundle": "land",
    "file": "bg-steppe.webp",
-   "bytes": 130582,
+   "bytes": 50506,
    "w": 2048,
    "h": 1024,
    "repeat": false,
    "scale": 1
   },
-  "bg-steppe-evening": {
+  "bg-steppe-far": {
    "bundle": "land",
-   "file": "bg-steppe-evening.webp",
-   "bytes": 154764,
+   "file": "bg-steppe-far.webp",
+   "bytes": 27088,
+   "w": 1024,
+   "h": 256,
+   "repeat": true,
+   "scale": 1,
+   "mip": true
+  },
+  "bg-steppe-mid": {
+   "bundle": "land",
+   "file": "bg-steppe-mid.webp",
+   "bytes": 73086,
    "w": 2048,
-   "h": 1024,
+   "h": 512,
+   "repeat": true,
+   "scale": 1,
+   "mip": true
+  },
+  "bg-steppe-near": {
+   "bundle": "land",
+   "file": "bg-steppe-near.webp",
+   "bytes": 49102,
+   "w": 2048,
+   "h": 512,
+   "repeat": true,
+   "scale": 1,
+   "mip": true
+  },
+  "bg-steppe-evening": {
+   "bundle": "evening",
+   "file": "bg-steppe-evening.webp",
+   "bytes": 26254,
+   "w": 1024,
+   "h": 512,
    "repeat": false,
    "scale": 1
+  },
+  "bg-steppe-far-evening": {
+   "bundle": "evening",
+   "file": "bg-steppe-far-evening.webp",
+   "bytes": 34460,
+   "w": 1024,
+   "h": 256,
+   "repeat": true,
+   "scale": 1,
+   "mip": true
+  },
+  "bg-steppe-mid-evening": {
+   "bundle": "evening",
+   "file": "bg-steppe-mid-evening.webp",
+   "bytes": 77342,
+   "w": 2048,
+   "h": 512,
+   "repeat": true,
+   "scale": 1,
+   "mip": true
+  },
+  "bg-steppe-near-evening": {
+   "bundle": "evening",
+   "file": "bg-steppe-near-evening.webp",
+   "bytes": 50734,
+   "w": 2048,
+   "h": 512,
+   "repeat": true,
+   "scale": 1,
+   "mip": true
   },
   "bg-under": {
    "bundle": "sea",
@@ -171,7 +231,16 @@
   "bg-bay": {
    "bundle": "bay",
    "file": "bg-bay.webp",
-   "bytes": 218670,
+   "bytes": 79088,
+   "w": 2048,
+   "h": 1024,
+   "repeat": false,
+   "scale": 1
+  },
+  "bg-bay-front": {
+   "bundle": "bay",
+   "file": "bg-bay-front.webp",
+   "bytes": 237520,
    "w": 2048,
    "h": 1024,
    "repeat": false,
@@ -180,11 +249,30 @@
   "bg-bay-evening": {
    "bundle": "bay",
    "file": "bg-bay-evening.webp",
-   "bytes": 85530,
+   "bytes": 26752,
    "w": 1024,
    "h": 512,
    "repeat": false,
    "scale": 1
+  },
+  "bg-bay-front-evening": {
+   "bundle": "bay",
+   "file": "bg-bay-front-evening.webp",
+   "bytes": 105038,
+   "w": 1024,
+   "h": 512,
+   "repeat": false,
+   "scale": 1
+  },
+  "bg-bay-under": {
+   "bundle": "bay",
+   "file": "bg-bay-under.webp",
+   "bytes": 210494,
+   "w": 1024,
+   "h": 1024,
+   "repeat": true,
+   "scale": 1,
+   "mip": true
   },
   "bg-fold": {
    "bundle": "sea",
@@ -198,7 +286,7 @@
   "mat-sand": {
    "bundle": "boot",
    "file": "mat-sand.webp",
-   "bytes": 49364,
+   "bytes": 56832,
    "w": 512,
    "h": 512,
    "repeat": true,
@@ -225,7 +313,7 @@
   "mat-earth": {
    "bundle": "land",
    "file": "mat-earth.webp",
-   "bytes": 80426,
+   "bytes": 98998,
    "w": 512,
    "h": 512,
    "repeat": true,
@@ -570,7 +658,7 @@
     "assets/ui-icons.webp",
     "assets/hero-rig.json"
    ],
-   "bytes": 1450932
+   "bytes": 1458400
   },
   "sea": {
    "files": [
@@ -592,13 +680,14 @@
     "assets/npcs-land.webp",
     "assets/props-land.json",
     "assets/props-land.webp",
-    "assets/bg-beach-evening.webp",
     "assets/bg-steppe.webp",
-    "assets/bg-steppe-evening.webp",
+    "assets/bg-steppe-far.webp",
+    "assets/bg-steppe-mid.webp",
+    "assets/bg-steppe-near.webp",
     "assets/mat-grass.webp",
     "assets/mat-earth.webp"
    ],
-   "bytes": 778746
+   "bytes": 534330
   },
   "bay": {
    "files": [
@@ -607,10 +696,23 @@
     "assets/props-bay.json",
     "assets/props-bay.webp",
     "assets/bg-bay.webp",
+    "assets/bg-bay-front.webp",
     "assets/bg-bay-evening.webp",
+    "assets/bg-bay-front-evening.webp",
+    "assets/bg-bay-under.webp",
     "assets/mat-cream.webp"
    ],
-   "bytes": 685276
+   "bytes": 1039968
+  },
+  "evening": {
+   "files": [
+    "assets/bg-beach-evening.webp",
+    "assets/bg-steppe-evening.webp",
+    "assets/bg-steppe-far-evening.webp",
+    "assets/bg-steppe-mid-evening.webp",
+    "assets/bg-steppe-near-evening.webp"
+   ],
+   "bytes": 366214
   }
  },
  "built": "2026-09-30"

@@ -58,12 +58,13 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
     app.stage.addChild(root);
 
     // --- layers ---------------------------------------------------------------------
-    const bgLayer = new PIXI.Container();       // screen space backdrops
+    const bgLayer = new PIXI.Container();       // screen space backdrops (skies)
     const skyLayer = new PIXI.Container();      // parallax sky props (sun, clouds, gulls)
+    const bgFront = new PIXI.Container();       // backdrop layers in front of the sky props: hills, cliffs, far water, the depths
     const world = new PIXI.Container();         // camera transform
     const overlay = new PIXI.Container();       // screen space: tooth, darkness, fades
     const turnLayer = new PIXI.Container();     // screen space: pages turning away (scene changes, the unfold)
-    root.addChild(bgLayer, skyLayer, world, overlay, turnLayer);
+    root.addChild(bgLayer, skyLayer, bgFront, world, overlay, turnLayer);
     const L = {};
     for (const name of ['far', 'terrainBack', 'mid', 'objects', 'actors', 'hero', 'waterFront', 'fore', 'fx', 'cover', 'hints']) {
         L[name] = new PIXI.Container();
@@ -254,7 +255,7 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
     let S = null; // current scene display
 
     function buildScene(def) {
-        const d = { def, items: [], dyn: [], ropes: [], waters: [], sky: [], bg: [], paper: [], dashed: [], kelp: [], disposers: [] };
+        const d = { def, items: [], dyn: [], ropes: [], waters: [], sky: [], bg: [], paper: [], dashed: [], kelp: [], disposers: [], caustics: [] };
         d.atmosphere = createAtmosphere(PIXI, { scene: def.id });
         L.far.addChild(d.atmosphere.view);
         // backdrops
@@ -267,6 +268,25 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
             // A sea pinned to the world can end above the screen's bottom edge;
             // its deepest row continues below it.
             if (b.seaY !== undefined) { s._under = new PIXI.Graphics(); s._under.label = 'backdrop-sea-underlay'; bgLayer.addChild(s._under); }
+            // Layers in front of the sky props, each moving at its own depth.
+            s._layers = [];
+            for (const l of b.layers || []) {
+                const lt = T(l.image);
+                if (!lt) continue;
+                const ls = l.repeat ? new PIXI.TilingSprite({ texture: lt, width: 64, height: 64 }) : new PIXI.Sprite(lt);
+                ls._layer = l; ls._img = l.image; ls.label = 'backdrop-' + l.image;
+                bgFront.addChild(ls);
+                if (l.fill !== undefined) { ls._below = new PIXI.Graphics(); bgFront.addChild(ls._below); }
+                s._layers.push(ls);
+            }
+            // The water's depths, hung from the real surface.
+            if (b.under && T(b.under.image)) {
+                const u = new PIXI.TilingSprite({ texture: T(b.under.image), width: 64, height: 64 });
+                u._layer = b.under; u.label = 'backdrop-depths';
+                u._below = new PIXI.Graphics();
+                bgFront.addChild(u, u._below);
+                s._depths = u;
+            }
         }
         // One exposed contour from the active collision surfaces. Ramps replace
         // buried terrace tops; they never paint a grass column over the earth.
@@ -277,14 +297,14 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
         for (const s of def.surfaces) {
             const pts = s.pts;
             if (s.thin) {
-                const th = s.pier || s.jetty ? 34 : s.bridge ? 30 : 26;
+                const th = thickness(s);
                 const poly = [...pts, ...pts.slice().reverse().map(([x, y]) => [x, y + th])];
-                d.dyn.push({ kind: 'thin', s, poly, when: s.when });
+                d.dyn.push({ kind: 'thin', s, poly, when: s.when, th });
                 continue;
             }
         }
         L.terrainBack.addChild(ground, groundTop, groundLines);
-        d.ground = ground; d.groundTop = groundTop;
+        d.ground = ground; d.groundTop = groundTop; d.groundLines = groundLines;
         d.rebuildGround = () => {
             ground.clear(); groundTop.clear();
             for (const child of groundLines.removeChildren()) child.destroy({ children: true });
@@ -295,6 +315,7 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
                 // sea never ends in a cut-off wall of backdrop under the jetty.
                 const pts = s.tail && run.at(-1)[0] === s.pts.at(-1)[0] ? [...run, ...s.tail] : run;
                 const x0 = pts[0][0], x1 = pts.at(-1)[0];
+                if (s.boardwalk) { boardwalk(s, pts, ground, groundTop, groundLines, bottom); continue; }
                 const baseMat = s.edgeMat || (s.ramp ? 'earth' : s.mat);
                 fillPoly(ground, [...pts, [x1, bottom], [x0, bottom]], baseMat);
                 if (baseMat !== s.mat) {
@@ -322,6 +343,9 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
                     }
                 }
             }
+            if (def.paperBelow) paperBelow(def, shape, ground, bottom);
+            groundLips(shape, groundLines);
+            if (def.roots) groundRoots(shape, groundLines);
             // Her dark-blue waterline where the sand meets the painted sea, ending
             // exactly where the sea's own surface line begins. Graphite elsewhere
             // (and under the water); it overlaps the blue a little at its start.
@@ -348,7 +372,7 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
                     const pts = it.s.pts;
                     for (let x = pts[0][0] + 40; x < pts[pts.length - 1][0]; x += 64) {
                         const y = heightOn(pts, x);
-                        it.g.moveTo(x, y + 2).lineTo(x + 1, y + 32);
+                        it.g.moveTo(x, y + 2).lineTo(x + 1, y + it.th - 2);
                     }
                     it.g.stroke({ width: 2, color: 0x6b4a2c, alpha: 0.45 });
                 }
@@ -357,6 +381,20 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
                 it.c.addChild(it.g, it.r);
                 (it.kind === 'ramp' ? L.terrainBack : L.mid).addChild(it.c);
                 if (it.s.prop) { const ps = spr(it.s.prop); ps.x = (it.s.pts[0][0] + it.s.pts[it.s.pts.length - 1][0]) / 2; ps.y = heightOn(it.s.pts, ps.x) + 34; it.c.addChild(ps); it.g.visible = false; it.r.visible = false; }
+                // a log or a flat stone to hop onto rests on a hump of the ground, not on air
+                if (it.s.mound) {
+                    const a = it.s.pts[0][0], b = it.s.pts.at(-1)[0], rest = heightOn(it.s.pts, (a + b) / 2) + 30;
+                    const ground = drawnGround(d.def), hump = [];
+                    for (let k = 0; k <= 16; k++) {
+                        const u = k / 16, x = lerp(a - h(0.35), b + h(0.35), u), gy = ground(x) ?? rest;
+                        const lift = Math.pow(Math.sin(Math.PI * u), 0.7);
+                        hump.push([x, lerp(gy + 6, Math.min(gy, rest), lift)]);
+                    }
+                    const m = new PIXI.Graphics();
+                    fillPoly(m, [...hump, ...hump.slice().reverse().map(([x]) => [x, (ground(x) ?? rest) + 40])], it.s.mound);
+                    const edge = rope('stroke-graphite', resamplePts(hump.slice(2, -2), 30), { width: 4, alpha: .85 });
+                    it.c.addChildAt(edge, 0); it.c.addChildAt(m, 0);
+                }
             }
         }
         // water
@@ -387,6 +425,10 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
                 L.waterFront.addChild(wb.light.view);
             }
         }
+        buildShores(def, d);
+        buildPosts(def, d);
+        buildBacks(def, d);
+        buildBuried(def);
         if (def.underwater) {
             // Air, tint, pencil line and buoyancy use the same authored surface.
             // A separate hardcoded y=0 edge used to put air 180 units above the
@@ -403,6 +445,7 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
             d.waterTop = bodies[0]?.top ?? 0;
             L.far.addChild(sky);
             d.skyBand = sky;
+            buildDepth(def, d);
         }
         // decor
         for (const it of def.decor || []) {
@@ -424,11 +467,19 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
                     const H = h(2.2 + Math.random() * 2.6);
                     const n = 10;
                     const pts = []; for (let k = 0; k <= n; k++) pts.push([x, fy - H * (1 - k / n)]); // top first
-                    const r = strip('kelp-strip', n, 58 + Math.random() * 30) || rope('kelp-strip', pts, { color: 0x3e7a34, width: 22 });
+                    const r = strip('kelp-strip', n, 44 + Math.random() * 48) || rope('kelp-strip', pts, { color: 0x3e7a34, width: 22 });
                     const fore = it.layer === 'fore';
                     if (fore) r.alpha = 0.6; // the sköldhäst stays visible through the front fronds
-                    (fore ? L.fore : L.mid).addChild(r);
-                    d.kelp.push({ r, pts, x, fy, H, n, fore, phase: Math.random() * 6, chapter: it.chapter });
+                    // held to the bed by a dark holdfast, now and then on a stone
+                    const hold = new PIXI.Graphics();
+                    hold.ellipse(0, -4, 20, 9).fill({ color: 0x24501f, alpha: .85 });
+                    hold.moveTo(-18, -2).lineTo(-26, 6).moveTo(16, -2).lineTo(25, 7).moveTo(-4, 2).lineTo(-6, 10).stroke({ width: 3, color: 0x24501f, alpha: .8, cap: 'round' });
+                    hold.x = x; hold.y = fy;
+                    if (!fore && Math.random() < 0.35) { const st = spr('seabed-rock-' + (1 + (i % 3))); if (!st._placeholder) { st.scale.set(0.45); st.position.set(8, 6); hold.addChildAt(st, 0); } else st.destroy(); }
+                    (fore ? L.fore : L.mid).addChild(hold, r);
+                    // the currents run east here: fronds lean with them, some more than others
+                    const lean = h(0.12) + Math.random() * h(0.3);
+                    d.kelp.push({ r, hold, pts, x, fy, H, n, fore, lean, phase: Math.random() * 6, chapter: it.chapter });
                 }
                 continue;
             }
@@ -569,7 +620,97 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
             d.dark.push({ dk, g });
         }
         buildSceneObjects(def, d);
+        buildContactShadows(def, d);
         return d;
+    }
+
+    /** A vertical gradient texture from colour stops [[t, 'rgba(...)'], ...]. */
+    const gradients = [];
+    function gradientTexture(stops) {
+        const cv = document.createElement('canvas'); cv.width = 2; cv.height = 256;
+        const c = cv.getContext('2d'), gr = c.createLinearGradient(0, 0, 0, 256);
+        for (const [t, col] of stops) gr.addColorStop(t, col);
+        c.fillStyle = gr; c.fillRect(0, 0, 2, 256);
+        const t = PIXI.Texture.from(cv);
+        gradients.push(t);
+        return t;
+    }
+
+    /**
+     * Under water the light comes from above: the water is paler and greener
+     * just under the surface, whose underside shines, and deepens toward the
+     * trench; the seabed where the light still reaches shimmers.
+     */
+    function buildDepth(def, d) {
+        const top = d.waterTop, x0 = def.bounds.x0 - h(20), x1 = def.bounds.x1 + h(20), deep = def.bounds.y1 - top;
+        const body = new PIXI.Sprite(gradientTexture([[0, 'rgba(226,244,232,0.42)'], [0.12, 'rgba(226,244,232,0.12)'], [0.3, 'rgba(40,96,104,0)'], [0.72, 'rgba(24,70,80,0.2)'], [1, 'rgba(16,52,62,0.36)']]));
+        body.position.set(x0, top); body.width = x1 - x0; body.height = deep; body.label = 'water-depth';
+        const underside = new PIXI.Sprite(gradientTexture([[0, 'rgba(255,255,250,0.7)'], [0.35, 'rgba(240,250,244,0.25)'], [1, 'rgba(240,250,244,0)']]));
+        underside.position.set(x0, top); underside.width = x1 - x0; underside.height = 70; underside.label = 'water-underside';
+        L.far.addChild(body, underside);
+        // the deep shade also falls on the seabed and the swimmer, gently
+        const shade = new PIXI.Sprite(gradientTexture([[0, 'rgba(16,52,62,0)'], [0.45, 'rgba(16,52,62,0)'], [1, 'rgba(16,52,62,0.2)']]));
+        shade.position.set(x0, top); shade.width = x1 - x0; shade.height = deep; shade.label = 'water-deep-shade';
+        L.waterFront.addChild(shade);
+        // dancing light on the seabed, where it is shallow enough for daylight
+        d.caustics = [];
+        const groundAt = drawnGround(def);
+        for (let x = def.bounds.x0 + 40; x < def.bounds.x1; x += 64) {
+            const y = groundAt(x);
+            if (y === null || y - top > h(7.2)) continue;
+            const g = new PIXI.Graphics();
+            const k = Math.sin(x * 12.9898) * 43758.5453, r = k - Math.floor(k);
+            const w = 22 + r * 26;
+            g.moveTo(-w / 2, 0).quadraticCurveTo(0, -6 - r * 4, w / 2, 1).stroke({ width: 3, color: 0xfaffef, alpha: .9, cap: 'round' });
+            if (r > 0.4) g.moveTo(-w / 3, 9).quadraticCurveTo(0, 5, w / 3, 10).stroke({ width: 2, color: 0xfaffef, alpha: .6, cap: 'round' });
+            g.x = x + (r - 0.5) * 30; g.y = y + 10 + r * 26;
+            const fade = 1 - (y - top) / h(7.2);
+            L.terrainBack.addChild(g);
+            d.caustics.push({ g, base: 0.2 + 0.4 * fade, phase: r * 6.3, x: g.x });
+        }
+    }
+
+    /** A soft oval of shade, white so a tint can colour it. */
+    let shadeTex = null;
+    function shadeTexture() {
+        if (shadeTex) return shadeTex;
+        const cv = document.createElement('canvas'); cv.width = 128; cv.height = 32;
+        const c = cv.getContext('2d');
+        c.setTransform(1, 0, 0, 0.25, 0, 0);
+        const gr = c.createRadialGradient(64, 64, 0, 64, 64, 64);
+        gr.addColorStop(0, 'rgba(255,255,255,1)'); gr.addColorStop(0.55, 'rgba(255,255,255,0.55)'); gr.addColorStop(1, 'rgba(255,255,255,0)');
+        c.fillStyle = gr; c.fillRect(0, 0, 128, 128);
+        shadeTex = PIXI.Texture.from(cv);
+        return shadeTex;
+    }
+
+    /**
+     * Everything that stands on the ground gets a little shade where it touches
+     * it (her sköldhäst has its brown patch; the world's things should too).
+     * Her picture is left exactly as she drew it.
+     */
+    function buildContactShadows(def, d) {
+        d.shades = [];
+        const groundAt = drawnGround(def), keep = def.pictureX || [Infinity, -Infinity];
+        const layer = new PIXI.Container(); layer.label = 'contact-shadows';
+        for (const parent of [L.mid, L.objects, L.fore]) {
+            for (const s of parent.children) {
+                if (!(s instanceof PIXI.Sprite) || s instanceof PIXI.TilingSprite || (s.anchor?.y ?? 0) < 0.95) continue;
+                const w = Math.abs(s.width);
+                if (w < 28 || s.alpha < 0.5) continue;
+                if (s.x > keep[0] && s.x < keep[1]) continue;
+                const gy = groundAt(s.x);
+                if (gy === null || Math.abs(s.y - gy) > 26) continue;
+                const sh = new PIXI.Sprite(shadeTexture());
+                sh.anchor.set(0.5); sh.x = s.x; sh.y = gy + 3;
+                sh.width = w * 1.05; sh.height = Math.min(30, Math.max(12, w * 0.16));
+                sh.tint = def.underwater ? 0x1f4a52 : 0x5b4128;
+                sh.alpha = def.underwater ? 0.22 : 0.3;
+                layer.addChild(sh);
+                d.shades.push({ s, sh });
+            }
+        }
+        L.terrainBack.addChild(layer);
     }
 
     function floorAt(def, x) {
@@ -627,6 +768,282 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
         });
     }
 
+    /**
+     * Below the ground's skin the colouring thins out into blank paper, as if
+     * she stopped colouring there. The line where it starts follows the lowest
+     * ground nearby (smoothed), so a cliff stays coloured to its foot and no
+     * vertical seam appears where two columns of ground meet.
+     */
+    function paperBelow(def, shape, g, bottom) {
+        const { depth, fade = h(1.3), reach = h(2.5), except = [] } = def.paperBelow;
+        const step = 40;
+        const x0 = Math.min(...shape.runs.map(r => r.pts[0][0])), x1 = Math.max(...shape.runs.map(r => r.pts.at(-1)[0]));
+        const xs = [], top = [];
+        for (let x = x0; x <= x1 + step; x += step) {
+            const xx = Math.min(x, x1);
+            let y = null;
+            for (const r of shape.runs) { const q = heightOn(r.pts, xx); if (q !== null && (y === null || q < y)) y = q; }
+            xs.push(xx); top.push(y ?? bottom);
+        }
+        const n = xs.length, R = Math.round(reach / step), B = Math.round(reach / 2 / step);
+        const low = top.map((_, i) => { let m = -Infinity; for (let j = Math.max(0, i - R); j <= Math.min(n - 1, i + R); j++) m = Math.max(m, top[j]); return m; });
+        const line = low.map((_, i) => { let s = 0, c = 0; for (let j = Math.max(0, i - B); j <= Math.min(n - 1, i + B); j++) { s += low[j]; c++; } return s / c + depth; });
+        const keep = (x) => except.some(([a, b]) => x > a && x < b);
+        const steps = 10;
+        for (let k = 0; k <= steps; k++) {
+            const d0 = fade * k / steps, d1 = k === steps ? bottom : fade * (k + 1) / steps;
+            const a = 0.9 * Math.pow((k + 0.5) / (steps + 0.5), 1.1);
+            // one band between two offsets of the line, split where a kept stretch interrupts it
+            let run = [];
+            const flush = () => {
+                if (run.length > 1) {
+                    const upper = run.map(i => [xs[i], line[i] + d0]), lower = run.map(i => [xs[i], k === steps ? bottom : line[i] + d1]);
+                    fillPoly(g, [...upper, ...lower.reverse()], 'paper', a);
+                }
+                run = [];
+            };
+            for (let i = 0; i < n; i++) { if (keep(xs[i])) flush(); else run.push(i); }
+            flush();
+        }
+    }
+
+    /**
+     * A plank walk on posts over the sand (Spången). Its deck is the walking
+     * line; the sand it stands on runs level beneath it, where the beach is.
+     */
+    function boardwalk(s, pts, ground, groundTop, lines, bottom) {
+        const { floor, under, deck, posts, blend } = s.boardwalk;
+        const x0 = pts[0][0], x1 = pts.at(-1)[0];
+        const fl = clipX(floor, x0, x1);
+        fillPoly(ground, [...fl, [x1, bottom], [x0, bottom]], under);
+        // the sand under the walk turns into the wetter runway sand at its west end
+        if (blend) for (let k = 0; k < 6; k++) {
+            const a = x0 + (blend.width * k) / 6, b = x0 + (blend.width * (k + 1)) / 6;
+            const f = clipX(floor, a, b);
+            if (f.length > 1) fillPoly(ground, [...f, [b, bottom], [a, bottom]], blend.mat, 1 - (k + 0.5) / 6);
+        }
+        // posts, standing in the sand, seen between the deck and the sand
+        for (let x = x0 + posts * 0.6; x < x1 - posts * 0.3; x += posts) {
+            const top = heightOn(pts, x) + deck - 4, foot = heightOn(fl, x) + 10;
+            if (foot - top < 8) continue;
+            fillPoly(ground, [[x - 9, top], [x + 9, top], [x + 10, foot], [x - 10, foot]], 'wood');
+            ground.poly([x - 9, top, x + 9, top, x + 9, top + 10, x - 9, top + 10].flat()).fill({ color: 0x2b1d12, alpha: .22 });
+            lines.addChild(rope('stroke-graphite', [[x - 9, top], [x - 10, foot]], { width: 3, alpha: .75 }));
+            lines.addChild(rope('stroke-graphite', [[x + 9, top], [x + 10, foot]], { width: 3, alpha: .75 }));
+        }
+        // the deck, its plank ends, and its underside in shade
+        const under2 = pts.map(([x, y]) => [x, y + deck]);
+        fillPoly(groundTop, [...pts, ...under2.slice().reverse()], s.mat);
+        groundTop.poly([...under2.map(([x, y]) => [x, y - 8]), ...under2.slice().reverse()].flat()).fill({ color: 0x2b1d12, alpha: .22 });
+        for (let x = x0 + 40; x < x1; x += 64) { const y = heightOn(pts, x); groundTop.moveTo(x, y + 2).lineTo(x + 1, y + deck - 2); }
+        groundTop.stroke({ width: 2, color: 0x6b4a2c, alpha: 0.45 });
+        lines.addChild(rope('stroke-graphite', resamplePts(under2, 50), { width: 4, alpha: .8 }));
+        // the sand's own line under the walk
+        lines.addChild(rope('stroke-graphite', resamplePts(fl, 50), { width: 5 }));
+    }
+
+    /** Fine roots hanging from the turf, here and there, in the earth below the grass. */
+    function groundRoots(shape, lines) {
+        const g = new PIXI.Graphics(); g.label = 'ground-roots';
+        const hash = (n) => { const v = Math.sin(n * 91.7 + 17.3) * 43758.5453; return v - Math.floor(v); };
+        for (const { s, pts } of shape.runs) {
+            if (s.mat !== 'grass' || s.ramp) continue;
+            const x0 = pts[0][0], x1 = pts.at(-1)[0];
+            for (let x = Math.ceil(x0 / 170) * 170; x < x1 - 60; x += 170) {
+                const r = hash(x);
+                if (r > 0.55 || x - x0 < 60) continue;
+                const y = heightOn(pts, x) + 40;
+                for (let k = 0; k < 3; k++) {
+                    const sx = x + (k - 1) * 9, len = 26 + hash(x + k) * 48, bend = (hash(x - k) - 0.5) * 24;
+                    g.moveTo(sx, y).quadraticCurveTo(sx + bend, y + len * 0.5, sx + bend * 0.4, y + len);
+                    if (k === 1) g.moveTo(sx + bend * 0.5, y + len * 0.55).lineTo(sx + bend * 0.5 + 12, y + len * 0.8);
+                }
+            }
+        }
+        g.stroke({ width: 2, color: 0x6b4a2c, alpha: .42, cap: 'round' });
+        lines.addChildAt(g, 0);
+    }
+
+    /** Things lying in the ground: a shell in the dune, a stone under the turf. */
+    function buildBuried(def) {
+        for (const b of def.buried || []) {
+            const s = spr(b.sprite);
+            if (s._placeholder) { s.destroy(); continue; }
+            s.anchor?.set?.(0.5);
+            const top = floorAt(def, b.x);
+            if (top === null) { s.destroy(); continue; }
+            s.x = b.x; s.y = top + b.d; s.rotation = b.rot || 0; s.scale.set(b.scale || 0.8);
+            s.alpha = 0.72; s.tint = 0xeee2d0;
+            L.terrainBack.addChildAt(s, L.terrainBack.children.length - 1);
+        }
+    }
+
+    /** Where grass tops a cliff, its turf hangs a little over the edge and shades the face. */
+    function groundLips(shape, lines) {
+        const lips = new PIXI.Graphics(); lips.label = 'ground-lips';
+        for (const pts of shape.outlines) {
+            for (let i = 1; i < pts.length; i++) {
+                const [ax, ay] = pts[i - 1], [bx, by] = pts[i];
+                if (Math.abs(ax - bx) > 1e-6 || Math.abs(by - ay) < 60) continue;
+                // a vertical face: the higher ground is on the side it drops from
+                const down = by > ay, x = ax, y = Math.min(ay, by), dir = down ? -1 : 1; // dir points into the high ground
+                const high = shape.runs.find(r => Math.abs((dir < 0 ? r.pts.at(-1)[0] : r.pts[0][0]) - x) < 1e-6 && Math.abs((dir < 0 ? r.pts.at(-1)[1] : r.pts[0][1]) - y) < 1e-6);
+                if (!high || high.s.mat !== 'grass') continue;
+                const lip = [[x + dir * 40, y - 2], [x - dir * 12, y + 2], [x - dir * 10, y + 16], [x - dir * 4, y + 30], [x + dir * 8, y + 40], [x + dir * 40, y + 44]];
+                fillPoly(lips, lip, 'grass');
+                // hanging blades and the shade under the turf
+                for (let k = 0; k < 7; k++) { const bxk = x - dir * (10 - k * 3); lips.moveTo(bxk, y + 20 + (k % 3) * 6).lineTo(bxk - dir * 2, y + 40 + (k % 4) * 7); }
+                lips.stroke({ width: 2, color: 0x5d7a4a, alpha: .7, cap: 'round' });
+                lips.poly([x, y + 40, x + dir * 60, y + 40, x + dir * 60, y + 110, x, y + 110].flat()).fill({ color: 0x2b261f, alpha: .12 });
+                lips.poly([x, y + 40, x + dir * 24, y + 40, x + dir * 24, y + 70, x, y + 70].flat()).fill({ color: 0x2b261f, alpha: .1 });
+                lines.addChild(rope('stroke-graphite', resamplePts([[x + dir * 20, y], [x - dir * 10, y + 4], [x - dir * 6, y + 26], [x + dir * 6, y + 40]], 12), { width: 4, alpha: .8 }));
+            }
+        }
+        lines.addChildAt(lips, 0);
+    }
+
+    /** How deep a plank, bridge or pier deck is drawn below its walking line. The
+     * beach jetty is thin, so it stands clear of the sea instead of lying in it. */
+    function thickness(s) { return s.jetty ? 22 : s.pier ? 34 : s.bridge ? 30 : 26; }
+
+    /** The solid surface drawn on top at x (null over open water or air). */
+    function surfaceAt(def, x) {
+        let best = null, by = Infinity;
+        for (const s of def.surfaces) {
+            if (s.thin || !cond(s.when, G.flags)) continue;
+            const y = heightOn(s.pts, x);
+            if (y !== null && y < by) { best = s; by = y; }
+        }
+        return best;
+    }
+
+    /**
+     * Where the sea or a pool meets the land: the ground darkens with wet sand
+     * (or wet stone) near the water, and the sea leaves a lace of paper-white
+     * foam at the edge. Her beach keeps her own waterline and wave instead.
+     */
+    function buildShores(def, d) {
+        d.foams = [];
+        if (def.underwater) return;
+        const groundAt = drawnGround(def);
+        const wet = new PIXI.Graphics(); wet.label = 'shore-wet';
+        for (const wb of d.waters) {
+            const { w, span } = wb;
+            if (w.kind !== 'sea' && w.kind !== 'pool') continue;
+            if (def.waterline?.sea === w.id) continue;
+            // the seabed is seen through water: its skin is cooler and a little blue
+            if (w.kind === 'sea') {
+                const bed = span.poly.slice(2);
+                // thin where the bed rises to meet the air, so the tint has no edge at the shore
+                const taper = (x) => { const e = Math.min(x - span.x0, span.x1 - x); return e / (e + h(0.5)); };
+                for (const [d0, d1, alpha] of [[0, 110, .22], [110, 220, .1]]) {
+                    wet.poly([...bed.map(([x, y]) => [x, y + d0 * taper(x)]), ...bed.slice().reverse().map(([x, y]) => [x, y + d1 * taper(x)])].flat()).fill({ color: 0x3e6f96, alpha });
+                }
+            }
+            for (const [cx, dry] of [[span.x0, -1], [span.x1, 1]]) {
+                if (Math.abs(cx - (dry < 0 ? w.x0 : w.x1)) < 1) continue; // the water's own end, not a shore
+                const s = surfaceAt(def, cx + dry * 30);
+                const stone = s?.mat === 'rock';
+                // the wet band follows the ground: strongest at the water, fading up the dry side
+                for (const [a0, a1, alpha] of [[h(1.1), h(0.7), .22], [h(0.7), h(0.3), .45], [h(0.3), -h(0.35), .75]]) {
+                    const xa = cx + dry * a0, xb = cx + dry * a1;
+                    const top = [];
+                    for (let k = 0; k <= 8; k++) { const x = lerp(Math.min(xa, xb), Math.max(xa, xb), k / 8), y = groundAt(x); if (y !== null) top.push([x, y + 3]); }
+                    if (top.length < 2) continue;
+                    const band = [...top, ...top.slice().reverse().map(([x, y]) => [x, y + 34])];
+                    if (stone) wet.poly(band.flat()).fill({ color: 0x3b3530, alpha: alpha * 0.3 });
+                    else fillPoly(wet, band, 'wetsand', alpha);
+                }
+                if (w.kind !== 'sea') continue;
+                const f = spr('foam-edge');
+                if (f._placeholder) { f.destroy(); continue; }
+                f.anchor?.set?.(0.5, 0.7); f.scale.set(0.42, 0.5);
+                f.x = cx - dry * 26; f.y = w.top + 4;
+                L.waterFront.addChild(f);
+                d.foams.push({ s: f, x: f.x, y: f.y, phase: cx * 0.013 });
+            }
+        }
+        L.terrainBack.addChildAt(wet, L.terrainBack.getChildIndex(d.groundLines));
+    }
+
+    /**
+     * The posts that hold a pier up, from under its deck down into the bed:
+     * dark and wet just above the surface, weedy just below it, with little
+     * ripples where they stand in the water.
+     */
+    function buildPosts(def, d) {
+        d.ripples = [];
+        const groundAt = drawnGround(def);
+        for (const s of def.surfaces) {
+            if (!s.posts) continue;
+            const { from, to, every, width = 26 } = s.posts;
+            const th = thickness(s);
+            const g = new PIXI.Graphics(); g.label = 'posts';
+            const lines = new PIXI.Container();
+            for (let x = from; x <= to + 1; x += every) {
+                const water = (def.waters || []).find(q => q.kind !== 'pipe' && x > q.x0 && x < q.x1);
+                const top = heightOn(s.pts, x) + th - 8;
+                const bed = (groundAt(x) ?? def.bounds.y1) + 40;
+                const lean = (x * 7.3) % 5 - 2.5; // hand-set posts are never quite plumb
+                const L0 = [x - width / 2, top], L1 = [x - width / 2 + lean, bed], R0 = [x + width / 2, top], R1 = [x + width / 2 + lean, bed];
+                fillPoly(g, [L0, R0, R1, L1], 'wood');
+                g.moveTo(x - 3, top + 10).lineTo(x - 2 + lean, bed).stroke({ width: 2, color: 0x6b4a2c, alpha: .35 });
+                if (water) {
+                    const at = (y) => lean * (y - top) / (bed - top);
+                    g.poly([x - width / 2 + at(water.top - 22), water.top - 22, x + width / 2 + at(water.top - 22), water.top - 22, x + width / 2 + at(water.top), water.top, x - width / 2 + at(water.top), water.top]).fill({ color: 0x3f2c1c, alpha: .34 });
+                    g.poly([x - width / 2 + at(water.top), water.top, x + width / 2 + at(water.top), water.top, x + width / 2 + at(water.top + 80), water.top + 80, x - width / 2 + at(water.top + 80), water.top + 80]).fill({ color: 0x2f5e25, alpha: .2 });
+                    const rp = new PIXI.Graphics();
+                    for (const side of [-1, 1]) {
+                        const ex = side * (width / 2 + 4);
+                        rp.moveTo(ex, 2).quadraticCurveTo(ex + side * 12, -3, ex + side * 22, 1).stroke({ width: 3, color: 0xffffff, alpha: .8, cap: 'round' });
+                        rp.moveTo(ex + side * 26, 4).quadraticCurveTo(ex + side * 33, 1, ex + side * 40, 4).stroke({ width: 2, color: 0xffffff, alpha: .55, cap: 'round' });
+                    }
+                    rp.x = x + lean * (water.top - top) / (bed - top); rp.y = water.top;
+                    L.waterFront.addChild(rp);
+                    d.ripples.push({ g: rp, phase: x * 0.021 });
+                }
+                for (const [a, b] of [[L0, L1], [R0, R1]]) lines.addChild(rope('stroke-graphite', resamplePts([a, b], 50), { width: 4 }));
+            }
+            L.far.addChild(g, lines);
+        }
+    }
+
+    /**
+     * The far side of a gully, a ditch or a cleft, in shade. Without it the
+     * page shows a hole to the sky (or to the painted sea) between its walls.
+     */
+    function buildBacks(def, d) {
+        d.backs = [];
+        for (const bk of def.backs || []) {
+            const c = new PIXI.Container(); c.label = 'back-wall';
+            const [tl, tr] = bk.top;
+            const g = new PIXI.Graphics();
+            // the far bank dips a little between the near edges, so some land shows beyond it
+            const rim = [];
+            for (let k = 0; k <= 12; k++) {
+                const u = k / 12, near = lerp(tl, tr, u);
+                rim.push([lerp(bk.x0 - 6, bk.x1 + 6, u), near + (bk.floor - near) * (bk.dip ?? 0.16) * Math.sin(Math.PI * u) + Math.sin(u * 9 + bk.x0) * 4]);
+            }
+            const wall = [...rim, [bk.x1 + 6, bk.floor + 60], [bk.x0 - 6, bk.floor + 60]];
+            fillPoly(g, wall, bk.mat);
+            // farther than the near edges: paler (a little air between), then in shade
+            // under its far rim and at its foot
+            g.poly(wall.flat()).fill({ color: 0xe4e6dc, alpha: .34 });
+            g.poly(wall.flat()).fill({ color: 0x3b2a1a, alpha: .08 });
+            g.poly([...rim, ...rim.slice().reverse().map(([x, y]) => [x, y + 60])].flat()).fill({ color: 0x2b1d12, alpha: .14 });
+            g.poly([bk.x0 - 6, bk.floor - 50, bk.x1 + 6, bk.floor - 50, bk.x1 + 6, bk.floor + 60, bk.x0 - 6, bk.floor + 60]).fill({ color: 0x2b1d12, alpha: .12 });
+            c.addChild(g);
+            // its far rim: a lighter pencil line than the near edges
+            c.addChild(rope('stroke-graphite', resamplePts(rim, 40), { width: 4, alpha: .34 }));
+            // a few stones fallen to its floor
+            for (const [u, name, sc] of bk.stones || []) {
+                const st = spr(name); st.x = lerp(bk.x0, bk.x1, u); st.y = bk.floor + 4; st.scale.set(sc); st.tint = 0xd8cfc4; c.addChild(st);
+            }
+            L.far.addChild(c);
+            d.backs.push({ bk, c });
+        }
+    }
+
     // --- scene-specific objects -------------------------------------------------------------
     function buildSceneObjects(def, d) {
         const O = d.obj = {};
@@ -662,6 +1079,21 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
             }
             // backsippa clumps and tussocks
             O.clumps = (def.clumps || []).map((c) => { const s = spr('backsippa'); s.x = c.x; s.y = c.y; L.mid.addChild(s); const b = spr('backsippa-bare'); b.x = c.x; b.y = c.y; b.visible = false; L.mid.addChild(b); return { c, s, b }; });
+            // a pair of little butterflies over each backsippa
+            O.butterflies = [];
+            for (const [k, c] of (def.clumps || []).entries()) {
+                for (let i = 0; i < 2; i++) {
+                    const g = new PIXI.Graphics();
+                    const col = (k + i) % 3 === 0 ? 0xf2e27a : (k + i) % 3 === 1 ? 0xc9b6e4 : 0xf6f3ea;
+                    for (const side of [-1, 1]) {
+                        g.ellipse(side * 7, -4, 7, 9).fill({ color: col }).stroke({ width: 1.6, color: 0x3b3530, alpha: .8 });
+                        g.ellipse(side * 5, 6, 4.5, 5.5).fill({ color: col }).stroke({ width: 1.4, color: 0x3b3530, alpha: .8 });
+                    }
+                    g.moveTo(0, -9).lineTo(0, 9).stroke({ width: 2.4, color: 0x3b3530, cap: 'round' });
+                    L.objects.addChild(g);
+                    O.butterflies.push({ g, c, ph: k * 2.1 + i * 3.7, r: h(0.5 + i * 0.25) });
+                }
+            }
             O.tussocks = (def.tussocks || []).map((t) => { const s = spr('tussock-dotted'); s.x = t.x; s.y = t.y; L.objects.addChild(s); return { t, s }; });
             O.pinwheels = (def.pinwheels || []).map((pw) => { const s = spr('pinwheel'); s.x = pw.x; s.y = pw.y; L.mid.addChild(s); const hd = spr('pinwheel-head'); hd.anchor?.set?.(0.5); hd.x = pw.x; hd.y = pw.y - 110; L.mid.addChild(hd); return { pw, s, hd, a: 0 }; });
             O.shells = (def.shells || []).map((sh, i) => { const s = spr('shell-' + (1 + (i % 6))); s.x = sh.x; s.y = heightOn(def.surfaces.find((q) => q.id === 'beach').pts, sh.x) ?? -80; L.mid.addChild(s); return { sh, s, glow: 0 }; });
@@ -671,12 +1103,34 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
             O.glimpse = heroFactory({ mini: true });
             O.glimpse.view.scale.set(0.34);
             O.glimpseRidge = new PIXI.Container();
-            // Bury the outer ends beneath the foreground: otherwise a narrow
-            // portrait camera exposes a vertical edge where the fill closes.
-            const ridge = [[-1800, 1100], [-1050, 350], [-740, 180], [-390, 55], [-90, 0], [100, 0], [480, 90], [1030, 320], [1800, 1100]];
+            // A real hill for the distant figure, in the steppe's own colours,
+            // nearer than the painted bands and thinning into the valley's haze
+            // toward its foot (the ground line is 480 below its top), so the
+            // bands behind still show. Slices never overlap, so no alpha doubles.
+            const ridge = [[-1500, 1000], [-1200, 640], [-980, 420], [-800, 290], [-620, 190], [-450, 110], [-300, 55], [-160, 16], [-60, 2], [60, 0],
+                [180, 8], [330, 40], [500, 105], [700, 200], [900, 320], [1150, 520], [1500, 1000]];
+            // the ridge's x where it crosses height y on each side
+            const cross = (y, side) => { for (let i = 1; i < ridge.length; i++) { const [ax, ay] = ridge[i - 1], [bx, by] = ridge[i]; if ((ay - y) * (by - y) <= 0 && ay !== by && (side < 0 ? ay >= by : ay <= by)) return ax + (bx - ax) * (y - ay) / (by - ay); } return side * 1500; };
             const ridgeFill = new PIXI.Graphics();
-            fillPoly(ridgeFill, [...ridge, [1800, 1600], [-1800, 1600]], 'grass', .27);
-            O.glimpseRidge.addChild(ridgeFill, rope('stroke-graphite', resamplePts(ridge, 45), { alpha: .2 }));
+            const solidTo = 150, hazeTo = 470, steps = 14;
+            for (let k = -1; k < steps; k++) {
+                const y0 = k < 0 ? -20 : solidTo + (hazeTo - solidTo) * k / steps, y1 = k < 0 ? solidTo : solidTo + (hazeTo - solidTo) * (k + 1) / steps;
+                const a = k < 0 ? 1 : Math.pow(1 - (k + 0.5) / steps, 1.3);
+                const xl = cross(y1, -1), xr = cross(y1, 1);
+                const upper = [[xl, y1]];
+                for (const [x, y] of ridge) if (x > xl && x < xr) upper.push([x, Math.max(y, y0)]);
+                upper.push([xr, y1]);
+                ridgeFill.poly(upper.flat()).fill({ color: 0xc8ccb0, alpha: a });
+                fillPoly(ridgeFill, upper, 'grass', a * 0.5);
+            }
+            // its outline fades down the slopes with the fill
+            const crest = ridge.filter(([, y]) => y < 330);
+            O.glimpseRidge.addChild(ridgeFill, rope('stroke-graphite', resamplePts(crest.filter(([, y]) => y < 120), 45), { alpha: .32 }));
+            for (const side of [-1, 1]) {
+                const tail = crest.filter(([x, y]) => y >= 100 && Math.sign(x) === side);
+                const joint = crest.filter(([x, y]) => y < 120 && Math.sign(x) === side).at(side < 0 ? 0 : -1);
+                if (joint && tail.length) O.glimpseRidge.addChild(rope('stroke-graphite', resamplePts(side < 0 ? [...tail, joint] : [joint, ...tail], 45), { alpha: .14 }));
+            }
             L.far.addChild(O.glimpseRidge);
             L.far.addChild(O.glimpse.view);
             O.landmark = spr('mark-land'); O.landmark.x = def.spots.landmark.x; O.landmark.y = def.spots.landmark.y - h(0.4); O.landmark.anchor?.set?.(0.5); L.objects.addChild(O.landmark);
@@ -688,6 +1142,25 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
             O.school = [];
             if (def.school) for (let i = 0; i < def.school.count; i++) { const s = spr('lyktfisk-' + (1 + (i % 2))); s.anchor?.set?.(0.5); L.actors.addChild(s); const g = spr('p-glow'); g.anchor?.set?.(0.5); g.alpha = 0.6; g.scale.set(1.4); L.fx.addChild(g); O.school.push({ s, g, a: i * 0.9, r: 40 + i * 9 }); }
             O.shy = (def.shy || []).map((c) => { const s = spr(c.kind + '-1'); s.anchor?.set?.(0.5, 1); s.x = c.x; s.y = c.y; L.actors.addChild(s); return { c, s }; });
+            // the lyktfiskar light the water round them and a pool on the bed below
+            if (def.school) {
+                O.schoolHalo = new PIXI.Sprite(shadeTexture()); O.schoolHalo.anchor.set(0.5); O.schoolHalo.width = h(2.4); O.schoolHalo.height = h(1.7);
+                O.schoolHalo.tint = 0xffe39a; O.schoolHalo.alpha = 0; L.far.addChild(O.schoolHalo);
+                O.schoolPool = new PIXI.Sprite(shadeTexture()); O.schoolPool.anchor.set(0.5); O.schoolPool.width = h(2.6); O.schoolPool.height = 70;
+                O.schoolPool.tint = 0xfff1b8; O.schoolPool.alpha = 0; L.terrainBack.addChild(O.schoolPool);
+            }
+            // small schools of little fish far off between the fronds
+            O.schools = (def.schools || []).map((sc) => {
+                const fish = [];
+                for (let i = 0; i < sc.count; i++) {
+                    const f = spr('fish-' + (1 + (i % 2)));
+                    if (f._placeholder) { f.destroy(); continue; }
+                    f.anchor?.set?.(0.5); f.scale.set(0.8 + (i % 3) * 0.1); f.alpha = 0.6; f.tint = 0xc4dcd6;
+                    L.far.addChild(f);
+                    fish.push({ f, ox: ((i * 37) % 11 - 5) * 22, oy: ((i * 23) % 7 - 3) * 18, ph: i * 1.3 });
+                }
+                return { sc, fish, prevX: sc.x };
+            });
             O.glimpse = heroFactory({ mini: true }); O.glimpse.view.scale.set(0.3); L.far.addChild(O.glimpse.view); O.glimpse.view.visible = false;
         }
         if (def.id === 'viken') {
@@ -701,7 +1174,12 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
                 O.windowMarks.addChild(mark);
             }
             O.windowMarks.visible = false; L.hints.addChild(O.windowMarks);
-            O.chains = (def.chains || []).map((c) => { const pts = []; for (let i = 0; i <= 16; i++) { const t = i / 16; pts.push([lerp(c.from.x, c.to.x, t), lerp(c.from.y, c.to.y, t) + Math.sin(t * Math.PI) * 60]); } const r = rope('stroke-chain', pts, { color: 0x6b635a, width: 4, scale: 1 }); r.alpha = 0.5; L.mid.addChild(r); return { c, r }; });
+            // chains hang: a sag that grows with their span, so none reads as a ruled line
+            O.chains = (def.chains || []).map((c) => {
+                const span = Math.hypot(c.to.x - c.from.x, c.to.y - c.from.y), sag = Math.min(h(1.6), span * 0.06), pts = [];
+                for (let i = 0; i <= 28; i++) { const t = i / 28; pts.push([lerp(c.from.x, c.to.x, t), lerp(c.from.y, c.to.y, t) + 4 * t * (1 - t) * sag]); }
+                const r = rope('stroke-chain', pts, { color: 0x6b635a, width: 4, scale: 1 }); r.alpha = 0.72; L.mid.addChild(r); return { c, r };
+            });
             O.map = spr('map-closed'); O.map.visible = false; L.objects.addChild(O.map);
             O.ratchet = d.items.find((q) => q.it.ratchet)?.s;
             // progress rings: the pier drum (gallop steps) and the seabed plate (seconds resting on it)
@@ -741,20 +1219,38 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
         O.actionCue = createActionCue(PIXI); L.hints.addChild(O.actionCue.container);
     }
 
+    /** White fading downward: an alpha mask for a reflection that should thin with depth. */
+    let fadeTex = null;
+    function fadeTexture() {
+        if (fadeTex) return fadeTex;
+        const cv = document.createElement('canvas'); cv.width = 2; cv.height = 256;
+        const c = cv.getContext('2d'), gr = c.createLinearGradient(0, 0, 0, 256);
+        gr.addColorStop(0, 'rgba(255,255,255,1)'); gr.addColorStop(0.2, 'rgba(255,255,255,1)'); gr.addColorStop(1, 'rgba(255,255,255,0.18)');
+        c.fillStyle = gr; c.fillRect(0, 0, 2, 256);
+        fadeTex = PIXI.Texture.from(cv);
+        return fadeTex;
+    }
+
     function buildReflection(def, w) {
         const c = new PIXI.Container();
-        const mask = new PIXI.Graphics().rect(w.x0, w.top, w.x1 - w.x0, h(3)).fill({ color: 0xffffff });
+        const pool = def.id === 'land' && w.id === 'pool';
+        // The pool is shallow but its answer is tall: the reflection is clear at the
+        // surface and thins into the wet sand below, so it reads as a reflection.
+        let mask;
+        if (pool && fadeTexture()) { mask = new PIXI.Sprite(fadeTexture()); mask.position.set(w.x0, w.top); mask.width = w.x1 - w.x0; mask.height = h(2.2); }
+        else mask = new PIXI.Graphics().rect(w.x0, w.top, w.x1 - w.x0, h(3)).fill({ color: 0xffffff });
         const inner = new PIXI.Container();
         c.addChild(inner, mask);
         c.mask = mask;
         inner.alpha = 0.55;
-        if (def.id === 'land' && w.id === 'pool') {
+        if (pool) {
             // the page as it should be: the arch open, the stone at its foot, the plank solid, a small fish
             const cliff = spr('cliff-open'); cliff.x = def.spots.arch.x - h(0.2); cliff.y = w.top + (w.top - def.spots.arch.y) + 20; cliff.scale.y = -1; inner.addChild(cliff);
             const st = spr('rail-stone'); st.x = def.rail.x0 + def.rail.step * def.rail.target; st.y = w.top + 30; st.scale.y = -1; inner.addChild(st);
             // the plank lies just past the pool, so its reflection is drawn at the east bank, inside the water
             const pl = spr('plank-solid'); pl.anchor?.set?.(0.5); pl.x = w.x1 - h(0.62); pl.y = w.top + 50; pl.scale.y = -1; inner.addChild(pl);
-            const fish = spr('fish-1'); fish.anchor?.set?.(0.5); fish.y = w.top + h(0.9); fish.scale.set(0.8, -0.8); inner.addChild(fish);
+            // a little fish in the water itself, not in the sand below it
+            const fish = spr('fish-1'); fish.anchor?.set?.(0.5); fish.y = w.top + 24; fish.scale.set(0.5, -0.5); inner.addChild(fish);
             c._fish = fish;
         }
         if (def.id === 'viken') {
@@ -781,6 +1277,8 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
             for (const ch of layer.removeChildren()) if (ch !== hero.view && !particles.some((p) => p.s === ch)) ch.destroy({ children: true });
         }
         for (const ch of bgLayer.removeChildren()) ch.destroy();
+        for (const ch of bgFront.removeChildren()) ch.destroy();
+        for (const t of gradients.splice(0)) t.destroy(true);
         for (const ch of skyLayer.removeChildren()) ch.destroy({ children: true });
         particles.length = 0; pool.length = 0;
         for (const m of minis) m.destroy?.();
@@ -998,6 +1496,8 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
         const frozen = def.id === 'land' ? (!F.has('plask') || G.freeze) : false;
         const W = app.screen.width, H = app.screen.height;
         const scenicTime = G.lessMotion ? 0 : time;
+        // one wind for the whole page: the grass, the clouds and the foam move together
+        const wind = G.lessMotion ? 0 : 0.8 + 0.3 * Math.sin(time * 0.21) + 0.2 * Math.sin(time * 0.57 + 1.3);
         if (mapAssembly) {
             const previous = mapAssembly.elapsed;
             mapAssembly.elapsed += dt;
@@ -1028,35 +1528,90 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
         world.position.set(W / 2 - cam.x * cam.zoom + shx, H / 2 - cam.y * cam.zoom);
         S.atmosphere.update({ cam, width: W, height: H, time: scenicTime, lessMotion: G.lessMotion, evening: G.evening, waterTop: S.waterTop ?? 0 });
 
-        // backdrops (cover the screen, crossfade by camera x)
+        // backdrops: a sky that covers the screen (crossfading by camera x), and
+        // the layers in front of the sky props, each at its own depth
+        const swap = (s, image) => {
+            const want = G.evening && def.evening?.[image] ? def.evening[image] : image;
+            if (want !== s._img) { const t = T(want); if (t) { s.texture = t; s._img = want; } }
+        };
+        const portrait = H > W * 1.05;
+        // where the ground line sits on screen, and the ground under the camera (updateCamera's framing)
+        const frameK = portrait ? 0.08 : 0.12, feet = cam.y + (H / cam.zoom) * frameK;
+        // clouds and gulls stay in the sky above a painted horizon (the bay's), never over its water
+        let skyFloor = Infinity;
         for (const b of S.bg) {
             const bb = b._bg;
-            const want = G.evening && def.evening?.[bb.image] ? def.evening[bb.image] : bb.image;
-            if (want !== b._img) { const t = T(want); if (t) { b.texture = t; b._img = want; } }
+            swap(b, bb.image);
             const tw = b.texture?.width || 64, th = b.texture?.height || 64;
             const sc = Math.max(W / tw, H / th) * 1.08;
+            const mid = (bb.x0 + bb.x1) / 2;
             b.scale.set(sc);
-            b.x = (W - tw * sc) / 2 - ((cam.x % h(40)) / h(40) - 0.5) * W * 0.03;
+            const slack = (tw * sc - W) / 2;
+            b.x = (W - tw * sc) / 2 + clamp(-(cam.x - mid) * cam.zoom * 0.004, -slack, slack);
             b.y = (H - th * sc) / 2 + clamp(-(cam.y - h(-1)) * cam.zoom * 0.05, -H * 0.04, H * 0.04);
+            // Hills stand on the ground line; the sky's palest row sits just above them.
+            const groundY = (par) => H * (0.5 + frameK) + (bb.ref - feet) * cam.zoom * par;
+            if (bb.ref !== undefined) b.y = Math.min(0, groundY(0.02) - bb.skyRow * th * sc);
             if (S.vista) {
                 // The bay backdrop's horizon is at 60%; align it with the real waterline.
                 const vistaScale = Math.max(W / tw, H / (th * 0.8)) * 1.08;
                 b.scale.set(vistaScale); b.x = (W - tw * vistaScale) / 2; b.y = H / 2 - th * 0.6 * vistaScale;
             }
-            if (bb.image === 'bg-steppe') b.y -= H * 0.08;
             // Her painted sea stays behind her beach instead of sinking below the sand.
             if (bb.seaY !== undefined && !S.vista) b.y = seaAnchorY({ H, th, sc, seaY: bb.seaY, seaRow: bb.seaRow, camY: cam.y, zoom: cam.zoom });
             let a = 1;
             if (S.bg.length > 1) {
-                const mid = (bb.x0 + bb.x1) / 2, half = (bb.x1 - bb.x0) / 2;
+                const half = (bb.x1 - bb.x0) / 2;
                 const dx = Math.abs(cam.x - mid) - half;
                 a = clamp(1 - dx / h(5), 0, 1);
             }
             b.alpha = a;
+            if (bb.horizon !== undefined && a > 0.5) skyFloor = Math.min(skyFloor, b.y + bb.horizon * th * b.scale.y);
             if (b._under) {
                 const end = b.y + th * b.scale.y - 2;
                 b._under.clear();
-                if (end < H && a > 0.001) b._under.rect(0, end, W, H - end).fill({ color: G.evening ? 0xb3c3c9 : 0x4c7eae, alpha: a });
+                if (end < H && a > 0.001) b._under.rect(0, end, W, H - end).fill({ color: G.evening ? 0x789bb8 : 0x5584b0, alpha: a });
+            }
+            // The sky's frame on screen; every layer spans its width.
+            const fw = tw * b.scale.x, fh = th * b.scale.y;
+            for (const l of b._layers) {
+                const lb = l._layer;
+                swap(l, lb.image);
+                l.visible = a > 0.001;
+                if (!l.visible) { l._below?.clear(); continue; }
+                const k = fw / l.texture.width, lh = l.texture.height * k;
+                const y = bb.ref !== undefined && !S.vista ? groundY(lb.par) - lb.y * fh : b.y + (lb.top || 0) * fh;
+                if (lb.repeat) {
+                    l.position.set(0, y); l.width = W; l.height = lh;
+                    l.tileScale.set(k);
+                    l.tilePosition.x = S.vista ? b.x : b.x - cam.x * cam.zoom * lb.par;
+                } else {
+                    l.scale.set(k);
+                    l.position.set(S.vista ? b.x : (W - fw) / 2 + clamp(-(cam.x - mid) * cam.zoom * lb.par, -slack, slack), y);
+                }
+                l.alpha = a;
+                // the nearest band's own colour below it, where no ground covers the screen
+                if (l._below) {
+                    l._below.clear();
+                    if (y + lh < H) l._below.rect(0, y + lh - 1, W, H - y - lh + 1).fill({ color: G.evening ? 0xc3c29d : lb.fill, alpha: a });
+                }
+            }
+            const u = b._depths;
+            if (u) {
+                const ub = u._layer;
+                const top = S.waters.find(wb => wb.w.id === ub.water)?.w.top ?? 0;
+                const y = H / 2 + (top - cam.y) * cam.zoom;
+                u.visible = !S.vista && a > 0.001 && y < H;
+                u._below.clear();
+                if (u.visible) {
+                    const k = cam.zoom * ub.span / u.texture.width, uh = u.texture.height * k;
+                    u.position.set(0, y); u.width = W; u.height = uh;
+                    u.tileScale.set(k);
+                    u.tilePosition.x = -cam.x * cam.zoom * ub.par;
+                    u.alpha = a;
+                    u.tint = G.evening ? 0xffe6c4 : 0xffffff;
+                    if (y + uh < H) u._below.rect(0, y + uh - 1, W, H - y - uh + 1).fill({ color: ub.fill, alpha: a });
+                }
             }
         }
         // sky props: parallax
@@ -1075,10 +1630,11 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
                 const fr = frozen && it.her && it.scatter === undefined ? 1 : 1 + (Math.floor(it.phase * 3) % 4);
                 setTex(it.s, 'gull-m-' + fr);
             } else if (it.anim === 'cloud' && !frozen && !G.lessMotion) {
-                it.x += dt * 6;
+                it.x += dt * 6 * wind;
             }
             else if (it.anim === 'sun' && !frozen) { it.s.rotation = G.lessMotion ? 0 : Math.sin(time * 0.2) * 0.02; }
             it.s.x = sx + ox * cam.zoom; it.s.y = sy + oy * cam.zoom;
+            if (it.kind === 'gull' || it.anim === 'cloud') it.s.y = Math.min(it.s.y, skyFloor - H * (it.kind === 'gull' ? 0.06 : 0.2));
             it.s.scale.set(cam.zoom * (it.s._baseScale || 1) * (it.s.scale.x < 0 ? -1 : 1), cam.zoom * (it.s._baseScale || 1));
         }
         placeUserCloud(W, H);
@@ -1097,7 +1653,12 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
                 if (F.has('plask')) s.visible = false;
             }
             if (it.ratchet) { const n = def.drums?.find((q) => q.id === it.ratchet)?.notches || 24; s.rotation = (F.has(it.ratchet) ? n : (G.puz.drums[it.ratchet] || 0)) * (8.4 / n); }
-            if (/^(feathergrass|dune-grass)/.test(it.sprite || '')) s.rotation = G.lessMotion ? 0 : Math.sin(time * .7 + it.x * .006) * .025;
+            if (/^(feathergrass|dune-grass)/.test(it.sprite || '')) {
+                // it sways in the wind, and bends aside as the sköldhäst brushes past
+                const dx = it.x - snap.x, near = Math.abs(dx) < h(0.8) && Math.abs(snap.y - it.y) < h(0.6) && !G.hideHero;
+                it.bend = damp(it.bend || 0, near && !G.lessMotion ? Math.sign(dx || 1) * 0.3 * (1 - Math.abs(dx) / h(0.8)) : 0, 7, dt);
+                s.rotation = G.lessMotion ? 0 : Math.sin(time * .7 + it.x * .006) * .025 * (0.6 + wind) + it.bend;
+            }
         }
         // dynamic thin surfaces and ramps
         for (const it of S.dyn) { if (it.c) it.c.visible = cond(it.s.when, F); }
@@ -1105,6 +1666,7 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
         // kelp sway
         for (const k of S.kelp) {
             k.r.visible = !(k.chapter && !F.has('ch2_open'));
+            if (k.hold) k.hold.visible = k.r.visible;
             if (!k.r.visible) continue;
             const pts = k.pts;
             const sway = (G.player.hidden && Math.abs(G.player.x - k.x) < h(1.5)) ? 0.4 : 1;
@@ -1114,7 +1676,7 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
             }
             for (let i = 0; i <= k.n; i++) {
                 const u = 1 - i / k.n; // 1 at the top
-                pts[i][0] = k.x + Math.sin(scenicTime * 0.9 + k.phase + u * 2.2) * 38 * u * u * sway + Math.sin(scenicTime * 0.37 + k.phase) * 12 * u;
+                pts[i][0] = k.x + (k.lean || 0) * Math.pow(u, 1.6) + Math.sin(scenicTime * 0.9 + k.phase + u * 2.2) * 38 * u * u * sway + Math.sin(scenicTime * 0.37 + k.phase) * 12 * u;
                 pts[i][1] = k.fy - k.H * u;
             }
             if (k.r._strip) updateStrip(k.r, pts);
@@ -1139,6 +1701,12 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
                 if (wb.refl._fish) { wb.refl._fish.x = wb.w.x0 + ((time * 90) % (wb.w.x1 - wb.w.x0)); wb.refl._fish.visible = vis > 0.4; }
             }
         }
+        for (const q of S.shades) q.sh.visible = q.s.visible && !q.s.destroyed;
+        // foam at the shores and ripples round the posts, breathing with the water
+        for (const f of S.foams) { f.s.x = f.x + Math.sin(scenicTime * 1.1 + f.phase) * 6 * (0.5 + wind); f.s.y = f.y + Math.sin(scenicTime * 2.1 + f.phase) * 1.5; }
+        // the light on the seabed dances with the waves above
+        for (const c of S.caustics) { c.g.alpha = c.base * (0.55 + 0.45 * Math.sin(scenicTime * 1.4 + c.phase)); c.g.x = c.x + Math.sin(scenicTime * 0.6 + c.phase) * 8; }
+        for (const r of S.ripples) { const k = Math.sin(scenicTime * 1.7 + r.phase); r.g.scale.x = 1 + k * 0.14; r.g.alpha = 0.72 + k * 0.24; }
         // dashed lines
         for (const dl of S.dashed) {
             const vis = cond(dl.ds.when, F);
@@ -1312,6 +1880,13 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
             for (const t of O.tussocks) { t.s.visible = !F.has(t.t.flag) || t.t.decor; if (t.t.decor && F.has(t.t.flag)) setTex(t.s, 'feathergrass-2'); }
             for (const pw of O.pinwheels) { pw.a += (Z.pinwheels[pw.pw.id] || 0.3) * dt * 2; pw.hd.rotation = pw.a; }
             for (const sh of O.shells) { const rung = Z.shells[sh.sh.id]; sh.s.tint = rung ? 0xfff2c8 : 0xffffff; }
+            for (const b of O.butterflies) {
+                const t = G.lessMotion ? b.ph : time * 0.9 + b.ph, cy = b.c.y - h(0.75);
+                const x = b.c.x + Math.sin(t) * b.r + Math.sin(t * 2.7) * h(0.12), y = cy + Math.sin(t * 1.9) * h(0.28) - Math.abs(Math.sin(t * 0.7)) * h(0.2);
+                b.g.scale.x = (Math.cos(t) >= 0 ? 1 : -1) * (G.lessMotion ? 1 : 0.25 + 0.75 * Math.abs(Math.sin(time * 14 + b.ph)));
+                b.g.position.set(x, y); b.g.rotation = Math.cos(t) * 0.25;
+                b.g.visible = !G.finalRun;
+            }
             const fl = def.drums[0];
             const frac = F.has(fl.flag) ? 1 : (Z.drums[fl.id] || 0) / fl.notches;
             O.flag.y = def.spots.flagpole.y - 60 - frac * 180;
@@ -1340,6 +1915,28 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
                 f.s.scale.x = Math.cos(f.a) > 0 ? -1 : 1;
                 f.g.x = f.s.x; f.g.y = f.s.y; f.g.alpha = sch.state === 'lit' ? 0.9 : 0.5;
             });
+            if (O.schoolHalo) {
+                const vis = F.has('ch2_open'), lit = sch.state === 'lit';
+                const cx = sch.state === 'home' ? home.x : sch.x, cy = sch.state === 'home' ? home.y : sch.y;
+                O.schoolHalo.visible = O.schoolPool.visible = vis;
+                O.schoolHalo.position.set(cx, cy);
+                O.schoolHalo.alpha = (lit ? 0.42 : 0.26) * (G.lessMotion ? 1 : 0.9 + 0.1 * Math.sin(time * 2.3));
+                const bed = floorAt(def, cx);
+                O.schoolPool.visible = vis && bed !== null && bed - cy < h(3);
+                if (bed !== null) O.schoolPool.position.set(cx, bed + 14);
+                O.schoolPool.alpha = (lit ? 0.5 : 0.32) * clamp(1 - (bed - cy) / h(3), 0, 1);
+            }
+            for (const sc of O.schools) {
+                const vis = !sc.sc.chapter || F.has('ch' + sc.sc.chapter + '_open');
+                const t = G.lessMotion ? 0 : time;
+                const gx = sc.sc.x + Math.sin(t * 0.11 + sc.sc.x) * sc.sc.range, gy = sc.sc.y + Math.sin(t * 0.29) * h(0.35);
+                const dir = gx >= sc.prevX ? 1 : -1; sc.prevX = gx;
+                for (const q of sc.fish) {
+                    q.f.visible = vis;
+                    q.f.x = gx + q.ox + Math.sin(t * 1.7 + q.ph) * 10; q.f.y = gy + q.oy + Math.sin(t * 2.3 + q.ph) * 6;
+                    q.f.scale.x = Math.abs(q.f.scale.x) * -dir;
+                }
+            }
             for (const sy of O.shy) {
                 const out = Z.shy[sy.c.id] || 0;
                 sy.s.alpha = out; sy.s.visible = out > 0.02;
@@ -1382,7 +1979,7 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
             O.lamp.alpha = damp(O.lamp.alpha, F.has('lamp_lit') ? 0.95 + Math.sin(time * 2) * 0.05 : 0, 1.2, dt);
             O.beam.alpha = damp(O.beam.alpha, F.has('lamp_lit') ? .88 : 0, 2, dt);
             O.windowMarks.visible = F.has('p8_land') && !F.has('p8_done');
-            O.chains.forEach((c) => { const on = F.has(def.shutters[c.c.shutter].flag); c.r.alpha = on ? 0.95 : 0.45; c.r.tint = on ? 0xffe08a : 0xffffff; });
+            O.chains.forEach((c) => { const on = F.has(def.shutters[c.c.shutter].flag); c.r.alpha = on ? 0.95 : 0.7; c.r.tint = on ? 0xffe08a : 0xffffff; });
             const kv = G.actors.kv;
             O.map.visible = kv.visible && kv.scene === 'viken';
             if (O.map.visible) { O.map.x = kv.x - h(0.7); O.map.y = kv.y; setTex(O.map, kv.map === 'open' ? 'map-open' : 'map-closed'); }
@@ -1805,6 +2402,9 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
         clearScene();
         hero.destroy?.();
         root.destroy({ children: true });
+        fadeTex?.destroy(true); fadeTex = null;
+        shadeTex?.destroy(true); shadeTex = null;
+        for (const t of gradients.splice(0)) t.destroy(true);
     }
 
     return {
