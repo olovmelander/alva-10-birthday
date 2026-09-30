@@ -27,7 +27,13 @@ async function open(page, lessMotion = false) {
             if (opts.prompt === shorePrompt) window.__opening.geometry = opts.getGeometry?.() || opts;
             return draw(opts).then(points => {
                 window.__opening.completedDraw = id;
-                if (opts.prompt === shorePrompt) window.__opening.shore = points;
+                if (opts.prompt === shorePrompt) {
+                    // the paper's framing as she drew (the view leans towards the lighthouse then)
+                    const table = window.__skoldhast.debug.app.stage.children.find(c => c.label === 'story-table');
+                    const paper = table?.children.find(c => c.label === 'story-paper');
+                    window.__opening.shoreFrame = paper && { x: paper.x, y: paper.y, s: paper.scale.x };
+                    window.__opening.shore = points;
+                }
                 return points;
             });
         };
@@ -69,7 +75,9 @@ async function advanceDialogue(page) {
     }, before);
 }
 
-async function reachShore(page) {
+/** Play up to the shoreline drawing. `beforeLean` runs while the sköldhäst invites her to draw,
+ * before the view leans out towards the far lighthouse (the same framing the fold returns to). */
+async function reachShore(page, beforeLean) {
     for (let n = 0; n < 20; n++) {
         await page.waitForFunction(() => document.querySelector('.sk-dialogue.on, .sk-draw.on'));
         if (await page.locator('.sk-draw.on').count()) {
@@ -94,7 +102,11 @@ async function reachShore(page) {
             await stroke(page, pts.map(([x, y]) => [pad.x + pad.width * x, pad.y + pad.height * y]));
             await page.waitForSelector('.sk-draw.preview');
             await page.locator('.sk-draw-done').click();
-        } else await advanceDialogue(page);
+        } else {
+            const text = await page.locator('.sk-dialogue.on .sk-dlg-text').textContent().catch(() => '');
+            if (beforeLean && text === STORY.prolog.shoreInvite[1]) { await beforeLean(); beforeLean = null; }
+            await advanceDialogue(page);
+        }
     }
     throw new Error('shoreline drawing was not reached');
 }
@@ -148,7 +160,8 @@ async function verifyFold(page, lessMotion) {
         const sheet = paper.children.find(c => c.children?.some(n => n.label === 'opening-shoreline'));
         const shore = sheet.children.find(c => c.label === 'opening-shoreline');
         const flap = paper.children.find(c => c.label === 'opening-sea-folded');
-        const points = window.__opening.shore.map(([x, y]) => [(x - paper.x) / paper.scale.x, (y - paper.y) / paper.scale.y]);
+        const at = window.__opening.shoreFrame || { x: paper.x, y: paper.y, s: paper.scale.x };
+        const points = window.__opening.shore.map(([x, y]) => [(x - at.x) / at.s, (y - at.y) / at.s]);
         return { points, vertices: Array.from(flap.children[0].geometry.getBuffer('aPosition').data),
             shorePaths: shore.context.instructions.map(i => ({ action: i.action, path: i.data.path?.instructions.map(p => ({ action: p.action, data: p.data })) })),
             phases: window.__opening.phases, samples: window.__opening.samples, framing: window.__opening.framing };
@@ -196,8 +209,14 @@ try {
         page.on('console', m => { if (m.type() === 'error') errors.push(m.text()); });
         const stem = `${width}x${height}${less ? '-less' : ''}`;
         try {
-            await open(page, less); await reachShore(page);
-            const retainedBefore = await sampleRetainedPaper(page);
+            let retainedBefore = null;
+            await open(page, less); await reachShore(page, async () => {
+                // the invitation's dialogue box lies over the sampled sand: hide it for this one picture
+                await page.evaluate(() => document.querySelector('.sk-dialogue').style.visibility = 'hidden');
+                retainedBefore = await sampleRetainedPaper(page);
+                await page.evaluate(() => document.querySelector('.sk-dialogue').style.visibility = '');
+            });
+            assert.ok(retainedBefore, 'the beach was sampled before the view leaned towards the lighthouse');
             await shot(page, stem, 'shore'); await traceShore(page);
             if (!less) {
                 await page.waitForFunction(() => {
