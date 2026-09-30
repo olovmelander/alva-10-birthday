@@ -28,10 +28,21 @@ answer are in `docs/skoldhast/story-kartvaktaren.md`; plan §3.2 and §3.4 follo
   same assembly, captioned "Kartväktarens karta", no route). Then the apology and the unfold. In the finale vista
   he stands on his open gallery (the figure actor), and at the table the caption reads "Teckningen är lite blöt.
   Och alldeles hel."
+- **We see him early, from far off** (Pappa's follow-up): in the prologue Kartväktaren stands on the islet by
+  his tower as the game's own paper rig, small and faded by distance (`opening-canvas.mjs`, `setKeeper`). He
+  measures her line (`point`), shrinks back as the sea comes (`worry`), and his ruler leaves his hand for the
+  fold (`fold`); the ruler and the scraps start from his hand (`landmarks.hand`). Until the bay art has loaded a
+  pencil stand-in takes his place. The memory card shows him on the same islet in the same poses (two rigs: one
+  on the page, one on the corner that folds). Glimpses grow closer: prologue, K1 hook, K2 shutter, K3 meeting.
 - The journal gains the clues `torn_map`, `kv_why` and `kv_map`; reports 1 and 2 ask who /K is and why he did it;
   the talk goal is "Fråga Kartväktaren varför han vek undan havet."
 - Tests: `tests/skoldhast-kartvaktaren.test.mjs` (card stages, the fold geometry, the order of the resolution).
   Pure suite **168/168**; the finale browser check passes with the new ending.
+- Three browser checks were fixed (all three failed on `main` too, or raced): `skoldhast-fold-demo` found the
+  overlay by index (a `bgFront` layer moved it; it now finds the map by label); `skoldhast-mapbook` measured the
+  journal while its entry animation was still tilting it (software GL on Windows can hold the first frame for
+  over a second; it now waits for the animation to finish); `skoldhast-mirror-vista` pressed Space inside the
+  dialogue's 350 ms double-tap guard (it now presses again until the dialogue closes, as a player would).
 
 ## Mörka valvet and the lighthouse stair (30 September)
 

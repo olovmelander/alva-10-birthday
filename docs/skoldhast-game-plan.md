@@ -331,7 +331,9 @@ and why.
    - **"Rita strandkanten vidare – ut på det vita papperet!"** is traced along generous anchors, because P8
      reuses this line. The waterline starts to run off the picture, and the world starts to grow.
 4. Halfway through that third stroke, at a fixed authored point so it cannot fail:
-   - While a far measuring glint settles on her line, a thin sheet of her sea runs along it towards the tower.
+   - Far off on the islet by his paper tower, a small paper man (Kartväktaren, not yet named) lifts his ruler and
+     measures her line. As a thin sheet of her sea runs along it towards him, he shrinks back, hands to his face,
+     and his ruler leaves his hand for the fold.
    - *Prassel.* A dead-straight crease flicks across the horizon from outside the page and cuts her line short.
    - Three torn scraps of his ruled map tear loose at the far tower and flutter into her picture: one over the
      land, one into the sea, and one to the sand right beside Klo.

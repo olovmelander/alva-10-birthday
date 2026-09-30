@@ -8,14 +8,16 @@
  *      wave rises towards his tower; he throws up his arms
  *   2  his ruler comes down across the end of her line, the sea corner folds
  *      under the page, the splash stops in mid-air and scraps of his map fly
- * The fold is the prologue's own geometry (opening-fold.mjs), seen small, so the
- * player recognises the moment they drew.
+ * The fold is the prologue's own geometry (opening-fold.mjs), seen small, and he
+ * stands where the prologue showed him, on the islet by his tower (the same
+ * paper rig, the same poses), so the player recognises the moment they drew.
  *
  *   sampleKvMemory(stage, since, { lessMotion }) → progress of every part (pure)
  *   createKvMemory(PIXI, { texture, makeHero, caption, lessMotion })
  *     → { container, stage(i), update(dt), fit(width, height, insets), close(), destroy() }
  */
 import { openingCrease } from './opening-fold.mjs';
+import { createGuardian } from './guardian.mjs';
 
 const clamp01 = (v) => Math.max(0, Math.min(1, v));
 const ease = (v) => { const p = clamp01(v); return p * p * (3 - 2 * p); };
@@ -28,8 +30,10 @@ export const KV_MEMORY = Object.freeze({
     seaY: 232,
     shoreX: 212,                 // where her sand meets the sea inside the picture
     endpoint: Object.freeze([506, 232]), // where her new line stops: the fold crosses it here
-    tower: Object.freeze({ x: 560, y: 226 })
+    tower: Object.freeze({ x: 560, y: 226 }),
+    keeper: Object.freeze({ x: 532, y: 221.8 }) // on the islet, left of the tower, as in the prologue
 });
+const KEEPER_SCALE = .2;
 const INK = 0x625b50, GRAPHITE = 0x514e41, BLUE = 0x457d98, SEA = 0x8db5bf, SAND = 0xe3c797, PAPER = 0xf7eed8;
 
 /** How far along each part of the memory is, for a stage and the seconds since it began. */
@@ -64,7 +68,7 @@ const LETTERS = {
 
 export function createKvMemory(PIXI, { texture, makeHero, caption = '', lessMotion = false }) {
     const T = (name) => (typeof texture === 'function' ? texture(name) : null) || null;
-    const { width: W, height: H, picture: PIC, seaY, shoreX, endpoint: E, tower: TW } = KV_MEMORY;
+    const { width: W, height: H, picture: PIC, seaY, shoreX, endpoint: E, tower: TW, keeper: KP } = KV_MEMORY;
     const crease = openingCrease(W, H, E);
     const { a, b } = crease;
     const creaseX = (y) => a[0] + (b[0] - a[0]) * (y / H);
@@ -161,6 +165,13 @@ export function createKvMemory(PIXI, { texture, makeHero, caption = '', lessMoti
     const flapFront = new PIXI.Container();
     const towerCopies = [tower, keeper, new PIXI.Graphics(tower.context), new PIXI.Graphics(keeper.context)];
     flapFront.addChild(paperFill(new PIXI.Graphics(), [a, [W, 0], b]), new PIXI.Graphics(wash.context), towerCopies[2], towerCopies[3]);
+    // Kartväktaren himself: the game's paper rig when its art is here (one on the page and
+    // one on the folding corner, which carries him under); otherwise the pencil keeper above
+    const keeperActor = { id: 'kv', visible: true, x: 0, y: 0, pose: 'stand', facing: -1, walk: null, pop: 0 };
+    const keeperRigs = [];
+    const keeperHomes = [art, flapFront];
+    // where his measuring hand is in the 'point' pose (the ruler that folds the page starts here)
+    const hand = { x: KP.x - 40 * 1.06 * KEEPER_SCALE, y: KP.y - 112 * 1.06 * KEEPER_SCALE };
     const flapBack = paperFill(new PIXI.Graphics(), [a, [W, 0], b], .5); flapBack.tint = 0xe8dfca;
     const flapEdge = new PIXI.Graphics();
     flap.addChild(flapFront, flapBack, flapMask, flapEdge); flapFront.mask = flapMask;
@@ -253,15 +264,31 @@ export function createKvMemory(PIXI, { texture, makeHero, caption = '', lessMoti
         line(tower, [[-14, roof + 18], [0, roof], [14, roof + 18]], 0x796f64, .8, 1.4);
         tower.rect(-7, roof + 22, 14, 9).fill({ color: 0x5b747a, alpha: .6 }).stroke({ color: 0x766d61, width: 1 });
         line(tower, [[-16, roof + 34], [16, roof + 34]], 0x766d61, .8, 1.4); // the gallery rail
-        // Kartväktaren on his gallery: his arms go up as the wave comes
-        const k = p.fright, kx = -2, ky = roof + 33;
-        keeper.circle(kx, ky - 13, 3.6).fill({ color: 0xf2ebd8 }).stroke({ color: 0x5d574f, width: 1.1 });
-        keeper.poly([kx - 4, ky - 9, kx + 4, ky - 9, kx + 6, ky + 1, kx - 6, ky + 1]).fill({ color: 0xe8e0c8 }).stroke({ color: 0x5d574f, width: 1 });
-        line(keeper, [[kx - 4, ky - 7], [kx - 9, lerp(ky - 2, ky - 18, k)]], 0x5d574f, .9, 1.3);
-        line(keeper, [[kx + 4, ky - 7], [kx + 9, lerp(ky - 2, ky - 18, k)]], 0x5d574f, .9, 1.3);
-        if (k > .5 && !p.frozen) for (let i = 0; i < 3; i++) {
+        // Kartväktaren on the islet: he measures her line, shrinks back as the sea
+        // comes, and his ruler goes to the fold (the prologue's own poses)
+        keeperActor.pose = p.fold > 0 || p.ruler > .2 ? 'fold' : p.fright > .5 ? 'worry' : p.line > 0 ? 'point' : 'stand';
+        if (!keeperRigs.length && texture?.('kv-part-coat')) for (const home of keeperHomes) {
+            const rig = createGuardian(PIXI, { texture }), wrap = new PIXI.Container();
+            wrap.position.set(KP.x, KP.y); wrap.scale.set(KEEPER_SCALE); wrap.addChild(rig.container);
+            home.addChild(wrap); keeperRigs.push({ rig, wrap });
+        }
+        for (const { rig, wrap } of keeperRigs) {
+            wrap.x = KP.x + shake;
+            rig.update(keeperActor, { time: t, dt: 1 / 60, reducedMotion: lessMotion, figure: true });
+        }
+        const k = p.fright, kx = -20, ky = -3; // (tower units; the pencil stand-in when the rig is not loaded)
+        if (!keeperRigs.length) {
+            keeper.circle(kx, ky - 21, 3.2).fill({ color: 0xf2ebd8 }).stroke({ color: 0x5d574f, width: 1 });
+            keeper.poly([kx - 4, ky - 17, kx + 4, ky - 17, kx + 6, ky - 7, kx - 6, ky - 7]).fill({ color: 0xe8e0c8 }).stroke({ color: 0x5d574f, width: 1 });
+            line(keeper, [[kx - 2, ky - 7], [kx - 2, ky]], 0x5d574f, .9, 1.2);
+            line(keeper, [[kx + 2, ky - 7], [kx + 2, ky]], 0x5d574f, .9, 1.2);
+            line(keeper, [[kx - 4, ky - 15], [kx - 9, lerp(ky - 11, ky - 25, k)]], 0x5d574f, .9, 1.3);
+            line(keeper, [[kx + 4, ky - 15], [kx + 9, lerp(ky - 11, ky - 25, k)]], 0x5d574f, .9, 1.3);
+            if (keeperActor.pose === 'point' || keeperActor.pose === 'stand') line(keeper, [[kx - 16, ky - 17], [kx - 5, ky - 18]], 0x8e7851, .85, 1.4);
+        }
+        if (k > .5 && !p.frozen && p.ruler === 0) for (let i = 0; i < 3; i++) {
             const r = -2.4 + i * .7;
-            line(keeper, [[kx + Math.cos(r) * 8, ky - 14 + Math.sin(r) * 8], [kx + Math.cos(r) * 13, ky - 14 + Math.sin(r) * 13]], 0x9a3b2e, (k - .5) * 1.6, 1.3);
+            line(keeper, [[kx + Math.cos(r) * 8, ky - 24 + Math.sin(r) * 8], [kx + Math.cos(r) * 13, ky - 24 + Math.sin(r) * 13]], 0x9a3b2e, (k - .5) * 1.6, 1.3);
         }
     }
     function drawFold(p) {
@@ -290,9 +317,9 @@ export function createKvMemory(PIXI, { texture, makeHero, caption = '', lessMoti
         if (ruler.visible) {
             const ang = Math.atan2(b[1] - a[1], b[0] - a[0]);
             const cx = E[0] + 8, cy = E[1] - 90;
-            ruler.position.set(lerp(TW.x + 4, cx, p.ruler) + p.fold * 70, lerp(TW.y - 70, cy, p.ruler));
+            ruler.position.set(lerp(hand.x, cx, p.ruler) + p.fold * 70, lerp(hand.y, cy, p.ruler));
             ruler.rotation = lerp(-.3, ang, p.ruler);
-            ruler.scale.set(lessMotion ? 1 : lerp(.3, 1, p.ruler));
+            ruler.scale.set(lessMotion ? 1 : lerp(.08, 1, p.ruler));
             ruler.alpha = p.ruler * (1 - clamp01((p.fold - .4) / .4));
         }
         for (const sc of scraps) {
@@ -351,6 +378,7 @@ export function createKvMemory(PIXI, { texture, makeHero, caption = '', lessMoti
             if (dead) return;
             dead = true;
             hero?.destroy?.();
+            keeperRigs.length = 0;
             container.parent?.removeChild(container);
             if (!container.destroyed) container.destroy({ children: true });
         }

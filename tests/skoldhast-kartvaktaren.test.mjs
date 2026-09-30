@@ -35,13 +35,15 @@ test('the memory card shows one picture per line, and the splash stops only at t
 });
 
 test("the memory's fold is the prologue's: through the end of her line, clear of her picture, taking the sea towards his tower", () => {
-    const { width: W, height: H, picture: P, endpoint: E, tower } = KV_MEMORY;
+    const { width: W, height: H, picture: P, endpoint: E, tower, keeper } = KV_MEMORY;
     const c = openingCrease(W, H, E);
     const xAt = (y) => c.a[0] + (c.b[0] - c.a[0]) * (y / H);
     assert.ok(Math.abs(xAt(E[1]) - E[0]) < 1e-6, 'the crease crosses the last point of her line');
     assert.ok(c.a[0] >= P.x + P.w, 'her picture stays whole');
     // its islet (half-width 42 at the card's 1.4 scale) and its roof (106 above the base)
     assert.ok(tower.x - 42 > xAt(tower.y + 6) && tower.x - 14 > xAt(tower.y - 106), 'his tower stands in the corner that folds under');
+    // he stands on the islet as in the prologue (about 34 units tall), and folds away with it
+    assert.ok(keeper.x - 9 > xAt(keeper.y) && keeper.x - 9 > xAt(keeper.y - 34), 'Kartväktaren is on the folding corner too');
 });
 
 test('the assembled map shows its tear following the fold', () => {

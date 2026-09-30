@@ -485,6 +485,8 @@ export function createTable({ PIXI, app, view, G, ui, audio, assets, makeHero })
         const [shoreStart] = worldToPaper(wave.shoreX, 0);
         const shoreGeometry = () => ({ anchors: Array.from({ length: 6 }, (_, i) => toCss(shoreStart + i * 40, waterY)) });
         setPhase('shoreline');
+        // far off by his tower, Kartväktaren lifts his ruler and measures her line
+        canvasLife?.setKeeper('point');
         const shoreline = await ui.draw({ prompt: UI.drawShore, ...shoreGeometry(), getGeometry: shoreGeometry, stopAt: 3, width: 4, color: '#244f8f', dotRadius: 11 });
         // Keep exactly the authored points after the DOM drawing overlay closes.
         // They remain on the surviving part of the sheet, up to the new crease.
@@ -738,7 +740,7 @@ export function createTable({ PIXI, app, view, G, ui, audio, assets, makeHero })
     }
     let scrapsFlying = false;
     function launchScraps() {
-        const from = canvasLife?.landmarks.light || { x: PIC.x + PIC.w + 148, y: PIC.y + 300 };
+        const from = canvasLife?.landmarks.hand || { x: PIC.x + PIC.w + 117, y: PIC.y + 300 };
         const sp = G.scenes.land.spots.splash;
         const [sx, sy] = worldToPaper(sp.x + h(1.1), h(0.5));
         const k = kloPaper || [PIC.x + 240, PIC.y + 470];
@@ -773,10 +775,13 @@ export function createTable({ PIXI, app, view, G, ui, audio, assets, makeHero })
         setPhase('fold-anticipation');
         // A distant measuring glint settles on the new stroke before the same
         // ruler edge approaches. The gesture is visible; its motive is not.
+        // the sea comes along her line: he shrinks back, then his ruler leaves his hand for the fold
+        canvasLife?.setKeeper('worry');
         await tween(G.lessMotion ? .5 : 1.15, (u) => {
             const e = u * u * (3 - 2 * u);
             canvasLife?.setMeasure(e);
             paintSeaFollows(endpoint, G.lessMotion ? 1 : e);
+            if (u >= .72) canvasLife?.setKeeper('fold');
         });
         const front = PIXI.RenderTexture.create({ width: PW, height: PH, resolution: 1 });
         // Render an unattached copy: promoting the live sheet to a render root
@@ -803,7 +808,7 @@ export function createTable({ PIXI, app, view, G, ui, audio, assets, makeHero })
         ruler.rotation = -Math.atan2(openingFold.crease.b[0] - openingFold.crease.a[0], PH);
         const rulerX = endpoint[0] - (openingFold.crease.b[0] - openingFold.crease.a[0]) / PH * 90;
         onPaper.addChild(ruler);
-        const from = canvasLife?.landmarks.light || { x: rulerX + 220, y: endpoint[1] - 90 };
+        const from = canvasLife?.landmarks.hand || { x: rulerX + 220, y: endpoint[1] - 90 };
         await tween(G.lessMotion ? .25 : .9, (u) => {
             const e = u * u * (3 - 2 * u);
             ruler.position.set(lerp(from.x, rulerX, e), lerp(from.y, endpoint[1] - 90, e));

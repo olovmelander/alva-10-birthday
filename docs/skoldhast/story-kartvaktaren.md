@@ -52,14 +52,29 @@ Each chapter answers one question and asks the next.
 
 | Part | The player asks | New clue | What it tells a careful player |
 |---|---|---|---|
-| Prolog | What happened? | A ruler from the far paper tower folds the sea. Scraps fly. | Someone at the tower did it on purpose |
+| Prolog | What happened? | A small paper man by the far tower measures her line, shrinks back as the sea comes, and his ruler folds the sea. Scraps fly. | Someone at the tower did it on purpose, and was afraid |
 | Kapitel 1 | Who is K? | The /K map corner; "Rör ej!"; a paper figure hurrying away from the water | K is made of paper, rules lines and fears unfinished ones |
 | Kapitel 2 | Why did K do it? | A note sealed in a bottle; the map tore along the fold; he slams a shutter | K fears water, and his own fold tore his map |
 | Kapitel 3 | Will he undo it? | His story, his LAND/HAV map, the sköldhäst's answer | The fear was wrong, and the sköldhäst can show it |
 | Final | Does the paper hold? | PLASK; he stands in the spray on his open gallery | Water on paper, and nothing tears |
 | Epilogue | – | Her real drawing is a little wet, and whole | The answer, at Alva's own table |
 
-## 5. The meeting (Kapitel 3), beat by beat
+## 5. How much we see of him
+
+He is seen early, but only from far off, and a little closer each time. The player can wonder who he is long
+before the game says, and the meeting pays that off ("det är han!").
+
+1. **Prolog:** a small paper man on the islet by his tower (the game's own paper rig, faded by distance). He
+   measures her line with his ruler, shrinks back with his hands to his face as the sea comes, and his ruler
+   leaves his hand for the fold. He folds away with the corner. No words, no name, no close face.
+2. **Kapitel 1:** the same figure hurries away from the water beyond Veckmuren.
+3. **Kapitel 2:** he peeks through a lighthouse shutter and slams it shut.
+4. **Kapitel 3:** he comes out. Now we see his face, hear his name and learn why. His memory card shows him on
+   the same islet, in the same poses, as the player saw in the prologue.
+
+He never appears in Alva's notes opening (that is her head) or on the title screen.
+
+## 6. The meeting (Kapitel 3), beat by beat
 
 At most three boxes before control returns (plan §3.6).
 
@@ -79,7 +94,7 @@ At most three boxes before control returns (plan §3.6).
    join in his hands: the fold tore it, not the water. He apologises to Alva, unfolds the sea and promises to draw
    the shore in pencil so the waves can move it.
 
-## 6. Rules for future lines
+## 7. Rules for future lines
 
 - Kartväktaren is never a villain. He is afraid, and he is wrong, and he changes his mind because of evidence.
 - Keep the one-sentence answer in §2 true. If a new line contradicts it, change the line.

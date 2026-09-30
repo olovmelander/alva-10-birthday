@@ -6,7 +6,20 @@
  * The margin continues the picture itself: each pencil row takes its colour
  * from the picture's edge at that height and loses pressure towards the blank
  * paper, the sand and seabed follow the playable world's own bed, and nothing
- * ends in a ruled edge. The sea surface there is left for Alva's stroke. */
+ * ends in a ruled edge. The sea surface there is left for Alva's stroke.
+ *
+ * Kartväktaren stands on the islet by his paper tower, small and far off: the
+ * game's own paper rig (guardian.mjs), a little faded by distance. The player
+ * can see someone there, with a ruler, long before they learn who or why
+ * (docs/skoldhast/story-kartvaktaren.md). The prologue sets his pose:
+ * 'stand' → 'point' (measuring her line) → 'worry' (the sea is coming) →
+ * 'fold' (his ruler has gone to the fold). Until his art has loaded, a small
+ * pencil figure stands in for him. */
+import { createGuardian } from './guardian.mjs';
+
+// his size on the paper: about a third of his tower's height, readable on a phone
+const KEEPER_SCALE = .18;
+
 export function createOpeningCanvas(PIXI, { parent, texture, picture, waterY, bed = [], sample = () => null, lessMotion = false }) {
     const container = new PIXI.Container();
     container.label = 'opening-living-canvas';
@@ -14,9 +27,13 @@ export function createOpeningCanvas(PIXI, { parent, texture, picture, waterY, be
     const { x, w } = picture;
     const right = x + w, edge = Math.min(980, right + 194);
     const towerX = right + 140, towerBase = waterY - 38, lightY = towerBase - 48;
+    const keeperX = towerX - 23, keeperY = towerBase - 2.5;
     const landmarks = Object.freeze({
         tower: Object.freeze({ x: towerX, y: towerBase }),
         light: Object.freeze({ x: towerX + 8, y: lightY }),
+        keeper: Object.freeze({ x: keeperX, y: keeperY }),
+        // his measuring hand: the ruler that folds the page starts here
+        hand: Object.freeze({ x: keeperX - 40 * 1.06 * KEEPER_SCALE, y: keeperY - 112 * 1.06 * KEEPER_SCALE }),
         shore: Object.freeze({ x: right + 74, y: waterY })
     });
     const ridge = new PIXI.Graphics(); ridge.label = 'opening-distant-steppe';
@@ -26,7 +43,13 @@ export function createOpeningCanvas(PIXI, { parent, texture, picture, waterY, be
     const light = new PIXI.Graphics(); light.label = 'opening-measuring-light';
     const figure = new PIXI.Graphics(); figure.label = 'opening-distant-observer';
     const motion = new PIXI.Graphics(); motion.label = 'opening-water-breath';
-    container.addChild(ridge, water, reeds, light, tower, figure, motion);
+    const keeper = new PIXI.Container(); keeper.label = 'opening-keeper';
+    keeper.position.set(keeperX, keeperY); keeper.scale.set(KEEPER_SCALE);
+    // distance: a little paler than the picture in front
+    keeper.tint = 0xd9d3c6;
+    container.addChild(ridge, water, reeds, light, tower, figure, keeper, motion);
+    let rig = null;
+    const actor = { id: 'kv', visible: true, x: 0, y: 0, pose: 'stand', facing: -1, walk: null, pop: 0 };
     const random = n => { const a = Math.sin(n * 127.1 + 31.7) * 43758.5453; return a - Math.floor(a); };
     const smooth = (a, b, v) => { const t = Math.max(0, Math.min(1, (v - a) / (b - a))); return t * t * (3 - 2 * t); };
     const mix = (a, b, t) => {
@@ -184,6 +207,7 @@ export function createOpeningCanvas(PIXI, { parent, texture, picture, waterY, be
 
     let measure = 0, lastTime = null, waterTime = 0, aliveAmount = 0, dead = false;
     function setMeasure(progress) { measure = Math.max(0, Math.min(1, progress)); }
+    function setKeeper(pose) { actor.pose = pose; }
     function update({ time = 0, alive = true, frozen = false } = {}) {
         if (dead) return;
         const aliveValue = typeof alive === 'number' ? alive : alive ? 1 : 0;
@@ -197,22 +221,32 @@ export function createOpeningCanvas(PIXI, { parent, texture, picture, waterY, be
         const sway = reduced ? 0 : Math.sin(time * .65) * 1.1 * aliveAmount;
         reeds.skew.x = sway * .002;
         light.clear(); figure.clear(); motion.clear();
-        // The figure lifts a ruler: a brief reflected line settles on the new
-        // shore. This is reflected daylight, not the lighthouse's dormant lamp.
+        // He lifts his ruler: a brief reflected line settles on the new shore.
+        // This is reflected daylight, not the lighthouse's dormant lamp.
         const drift = reduced || frozen ? 0 : Math.sin(waterTime * .35) * 10;
         const endX = right + 10 + (landmarks.shore.x - right - 10) * measure;
         const endY = lightY + 31 + (waterY - lightY - 31) * measure + drift * (1 - measure);
-        light.poly([landmarks.light.x, lightY, endX, endY - 3, endX - 3, endY + 3])
+        const hand = landmarks.hand;
+        light.poly([hand.x, hand.y, endX, endY - 3, endX - 3, endY + 3])
             .fill({ color: 0xffefd1, alpha: .14 * measure * aliveAmount });
-        line(light, [[landmarks.light.x, lightY], [endX, endY]], 0xfff4d6, 1.8, .66 * measure * aliveAmount);
-        // An anonymous head, folded shoulders and measuring arm: no face,
-        // expression or motive is supplied before the later story discovery.
-        const figureX = towerX, figureY = lightY + 5;
-        figure.circle(figureX, figureY - 7, 2.4).fill({ color: 0x6d726b, alpha: .8 });
-        figure.poly([figureX - 3, figureY - 4, figureX + 3, figureY - 4,
-            figureX + 5, figureY + 7, figureX - 5, figureY + 7]).fill({ color: 0x959483, alpha: .8 });
-        line(figure, [[figureX + 1, figureY - 1], [figureX + 8, figureY - 2 - measure * 4]], 0x6b756d, 1.5, .8);
-        line(figure, [[figureX + 4, figureY - 5 - measure * 4], [figureX + 14, figureY - 3 - measure * 4]], 0x8e7851, 1.6, .85);
+        line(light, [[hand.x, hand.y], [endX, endY]], 0xfff4d6, 1.8, .66 * measure * aliveAmount);
+        // Kartväktaren by his tower: the real paper rig once its art is here,
+        // otherwise a small pencil stand-in in the same place and pose.
+        if (!rig && texture?.('kv-part-coat')) { rig = createGuardian(PIXI, { texture }); keeper.addChild(rig.container); }
+        const fright = actor.pose === 'worry' && !frozen && !reduced;
+        keeper.x = keeperX + (fright ? Math.sin(time * 38) * .45 : 0);
+        if (rig) rig.update(actor, { time, dt: dt || 1 / 60, reducedMotion: reduced, figure: true });
+        else {
+            const up = actor.pose === 'worry' ? 1 : 0, reach = actor.pose === 'point' ? 1 : 0;
+            figure.circle(keeperX, keeperY - 21, 2.8).fill({ color: 0xf1ead8 }).stroke({ color: 0x6d6a60, width: .9 });
+            figure.poly([keeperX - 3, keeperY - 18, keeperX + 3, keeperY - 18, keeperX + 5, keeperY - 7, keeperX - 5, keeperY - 7])
+                .fill({ color: 0xe6dfcb }).stroke({ color: 0x6d6a60, width: .8 });
+            line(figure, [[keeperX - 2, keeperY - 7], [keeperX - 2, keeperY]], 0x6d6a60, 1, .8);
+            line(figure, [[keeperX + 2, keeperY - 7], [keeperX + 2, keeperY]], 0x6d6a60, 1, .8);
+            line(figure, [[keeperX - 3, keeperY - 16], [keeperX - 6 - reach * 2, keeperY - 13 - reach * 5 - up * 8]], 0x6d6a60, 1, .8);
+            line(figure, [[keeperX + 3, keeperY - 16], [keeperX + 5, keeperY - 12 - up * 9]], 0x6d6a60, 1, .8);
+            if (actor.pose !== 'fold') line(figure, [[keeperX - 13, keeperY - 17 - reach * 4], [keeperX - 3, keeperY - 19 - reach * 4]], 0x8e7851, 1.4, .85);
+        }
         // Surface glints stop with the wave. The tiny current UNDER them keeps
         // drifting: an observable clue that hiding below the surface can help.
         for (let i = 0; i < 5; i++) {
@@ -228,7 +262,7 @@ export function createOpeningCanvas(PIXI, { parent, texture, picture, waterY, be
         }
     }
     update({ alive: false });
-    return { container, landmarks, update, setMeasure, destroy() {
+    return { container, landmarks, update, setMeasure, setKeeper, get keeperPose() { return actor.pose; }, destroy() {
         if (dead) return;
         dead = true; container.destroy({ children: true });
     } };
