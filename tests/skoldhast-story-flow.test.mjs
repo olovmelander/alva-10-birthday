@@ -8,7 +8,6 @@ import { HL, STEP } from '../skoldhast/src/sim.mjs';
 import { createRobot } from './skoldhast-robot.mjs';
 
 const tick = () => new Promise(resolve => setImmediate(resolve));
-const clamp = v => Math.min(1, Math.max(-1, v));
 function stage(flags, spawn) {
     const G = createGame(), hints = [], sayings = [];
     for (const flag of flags) G.flags.add(flag);
@@ -28,22 +27,20 @@ async function frames(G, seconds, input = () => ({})) {
     return busy;
 }
 
-test('guided mode at the fold gives a calm reminder and never seizes swimming control', async () => {
+test('the cave reveal advances the story without sending an early swimmer back to the hills', async () => {
+    const R = createRobot();
+    R.G.helpLevel = 'guided';
     const flags = ['intro_done', 'b:k1_enter', 'b:k1_kelp_first', 'b:k1_stopwatch',
-        'klo_hidden', 'klo_ja', 'rule_demo', 'p1_inked', 'p2_open'];
-    const { G, hints, sayings } = stage(flags, { x: 20.8 * HL, y: 3.4 * HL, mode: 'swim' });
-    G.helpLevel = 'guided';
-    const busy = await frames(G, 23, () => ({
-        x: clamp((20.8 * HL - G.player.x) / 100),
-        y: clamp((3.4 * HL - G.player.y) / 100)
-    }));
-    assert.equal(busy, 0, 'a return-route reminder never locks the swimmer');
-    assert.equal(hints.filter(t => t === STORY.k1.waitWaves[1]).length, 2, 'one reminder per cooldown');
-    assert.equal(sayings.length, 0, 'no blocking conversation replaces play');
-    assert.equal(G.has('ch1_end'), false, 'the actual discovery still needs its land evidence');
-    const x = G.player.x;
-    await frames(G, 1, () => ({ x: -1 }));
-    assert.ok(G.player.x < x - HL, 'the player can leave for the beach immediately');
+        'b:k1_ja', 'b:k1_mapcorner', 'klo_hidden', 'klo_ja', 'rule_demo', 'p2_open'];
+    R.G.restore({ flags, checkpoint: 'kelp' });
+    await R.swimTo(20.8, 3.4);
+    await R.flag('ch1_end', {}, 60);
+    await R.settle();
+    assert.ok(R.has('ch2_open') && R.has('clue_fold') && R.has('clue_figure'));
+    assert.equal(R.has('p1_inked'), false);
+    assert.equal(R.has('p3_done'), false);
+    assert.equal(R.story.objective(), 'p5', 'the new underwater route follows its reveal');
+    assert.equal(R.log.filter(e => e.kind === 'report' && e.n === 1).length, 1);
 });
 
 test('lighting the vault explains the route while the fish and hidden shell continue through it', async () => {
@@ -111,7 +108,8 @@ test('asking for hints only still introduces the cave purpose and the trapped fr
 
 test('an explorer can discover the fold over the roof, save it, repair the map and later light the cave', async () => {
     let R = createRobot();
-    R.G.restore({ flags: [...CODE_RESTORE[1].flags, 'ch2_open', 'b:k2_open', 'b:k2_note2'], checkpoint: 'trench' });
+    R.G.restore({ flags: [...CODE_RESTORE[1].flags, 'ch2_open', 'b:k2_open', 'b:k2_note2',
+        'p1_inked', 'p3_t1', 'p3_t2', 'p3_t3', 'p3_done', 'b:k1_p3'], checkpoint: 'trench' });
     R.G.goto('kelp', { x: 23 * HL, y: 6 * HL, mode: 'swim' });
     await R.swimTo(30, 8, { max: 45 });
     await R.swimTo(33.2, 9.2); await R.settle();
@@ -174,4 +172,21 @@ test('an older save with the current open still finishes its unreported map disc
     await R.flag('ch2_end', {}, 30); await R.settle();
     assert.equal(R.log.filter(e => e.kind === 'report' && e.n === 2).length, 1);
     assert.equal(R.story.objective(), 'toViken');
+});
+
+
+test('an older chapter-one save retains its completed hills and follows the remaining map route', async () => {
+    const R = createRobot();
+    const oldLandFlags = ['b:k1_note', 'note1_read', 'teach_streck', 'p1_inked', 'b:k1_p1',
+        'entrance_fluff', 'glimpse1', 'b:k1_glimpse', 'b:k1_branten', 'p3_t1', 'p3_t2', 'p3_t3',
+        'p3_done', 'b:k1_p3', 'clue_note1', 'clue_wave_marks', 'clue_glimpse', 'exp_fart', 'exp_fart_logged', 'spangen_flag'];
+    R.G.restore({ flags: [...CODE_RESTORE[1].flags, ...oldLandFlags], checkpoint: 'overlook' });
+    await R.settle();
+    assert.equal(R.story.objective(), 'p5');
+    assert.ok(oldLandFlags.every(flag => R.has(flag)), 'previously earned discoveries survive');
+    assert.equal(R.log.filter(e => e.kind === 'report' && e.n === 1).length, 0);
+    await R.swimTo(12, 4.4); await R.swimTo(4, 2.6); await R.swimTo(-.4, 2.4);
+    await R.until(() => R.G.sceneId === 'land', { x: -1 }, 10, 'return from an older completed cave');
+    await R.settle();
+    assert.equal(R.story.objective(), 'p4', 'the player is not asked to repeat completed ramps');
 });

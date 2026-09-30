@@ -4,7 +4,7 @@ import { createGame } from '../skoldhast/src/game.mjs';
 import { createStory } from '../skoldhast/src/story.mjs';
 import { describeGuidance } from '../skoldhast/src/guidance-state.mjs';
 import { p8Progress } from '../skoldhast/src/puzzles.mjs';
-import { GUIDANCE as W } from '../skoldhast/src/content/sv.mjs';
+import { GUIDANCE as W, GOALS, HINTS, THREAD } from '../skoldhast/src/content/sv.mjs';
 import { HL } from '../skoldhast/src/sim.mjs';
 
 function stage(scene, x, y, flags = []) {
@@ -17,7 +17,7 @@ function cue(G, objective, options = {}) {
     return describeGuidance(G, { objective, p8: p8Progress(G), ...options });
 }
 
-test('all three grown ramps lead to the wave evidence before the chapter can continue', () => {
+test('all three grown ramps lead to the cliff evidence before the final leap', () => {
     const G = stage('land', 39, -2.95, ['p1_inked', 'p3_t1', 'p3_t2', 'p3_t3']);
     const ledge = G.scenes.land.areas.find(a => a.id === 'ledge');
     assert.equal(typeof W.steps.waveLedge, 'string');
@@ -33,35 +33,47 @@ test('all three grown ramps lead to the wave evidence before the chapter can con
     assert.equal(G.flags.has('p3_done'), false, 'guidance does not award evidence before it is reached');
 });
 
-test('an unfinished wave investigation routes an early sea visit back to land, even after the ramps grow', () => {
-    for (const grown of [[], ['p3_t1'], ['p3_t1', 'p3_t2', 'p3_t3']]) {
-        const G = stage('kelp', 20, 3.4, ['p1_inked', 'p2_open', ...grown]);
-        const next = cue(G, 'p3');
-        assert.equal(next.target.scene, 'kelp');
-        assert.equal(next.target.x, 0);
-        assert.equal(next.instruction, W.route.land);
-        assert.equal(next.progress, null, 'local travel does not display remote ramp progress');
-        G.player.hidden = true;
-        assert.equal(cue(G, 'p3').action, 'emerge', 'the shell can release the eastbound current to return');
+test('opening Vattenporten makes its underwater overlook the next discovery in every land state', () => {
+    for (const land of [[], ['p1_inked'], ['p1_inked', 'p3_t1'], ['p1_inked', 'p3_t1', 'p3_t2', 'p3_t3'], ['p1_inked', 'p3_done']]) {
+        const G = stage('land', 101.8, -.3, ['klo_hidden', 'p2_open', ...land]);
+        const story = createStory(G, { ui: {} });
+        assert.equal(story.objective(), 'kelp');
+        assert.equal(story.guidance().target.x, G.scenes.land.spots.arch.x);
+        assert.equal(story.guidance().action, 'act');
+        G.goto('kelp', { x: 20.8 * HL, y: 3.4 * HL, mode: 'swim' });
+        assert.equal(story.objective(), 'hook');
+        assert.notEqual(story.guidance().instruction, W.route.land);
+        assert.ok(story.guidance().target.x >= 19 * HL, 'the discovery ahead remains the goal');
     }
 });
 
-test('the story chooses the missing land evidence when the player enters the sea first', () => {
+test('the map search guides the real bridge, ramp and leap route without skipping unsolved land puzzles', () => {
     const routes = [
-        { flags: [], objective: 'p1' },
-        { flags: ['p1_inked'], objective: 'p3' },
-        { flags: ['p1_inked', 'p3_t1'], objective: 'p3b' },
-        { flags: ['p1_inked', 'p3_t1', 'p3_t2', 'p3_t3'], objective: 'p3' }
+        { flags: [], objective: 'p1', copy: 'p1Map' },
+        { flags: ['p1_inked'], objective: 'p3', copy: 'p3Map' },
+        { flags: ['p1_inked', 'p3_t1'], objective: 'p3b', copy: 'p3bMap' },
+        { flags: ['p1_inked', 'p3_t1', 'p3_t2', 'p3_t3'], objective: 'p3', copy: 'p3Map' },
+        { flags: ['p1_inked', 'p3_done'], objective: 'p4', copy: 'p4' }
     ];
-    for (const route of routes) {
-        const G = stage('kelp', 20.8, 3.4, ['klo_hidden', 'p2_open', ...route.flags]);
-        const story = createStory(G, { ui: {} });
+    for (const route of routes) for (const scene of ['land', 'kelp']) {
+        const flags = ['klo_hidden', 'p2_open', 'ch1_end', 'ch2_open', ...route.flags];
+        if (scene === 'kelp') flags.push('mark_sea');
+        const G = stage(scene, scene === 'land' ? 101.8 : 20.8, scene === 'land' ? -.3 : 3.4, flags);
+        const story = createStory(G, { ui: {} }), before = [...G.flags];
         assert.equal(story.objective(), route.objective);
-        assert.equal(story.guidance().instruction, W.route.land);
-        assert.ok(story.guidance().target.x < G.player.x, 'the usable return path is west, away from the chapter barrier');
-        G.flags.add('p3_done');
-        assert.equal(story.objective(), 'hook');
-        assert.ok(story.guidance().target.x >= 19 * HL, 'after the evidence the overlook becomes the goal');
+        const goal = GOALS[route.copy], n = route.objective === 'p4' ? Number(G.has('mark_sea'))
+            : ['p3_t1', 'p3_t2', 'p3_t3'].filter(flag => G.has(flag)).length;
+        assert.ok(goal, 'the map route has an authored goal');
+        assert.equal(story.goal(), typeof goal === 'function' ? goal(n) : goal);
+        assert.equal(story.guidance().hint.q, HINTS[route.copy].q, 'local instructions retain the map-search question');
+        assert.equal(story.guidance().thread.why, THREAD.why[route.copy]);
+        if (scene === 'kelp') {
+            assert.equal(story.guidance().target.x, 0, 'the first local step is the cave exit');
+            assert.equal(story.guidance().instruction, W.route.land);
+            G.player.hidden = true;
+            assert.equal(story.guidance().action, 'emerge', 'release the eastbound current to return');
+        }
+        assert.deepEqual([...G.flags], before, 'guidance never awards skipped puzzles');
     }
 });
 

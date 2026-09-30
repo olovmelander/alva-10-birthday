@@ -85,6 +85,7 @@ try {
                     toastsHidden: getComputedStyle(document.querySelector('.sk-toasts')).visibility === 'hidden',
                     speechMarkHidden: getComputedStyle(document.querySelector('.sk-speaking')).visibility === 'hidden',
                     pieceIds: sheet?.children.filter(child => child.label?.startsWith('map-scene-piece-')).map(child => child.label.slice(16)),
+                    missingIds: sheet?.children.filter(child => child.label?.startsWith('map-scene-missing-')).map(child => child.label.slice(18)),
                     guardian: !!sheet?.children.some(child => child.label === 'guardian-map-paper') };
             });
             let state = await measure();
@@ -131,6 +132,11 @@ try {
             assert.ok(state.content.length >= 2, `${activeName}: measured both artwork and caption`);
             if (state.state.variant === 'guardian') assert.ok(state.guardian && state.pieceIds.length === 0, 'the guardian diagram is distinct from the geographic map');
             if (state.state.variant === 'fragment') assert.deepEqual(state.pieceIds, [state.state.fragment], 'only the earned piece is displayed');
+            if (state.state.variant === 'search') {
+                assert.deepEqual(state.pieceIds, ['corner'], 'the plan only shows artwork on the earned corner');
+                assert.deepEqual(state.missingIds, ['land', 'sea'], 'both missing pieces have empty torn outlines');
+                assert.equal(state.state.route, 0, 'the search plan does not reveal the repaired route');
+            }
             // Give the actual effect twelve seconds of presentation time while
             // leaving the real story and dialogue promise pending.
             await page.evaluate(() => {
@@ -158,7 +164,7 @@ try {
 
         if (!rotationOnly) {
             await stage(chapter2.filter(flag => flag !== 'b:k2_open'), 'trench');
-            for (let i = 0; i < STORY.k2.open.length; i++) await read(STORY.k2.open[i], { variant: 'fragment', fragment: 'corner', phase: 'observe', routeOpen: false }, `plan-${i + 1}`);
+            for (let i = 0; i < STORY.k2.open.length; i++) await read(STORY.k2.open[i], { variant: 'search', phase: 'observe', routeOpen: false }, `plan-${i + 1}`);
             await restored();
             for (const fragment of ['land', 'sea']) {
                 if (fragment === 'sea') {

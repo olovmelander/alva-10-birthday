@@ -15,6 +15,9 @@ export function sampleMapScene(phase = 'observe', seconds = 0, variant = 'assemb
     if (['joined', 'reveal', 'complete', 'depart', 'gone'].includes(phase)) joined = 1;
     if (phase === 'reveal') reveal = ease(t / MAP_SCENE_PHASES.reveal);
     if (['complete', 'depart', 'gone'].includes(phase)) reveal = 1;
+    // Looking for missing pieces cannot reveal the repaired route, including
+    // when an interrupted presentation is rebuilt in a later held phase.
+    if (variant === 'search') reveal = 0;
     if (phase === 'depart') opacity = 1 - ease(t / MAP_SCENE_PHASES.depart);
     if (phase === 'gone') opacity = 0;
     return { phase, joined, reveal, route: reveal, crease: joined, opacity,
@@ -53,13 +56,14 @@ export function createMapAssemble(PIXI, { texture, caption, lessMotion = false,
     const container = new PIXI.Container(); container.label = 'map-assemble';
     const shade = new PIXI.Graphics(); container.addChild(shade);
     const sheet = new PIXI.Container(); sheet.label = 'map-scene-sheet'; container.addChild(sheet);
-    const title = new PIXI.Text({ text: caption || MAP.title, style: {
+    const title = new PIXI.Text({ text: caption || (variant === 'search' ? MAP.search.title : MAP.title), style: {
         fontFamily: '"Patrick Hand", cursive', fontSize: 24, fill: 0x514d42,
         align: 'center', wordWrap: true, wordWrapWidth: 340,
         stroke: { color: 0xfff9e9, width: 5, join: 'round' }
     } });
     title.anchor.set(.5, 0); container.addChild(title);
-    const pieces = [], texts = [];
+    const pieces = [], texts = [], searchTexts = [];
+    let searchSymbols = null;
     const selected = MAP_FRAGMENTS.find(f => f.id === fragment) || MAP_FRAGMENTS[0];
     const box = variant === 'fragment'
         ? { x: selected.box[0] - 12, y: selected.box[1] - 12, w: selected.box[2] + 24, h: selected.box[3] + 24 }
@@ -70,12 +74,32 @@ export function createMapAssemble(PIXI, { texture, caption, lessMotion = false,
         g.moveTo(...pts[0]); for (const p of pts.slice(1)) g.lineTo(...p);
         g.stroke({ color, alpha, width, cap: 'round', join: 'round' });
     };
+    if (variant === 'search') {
+        // These are spaces in Klo's explanation, not recovered paper. Keep
+        // their real torn edges, but never put the unseen map ink inside them.
+        for (const f of MAP_FRAGMENTS.filter(f => f.id !== 'corner')) {
+            const points = fragmentPoints(f), color = f.id === 'land' ? 0x66804f : 0x4b8396;
+            const missing = new PIXI.Graphics(); missing.label = 'map-scene-missing-' + f.id;
+            missing.poly(points.flat()).fill({ color, alpha: .075 });
+            for (let i = 0; i < points.length; i++) {
+                const a = points[i], b = points[(i + 1) % points.length], length = Math.hypot(b[0] - a[0], b[1] - a[1]);
+                for (let d = 0; d < length; d += 11) {
+                    const start = d / length, end = Math.min(length, d + 6) / length;
+                    missing.moveTo(a[0] + (b[0] - a[0]) * start, a[1] + (b[1] - a[1]) * start)
+                        .lineTo(a[0] + (b[0] - a[0]) * end, a[1] + (b[1] - a[1]) * end)
+                        .stroke({ color, alpha: .58, width: 2, cap: 'round' });
+                }
+            }
+            sheet.addChild(missing);
+        }
+    }
     if (variant === 'guardian') {
         guardian = createGuardianMapPaper(PIXI, { texture }); sheet.addChild(guardian.container);
     } else {
         const art = texture('map-page');
-        const names = mapLabels(flags).filter(l => variant === 'fragment' || ['cliff', 'beach', 'heart', 'tower', 'fold'].includes(l.key));
-        for (const f of MAP_FRAGMENTS.filter(f => variant !== 'fragment' || f.id === selected.id)) {
+        const names = mapLabels(flags).filter(l => variant === 'search' ? l.key === 'beach'
+            : variant === 'fragment' || ['cliff', 'beach', 'heart', 'tower', 'fold'].includes(l.key));
+        for (const f of MAP_FRAGMENTS.filter(f => variant === 'search' ? f.id === 'corner' : variant !== 'fragment' || f.id === selected.id)) {
             const c = new PIXI.Container(); c.label = 'map-scene-piece-' + f.id;
             const points = fragmentPoints(f), flat = points.flat(), back = new PIXI.Graphics();
             const xs = points.map(p => p[0]), ys = points.map(p => p[1]);
@@ -106,7 +130,42 @@ export function createMapAssemble(PIXI, { texture, caption, lessMotion = false,
             sheet.addChild(c); pieces.push({ id: f.id, c });
         }
     }
-    const emphasis = variant === 'fragment' ? null : new PIXI.Graphics();
+    if (variant === 'search') {
+        const directions = new PIXI.Graphics(); directions.label = 'map-search-directions';
+        searchSymbols = new PIXI.Graphics(); searchSymbols.label = 'map-search-symbols';
+        const landInk = 0x5b7148, seaInk = 0x3e7487;
+        // Small storybook symbols distinguish the two search directions. These
+        // are deliberately not the secret geographical paths on the lost ink.
+        drawLine(searchSymbols, [[105, 88], [139, 49], [165, 78], [179, 63], [205, 88]], landInk, .85, 3.5);
+        drawLine(searchSymbols, [[103, 96], [204, 96]], landInk, .32, 2);
+        for (let i = 0; i < 3; i++) {
+            const x = 278 + i * 31;
+            searchSymbols.moveTo(x, 276).bezierCurveTo(x + 8, 263, x + 22, 289, x + 31, 276)
+                .stroke({ color: seaInk, alpha: .84, width: 3.5, cap: 'round' });
+        }
+        drawLine(directions, [[307, 184], [285, 184], [253, 166]], landInk, .8, 3);
+        drawLine(directions, [[254, 178], [253, 166], [266, 165]], landInk, .8, 3);
+        drawLine(directions, [[425, 211], [425, 238], [414, 259]], seaInk, .8, 3);
+        drawLine(directions, [[412, 247], [414, 259], [426, 254]], seaInk, .8, 3);
+        sheet.addChild(searchSymbols, directions);
+        const addSearchText = (key, text, x, y, width, size, minimum, color) => {
+            const t = new PIXI.Text({ text, style: {
+                fontFamily: '"Patrick Hand", cursive', fontSize: size, fill: color, align: 'center',
+                wordWrap: true, wordWrapWidth: width, breakWords: false,
+                stroke: { color: 0xf7f1e4, width: 4, join: 'round' }
+            } });
+            t.label = 'map-search-' + key; t.anchor.set(.5); t.position.set(x, y);
+            sheet.addChild(t); searchTexts.push({ key, t, size, minimum, y });
+        };
+        addSearchText('land', MAP.search.land, 153, 127, 224, 30, 14, landInk);
+        addSearchText('land-hint', MAP.search.landHint, 153, 174, 220, 22, 12, landInk);
+        addSearchText('sea', MAP.search.sea, 320, 321, 500, 30, 14, seaInk);
+        addSearchText('sea-hint', MAP.search.seaHint, 320, 364, 510, 22, 12, seaInk);
+        const cornerNote = new PIXI.Graphics().roundRect(348, 164, 245, 43, 12).fill({ color: 0xfff8e8, alpha: .92 });
+        cornerNote.label = 'map-search-corner-note'; sheet.addChild(cornerNote);
+        addSearchText('corner', MAP.search.corner, 470, 185, 236, 25, 12, 0x635542);
+    }
+    const emphasis = ['fragment', 'search'].includes(variant) ? null : new PIXI.Graphics();
     if (emphasis) { emphasis.label = 'map-scene-emphasis'; sheet.addChild(emphasis); }
     let phase = 'arrive', elapsed = 0, resolve = null, dead = false, selectedFocus = focus;
     let state = sampleMapScene(phase, 0, variant), lastPaint = '';
@@ -123,7 +182,7 @@ export function createMapAssemble(PIXI, { texture, caption, lessMotion = false,
         }
         emphasis?.clear();
         guardian?.setShore(['coast', 'shore'].includes(selectedFocus) ? reveal : 0);
-        if (variant === 'guardian' || variant === 'fragment') return state;
+        if (['guardian', 'fragment', 'search'].includes(variant)) return state;
         if (selectedFocus === 'crease' || (variant === 'assembly' && joined > 0)) {
             const amount = selectedFocus === 'crease' ? reveal : joined * .6;
             const { x0, x1, y } = MAP_CREASE, end = x0 + (x1 - x0) * amount;
@@ -173,6 +232,25 @@ export function createMapAssemble(PIXI, { texture, caption, lessMotion = false,
             title.style.fontSize = Math.min(25, Math.max(19, width / 24)); title.style.wordWrapWidth = layout.titleWidth;
             shade.clear().rect(0, 0, width, height).fill({ color: 0xece7da, alpha: .78 });
             for (const { t, size } of texts) t.style.fontSize = Math.max(size, 11 / layout.scale);
+            for (const { t, size, minimum, y } of searchTexts) {
+                t.style.fontSize = Math.max(size, minimum / layout.scale); t.y = y;
+            }
+            if (searchSymbols) {
+                // On a short phone screen keep the words readable instead of
+                // compressing three rows of ink into the narrow land fragment.
+                const landHeading = searchTexts.find(l => l.key === 'land').t;
+                const landHint = searchTexts.find(l => l.key === 'land-hint').t;
+                const compact = landHeading.y + landHeading.height / 2 + 4 / layout.scale > landHint.y - landHint.height / 2
+                    || landHeading.y - landHeading.height / 2 < 102;
+                searchSymbols.visible = !compact;
+                if (compact) for (const [id, middle] of [['land', 125], ['sea', 319]]) {
+                    const heading = searchTexts.find(l => l.key === id).t;
+                    const hint = searchTexts.find(l => l.key === id + '-hint').t;
+                    const gap = 4 / layout.scale;
+                    heading.y = middle - (hint.height + gap) / 2;
+                    hint.y = middle + (heading.height + gap) / 2;
+                }
+            }
             return layout;
         },
         destroy() {

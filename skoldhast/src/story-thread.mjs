@@ -18,9 +18,10 @@ export function describeThread(flags, objective) {
     else if (has('rule_demo')) stage = 'map';
     const conversation = objective === 'talk' && has('talk1')
         ? (has('talk2') ? THREAD.talkShore : THREAD.talkMap) : null;
+    const why = has('ch2_open') && ['p1', 'p3', 'p3b'].includes(objective) ? objective + 'Map' : objective;
     return {
         stage, mission: has('ended') ? THREAD.complete : THREAD.mission,
-        recap: THREAD.recap[stage], why: conversation?.why || THREAD.why[objective] || THREAD.why.explore,
+        recap: THREAD.recap[stage], why: conversation?.why || THREAD.why[why] || THREAD.why.explore,
         conversation
     };
 }

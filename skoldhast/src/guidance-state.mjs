@@ -30,9 +30,10 @@ export function describeGuidance(G, settings = {}) {
         : ['p3', 'p3b'].includes(objective) ? count(F, 'p3_t1', 'p3_t2', 'p3_t3')
         : objective === 'p2' ? Number(S.stone === scenes.land.rail.target) + Number(F.has('p2_plank'))
         : count(F, 'mark_land', 'mark_sea');
-    const text = GOALS[objective];
+    const textKey = F.has('ch2_open') && ['p1', 'p3', 'p3b'].includes(objective) ? objective + 'Map' : objective;
+    const text = GOALS[textKey];
     const cue = { key: objective, objective, goal: typeof text === 'function' ? text(n) : text || '',
-        hint: HINTS[objective] || null, action: null, state: 'approach', instruction: '', controlText: '', progress: null, target: null };
+        hint: HINTS[textKey] || null, action: null, state: 'approach', instruction: '', controlText: '', progress: null, target: null };
     cue.thread = describeThread(F, objective);
     if (cue.thread.conversation) {
         cue.goal = cue.thread.conversation.goal;
@@ -90,8 +91,8 @@ export function describeGuidance(G, settings = {}) {
         const clump = tuft && scenes.land.clumps.find(c => !c.teach && Math.abs(c.x - 5 * HL - tuft.x) < 1.5 * HL);
         const flying = tuft && S.fluff.some(f => f.target === tuft.id);
         if (!tuft) {
-            // Growing the last ramp does not yet inspect the evidence: the
-            // chapter beat needs the player on the ledge above all three ramps.
+            // Growing the last ramp opens the route, but the player still
+            // needs to reach the ledge to discover where the land trail leads.
             step('waveLedge', point('land', scenes.land.spots.kloLedge));
         } else {
             step(flying ? 'rampWait' : 'ramp', point('land', flying ? tuft : clump), flying ? null : 'move', flying ? 'working' : 'approach');

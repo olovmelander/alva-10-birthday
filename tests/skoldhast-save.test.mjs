@@ -69,6 +69,14 @@ test('word codes restore to real checkpoints', () => {
     }
 });
 
+test('word codes match the new chapter boundary without awarding the unfinished land route', () => {
+    for (const flag of ['p2_open', 'clue_fold', 'clue_figure', 'ch1_end']) assert.ok(CODE_RESTORE[1].flags.includes(flag), flag);
+    for (const flag of ['p1_inked', 'p3_t1', 'p3_t2', 'p3_t3', 'p3_done', 'clue_wave_marks']) {
+        assert.equal(CODE_RESTORE[1].flags.includes(flag), false, `chapter one does not award ${flag}`);
+        assert.ok(CODE_RESTORE[2].flags.includes(flag), `chapter two preserves ${flag}`);
+    }
+});
+
 test('storage that throws (private mode) is reported as unavailable', () => {
     const keep = globalThis.window.localStorage;
     globalThis.window.localStorage = { getItem() { throw new Error('denied'); }, setItem() { throw new Error('denied'); }, removeItem() {} };

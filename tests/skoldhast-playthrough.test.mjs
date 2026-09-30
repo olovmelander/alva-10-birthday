@@ -7,7 +7,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { createRobot } from './skoldhast-robot.mjs';
 
-export async function chapter1(R) {
+export async function openCave(R) {
     const { G } = R;
     G.flag('intro_done');
     G.goto('land', 'start');
@@ -48,6 +48,12 @@ export async function chapter1(R) {
     await R.flag('p2_open', {}, 5);
     await R.settle();
 
+    assert.equal(R.story.objective(), 'kelp', 'opening the cave invites the player inside');
+    assert.equal(R.has('p1_inked'), false);
+    assert.equal(R.has('p3_done'), false);
+}
+
+export async function landApproach(R) {
     // the note by the gully, then P1 Streckbron at a gallop
     await R.walkTo(81.0, { gallop: true });
     await R.flag('note1_read', {}, 20);
@@ -82,25 +88,29 @@ export async function chapter1(R) {
     await R.walkTo(35.0);
     await R.flag('p3_done', {}, 10);
     await R.settle();
+}
 
-    // back to Vattenporten and into the sea
+export async function chapter1(R) {
+    await openCave(R);
+    const { G } = R;
+    // The newly opened cave leads straight into its underwater discovery.
     await R.walkTo(101.8, { gallop: true, max: 120 });
     await R.context('exit');
     assert.equal(G.sceneId, 'kelp');
     await R.settle();
-    // Smaktestet, part two: kelp → Klo logs it (O1)
+    // Taste kelp first; the optional experiment joins it with grass on the later land route.
     await R.swimTo(15.1, 5.4);
     await R.context('taste');
-    await R.flag('exp_smak', {}, 10);
     await R.settle();
     await R.swimTo(20.8, 3.4);
     await R.flag('ch1_end', {}, 60);
     await R.settle();
     assert.ok(R.log.some((l) => l.kind === 'report' && l.n === 1), 'the Kapitel 1 report is shown');
+    assert.equal(R.has('p1_inked'), false, 'the cave reveal needs no unrelated land puzzle');
+    assert.equal(R.has('p3_done'), false, 'the hills belong to the route to the land fragment');
 }
 
-export async function chapter2(R) {
-    const { G } = R;
+export async function seaFragment(R) {
     await R.flag('b:k2_open', {}, 20);
     await R.settle();
     // the trench opens; Klo's second note
@@ -122,6 +132,10 @@ export async function chapter2(R) {
     await R.flag('mark_sea', {}, 25);
     await R.settle();
     await R.hide();
+}
+
+export async function returnToLand(R) {
+    const { G } = R;
     // back to land: under the lit vault's roof, up the trench, through the kelp and the cave
     for (const [x, y] of [[30, 11.5], [25.0, 10.9], [23.0, 5.2], [12, 4.4], [4, 2.6], [-0.4, 2.4]]) {
         if (G.sceneId !== 'kelp') break;
@@ -129,6 +143,10 @@ export async function chapter2(R) {
     }
     await R.until(() => G.sceneId === 'land', { x: -1 }, 10, 'out through Vattenporten');
     await R.settle();
+}
+
+export async function landFragment(R) {
+    await landApproach(R);
     // P4 Stora språnget: up the grown ramps, over Galoppbacken, and down the long slope at full gallop
     await R.walkTo(34.0, { gallop: true, max: 150 });
     await R.walkTo(30.0);
@@ -137,8 +155,17 @@ export async function chapter2(R) {
     await R.settle();
     // Landmärket on Klippudden
     await R.walkTo(3.2);
+    await R.flag('mark_land', {}, 60);
+    await R.settle();
+}
+
+export async function chapter2(R) {
+    await seaFragment(R);
+    await returnToLand(R);
+    await landFragment(R);
     await R.flag('ch2_end', {}, 60);
     await R.settle();
+    assert.ok(R.has('exp_smak'), 'the kelp and grass discoveries join in either order');
     assert.ok(R.log.some((l) => l.kind === 'report' && l.n === 2), 'the Kapitel 2 report is shown');
 }
 
@@ -232,6 +259,65 @@ if (!process.env.NO_TEST) {
         await R.until(() => R.G.busy === 0 && R.G.actors.signe.pose !== 'idle', {}, 10, 'the race starts');
         await R.until(() => R.has('signe_race'), { x: -0.15 }, 90, 'win the race');
         assert.ok(R.G.actors.signe.x > R.p().x, 'Signe crossed the line after you');
+    });
+
+    test('the land fragment can be found first through the real hills, with saves after both discoveries', { timeout: 300000 }, async () => {
+        let R = createRobot();
+        await chapter1(R);
+        const caveSave = R.G.serialize();
+        R = createRobot(); R.G.restore(caveSave);
+        assert.equal(R.has('p1_inked'), false);
+        assert.equal(R.has('p3_done'), false);
+        // Choose the other branch immediately after Klo introduces the two missing pieces.
+        for (const [x, y] of [[12, 4.4], [4, 2.6], [-0.4, 2.4]]) await R.swimTo(x, y, { max: 60 });
+        await R.until(() => R.G.sceneId === 'land', { x: -1 }, 10, 'return for the land fragment');
+        await R.settle();
+        assert.equal(R.story.objective(), 'p1');
+        await landFragment(R);
+        assert.ok(R.has('p1_inked') && R.has('p3_done') && R.has('p4_leap'));
+        assert.equal(R.has('mark_sea'), false);
+        assert.equal(R.has('ch2_end'), false);
+        const landSave = R.G.serialize();
+        R = createRobot(); R.G.restore(landSave);
+        assert.equal(R.story.objective(), 'toSea');
+        await R.walkTo(7.6);
+        await R.context('dra');
+        await R.walkTo(101.8, { gallop: true, max: 200 });
+        await R.context('exit');
+        await R.settle();
+        await R.swimTo(20.8, 3.4);
+        await seaFragment(R);
+        await R.flag('ch2_end', {}, 60); await R.settle();
+        assert.ok(R.has('marks_both') && R.has('ch3_open'));
+        assert.equal(R.log.filter(e => e.kind === 'report' && e.n === 2).length, 1);
+        assert.equal(R.log.filter(e => e.kind === 'report' && e.n === 1).length, 0, 'the saved cave discovery is not repeated');
+        assert.equal(R.story.objective(), 'toViken');
+    });
+
+    test('saving after the stone puzzle and before the sea reveal preserves the cave-first route', { timeout: 240000 }, async () => {
+        let R = createRobot();
+        await openCave(R);
+        const openSave = R.G.serialize();
+        R = createRobot(); R.G.restore(openSave);
+        assert.equal(R.story.objective(), 'kelp');
+        await R.walkTo(101.8); await R.context('exit'); await R.settle();
+        await R.swimTo(17, 3.4);
+        assert.equal(R.has('ch1_end'), false);
+        const seaSave = R.G.serialize();
+        R = createRobot(); R.G.restore(seaSave);
+        assert.equal(R.story.objective(), 'hook');
+        await R.swimTo(20.8, 3.4);
+        await R.flag('ch1_end', {}, 60); await R.settle();
+        assert.ok(R.has('ch2_open'));
+        assert.equal(R.has('p1_inked'), false);
+        assert.equal(R.has('p3_done'), false);
+        assert.equal(R.log.filter(e => e.kind === 'report' && e.n === 1).length, 1);
+        const revealSave = R.G.serialize();
+        R = createRobot(); R.G.restore(revealSave);
+        await R.settle();
+        assert.equal(R.story.objective(), 'p5');
+        assert.equal(R.log.filter(e => e.kind === 'report').length, 0, 'a finished discovery never replays on reload');
+        assert.equal(R.G.busy, 0);
     });
 
     test('with only Kapitel 1 released, the page stays white after its end', { timeout: 240000 }, async () => {

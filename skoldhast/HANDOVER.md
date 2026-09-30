@@ -1,5 +1,51 @@
 # Sköldhästen – handover
 
+## The opened cave leads forward; the hills lead to the missing map piece (30 September)
+
+Pappa found the old order confusing: solving the stone puzzle opened Vattenporten,
+but the underwater discovery still required an unrelated climb back on land.
+Opening the cave now earns its discovery immediately. The two missing map pieces
+then give both exploration branches a concrete purpose.
+
+- P2 leads directly into the underwater fold and paper-figure reveal. P1/P3 are
+  still available to early land explorers, but no longer gate the cave scene.
+  After the reveal, land guidance follows the real unfinished bridge, ramps and
+  leap in order. Either map piece can be found first; both are still required to
+  assemble the map and open the current toward Pappersfyren.
+- Klo's dialogue, requested hints, goals, notebook and chapter report agree with
+  the discoveries actually earned. The hills provide a lookout and a route toward
+  Klippudden. Their dialogue sends the player onward over Galoppbacken; the later
+  cliff vista shows the actual scrap across the cleft before explaining the leap.
+- The map-search scene holds the earned corner beside two empty torn silhouettes,
+  with readable land/sea directions. It never reveals the missing geographical
+  artwork or repaired route. Short phone screens keep the words separated.
+- The opening cave payoff waits for the reader with the doorway framed. The
+  cliff's white page clears before Klo points to its scrap. Clue notifications
+  hide during held world inspections so the scenery stays visible, and return
+  after the scene. Cleanup also restores them when a scene is rebuilt or closed.
+- Existing saves retain completed hills and discoveries. The chapter-one word
+  code now restores the cave discovery without awarding the unfinished land
+  route; chapter two codes retain the complete route. No save-format, asset or
+  chapter-release change (`RELEASED_CHAPTER` remains 3).
+- Automated verification: **269/269 tests pass**, including a full cave-first game
+  through the ending and Signe's race, land-first fragment collection through the
+  actual bridge/ramps/leap, saves around the cave reveal and both fragments, old
+  completed saves, and the chapter-one release gate. Independent code review
+  found no introduced blocker.
+- Real-browser verification: cave-first journeys pass at **390×844, 844×390 and
+  1440×900**, plus the earlier hills-first route on desktop: **78,149 simulation
+  steps and 100 held evidence cards**. Phone checks use large text; landscape also
+  uses reduced motion. The actual cave doorway, fold, missing-piece plan, ramps,
+  cliff target, freed sea piece and map assembly remain visible and readable.
+  Notifications and controls restore afterward; no browser errors were captured.
+  The ticket-page launcher suite passes, including cancellation, close/reopen,
+  the advancing prologue and switching from Mira's loader.
+  Reproduce with [exploration-order checks](../tests/browser/skoldhast-exploration-order.mjs).
+  Reviewed WebP captures stay local under `docs/skoldhast/shots/exploration-order/`.
+- No new question for Pappa. The design plan reflects this order. Revised chapter
+  timing should be measured from normal play rather than the accelerated
+  robot; there is no timing claim for the revised chapter boundary.
+
 ## Signe can finish and win her race (30 September)
 
 Pappa asked for a real turtle win when Sköldhästen moves slowly. Signe now keeps

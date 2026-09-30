@@ -349,7 +349,12 @@ and why.
      riktigt mysterium!"
 7. The camera dives into the page. The first playable frame is exactly her composition.
 
-**Kapitel 1: Stranden och stäppen (about 20–25 min)**
+**Kapitel 1: Stranden och Stäppen (timing to remeasure after the 30 September route update)**
+
+Opening Vattenporten is an invitation to enter immediately. The default journey follows P2 into the sea,
+discovers Veckmuren and introduces the missing map pieces. P1 and P3 remain available to curious land-first
+explorers; completing them is not a condition for the underwater discovery. After the map-piece search
+begins, those same land puzzles become the route to the missing land piece, with matching goals and dialogue.
 
 - **Her beach.** Walk, gallop, Hoppa and Gnägg; the gulls scatter.
   - The sea froze with the wave: beyond the foam line it stands still and glassy out to the horizon.
@@ -375,8 +380,9 @@ and why.
   - Use the ordinary dialogue advance. Reading never runs on a timer. Keep the same camera framing through
     the experiment, clear of dialogue in either phone orientation; reduced motion keeps the ordered poses.
   - Pencil textures bend with the paper. No added triangle, diagram labels or connecting dotted line.
-- **Spången**, the hollow dune boardwalk on the way (O3), teaches Trumma.
-- **P1 Streckbron.** A note on a post by the dashed arch says "OBS! Ofärdigt streck. Rör ej! /Kartväktaren". Klo:
+- **Optional early land exploration:** Spången, the hollow dune boardwalk on the way (O3), teaches Trumma.
+- **P1 Streckbron**, available now or during the chapter 2 land search. A note on a post by the dashed arch
+  says "OBS! Ofärdigt streck. Rör ej! /Kartväktaren". Klo:
   - "Kartväktaren igen! Samma namn som på kartan. Varför får vi inte röra strecken?"
   - "Men vem skriver så prydligt? Med linjal, dessutom!"
   - "Det här är ju Alvas streck. Då får vi väl rita vidare?"
@@ -384,27 +390,37 @@ and why.
   - Galoppbanan: a free gallop of 40 s or more, fjädergräs, and low hurdles cleared automatically.
   - The first distant sköldhäst watches from the ridge, then lies down under its shell and becomes a "rock" as
     you approach. Sköldhästen: "Det finns fler!"
-  - P3 Backsippornas fjun, up Vågmärkesbranten to the wave-mark ledge. Klo: "Havet har varit här uppe!"
+  - P3 Backsippornas fjun, up Vågmärkesbranten to the wave-mark ledge. Its old sea marks lead toward
+    Klippudden. This can be explored early or become the later search for the missing land piece.
 - **P2 Spegelpölen** opens Vattenporten into the sea.
   - The kelp entry is the swim, sink and drift tutorial, with a stretch of open surface and floating kelp to
     dolphin-leap over.
   - Klo, whispering: "Du gömmer dig jättebra. Förutom manen. Den syns ända upp till ytan."
-- **Chapter hook, Veckmuren.** It plays once P2 and P3 are both done. P1 is implied, because it is the way to
-  the steppe.
-  - Until then, Veckmuren is visible from the kelp entry, and Klo says: "Vänta! Först måste vi mäta vågmärkena
-    uppe på stäppen."
-  - The hook: a ruler-straight crease cuts through the sea like a glass wall, with water piled up behind it.
-    - Sköldhästen: "Någon har vikt det här."
-    - Klo: "Med linjal."
+- **Chapter hook, Veckmuren.** Reaching the underwater overlook after opening P2 reveals the fold and the
+  paper figure. No hilltop visit is required and Klo never sends an arriving swimmer back to earn it.
+  - The hook shows the painted sea standing upright along the ruler-straight crease. The vista is held
+    while the player reads, with room for the dialogue in both phone orientations.
+    - Sköldhästen: "Samma veck som stoppade mitt plask. Det fortsätter ända ner hit!"
+    - Klo notices that the folded sea blocks the way beyond it, without assuming the hill marks were visited.
     - Beyond the fold, on the white paper, a thin paper figure with a ruler hurries out of sight. Sköldhästen:
       "Vem var det där?!" Klo: "Någon av papper … Han skyndade sig bort från vattnet!"
   - End card: Forskningsrapport nr 1.
-  - Afterwards, play continues freely in Kapitel 1's world. The paths beyond it are white paper: "Nästa sida
-    kommer snart."
+  - With chapter 2 released, its opening follows directly. White paper only blocks genuinely unreleased
+    chapters; it does not impose the old hills-before-sea order.
 
-**Kapitel 2: Udden och djupet (about 20–25 min, P4 and P5–P6 in either order)**
+**Kapitel 2: Udden och djupet (timing to remeasure; land and sea pieces in either order)**
 
-- **Opening at the kelp entry.** Hold Klo's actual torn map corner while he explains the two missing pieces.
+- **Opening after the underwater discovery.** Hold Klo's actual torn map corner beside two empty torn
+  silhouettes while he explains the missing pieces. The corner's broken current shows why the route needs
+  repair. Klo recalls seeing one scrap fly over Stäppen and another fall into the sea during the prologue.
+  - The silhouettes identify those two search directions, without showing unearned map art or pretending
+    that a missing piece can reveal its own location. The player can continue into the kelp immediately or
+    return to Stäppen. Objectives follow the chosen scene until one piece remains.
+  - The land branch uses P1, then P3, if those were not already explored. Their purpose is now to find the
+    land piece by reaching a lookout over Stäppen. The flying scrap leaves no invented physical trail.
+    The hilltop connects the sea marks to the route toward Klippudden and sends the player onward over
+    Galoppbacken. The scrap is not visible from the hilltop camera: the held cliff-side vista reveals it
+    when the player reaches the cleft. The hilltop never sends them back to the already explored cave.
   - Every geographical map uses the same artwork and torn edges: world pickups, discovery close-ups,
     the notebook and the assembly. Missing pieces remain silhouettes in the notebook.
   - Each discovery shows its own piece while Klo explains what the player earned and what is still missing.
@@ -887,8 +903,8 @@ Kelpskogen (kelp entry, Mörka valvet, Kelphjärtat; Veckmuren along its seaward
 | Chapter | Places | Required | Ends on | Estimate |
 | --- | --- | --- | --- | --- |
 | Prolog | Her table | Three margin strokes | The freeze | 1.5 min |
-| Kapitel 1 | Stranden, Stäppen, kelp entry | P1, P2, P3 | Veckmuren, "Med linjal.", and a paper figure on the white paper | 20–25 min |
-| Kapitel 2 | Klippudden, Kelpskogen | P4, P5, P6 | The mouth of Spegelviken; the paper figure snaps a shutter shut | 20–25 min |
+| Kapitel 1 | Stranden, optional Stäppen, kelp entry | P2 and the underwater discovery; P1/P3 may be explored early | Veckmuren and the paper figure with a ruler | Re-time |
+| Kapitel 2 | Stäppen, Klippudden, Kelpskogen | Both map pieces: P1/P3 land approach if unfinished, P4; P5 discovery route and P6 underwater | The mouth of Spegelviken; the paper figure snaps a shutter shut | Re-time |
 | Kapitel 3 | Spegelviken, Pappersfyren, final | P7, P8 | Small wave proof, home-beach PLASK, the table and completion card | 15–25 min |
 
 Re-estimate these from timed greybox play in Stage 1–2. The first ten minutes, as Alva should experience them:
@@ -898,8 +914,8 @@ Re-estimate these from timed greybox play in Stage 1–2. The first ten minutes,
 | 0:00–1:30 | The prologue: her picture, "Forskare? Här!", her own gull and cloud, the freeze, the blink, the choice | Likeness, the hook, the tone; it works without sound |
 | 1:30–3:00 | Her beach: gallop, Hoppa onto driftwood, Gnägg, gulls scatter, splashing by the frozen wave, Skaka at the shell row; Klo's stopwatch gag | Game feel, joy with no goal, humour |
 | 3:00–4:30 | The stamp sends Klo away; *Göm dig* brings it out; "Häst eller sköldpadda?" "Ja."; the map-corner rule | Both halves are fun; the world rules |
-| 4:30–7:00 | Spången, P1 Streckbron and Kartväktaren's signed note; Galoppbanan with gull flocks, low hurdles and the first distant sköldhäst | Speed solves things; the mystery has a culprit; there are more of them |
-| 7:00–10:00 | P3 or P2, in her chosen order; a checkpoint as she arrives somewhere beautiful, never a menu test | Real puzzles, an aha and a hook |
+| 4:30–7:00 | The quiet reflection at P2, matching the stone and plank, then entering the opened Vattenporten; land exploration remains available | A solved puzzle visibly opens the next adventure |
+| 7:00–10:00 | Swimming in the kelp, discovering Veckmuren and the paper figure, then choosing where to search for the missing map pieces | The cave rewards curiosity; the hills now have a concrete purpose |
 
 ---
 

@@ -72,7 +72,8 @@ export function describeKloHelp(G, cue = {}) {
         topic = F.has('talk2') ? 'talkShore' : F.has('talk1') ? 'talkMap' : 'talk';
         key = topic;
     }
-    const [observation, nudge] = W.help[topic] || W.help.fallback;
+    const words = F.has('ch2_open') && ['bridge', 'ramp', 'upperRamp', 'waveLedge'].includes(topic) ? topic + 'Map' : topic;
+    const [observation, nudge] = W.help[words] || W.help[topic] || W.help.fallback;
     const instruction = [cue.instruction, cue.controlText].filter(Boolean).join(' ')
         || cue.hint?.sketch || W.ui.noExact;
     return { key, topic, observation, nudge, instruction, recap: recap(F) };

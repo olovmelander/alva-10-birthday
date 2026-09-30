@@ -1431,6 +1431,8 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
     }
 
     function clearScene() {
+        landFocus = null;
+        app.canvas.parentElement?.classList.remove('sk-world-focus');
         if (!S) return;
         if (shoreTrial) { shoreTrial.effect.destroy(); shoreTrial = null; app.canvas.parentElement?.classList.remove('sk-shore-trial'); }
         endFoldDemo(false);
@@ -2531,13 +2533,17 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
                 const focus = { id: data.id, frame: data.frame || landPuzzleFrame(data.id), measureIn: 0 };
                 const hint = { frame: focus.frame };
                 landFocus = focus; G.camHint = hint; fitLandFocus();
+                app.canvas.parentElement?.classList.add('sk-world-focus');
                 try {
                     await G.wait(G.lessMotion ? .12 : .4);
                     if (destroyed || G.sceneId !== scene || G.player !== player) await new Promise(() => {});
                     await data.whileVisible?.();
                     if (destroyed || G.sceneId !== scene || G.player !== player) await new Promise(() => {});
                 } finally {
-                    if (landFocus === focus) landFocus = null;
+                    if (landFocus === focus) {
+                        landFocus = null;
+                        app.canvas.parentElement?.classList.remove('sk-world-focus');
+                    }
                     if (G.camHint === hint) G.camHint = before;
                 }
                 break;
@@ -2570,7 +2576,8 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
                 await assets.load('map');
                 if (destroyed || request !== mapRequest || S?.id !== sceneAtStart) return new Promise(() => {});
                 const variant = data.variant || 'assembly';
-                const caption = data.caption || (variant === 'fragment' ? MAP.pieces[data.fragment || 'corner'].name : STORY.k2.mapAssemble);
+                const caption = data.caption || (variant === 'fragment' ? MAP.pieces[data.fragment || 'corner'].name
+                    : variant === 'search' ? MAP.search.title : STORY.k2.mapAssemble);
                 const effect = createMapAssemble(PIXI, { ...data, variant, texture: T, caption, flags: G.flags, lessMotion: G.lessMotion });
                 overlay.addChild(effect.container);
                 const demo = mapAssembly = { effect, variant, fragment: data.fragment, measureIn: 0, state: effect.update(0) };

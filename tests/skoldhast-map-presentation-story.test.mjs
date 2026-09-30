@@ -90,11 +90,11 @@ test('the repaired route stays closed until its visible reveal and every assembl
     assert.deepEqual(R.motions, ['arrive', 'join', 'reveal', 'depart']);
 });
 
-test('the chapter-two plan points to the earned first corner while its missing pieces are explained', async () => {
+test('the chapter-two plan shows the missing pieces while their two search routes are explained', async () => {
     const R = reader(chapter2.filter(flag => flag !== 'b:k2_open'));
     await R.until(() => R.effects.length > 0);
-    assert.equal(R.effects[0].variant, 'fragment');
-    assert.equal(R.effects[0].fragment, 'corner');
+    assert.equal(R.effects[0].variant, 'search');
+    assert.equal(R.effects[0].fragment, undefined, 'a plan does not present uncollected pieces as discoveries');
     await R.motion();
     for (const expected of STORY.k2.open) {
         assert.deepEqual(R.cards.at(-1).line, expected);

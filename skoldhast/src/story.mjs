@@ -348,7 +348,10 @@ export function createStory(G, io) {
         when: () => inScene('land') && inArea('note1'),
         async run(s) {
             await s.appear('klo', { scene: 'land', x: G.sceneDef.spots.kloNote.x + h(0.6), y: G.sceneDef.spots.kloNote.y, pose: 'idle', facing: -1 });
-            await landLook(s, 'bridge', () => s.say([STORY.k1.note1, ...(guided() ? STORY.k1.noteKlo : [KLO_COMPANION.story.note])]));
+            const mapSearch = F.has('ch2_open');
+            await landLook(s, 'bridge', () => s.say([STORY.k1.note1, ...(guided()
+                ? mapSearch ? STORY.k1.noteMap : STORY.k1.noteKlo
+                : [mapSearch ? KLO_COMPANION.story.noteMap : KLO_COMPANION.story.note])]));
             s.clue('note1');
             G.flag('note1_read');
         }
@@ -356,13 +359,13 @@ export function createStory(G, io) {
     beat('k1_note2', {
         on: 'balk', filter: (e) => guided() && e.reason === 'thin' && e.id === 'p1-arch' && F.has('note1_read'),
         lock: false,
-        async run(s) { await s.remark(STORY.k1.noteKlo2); }
+        async run(s) { await s.remark(F.has('ch2_open') ? STORY.k1.noteMap2 : STORY.k1.noteKlo2); }
     });
 
     beat('k1_p1', {
         on: 'inked', filter: (e) => e.id === 'p1-arch',
         lock: false,
-        async run(s) { s.stinger('aha'); s.checkpoint('steppe'); await s.remark(STORY.k1.bridgeDone); }
+        async run(s) { s.stinger('aha'); s.checkpoint('steppe'); await s.remark(F.has('ch2_open') ? STORY.k1.bridgeMapDone : STORY.k1.bridgeDone); }
     });
     beat('k1_boardwalk', {
         on: 'latch', filter: (e) => e.flag === 'spangen_flag',
@@ -386,7 +389,8 @@ export function createStory(G, io) {
         when: () => inScene('land') && inArea('branten') && F.has('p1_inked'),
         async run(s) {
             await s.appear('klo', { scene: 'land', x: G.sceneDef.spots.kloBranten.x, y: G.sceneDef.spots.kloBranten.y, pose: 'point', facing: -1 });
-            await landLook(s, 'ramp', () => s.say(discovery(STORY.k1.wavemarksSeen, 'branten')));
+            const mapSearch = F.has('ch2_open');
+            await landLook(s, 'ramp', () => s.say(discovery(mapSearch ? STORY.k1.wavemarksMapSeen : STORY.k1.wavemarksSeen, mapSearch ? 'brantenMap' : 'branten')));
             G.actors.klo.pose = 'notebook';
             await s.wait(0.4);
             if (!F.has('p3_t1')) hintOnce('tufts', STORY.k1.brantenTufts);
@@ -398,11 +402,17 @@ export function createStory(G, io) {
         async run(s) {
             await s.appear('klo', { scene: 'land', x: G.sceneDef.spots.kloLedge.x - h(0.6), y: G.sceneDef.spots.kloLedge.y, pose: 'notebook', facing: 1 });
             s.stinger('discovery');
-            await landLook(s, 'waveMarks', () => s.say(STORY.k1.wavemarks));
+            await landLook(s, 'waveMarks', async () => {
+                await s.say(F.has('ch2_open') ? STORY.k1.wavemarksMap : STORY.k1.wavemarks);
+                const route = F.has('ch2_open') ? STORY.k1.wavesToLandPiece
+                    : F.has('p2_open') ? STORY.k1.wavesToSea : STORY.k1.wavesToPool;
+                // The reason to continue belongs to every player, including
+                // requested-only hints, and stays with the visible evidence.
+                await s.say(['klo', route]);
+            });
             s.clue('wave_marks');
             G.flag('p3_done');
             s.checkpoint('ledge');
-            hintOnce('waveRoute', F.has('p2_open') ? STORY.k1.wavesToSea : STORY.k1.wavesToPool);
         }
     });
 
@@ -442,13 +452,13 @@ export function createStory(G, io) {
     beat('k1_arch', {
         on: 'opened', filter: (e) => e.id === 'arch',
         async run(s) {
-            await s.cam({ x: G.sceneDef.spots.arch.x, y: G.sceneDef.spots.arch.y - h(1.2), zoom: 0.95, t: 0.8, hold: 0.8 });
-            s.stinger('reveal');
-            await s.fx('archOpen', {});
-            await s.wait(0.6);
-            s.camFree();
-            s.checkpoint('pool');
-            await s.remark(STORY.k1.archDone);
+            await landLook(s, 'pool', async () => {
+                s.stinger('reveal');
+                await s.fx('archOpen', {});
+                await s.wait(0.6);
+                s.checkpoint('pool');
+                await s.say(STORY.k1.archDone);
+            });
         }
     });
 
@@ -517,19 +527,9 @@ export function createStory(G, io) {
         }
     });
 
-    let waitCool = 0;
-    beat('k1_hook_wait', {
-        when: () => guided() && inScene('kelp') && inArea('overlook') && !F.has('ch1_end')
-            && (!F.has('p3_done') || !F.has('p2_open')) && G.time >= waitCool,
-        repeat: true, lock: false,
-        async run(s) {
-            waitCool = G.time + 20;
-            await s.remark(F.has('p3_done') ? STORY.k1.waitPool : STORY.k1.waitWaves);
-        }
-    });
     beat('k1_hook', {
         when: () => inScene('kelp') && inArea('overlook') && !F.has('ch1_end')
-            && F.has('p3_done') && F.has('p2_open'),
+            && F.has('p2_open'),
         async run(s) {
             const vk = G.sceneDef.spots.veckmuren;
             await landLook(s, 'sea-fold-reveal', async () => {
@@ -562,7 +562,7 @@ export function createStory(G, io) {
         async run(s) {
             if (inScene('kelp')) await s.appear('klo', { scene: 'kelp', x: P().x - h(1.2), y: P().y + h(0.2), pose: 'map-corner', facing: 1 });
             else await s.appear('klo', { scene: 'land', x: P().x - h(1.2) * P().facing, y: P().y, pose: 'map-corner', facing: P().facing });
-            await s.map({ variant: 'fragment', fragment: 'corner' }, () => s.say(STORY.k2.open));
+            await s.map({ variant: 'search' }, () => s.say(STORY.k2.open));
             await s.fx('paperFill', {});
             G.actors.klo.pose = 'idle';
         }
@@ -618,6 +618,9 @@ export function createStory(G, io) {
         when: () => inScene('land') && F.has('ch2_open') && !F.has('mark_land') && !F.has('p4_leap')
             && P().x > h(13.1) && P().x < h(17) && P().mode === 'ground',
         async run(s) {
+            // Reveal the actual destination before pointing at its map scrap.
+            // Automatic page peeling otherwise waits until this beat unlocks.
+            await s.fx('paperFill', {});
             await landLook(s, 'leap', () => s.say(STORY.k2.landmarkPurpose));
         }
     });
@@ -1153,6 +1156,11 @@ export function createStory(G, io) {
     // =========================================================================
     // Objectives and hints (plan §4.4)
     // =========================================================================
+    function landSearchObjective() {
+        if (!F.has('p1_inked')) return 'p1';
+        if (!F.has('p3_done')) return F.has('p3_t1') && !(F.has('p3_t2') && F.has('p3_t3')) ? 'p3b' : 'p3';
+        return 'p4';
+    }
     function objective() {
         if (F.has('ended')) {
             if (F.has('signe_met') && !F.has('signe_raced') && !F.has('signe_race')) return 'signe';
@@ -1168,29 +1176,23 @@ export function createStory(G, io) {
         // Kapitel 2: the two halves of the mark, one on land and one in the sea
         if (F.has('ch2_open')) {
             if (inScene('kelp')) {
-                if (F.has('mark_sea')) return 'p4';
+                if (F.has('mark_sea')) return landSearchObjective();
                 // Light reveals the inviting route through the cave. An
                 // explorer can also discover the fold by swimming over it;
                 // fish are not a remote switch for a natural whirlpool.
                 const foundHeart = F.has('b:k2_corner_purpose') || (P().x > h(31.5) && P().y > h(6.4));
                 return F.has('p5_lit') || foundHeart ? 'p6' : 'p5';
             }
-            if (!F.has('mark_land')) return 'p4';
+            if (!F.has('mark_land')) return landSearchObjective();
             return 'toSea';
         }
         // Kapitel 1
         if (!F.has('klo_hidden')) return 'explore';
         if (!F.has('klo_ja')) return 'hide';
-        // Going through the pool first is a valid choice. If the land evidence
-        // is still missing, guide back to it rather than into the chapter gate.
-        if (inScene('kelp')) {
-            if (!F.has('p3_done')) {
-                if (!F.has('p1_inked')) return 'p1';
-                return F.has('p3_t1') && !(F.has('p3_t2') && F.has('p3_t3')) ? 'p3b' : 'p3';
-            }
-            return 'hook';
-        }
-        if (F.has('p2_open') && F.has('p3_done')) return 'kelp';
+        // Opening Vattenporten earns a usable route. The hills later lead to
+        // the land fragment; they never block an already opened sea passage.
+        if (inScene('kelp')) return 'hook';
+        if (F.has('p2_open')) return 'kelp';
         // the nearest unfinished puzzle: the pool by her beach, the arch in the west, the steppe beyond it
         const x = P().x / HL;
         if (!F.has('p2_open') && x > 96) return F.has('p2_seen') ? 'p2' : 'pool';

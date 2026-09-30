@@ -11,11 +11,15 @@ const PREFIX = 'skoldhast.v1.';
 const INDEX = PREFIX + 'index';
 export const CONTENT_VERSION = 1;
 
-const K1_END = ['intro_done', 'b:k1_enter', 'b:k1_stopwatch', 'klo_hidden', 'b:k1_ja', 'klo_ja', 'b:k1_mapcorner', 'rule_demo', 'b:k1_clouds',
+// Chapter 1 now ends at the sea-fold discovery. A word code must not award
+// the separate land route that its player can choose next in chapter 2.
+const LAND_ROUTE = [
     'b:k1_note', 'note1_read', 'teach_streck', 'p1_inked', 'b:k1_p1', 'entrance_fluff', 'glimpse1', 'b:k1_glimpse', 'b:k1_branten', 'p3_t1', 'p3_t2', 'p3_t3',
-    'p3_done', 'b:k1_p3', 'p2_seen', 'b:k1_mirror', 'p2_plank', 'p2_stone', 'p2_open', 'b:k1_arch', 'b:k1_pool_klo', 'kelp_entered', 'b:k1_kelp_first',
-    'ch1_end', 'clue_map_corner', 'clue_note1', 'clue_wave_marks', 'clue_reflection', 'clue_fold', 'clue_figure', 'clue_glimpse', 'exp_fart', 'exp_fart_logged', 'spangen_flag'];
-const K2_END = [...K1_END, 'ch2_open', 'b:k2_open', 'b:k2_note2', 'clue_note2', 'p5_lit', 'b:k2_lit', 'b:k2_lanterns', 'p4_leap', 'b:k2_leap', 'exp_sprang',
+    'p3_done', 'b:k1_p3', 'clue_note1', 'clue_wave_marks', 'clue_glimpse', 'spangen_flag'];
+const K1_END = ['intro_done', 'b:k1_enter', 'b:k1_stopwatch', 'klo_hidden', 'b:k1_ja', 'klo_ja', 'b:k1_mapcorner', 'rule_demo',
+    'p2_seen', 'b:k1_mirror', 'p2_plank', 'p2_stone', 'p2_open', 'b:k1_arch', 'b:k1_pool_klo', 'kelp_entered', 'b:k1_kelp_first',
+    'ch1_end', 'b:k1_hook', 'clue_map_corner', 'clue_reflection', 'clue_fold', 'clue_figure', 'exp_fart', 'exp_fart_logged'];
+const K2_END = [...K1_END, ...LAND_ROUTE, 'b:k1_clouds', 'ch2_open', 'b:k2_open', 'b:k2_note2', 'clue_note2', 'p5_lit', 'b:k2_lit', 'b:k2_lanterns', 'p4_leap', 'b:k2_leap', 'exp_sprang',
     'exp_sprang_logged', 'mark_land', 'b:k2_mark_land', 'clue_mark_land', 'clue_lighthouse', 'p6_flat', 'mark_sea', 'b:k2_mark_sea', 'clue_mark_sea',
     'marks_both', 'b:k2_end', 'ch2_end', 'p4_plank',
     // Kapitel 2 is done: its white pages have long turned away (they must not peel again)

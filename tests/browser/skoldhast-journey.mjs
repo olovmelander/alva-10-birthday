@@ -16,7 +16,7 @@ import path from 'node:path';
 import { serve, launch } from '../../scripts/skoldhast-shot.mjs';
 
 process.env.NO_TEST = '1';
-const { chapter1, chapter2, chapter3 } = await import('../skoldhast-playthrough.test.mjs');
+const { openCave, landApproach, seaFragment, returnToLand, landFragment, chapter1, chapter2, chapter3 } = await import('../skoldhast-playthrough.test.mjs');
 const args = Object.fromEntries(process.argv.slice(2).reduce((a, v, i, all) => v.startsWith('--') ? [...a, [v.slice(2), all[i + 1]]] : a, []));
 const [width, height] = (args.viewport || '844x390').split('x').map(Number);
 const touchMode = args.input === 'touch';
@@ -89,7 +89,7 @@ try {
         // free to service visual effects without clearing our held DOM input.
         input.release = () => {};
         const assert = { ok(v, m) { if (!v) throw Error(m || 'assertion failed'); }, equal(a, b, m) { if (a !== b) throw Error(`${m || 'not equal'}: ${a} !== ${b}`); } };
-        const chapter = routes.map(s => new Function('assert', `return (${s})`)(assert));
+        const chapter = new Function('assert', `${routes.join('\n')}\nreturn [chapter1, chapter2, chapter3];`)(assert);
         const log = [], events = [], notes = [];
         G.on('*', (type, e) => { if (!['hoof', 'paddle', 'ink'].includes(type)) events.push({ t: G.time, type, ...e }); });
         G.on('plankNote', e => notes.push(e.note));
@@ -126,7 +126,7 @@ try {
                     if (Math.abs(iy) < .95 && pulse >= Math.abs(iy)) y = 0;
                 }
                 if (x !== kx) { if (kx) key(kx < 0 ? 'ArrowLeft' : 'ArrowRight', false); if (x) key(x < 0 ? 'ArrowLeft' : 'ArrowRight', true); kx = x; }
-                if (y !== ky) { if (ky) key(ky < 0 ? 'ArrowUp' : 'ArrowDown', false); if (y) key(y < 0 ? 'ArrowUp' : 'ArrowDown', true); ky = y; }
+                if (y !== ky) { if (ky) key(ky < 0 ? 'ArrowUp' : 'x', false); if (y) key(y < 0 ? 'ArrowUp' : 'x', true); ky = y; }
             }
         }
         drive.pulse = 0;
@@ -221,7 +221,7 @@ try {
             // otherwise photograph minutes of notifications in one stack.
             await sleep(4000); render(); app.render(); await window.journeyShot(name);
         };
-        // chapter1's two initial lines set the prologue's existing flag/spawn;
+        // openCave's two initial lines set the prologue's existing flag/spawn;
         // both already came from the real prologue, so prevent that reset here.
         const realFlag = G.flag, realGoto = G.goto;
         let firstFlag = true, firstGoto = true;
@@ -245,7 +245,7 @@ try {
         assert.ok(notes.length > 8, 'Spången plays notes along the walk');
         await shot('05-extras');
         return { flags: [...G.flags], notes: notes.length, elapsedGameMinutes: G.time / 60, steps, errors: [] };
-    }, { touchMode, routes: [chapter1, chapter2, chapter3].map(f => f.toString()) });
+    }, { touchMode, routes: [openCave, landApproach, seaFragment, returnToLand, landFragment, chapter1, chapter2, chapter3].map(f => f.toString()) });
     assert.deepEqual(errors, [], 'no browser errors');
     for (const flag of ['p1_inked', 'p2_open', 'p3_done', 'p4_leap', 'p5_lit', 'p6_flat', 'lamp_lit', 'p8_done', 'ended', 'exp_smak', 'signe_race', 'shells_tune']) assert.ok(result.flags.includes(flag), flag);
     fs.writeFileSync(path.join(out, `journey-${args.input || 'keyboard'}-${width}x${height}.json`), JSON.stringify(result, null, 2));
