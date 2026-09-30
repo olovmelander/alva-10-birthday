@@ -86,9 +86,10 @@
   "assets/npcs-land.webp",
   "assets/props-land.json",
   "assets/props-land.webp",
-  "assets/bg-beach-evening.webp",
   "assets/bg-steppe.webp",
-  "assets/bg-steppe-evening.webp",
+  "assets/bg-steppe-far.webp",
+  "assets/bg-steppe-mid.webp",
+  "assets/bg-steppe-near.webp",
   "assets/mat-grass.webp",
   "assets/mat-earth.webp"
  ]

@@ -1,7 +1,7 @@
 /*
  * Sköldhästen – loading the code-drawn art (skoldhast/assets/manifest.json).
  *
- * Bundles: 'boot' (first playable), then 'land', 'sea', 'bay' in the background.
+ * Bundles: 'boot' (first playable), then 'land', 'sea', 'bay' and 'evening' in the background.
  * tex(name) returns a Texture or null, so the renderer can draw a placeholder
  * while a bundle is still arriving (or if an asset is missing).
  *
@@ -50,6 +50,14 @@ export function createAssets(PIXI, base) {
                 if (closed) return;
                 if (im.repeat) {
                     t.source.style.addressMode = 'repeat';
+                    t.source.style.update?.();
+                }
+                // Parallax layers are drawn smaller than stored while they scroll;
+                // mipmaps keep their thin strokes from shimmering. Pixi builds them
+                // when the texture first reaches the GPU.
+                if (im.mip) {
+                    t.source.autoGenerateMipmaps = true;
+                    t.source.style.mipmapFilter = 'linear';
                     t.source.style.update?.();
                 }
                 images.set(name, t);

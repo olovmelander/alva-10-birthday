@@ -1,6 +1,34 @@
 # Sköldhästen – handover
 
-## Latest: Klo's slow-motion awakening (30 September)
+## Latest: depth, shorelines and grounding (30 September)
+
+Branch `claude/skoldhast-visual-depth`, on `main` at `49ade5a`; not committed. Pappa asked for the
+recommended visual improvements, in order. Details, causes and before/after pairs:
+[`docs/skoldhast/visual-depth-review.md`](../docs/skoldhast/visual-depth-review.md).
+
+- **Layered backdrops.** Sky, then layers in front of the sun, clouds and gulls (`bgFront`): three
+  steppe hill bands standing on the ground line at their own depth; the bay's cliffs and water in
+  front of its sky, and its depths hung from the real surface (no sky under the pier). Clouds stay
+  above the bay's horizon; the backdrop no longer jumps every 40 HL. Contract: `dev/SPEC.md` §3.
+- **Shores and structure.** Wet sand and foam where water meets land (not her beach), pier posts
+  with ripples, a thinner jetty with its foam behind the deck, far walls in the gully, ditch and
+  cleft, a pool reflection that fades into the sand.
+- **Ground.** Dry sand and earth have their own strokes; on land the colouring thins into paper
+  below the ground (`paperBelow`), with roots, buried stones and shells, and grass lips on cliffs.
+- **Grounding.** Spången drawn as a plank walk on posts (collision unchanged), hop logs on humps,
+  contact shades, sagging chains.
+- **Under water, life, evening.** Depth gradient, shining surface underside, light on the seabed,
+  leaning kelp with holdfasts, lyktfisk light pool, far fish; one wind for grass, clouds and foam,
+  grass that bends, butterflies; a golden evening bay.
+- Her picture (105.8–112 HL, `pictureX` in `world.mjs`) is untouched. First playable
+  **2,557,913 bytes** (evening art is its own background bundle). Pure suite **158/158**; the
+  browser matrix passes except `skoldhast-opening.mjs`, which fails the same way on clean `main`.
+- After changing hill or bay art: `node scripts/build-skoldhast-assets.mjs --only backdrops`
+  (about 70 s).
+- **Frågor till Pappa:** paper showing at the bottom of the portrait screen: welcome, or keep the
+  ground coloured further down? Butterflies by the backsippa: keep?
+
+## Klo's slow-motion awakening (30 September)
 
 Branch `claude/skoldhast-slowmo-drop`, from `main` at `8323bf0`. Pappa asked for a longer, more
 dramatic entrance: the water drop from the sköldhäst to the sand should wake Klo, and he should

@@ -29,7 +29,16 @@ SCENES.land = {
     id: 'land', title: SCENE_TITLES.land,
     bounds: { x0: h(-2), x1: h(119), y0: h(-12), y1: h(3) },
     backdrop: [
-        { image: 'bg-steppe', x0: h(-2), x1: h(78) },
+        // The steppe: a sky, then three bands of hills at their own depth (the
+        // farthest moves least). Standing on the ground at `ref`, each band's top
+        // row sits `y` frame heights above the ground line; climbing lowers them.
+        {
+            image: 'bg-steppe', x0: h(-2), x1: h(78), ref: h(-0.8), skyRow: 0.8, layers: [
+                { image: 'bg-steppe-far', y: 0.3, par: 0.04, repeat: true },
+                { image: 'bg-steppe-mid', y: 0.35, par: 0.1, repeat: true },
+                { image: 'bg-steppe-near', y: 0.43, par: 0.2, repeat: true, fill: 0xc3c6aa }
+            ]
+        },
         // Her sea sits behind her beach, as in her picture: the painting's first
         // full sea row (73 % down) is pinned to this world height.
         { image: 'bg-beach', x0: h(80), x1: h(119), seaRow: 0.73, seaY: h(-0.42) }
@@ -37,7 +46,10 @@ SCENES.land = {
     // Her dark-blue waterline where the sea meets the sand, behind the legs
     // (plan §2.3); it runs on into the sea's own surface line at the shore.
     waterline: { x0: h(105.25), sea: 'shallows' },
-    evening: { 'bg-steppe': 'bg-steppe-evening', 'bg-beach': 'bg-beach-evening' },
+    evening: {
+        'bg-steppe': 'bg-steppe-evening', 'bg-steppe-far': 'bg-steppe-far-evening', 'bg-steppe-mid': 'bg-steppe-mid-evening',
+        'bg-steppe-near': 'bg-steppe-near-evening', 'bg-beach': 'bg-beach-evening'
+    },
     surfaces: [
         // Klippudden (Kapitel 2)
         { id: 'klipp', pts: L([-1, -4.0], [3, -4.05], [6, -3.98], [7.95, -4.0]), mat: 'grass', edgeMat: 'rock', cliff: true, chapter: 2 },
@@ -59,16 +71,18 @@ SCENES.land = {
         },
         { id: 'ditch', pts: L([65.98, -0.15], [67.52, -0.15]), mat: 'earth', hidden: true },
         { id: 'floor2', pts: L([67.52, -0.8], [70, -0.78], [72, -0.76], [74, -0.77], [75.98, -0.75]), mat: 'grass' },
-        { id: 'rock-61', thin: true, pts: L([60.75, -1.22], [61.25, -1.24]), mat: 'rock', prop: 'rock-flat' },
+        { id: 'rock-61', thin: true, pts: L([60.75, -1.22], [61.25, -1.24]), mat: 'rock', prop: 'rock-flat', mound: 'grass' },
         // Streckbron: the gully and the arch (solid once inked)
         { id: 'gully', pts: L([75.98, 0.25], [80.02, 0.25]), mat: 'earth', hidden: true }, // the dry tide gully's floor (visible under the arch)
         { id: 'arch', thin: true, pts: L([75.98, -0.75], [76.6, -0.98], [77.3, -1.15], [78, -1.2], [78.7, -1.15], [79.4, -0.98], [80.02, -0.66]), mat: 'wood', when: 'p1_inked', bridge: true },
         // Stranden: runway, Spången (hollow planks), dunes, the pool, her beach, the jetty
         { id: 'runway', pts: L([80.02, -0.66], [82, -0.63], [83.9, -0.62]), mat: 'wetsand' },
-        { id: 'spangen', pts: L([83.9, -0.62], [84.7, -0.88], [91.4, -0.9], [92.2, -0.62]), mat: 'wood', hollow: true, planks: true },
+        { id: 'spangen', pts: L([83.9, -0.62], [84.7, -0.88], [91.4, -0.9], [92.2, -0.62]), mat: 'wood', hollow: true, planks: true,
+            // drawn as a plank walk on posts over level sand (collision is its deck)
+            boardwalk: { floor: L([83.9, -0.62], [92.2, -0.62]), under: 'sand', deck: 26, posts: h(1.25), blend: { mat: 'wetsand', width: h(1.6) } } },
         { id: 'dunes', pts: L([92.2, -0.62], [93, -0.68], [94, -0.73], [95, -0.66], [96, -0.56], [97, -0.58], [98, -0.63], [99.3, -0.48]), mat: 'sand' },
-        { id: 'drift-94', thin: true, pts: L([94.25, -1.06], [94.85, -1.08]), mat: 'wood', prop: 'driftwood-1' },
-        { id: 'drift-98', thin: true, pts: L([98.2, -1.05], [98.75, -1.06]), mat: 'wood', prop: 'driftwood-2' },
+        { id: 'drift-94', thin: true, pts: L([94.25, -1.06], [94.85, -1.08]), mat: 'wood', prop: 'driftwood-1', mound: 'sand' },
+        { id: 'drift-98', thin: true, pts: L([98.2, -1.05], [98.75, -1.06]), mat: 'wood', prop: 'driftwood-2', mound: 'sand' },
         { id: 'pool-bed', pts: L([99.3, -0.48], [99.9, -0.18], [101, -0.1], [102.6, -0.08], [103.4, -0.2], [103.8, -0.42]), mat: 'wetsand' },
         { id: 'beach', pts: L([103.8, -0.42], [105, -0.43], [106.5, -0.4], [108.5, -0.33], [110, -0.22], [111, -0.1], [112, 0.06], [112.25, 0.08]), mat: 'wetsand' },
         // tail: drawn only, so the seabed runs on under the jetty past the page's edge
@@ -98,6 +112,32 @@ SCENES.land = {
         { id: 'p2-plank', pts: L([103.8, -0.42], [104.6, -0.43], [105.2, -0.43]), flag: 'p2_plank', bothWays: true, balk: false, decal: true, inkWhen: 'p2_seen', solid: 'plank-solid' }
     ],
     hurdles: [{ x: h(57), id: 'log-57' }, { x: h(62), id: 'log-62' }],
+    // Below the ground the colouring thins into blank paper (deeper than her
+    // picture reaches under her beach), with roots under the turf and a few
+    // things lying in the ground. None of them are under her picture (105.8–112).
+    paperBelow: { depth: h(1.15) },
+    pictureX: [h(105.8), h(112)], // her picture's width: nothing is added inside it
+    roots: true,
+    buried: [
+        { sprite: 'shell-2', x: h(82.4), d: h(0.5), rot: 2.6 },
+        { sprite: 'shell-3', x: h(93.6), d: h(0.45), rot: 0.4 },
+        { sprite: 'rock-2', x: h(96.8), d: h(0.7), rot: 0.3, scale: 1 },
+        { sprite: 'shell-5', x: h(98.3), d: h(0.35), rot: -0.8 },
+        { sprite: 'rock-1', x: h(104.7), d: h(0.62), rot: -0.2 },
+        { sprite: 'rock-1', x: h(52), d: h(0.55), rot: 0.5, scale: 0.9 },
+        { sprite: 'rock-3', x: h(63.5), d: h(0.7), rot: -0.3, scale: 1 },
+        { sprite: 'rock-2', x: h(72.8), d: h(0.5), rot: 1.1 },
+        { sprite: 'rock-3', x: h(20), d: h(0.8), rot: 0.2, scale: 1.1 },
+        { sprite: 'rock-1', x: h(25.5), d: h(0.6), rot: -0.6 },
+        { sprite: 'rock-2', x: h(42.5), d: h(0.65), rot: 0.4 }
+    ],
+    // the far sides of the cleft below Klippudden, the ditch on Galoppbanan and the
+    // dry tide gully under Streckbron (drawn only), so they read as holes in the land
+    backs: [
+        { x0: h(7.95), x1: h(13.05), top: [h(-4.0), h(-4.0)], floor: h(-0.9), mat: 'rock', stones: [[0.3, 'rock-1', 1.1], [0.72, 'rock-3', 0.9]] },
+        { x0: h(65.98), x1: h(67.52), top: [h(-0.8), h(-0.8)], floor: h(-0.15), mat: 'earth', stones: [[0.55, 'rock-2', 0.8]] },
+        { x0: h(75.98), x1: h(80.02), top: [h(-0.75), h(-0.66)], floor: h(0.25), mat: 'earth', stones: [[0.22, 'rock-1', 0.9], [0.6, 'rock-2', 1], [0.83, 'rock-3', 0.7]] }
+    ],
     waters: [
         { id: 'pool', x0: h(99.75), x1: h(103.55), top: h(-0.3), kind: 'pool', swim: false, mirror: true },
         { id: 'shallows', x0: h(110.4), x1: h(121.5), top: h(0), kind: 'sea', swim: false }
@@ -205,8 +245,9 @@ SCENES.land = {
         { gulls: 2, x: h(30), y: h(-8.2), layer: 'sky', par: 0.25 },
         // her beach
         { sprite: 'frozen-splash', x: h(109.45), y: h(-0.24), layer: 'fore', frozen: true },
-        { sprite: 'foam-edge', x: h(113.6), y: h(0.02), layer: 'mid' },
-        { sprite: 'foam-edge', x: h(116.4), y: h(0.02), layer: 'mid' },
+        // foam at the jetty's posts, behind its deck, where the sea meets them
+        { sprite: 'foam-edge', x: h(113.6), y: h(0.07), layer: 'far' },
+        { sprite: 'foam-edge', x: h(116.4), y: h(0.07), layer: 'far' },
         { sprite: 'label-skold-hast', x: h(110.3), y: h(-1.25), layer: 'fore', label: true },
         { sprite: 'rock-1', x: h(104.2), y: h(-0.42), layer: 'mid' },
         // a strand of kelp resting in the shallows, clear of the hooves and tail
@@ -331,6 +372,8 @@ SCENES.kelp = {
     tastes: [{ id: 'kelp-15', kind: 'kelp', x: h(15.1), y: h(5.6) }, { id: 'kelp-24', kind: 'kelp', x: h(23.85), y: h(11.2), when: 'ch2_open' }],
     corners: [{ id: 'corner', x: h(36), y: h(8.4), flag: 'p6_flat' }],
     school: { id: 'lykt', home: { x: h(23.9), y: h(11.3) }, count: 7, lit: { x: h(28.8), y: h(11.6) } },
+    // little fish far off between the fronds (scenery only)
+    schools: [{ x: h(14.5), y: h(3.4), count: 7, range: h(3.5) }, { x: h(39), y: h(5.4), count: 6, range: h(3), chapter: 2 }],
     shy: [
         { id: 'fish-a', kind: 'fish', x: h(15.2), y: h(5.4) },
         { id: 'fish-b', kind: 'fish', x: h(10.2), y: h(4.8) },
@@ -375,8 +418,15 @@ SCENES.viken = {
         { id: 'p-gallery-flowers', chapter: 3, x: h(30.2), y: h(-7.3), prop: 'flowers', propAt: { x: h(31.1), y: h(-7.3) } }
     ],
     bounds: { x0: h(-1), x1: h(36), y0: h(-11), y1: h(9) },
-    backdrop: [{ image: 'bg-bay', x0: h(-1), x1: h(36) }],
-    evening: { 'bg-bay': 'bg-bay-evening' },
+    // The sky, then the cliffs and the calm water in front of the sun, clouds and
+    // gulls. Below the real surface hangs the water itself, so a swimmer under
+    // the pier sees the bay's depths, not its sky (10 HL of it per tile).
+    backdrop: [{
+        image: 'bg-bay', x0: h(-1), x1: h(36), horizon: 0.6,
+        layers: [{ image: 'bg-bay-front', par: 0.012 }],
+        under: { image: 'bg-bay-under', water: 'bay', span: h(10), par: 0.45, fill: 0x79909d }
+    }],
+    evening: { 'bg-bay': 'bg-bay-evening', 'bg-bay-front': 'bg-bay-front-evening' },
     surfaces: [
         { id: 'shore', pts: L([-1, -0.16], [1.4, -0.16], [2.2, 0.15], [3.2, 0.9], [4.5, 2.6], [6, 4.6], [8, 5.8]), mat: 'sand' },
         { id: 'bay-bed', pts: L([8, 5.8], [11, 6.4], [14, 6.85], [18, 6.9], [22, 6.6], [24.8, 6.3], [26.2, 6.0]), mat: 'seabed' },
@@ -384,7 +434,8 @@ SCENES.viken = {
         { id: 'light-base', pts: L([27.1, -0.45], [32.5, -0.45]), mat: 'rock' },
         { id: 'east-bed', pts: L([32.5, -0.45], [33.2, 2], [34, 5.5], [36, 6]), mat: 'seabed' },
         // dropIn: the sköldhäst can hop off it into the bay (Hoppa i, or down on the stick), so it is never a trap
-        { id: 'pier', thin: true, pts: L([1.4, -0.16], [2.4, -0.62], [24.2, -0.62]), mat: 'wood', hollow: true, planks: true, pier: true, dropIn: true },
+        { id: 'pier', thin: true, pts: L([1.4, -0.16], [2.4, -0.62], [24.2, -0.62]), mat: 'wood', hollow: true, planks: true, pier: true, dropIn: true,
+            posts: { from: h(3.3), to: h(23.8), every: h(2.56) } },
         { id: 'gallery', thin: true, pts: L([26.05, -7.3], [31.9, -7.3]), mat: 'cream', gallery: true }
     ],
     walls: [
