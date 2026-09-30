@@ -14,6 +14,7 @@ import { createOpeningKlo, OPENING_KLO_HOLD, OPENING_KLO_STAGES, openingKloAt, o
 import { createOpeningCanvas } from './opening-canvas.mjs';
 import { createStuckWave, surfaceGround } from './stuck-wave.mjs';
 import { createOpeningNotes, createScribbleReveal } from './opening-notes.mjs';
+import { createMapFragmentProp } from './map-props.mjs';
 import { CLOUD_PENCILS, createUserCloud, paintUserCloud } from './user-cloud.mjs';
 
 const h = (v) => v * HL;
@@ -213,7 +214,7 @@ export function createTable({ PIXI, app, view, G, ui, audio, assets, makeHero })
         if (picHero && heroAwake) {
             const st = G.scenes.land.spots.start;
             picHero.update(dt, { x: st.x, y: st.y, facing: 1, gait: 'stand', mode: 'ground', speed: 0, time: t, hide: 0,
-                action: picHero._action || null, actionT: picHero._actionT || 0, lookAt: picHero._look || null, groundAt: () => st.y, emote: picHero._emote || null });
+                action: picHero._action || (ui.speaker() === 'horse' && !G.lessMotion ? 'talk' : null), actionT: picHero._action ? picHero._actionT || 0 : 0, lookAt: picHero._look || null, groundAt: () => st.y, emote: picHero._emote || null });
             if (picHero._action) { picHero._actionT = Math.min(1, (picHero._actionT || 0) + dt / 0.9); if (picHero._actionT >= 1) picHero._action = null; }
         }
         // The wave keeps its own clock: it breathes and throws spray until the
@@ -223,7 +224,7 @@ export function createTable({ PIXI, app, view, G, ui, audio, assets, makeHero })
         canvasLife?.update({ time: t, alive: heroAwake, frozen });
         if (picKlo) {
             const [x, y] = worldToPaper(G.scenes.land.spots.start.x, G.scenes.land.spots.start.y);
-            picKlo.update({ time: t, dt, hero: { x, y }, talking: !!ui.root.querySelector('.sk-dialogue.on.who-klo') });
+            picKlo.update({ time: t, dt, hero: { x, y }, talking: ui.speaker() === 'klo' });
         }
         for (const d of drops) { d.t += dt; d.s.y = d.y0 - d.t * 22; d.s.alpha = Math.max(0, 1 - d.t / 3.4); }
         for (const s of extras.children) if (s._tw !== undefined) s.alpha = 0.6 + 0.4 * Math.sin(t * 2 + s._tw);
@@ -750,14 +751,9 @@ export function createTable({ PIXI, app, view, G, ui, audio, assets, makeHero })
             .fill({ color: 0xffffff, alpha: .95 }).stroke({ width: .9, color: 0x244f8f, alpha: .6 });
     }
     /** A torn scrap of Kartväktaren's ruled map (paper units, centred). */
-    function mapScrap(tint) {
-        const g = new PIXI.Graphics(); g.label = 'opening-map-scrap';
-        const edge = [-12, -8, -3, -10, 10, -8, 13, -1, 9, 4, 12, 9, 1, 8, -6, 10, -12, 6];
-        g.poly(edge).fill({ color: 0xf8f0da });
-        if (T('mat-paper')) g.poly(edge).fill({ texture: T('mat-paper'), textureSpace: 'global', alpha: .7 });
-        g.poly(edge).stroke({ width: 1.2, color: 0x8c7651, alpha: .8 });
-        g.moveTo(-8, -3).lineTo(8, -4).stroke({ width: 1.4, color: tint, alpha: .7 });
-        g.moveTo(-8, 3).lineTo(5, 2).stroke({ width: 1, color: 0x5d574f, alpha: .5 });
+    function mapScrap(fragment) {
+        const g = createMapFragmentProp(PIXI, { texture: T, fragment, width: 25 });
+        g.label = 'opening-map-scrap';
         return g;
     }
     let scrapsFlying = false;
@@ -768,13 +764,13 @@ export function createTable({ PIXI, app, view, G, ui, audio, assets, makeHero })
         const k = kloPaper || [PIC.x + 240, PIC.y + 470];
         // one to the sand beside Klo (Kapitel 1), one over the land (Klippudden) and one into the sea (the deep)
         const paths = [
-            { to: [k[0] + 30, k[1] - 3], lift: 120, dur: 2.9, spin: 5.2, tint: 0x607955, rest: true },
-            { to: [PIC.x - 30, PIC.y + 150], lift: 90, dur: 2.6, spin: -4.1, tint: 0x876548 },
-            { to: [sx, sy], lift: 70, dur: 2.2, spin: 3.4, tint: 0x315e7f }
+            { to: [k[0] + 30, k[1] - 3], lift: 120, dur: 2.9, spin: 5.2, rest: true },
+            { to: [PIC.x - 30, PIC.y + 150], lift: 90, dur: 2.6, spin: -4.1 },
+            { to: [sx, sy], lift: 70, dur: 2.2, spin: 3.4 }
         ];
         for (const [i, path] of paths.entries()) {
             if (G.lessMotion && !path.rest) continue;
-            const g = mapScrap(path.tint); onPaper.addChild(g);
+            const g = mapScrap(['corner', 'land', 'sea'][i]); onPaper.addChild(g);
             let u = G.lessMotion ? .999 : 0;
             const start = [from.x + i * 6, from.y + i * 8];
             g.position.set(...start); g.alpha = 0;
@@ -909,7 +905,7 @@ export function createTable({ PIXI, app, view, G, ui, audio, assets, makeHero })
         picHero._emote = 'happy';
         await wait(1.2);
         running = false;
-        await new Promise((resolve) => ui.journal({ page: 6, ...journalState(), onClose: resolve }));
+        await ui.ending();
         await tween(0.8, (u) => { table.alpha = 1 - u; });
         stop();
         table.alpha = 1;
@@ -949,6 +945,10 @@ export function createTable({ PIXI, app, view, G, ui, audio, assets, makeHero })
 
     return {
         prologue, epilogue, layout,
+        speakerBounds(who) {
+            if (!table.visible || table.alpha < .9) return null;
+            return who === 'horse' ? picHero?.headBounds() : who === 'klo' ? picKlo?.headBounds() : null;
+        },
         tick(dt) { if (running) tick(dt); },
         setJournalState(fn) { journalState = fn; },
         get active() { return table.visible; },

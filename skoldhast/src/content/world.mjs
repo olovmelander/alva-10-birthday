@@ -162,7 +162,7 @@ SCENES.land = {
         arch: { x: h(101.9), y: h(-0.3) },
         splash: { x: h(109.45), y: h(-0.3) },
         label: { x: h(110.3), y: h(-1.25) },
-        wavemarks: { x: h(35.1), y: h(-4.45) },
+        wavemarks: { x: h(33.6), y: h(-4.8) },
         landmark: { x: h(3.2), y: h(-4.05) },
         cleftView: { x: h(4.0), y: h(-4.0) }
     },
@@ -226,7 +226,7 @@ SCENES.land = {
     // Smaktestet (O1): tufts of steppe grass to taste
     tastes: [{ id: 'grass-74', kind: 'grass', x: h(74.8), y: h(-0.76) }, { id: 'grass-51', kind: 'grass', x: h(50.8), y: h(-0.81) }, { id: 'grass-30', kind: 'grass', x: h(30.5), y: h(-5.9) }],
     // Kapplöpning mot Sköldpaddan Signe (O8, after the ending): from the shells to the pool
-    race: { start: { x: h(107.4), y: h(-0.37) }, finish: h(103.6), speed: h(0.35), signe: { x: h(106.9), y: h(-0.39) } },
+    race: { start: { x: h(107.4), y: h(-0.37) }, finish: h(103.6), speed: h(0.35), signe: { x: h(109.8), y: h(-0.235) } },
     // Sandpapperet (O4): hoofprints stay on these materials (walk prints fade, gallop prints turn to graphite)
     printMats: ['sand', 'wetsand'],
     drums: [{ id: 'spangen-flag', surface: 'spangen', x0: h(88.5), x1: h(91.4), notches: 10, flag: 'spangen_flag' }],
@@ -279,8 +279,8 @@ SCENES.land = {
         { sprite: 'hurdle-log', x: h(57), y: h(-0.84), layer: 'mid' },
         { sprite: 'hurdle-log', x: h(62), y: h(-0.84), layer: 'mid' },
         { sprite: 'boulder', x: h(49.2), y: h(-0.82), layer: 'mid' },
-        { sprite: 'wave-marks', x: h(35.1), y: h(-4.5), layer: 'mid' },
-        { sprite: 'wave-marks', x: h(41.6), y: h(-2.4), layer: 'mid' },
+        { sprite: 'wave-marks', x: h(33.6), y: h(-4.249), layer: 'mid' },
+        { sprite: 'wave-marks', x: h(41.6), y: h(-1.918), scale: .74, layer: 'mid' },
         { sprite: 'feathergrass-4', x: h(30.5), y: h(-5.9), layer: 'mid' },
         { sprite: 'feathergrass-2', x: h(24.2), y: h(-5.75), layer: 'fore' },
         { sprite: 'feathergrass-1', x: h(18.2), y: h(-4.35), layer: 'mid' },
@@ -310,8 +310,8 @@ SCENES.kelp = {
         // Pickups float just above the seabed; the drawings rest on its contour.
         { id: 'p-kelp-bucket', chapter: 2, x: h(23.7), y: h(11.4), prop: 'bucket', propAt: { x: h(24.6), y: h(12.05882) } },
         { id: 'p-kelp-shell', chapter: 2, when: 'p5_lit', x: h(28.8), y: h(12.22), prop: 'sea-shell', propAt: { x: h(29.8), y: h(12.59333) } },
-        { id: 'p-kelp-boat', chapter: 2, when: 'p5_lit', x: h(32.1), y: h(11.34), prop: 'boat', propAt: { x: h(33.1), y: h(11.20667) } },
-        { id: 'p-kelp-pebbles', chapter: 2, when: 'p5_lit', x: h(43), y: h(9.53), prop: 'pebbles', propAt: { x: h(44.2), y: h(9.46667) } }
+        { id: 'p-kelp-boat', chapter: 2, x: h(32.1), y: h(11.34), prop: 'boat', propAt: { x: h(33.1), y: h(11.20667) } },
+        { id: 'p-kelp-pebbles', chapter: 2, x: h(43), y: h(9.53), prop: 'pebbles', propAt: { x: h(44.2), y: h(9.46667) } }
     ],
     bounds: { x0: h(-1), x1: h(50), y0: h(-3), y1: h(14) },
     backdrop: [{ image: 'bg-under', x0: h(-1), x1: h(50) }],
@@ -350,7 +350,7 @@ SCENES.kelp = {
         { id: 'lane-out', pts: L([36, 8.5], [39, 6.5], [42, 4.5], [45, 2.8], [47.2, 1.6]), width: h(1.4), speed: 520, when: 'marks_both' }
     ],
     vortices: [
-        { id: 'kelphjartat', x: h(36), y: h(8.4), r: h(3), eye: h(0.45), speed: 620, pull: 160, spin: 1, when: ['p5_lit', '!p6_flat'] }
+        { id: 'kelphjartat', x: h(36), y: h(8.4), r: h(3), eye: h(0.45), speed: 620, pull: 160, spin: 1, when: ['ch2_open', '!p6_flat'] }
     ],
     kelpBeds: [
         { id: 'bed-entry', x0: h(14.2), x1: h(16), y0: h(5.1), y1: h(6.1) },
@@ -468,7 +468,7 @@ SCENES.viken = {
     lanes: [
         { id: 'pipe', pts: L([26.5, 5.2], [26.5, 0.6], [26.5, -7.1]), width: h(0.9), speed: 520, eject: true, suck: h(2.2) },
         // the sea half of P8 starts where the pier leap lands and ends in a calm pool at the lower window
-        { id: 'p8-lane', pts: L([25.6, 0.85], [25.95, 1.7], [26.2, 2.3], [26.35, 2.6]), width: h(1.4), speed: 260, dashed: true, endHold: true, priority: 1, when: ['p8_land', '!p8_done'] }
+        { id: 'p8-lane', pts: L([25.6, 0.85], [25.95, 1.7], [26.2, 2.3], [26.35, 2.6]), width: h(1.4), speed: 260, dashed: true, endHold: true, priority: 1, when: ['p8_land', '!unfolded', '!ended'] }
     ],
     spots: {
         fromLand: { x: h(0.6), y: h(-0.16), facing: 1 },
@@ -483,7 +483,7 @@ SCENES.viken = {
         window: { x: h(26.9), y: h(2.6), inRock: true }, // the lower window in the rock face (a camera target)
         lighthouse: { x: h(29.8), y: h(-0.45) },
         plate: { x: h(14.2), y: h(6.86) },
-        rope: { x: h(28.6), y: h(-7.3) },
+        rope: { x: h(29.2), y: h(-7.3) },
         viewPier: { x: h(19.5), y: h(-0.62) }
     },
     areas: [
@@ -495,7 +495,7 @@ SCENES.viken = {
     drums: [{ id: 'shutter1', surface: 'pier', x0: h(4), x1: h(22), notches: 24, flag: 'shutter1', when: 'viken_arrived' }],
     // a resting shell within `pull` slides onto the plate; `hold` seconds on it latches the shutter
     plates: [{ id: 'plate', x: h(14.2), y: h(6.86), w: h(1.6), pull: h(1.5), flag: 'shutter2', hold: 1.2 }],
-    pullRopes: [{ id: 'shutter3-rope', x: h(28.6), y: h(-7.3), flag: 'shutter3' }],
+    pullRopes: [{ id: 'shutter3-rope', x: h(29.2), y: h(-7.3), flag: 'shutter3' }],
     // The spiral stair joins the gallery to the pier's end. Its gate is bolted from the stair side:
     // the first way up is the pipe (P7); coming down opens it, and then it works both ways.
     stairs: [
@@ -524,7 +524,7 @@ SCENES.viken = {
         { sprite: 'window-lower', x: h(27.0), y: h(2.6), layer: 'mid' },
         { sprite: 'plate-up', x: h(14.2), y: h(6.86), layer: 'mid', when: '!shutter2' },
         { sprite: 'plate-down', x: h(14.2), y: h(6.86), layer: 'mid', when: 'shutter2' },
-        { sprite: 'ratchet-wheel', x: h(12.8), y: h(-1.3), layer: 'mid', ratchet: 'shutter1' },
+        { sprite: 'ratchet-wheel', x: h(12.8), y: h(-0.2), layer: 'mid', ratchet: 'shutter1' },
         { sprite: 'seabed-rock-2', x: h(10.8), y: h(6.35), layer: 'mid' },
         { sprite: 'seabed-rock-1', x: h(21.4), y: h(6.65), layer: 'mid' },
         { sprite: 'cloud-2', x: h(12), y: h(-6.6), layer: 'sky', par: 0.15, anim: 'cloud' },
@@ -532,9 +532,9 @@ SCENES.viken = {
         { gulls: 2, x: h(18), y: h(-5.5), layer: 'sky', par: 0.25 }
     ],
     chains: [
-        { id: 'chain1', from: { x: h(12.8), y: h(-1.3) }, to: { x: h(29.266), y: h(-7.985) }, shutter: 0 },
+        { id: 'chain1', from: { x: h(12.8), y: h(-0.2) }, to: { x: h(29.266), y: h(-7.985) }, shutter: 0 },
         { id: 'chain2', from: { x: h(14.2), y: h(6.7) }, to: { x: h(29.8), y: h(-7.985) }, shutter: 1 },
-        { id: 'chain3', from: { x: h(28.6), y: h(-7.35) }, to: { x: h(30.334), y: h(-7.985) }, shutter: 2 }
+        { id: 'chain3', from: { x: h(29.2), y: h(-8.65) }, to: { x: h(30.334), y: h(-7.985) }, shutter: 2 }
     ],
     // the lamp room: three shutters on the drawn lighthouse (its attachment points, ×1.37: ±78 and −1100 px from the base)
     shutters: [{ x: h(29.266), y: h(-7.985), flag: 'shutter1' }, { x: h(29.8), y: h(-7.985), flag: 'shutter2' }, { x: h(30.334), y: h(-7.985), flag: 'shutter3' }],

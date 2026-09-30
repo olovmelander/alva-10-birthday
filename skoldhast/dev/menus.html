@@ -45,7 +45,7 @@ const scene = document.createElement('div');
 scene.className = 'sk-scene';
 host.appendChild(scene);
 
-const settings = { help: 'normal', holdGallop: false, followFinger: false, holdToHide: true, bigText: q.has('big'), lessMotion: q.has('less'), music: 0.8, sfx: 0.9, voice: 1 };
+const settings = { help: 'ask', holdGallop: false, followFinger: false, holdToHide: true, bigText: q.has('big'), lessMotion: q.has('less'), music: 0.8, sfx: 0.9, voice: 1 };
 const log = (...a) => console.log('[menus]', ...a);
 const ui = createUI(host, {
     assetBase: '../',
@@ -112,7 +112,7 @@ switch (m) {
         break;
     }
     case 'choice': ui.showControls(false); ui.root.classList.add('table-mode'); ui.say([STORY.prolog.stuck]); ui.choice([UI.choiceWhat, UI.choiceWho]); break;
-    case 'toasts': play(); ui.toast('Ledtrådar: En kartbit i sanden, signerad /K.', 60000); ui.toast('Professor Klos mätningar: Fartfällan: 42,7 km/h.', 60000); break;
+    case 'toasts': play(); ui.toast('Ledtrådar: En kartbit i sanden, signerad av Kartväktaren.', 60000); ui.toast('Professor Klos mätningar: Fartfällan: 42,7 km/h.', 60000); break;
     case 'hud':
         play();
         guide.hint(HINTS.p5.note, 'klo', 60000);

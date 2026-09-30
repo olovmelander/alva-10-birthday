@@ -1,6 +1,7 @@
 /* Pure descriptions of the next useful action. No timers, DOM or story writes. */
 import { HL, nearestOnLine } from './sim.mjs';
 import { GOALS, HINTS, TIPS, GUIDANCE as W } from './content/sv.mjs';
+import { describeThread } from './story-thread.mjs';
 
 const clamp = (n, a = 0, b = 1) => Math.max(a, Math.min(b, n));
 const at = (scene, x, y) => ({ scene, x: x * HL, y: y * HL });
@@ -32,6 +33,11 @@ export function describeGuidance(G, settings = {}) {
     const text = GOALS[objective];
     const cue = { key: objective, objective, goal: typeof text === 'function' ? text(n) : text || '',
         hint: HINTS[objective] || null, action: null, state: 'approach', instruction: '', controlText: '', progress: null, target: null };
+    cue.thread = describeThread(F, objective);
+    if (cue.thread.conversation) {
+        cue.goal = cue.thread.conversation.goal;
+        cue.hint = cue.thread.conversation.hint;
+    }
     let control = null;
     const near = (target, radius = 2) => target?.scene === scene && Math.hypot(p.x - target.x, p.y - target.y) < radius * HL;
     function step(key, target, action = 'move', state = 'approach', instruction = W.steps[key]) {

@@ -150,7 +150,7 @@ export function createHero(PIXI, { textures, rig, mini = false } = {}) {
         strips.length = 0;
     }
 
-    return { view, update, destroy, animator: an };
+    return { view, update, destroy, animator: an, headBounds: () => sprites.head.getBounds() };
 }
 
 // ---------------------------------------------------------------------------

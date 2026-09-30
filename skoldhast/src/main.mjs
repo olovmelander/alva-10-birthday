@@ -23,16 +23,18 @@ import { createStory } from './story.mjs';
 import { createAssets } from './assets.mjs';
 import { createTable } from './prologue.mjs';
 import { countPencils, totalPencils, pencilProgress, createPuzzleState } from './puzzles.mjs';
-import { UI, BALK, CAPTIONS, FAMILY, JOURNAL } from './content/sv.mjs';
+import { UI, BALK, CAPTIONS, FAMILY, JOURNAL, KLO_COMPANION } from './content/sv.mjs';
 import { CHECKPOINTS } from './content/world.mjs';
 import { createUserCloud, cloudColor, cloudPoints } from './user-cloud.mjs';
+import { createKloCompanion, normalizeKloHelpMode } from './klo-companion.mjs';
+import { createKloUI } from './klo-ui.mjs';
 
 // the art bundle each scene draws from (boot holds the hero, Klo, the table and the UI)
 const SCENE_BUNDLES = { land: ['land'], kelp: ['sea', 'bay'], viken: ['bay', 'sea'] };
 // the notebook's page order: going on turns the page forward, going back turns it back
 const PAGE = { land: 1, kelp: 2, viken: 3 };
 
-const DEFAULT_SETTINGS = { help: 'normal', holdGallop: false, followFinger: false, holdToHide: false, bigText: false, lessMotion: false, music: 0.8, sfx: 0.9, voice: 1 };
+const DEFAULT_SETTINGS = { help: 'ask', holdGallop: false, followFinger: false, holdToHide: false, bigText: false, lessMotion: false, music: 0.8, sfx: 0.9, voice: 1 };
 
 export function createGame({ host = document.body, assetBase = './skoldhast/', released, onClose } = {}) {
     let state = 'closed';
@@ -50,6 +52,7 @@ export function createGame({ host = document.body, assetBase = './skoldhast/', r
     const frameTimes = [];
     let debugEl = null;
     const presses = createPressQueue();
+    let companion = null, kloUI = null, companionCamera = null, previousCamera = null, preserveHiddenAfterKlo = false;
 
     // --------------------------------------------------------------------------------
     // Host glue
@@ -147,7 +150,7 @@ export function createGame({ host = document.body, assetBase = './skoldhast/', r
         G.helpLevel = settings.help;
         ui = createUI(el, { assetBase, handlers: uiHandlers() });
         const img = (name) => new URL(`${assetBase}assets/${name}.webp`, document.baseURI).href;
-        guide = createGuide(ui.root, { img, heroScreen: () => heroScreen(), onGoalTap: () => openJournal() });
+        guide = createGuide(ui.root, { img, portrait: ui.portrait, heroScreen: () => heroScreen(), onGoalTap: () => openJournal(), onDismissHelp: () => companion?.dismissHelp() });
         guide.show(false);
         const heroFactory = await loadHeroFactory();
         view = createView(PIXI, app, { assets, G, heroFactory, onFx: (name, data) => (name === 'epilogue' ? runEpilogue(data) : name === 'sfx' ? audio?.sfx(data) : null) });
@@ -159,9 +162,11 @@ export function createGame({ host = document.body, assetBase = './skoldhast/', r
             gallopDefl: C.gallopDefl,
             heroHit: (x, y) => heroHit(x, y),
             kloHit: (x, y) => kloHit(x, y),
+            companionOpen: () => !!companion?.suspended(),
             heroScreen: () => heroScreen(),
             onKey: (k) => {
                 if (mode !== 'play') return;
+                if (companion?.suspended()) { companion.close(); return; }
                 // J and Esc close an open panel (the journal, the pause menu, the settings) as well as open one
                 if (ui.panelOpen()) { if (k === 'pause' || k === 'journal') ui.closePanel(); return; }
                 if (k === 'journal') openJournal();
@@ -175,6 +180,35 @@ export function createGame({ host = document.body, assetBase = './skoldhast/', r
             toScreen: (x, y) => ({ x: view.world.position.x + x * view.world.scale.x, y: view.world.position.y + y * view.world.scale.y })
         });
         G.story = story;
+        kloUI = createKloUI(ui.root, {
+            words: KLO_COMPANION.ui, portrait: ui.portrait, lessMotion: () => settings.lessMotion,
+            onCall: () => companion?.call(), onChoice: topic => companion?.choose(topic), onClose: () => companion?.close()
+        });
+        companion = createKloCompanion(G, {
+            story, ui: kloUI, guide, audio,
+            canCall: () => mode === 'play' && !paused && !G.busy && !G.vista && !G.hideActors && !story.running() && !ui.panelOpen() && !ui.dialogueOpen(),
+            viewport: () => ({ cam: view.cam, width: app.screen.width, height: app.screen.height }),
+            onSuspend: entrance => {
+                presses.clear(); input.release(); acc = 0;
+                previousCamera = G.camHint;
+                if (!(entrance.tutorial && entrance.portrait)) {
+                    companionCamera = { companion: { x: (G.player.x + entrance.x) / 2,
+                        ground: Math.max(G.player.y, entrance.y), side: entrance.x >= G.player.x ? 'left' : 'right' } };
+                    G.camHint = companionCamera;
+                }
+            },
+            onResume: () => {
+                preserveHiddenAfterKlo = !!G.player.hidden && settings.holdToHide;
+                presses.clear(); input.release(); acc = 0;
+                if (G.camHint === companionCamera) {
+                    G.camHint = previousCamera;
+                    if (G.lessMotion) view.cam.snap = true;
+                }
+                companionCamera = previousCamera = null;
+            },
+            onSave: () => saveNow()
+        });
+        G.companion = companion;
         table = createTable({ PIXI, app, view, G, ui, audio, assets, makeHero: () => heroFactory() });
         table.setJournalState(() => journalState());
         wireEvents();
@@ -292,6 +326,7 @@ export function createGame({ host = document.body, assetBase = './skoldhast/', r
     }
 
     function resetLogic() {
+        companion?.restore([]); preserveHiddenAfterKlo = false;
         G.flags.clear();
         G.puz = createPuzzleState();
         G.stats = { gallopTime: 0, maxSpeed: 0, leaps: 0 };
@@ -328,6 +363,7 @@ export function createGame({ host = document.body, assetBase = './skoldhast/', r
         if (data.settings) settings = { ...DEFAULT_SETTINGS, ...data.settings };
         applySettings();
         G.restore(data);
+        companion?.restore(data.companionHints);
         if (data.strokes) restoreStrokes(data.strokes);
         if (!G.flags.has('intro_done')) { newGame(); return; }
         mode = 'loading';
@@ -399,7 +435,7 @@ export function createGame({ host = document.body, assetBase = './skoldhast/', r
         // ask once for storage the browser won't evict (a bonus, not a safeguard: plan §8.6)
         if (!persistAsked) { persistAsked = true; saver.persist(); }
         const data = G.serialize();
-        saver.store(slot.id, slot.label, { ...data, settings, note, strokes: G.userStrokes || null, ended: G.flags.has('ended') });
+        saver.store(slot.id, slot.label, { ...data, settings, note, companionHints: companion?.serialize() || [], strokes: G.userStrokes || null, ended: G.flags.has('ended') });
     }
 
     // --------------------------------------------------------------------------------
@@ -415,26 +451,38 @@ export function createGame({ host = document.body, assetBase = './skoldhast/', r
             else if (now - glLostAt > 2000 && !glPrompt) contextGone();
             return;
         }
-        if (paused || state !== 'open') { presses.clear(); input?.release(); if (app) app.render(); return; }
+        if (paused || state !== 'open') { presses.clear(); input?.release(); ui?.updateSpeaker(null); if (app) app.render(); return; }
         const t0 = performance.now();
+        const who = ui.panelOpen() ? null : companion?.suspended() ? 'klo' : ui.speaker() || (mode === 'play' && !G.busy && !G.vista ? guide.speaker() : null);
+        G.speaker = who;
+        for (const id of ['klo', 'kv']) if (G.actors[id]) {
+            G.actors[id].talking = who === id;
+            if (who && who !== id) G.actors[id].talkUntil = 0;
+        }
         if (mode === 'play') {
-            const blocked = ui.panelOpen() || ui.dialogueOpen();
+            const blocked = ui.panelOpen() || ui.dialogueOpen() || companion?.suspended();
             const cont = blocked ? { x: 0, y: 0, hopHeld: false } : input.state();
             const e = input.consume();
-            if (ui.dialogueOpen() && e.act) ui.advance();
-            if (!blocked && e.tapKlo) story.tapKlo({ visible: kloOnScreen() });
-            if (blocked) presses.clear(); else presses.push(e);
+            if (ui.dialogueOpen() && (e.act || e.hop)) ui.advance();
+            if (e.tapKlo && !ui.panelOpen() && !ui.dialogueOpen()) companion.call();
+            if (blocked || companion.suspended()) presses.clear(); else presses.push(e);
             let first = true;
-            acc += dt;
+            if (companion.suspended()) acc = 0; else acc += dt;
+            if (preserveHiddenAfterKlo && (cont.hideHeld || e.hop || e.hide || e.duck)) preserveHiddenAfterKlo = false;
             let steps = 0;
             while (acc >= STEP && steps < 10) {
                 const edges = first ? presses.consume() : {};
                 const hideEdge = first && !blocked && (settings.holdToHide ? (edges.hide && !G.player.hidden) : edges.hide);
-                const hideRelease = first && !blocked && settings.holdToHide && !!edges.hideUp;
-                G.step({ x: cont.x, y: cont.y, hopHeld: cont.hopHeld, act: first && !blocked && edges.act, hide: hideEdge, hideRelease, tapHero: first && !blocked && (edges.tapHero || edges.neigh) });
+                // The current held state also handles release + repress between
+                // frames: an older release must not cancel the new hide press.
+                const hideRelease = !blocked && !preserveHiddenAfterKlo && settings.holdToHide && !cont.hideHeld;
+                G.step({ x: cont.x, y: cont.y, hopHeld: cont.hopHeld, hop: first && !blocked && edges.hop,
+                    act: first && !blocked && edges.act, duck: first && !blocked && edges.duck,
+                    hide: hideEdge, hideRelease, tapHero: first && !blocked && (edges.tapHero || edges.neigh) });
                 first = false; acc -= STEP; steps++;
             }
             if (steps >= 10) acc = 0;
+            companion.tick(dt);
             if (G.sceneId !== view.sceneId && !G.vista) {
                 const id = G.sceneId, from = view.sceneId;
                 const turn = from && !view.holding ? ((PAGE[id] || 0) >= (PAGE[from] || 0) ? 'left' : 'right') : null;
@@ -449,19 +497,28 @@ export function createGame({ host = document.body, assetBase = './skoldhast/', r
                 }
             }
             G.guidance = story.guidance();
-            const snap = snapshot(G.player, acc / STEP, G.terrain, G.time);
+            const snap = snapshot(G.player, companion.suspended() ? 1 : acc / STEP, G.terrain, G.time);
             view.render(snap, dt);
-            ui.setContext(G.context?.label, G.player.hidden);
-            guide.show(!ui.dialogueOpen() && !ui.panelOpen() && !G.busy && !G.vista);
-            guide.goal(G.guidance.goal);
-            guide.context(G.guidance);
+            ui.setContext(G.context?.label, G.player.hidden, settings.holdToHide);
+            const free = !ui.dialogueOpen() && !ui.panelOpen() && !G.busy && !G.vista && !companion.suspended();
+            guide.show(free);
+            const detailedHelp = settings.help === 'guided' || companion.markerActive();
+            G.showGuidance = detailedHelp && free;
+            guide.goal(detailedHelp ? G.guidance.goal : G.guidance.thread?.mission || '');
+            guide.context(detailedHelp ? { ...G.guidance, requested: settings.help !== 'guided' } : null);
             guide.update();
+            kloUI.availability({ visible: mode === 'play' && !ui.panelOpen() && !G.vista && !G.hideHero,
+                enabled: !G.busy && !story.running() && !ui.dialogueOpen() });
+            if (free && !story.running() && G.flags.has('rule_demo') && !G.flags.has('tip_callKlo')) {
+                G.flag('tip_callKlo'); kloUI.pulse(); guide.tip(KLO_COMPANION.ui.callTip, { ms: 4800 });
+            }
             if (audio) {
                 const p = G.player;
-                audio.setMotion({ speed01: Math.min(1, Math.abs(p.vx) / 1200), underwater: p.mode === 'swim' && p.submerge > 0.7, hidden: p.hidden });
+                audio.setMotion({ speed01: companion.suspended() ? 0 : Math.min(1, Math.abs(p.vx) / 1200), underwater: p.mode === 'swim' && p.submerge > 0.7, hidden: p.hidden });
                 audio.setEnvironment(G.sceneId === 'kelp' ? 'kelp' : G.sceneId === 'viken' ? 'bay' : p.x >= 80 * HL ? 'beach' : 'steppe');
             }
         } else if (mode === 'table') {
+            kloUI?.availability({ visible: false, enabled: false });
             presses.clear();
             audio?.setEnvironment('table');
             table.tick(dt);
@@ -470,12 +527,14 @@ export function createGame({ host = document.body, assetBase = './skoldhast/', r
             view.root.visible = showWorld;
             if (showWorld && view.sceneId) view.render(snapshot(G.player, 0, G.terrain, G.time), dt);
             const e = input.consume();
-            if (ui.dialogueOpen() && e.act) ui.advance();
+            if (ui.dialogueOpen() && (e.act || e.hop)) ui.advance();
         } else {
             presses.clear();
+            kloUI?.availability({ visible: false, enabled: false });
             input.consume();
         }
         app.render();
+        ui.updateSpeaker(who, mode === 'table' ? table.speakerBounds(who) : mode === 'play' ? view.speakerBounds(who) : null);
         if (debug) debugFrame(performance.now() - t0, dt);
     }
 
@@ -566,7 +625,7 @@ export function createGame({ host = document.body, assetBase = './skoldhast/', r
         if (G.flags.has('kelp_entered')) visited.add('kelp');
         if (G.flags.has('viken_arrived')) visited.add('viken');
         visited.add('land');
-        return { flags: G.flags, objective: story.objective(), hint: story.guidance().hint, tally: G.puz.tally, note, pencils: countPencils(G), pencilsTotal: totalPencils(G), pencilRegions: pencilProgress(G).filter(r => visited.has(r.id)), visited };
+        return { flags: G.flags, objective: story.objective(), hint: story.guidance().hint, companion: companion?.journal(), tally: G.puz.tally, note, pencils: countPencils(G), pencilsTotal: totalPencils(G), pencilRegions: pencilProgress(G).filter(r => visited.has(r.id)), visited };
     }
     function openJournal() { if (mode !== 'play' || ui.panelOpen()) return; pause(); audio?.sfx('page'); ui.journal({ ...journalState(), onClose: () => resume() }); }
     function openPause() { if (mode !== 'play' || ui.panelOpen()) return; pause(); ui.pauseMenu(); }
@@ -597,6 +656,7 @@ export function createGame({ host = document.body, assetBase = './skoldhast/', r
         };
     }
     function applySettings() {
+        settings.help = normalizeKloHelpMode(settings.help);
         if (G) { G.helpLevel = settings.help; G.lessMotion = !!settings.lessMotion; }
         audio?.setVolumes({ music: settings.music, sfx: settings.sfx, voice: settings.voice });
         ui?.setBigText(settings.bigText);
@@ -619,7 +679,7 @@ export function createGame({ host = document.body, assetBase = './skoldhast/', r
     }
     function kloOnScreen() {
         const k = G?.actors?.klo, b = view?.kloBounds();
-        return !!(mode === 'play' && !paused && !G.hideActors && !G.vista && k?.visible && !k.inHole && k.scene === G.sceneId && b && b.maxX > 0 && b.minX < app.screen.width && b.maxY > 0 && b.minY < app.screen.height);
+        return !!(mode === 'play' && !paused && !G.hideActors && !G.vista && k?.visible && k.scene === G.sceneId && b && b.maxX > 0 && b.minX < app.screen.width && b.maxY > 0 && b.minY < app.screen.height);
     }
     function kloHit(x, y) {
         if (!kloOnScreen() || G.busy || story?.running() || ui?.dialogueOpen() || ui?.panelOpen()) return false;
@@ -644,6 +704,7 @@ export function createGame({ host = document.body, assetBase = './skoldhast/', r
             }
         }, sig);
         window.addEventListener('pagehide', () => saveNow(), sig);
+        window.addEventListener('blur', () => companion?.cancel({ restore: true }), sig);
         const onResize = () => {
             if (!app) return;
             const { w, h, res } = sizes();
@@ -664,7 +725,7 @@ export function createGame({ host = document.body, assetBase = './skoldhast/', r
         for (const t of ['pointerdown', 'pointerup', 'keydown']) el.addEventListener(t, unlock, sig);
     }
 
-    function pause() { presses.clear(); paused = true; input?.release(); }
+    function pause() { companion?.cancel({ restore: true }); presses.clear(); paused = true; input?.release(); kloUI?.availability({ visible: false, enabled: false }); }
     function resume() {
         if (state !== 'open') return;
         if (ui?.panelOpen()) return;
@@ -686,6 +747,7 @@ export function createGame({ host = document.body, assetBase = './skoldhast/', r
             state = 'closing';
             cancelAnimationFrame(raf);
             listeners?.abort();
+            companion?.destroy(); kloUI?.destroy(); companion = null; kloUI = null;
             input?.destroy();
             ui?.destroy(); // drawing input/timers must stop before a slow asset unload
             try { audio?.dispose(); } catch { /* ignore */ }
@@ -708,7 +770,7 @@ export function createGame({ host = document.body, assetBase = './skoldhast/', r
     function dispose() { return close(); }
 
     // for automated tests and the ?debug overlay
-    const api = { open, close, pause, resume, dispose, get state() { return state; }, get debug() { return { G, view, ui, app, assets, story, input, guide, heroHit, heroScreen, kloHit, kloOnScreen }; } };
+    const api = { open, close, pause, resume, dispose, get state() { return state; }, get debug() { return { G, view, ui, app, assets, story, input, guide, companion, kloUI, heroHit, heroScreen, kloHit, kloOnScreen }; } };
     window.__skoldhast = api;
     return api;
 }

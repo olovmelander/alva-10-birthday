@@ -16,7 +16,9 @@ The game already had the right cast and the right theme (plan §3.2, §3.5), but
   Nobody asked why his map was torn, or whose map it was.
 - **Nothing proved him wrong.** He apologised after P8, but the game never showed that his fear was mistaken. The
   unfold felt like a change of heart, not a consequence.
-- **"K" was never named.** The player had to guess that /K and Kartväktaren were the same person.
+- **"K" was ambiguous.** The initial could also mean Professor Klo. The map and notes now carry the full name
+  **Kartväktaren**, and Klo connects the matching signatures. The mystery is who this person is and why he folded
+  the page; the meeting explicitly identifies him as the writer of the notes and maker of the map.
 
 ## 2. The answer, in words a 10-year-old can repeat
 
@@ -42,7 +44,7 @@ The fold that was meant to stop the paper tearing is what tore it. His map of Al
 and the pieces flew across the page. The pieces the player collects are the evidence:
 
 - **Prolog:** as the page folds, three paper scraps tear loose at the far tower and flutter into her picture.
-- **Kapitel 1:** Klo finds one of them: a map corner ruled with a ruler and signed /K.
+- **Kapitel 1:** Klo finds one of them: a map corner ruled with a ruler and signed Kartväktaren.
 - **Kapitel 2:** the land and sea halves join the corner. The torn edges follow the fold.
 - **Kapitel 3:** Klo hands the whole map back. "Den gick sönder när du vek sidan – inte av vattnet."
 
@@ -53,8 +55,8 @@ Each chapter answers one question and asks the next.
 | Part | The player asks | New clue | What it tells a careful player |
 |---|---|---|---|
 | Prolog | What happened? | A small paper man by the far tower measures her line, shrinks back as the sea comes, and his ruler folds the sea. Scraps fly. | Someone at the tower did it on purpose, and was afraid |
-| Kapitel 1 | Who is K? | The /K map corner; "Rör ej!"; a paper figure hurrying away from the water | K is made of paper, rules lines and fears unfinished ones |
-| Kapitel 2 | Why did K do it? | A note sealed in a bottle; the map tore along the fold; he slams a shutter | K fears water, and his own fold tore his map |
+| Kapitel 1 | Who is Kartväktaren? | His full name on the map corner and the "Rör ej!" note; a paper figure hurrying away from the water | The mapmaker also wrote the note; the figure with the ruler avoids water |
+| Kapitel 2 | Why did he do it? | Another note signed Kartväktaren, sealed in a bottle; the map tore along the fold; he slams a shutter | Kartväktaren fears water, and his own fold tore his map |
 | Kapitel 3 | Will he undo it? | His story, his LAND/HAV map, the sköldhäst's answer | The fear was wrong, and the sköldhäst can show it |
 | Final | Does the paper hold? | PLASK; he stands in the spray on his open gallery | Water on paper, and nothing tears |
 | Epilogue | – | Her real drawing is a little wet, and whole | The answer, at Alva's own table |
@@ -71,8 +73,9 @@ before the game says, and the meeting pays that off ("det är han!").
    corner, lighthouse and all. No words, no name, no close face.
 2. **Kapitel 1:** the same figure hurries away from the water beyond Veckmuren.
 3. **Kapitel 2:** he peeks through a lighthouse shutter and slams it shut.
-4. **Kapitel 3:** he comes out. Now we see his face, hear his name and learn why. His memory card shows the same
-   lighthouse and him on its gallery, in the same poses, as the player saw in the prologue.
+4. **Kapitel 3:** he comes out. Now we see his face, connect him to the name on the notes and learn why.
+   His memory card shows the same lighthouse and him on its gallery, in the same poses, as the player saw
+   in the prologue.
 
 He never appears in Alva's notes opening (that is her head) or on the title screen.
 
@@ -83,18 +86,22 @@ At most three boxes before control returns (plan §3.6).
 1. **The lamp is lit.** He appears on the gallery: "Mina luckor! Nu kan ju havet stänka in!" He hurries down to
    the pier with his map.
 2. **Talk 1: why** (automatic when the sköldhäst comes close). His memory is shown on a paper card while he speaks:
-   - He introduces himself as Kartväktaren, the /K who draws the map of Alva's page.
+   - He introduces himself as Kartväktaren, who wrote the notes and drew the map of Alva's page.
    - The shore grew out onto the white paper, and the wave was about to splash there.
    - He is paper, wet paper tears (he thinks), so he folded the sea away mid-splash.
 3. **Talk 2: the map** (Prata). LAND and HAV, one straight line between. "Var ska jag skriva in dig?" / "Jag finns
    visst inte på kartan." / "Då är det kartan som är fel. Inte du."
-4. **Talk 3: the shore** (Prata). The shore moves with every wave, and the sköldhäst lives right in the middle:
-   wet hooves, and whole. He is not convinced: "Visa mig."
-5. **P8 Det sista strecket.** The player continues Alva's shoreline on land (gallop) and through the water (hidden
-   drift). Alva's pencil joins the two ends.
-6. **The proof.** "Strecket går ända ner i vattnet – och papperet håller!" Klo gives back his map, and the pieces
-   join in his hands: the fold tore it, not the water. He apologises to Alva, unfolds the sea and promises to draw
-   the shore in pencil so the waves can move it.
+4. **Talk 3: a small wave first.** The sk?ldh?st proposes a safe experiment on a small folded coast at
+   the tower's foot. Kartv?ktaren explicitly promises to release the sea if the wet paper holds.
+5. **P8 Det sista strecket.** Hooves repair the approach; the current carries the hidden shell to flatten
+   the folded corner. A close-up shows the same coast; Alva traces its missing shoreline.
+6. **The visible proof.** A small wave crosses, leaves droplets and recedes; the paper stays whole.
+   The picture holds for his response. Klo returns the map, whose tear follows the fold. Kartv?ktaren
+   apologises and unfolds the sea.
+7. **Home means the original beach.** Name that destination before the page turn. The same frozen wave
+   finally splashes the hooves. Klo gives his conclusion there and explicitly announces Alva's table.
+   A wet hoofprint beside the intact drawing completes the experiment; a completion card names the
+   success and offers a return to the beach for optional exploration.
 
 ## 7. Rules for future lines
 

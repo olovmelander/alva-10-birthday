@@ -29,6 +29,7 @@
  */
 import { createCanvas } from '@napi-rs/canvas';
 import * as pencil from './pencil.mjs';
+import { NAMES } from '../../skoldhast/src/content/sv.mjs';
 
 const { Sheet, PENCILS: P, smooth, ellipse, transform, edgeBand, hashSeed, multiplyMasks, subtractMask,
     unionMasks, gradientMap, resample, rgb, boxBlur } = pencil;
@@ -1003,8 +1004,10 @@ function heldPencil(claw, { at = [-4, -6], ang = 2.3, len = 17 } = {}) {
     };
 }
 
-/** The torn map corner (signed /K), held up. */
+/** The torn map corner with Kartväktaren's full signature, held up. */
 function heldMapCorner(claw, { at = [8, -16], rot = -0.25, s = 1 } = {}) {
+    const signature = writeWord(NAMES.kv, { wander: 0.2, seed: 41 });
+    const scale = 26 / signature.width;
     return {
         claw, layer: 'back',
         draw(sh, pose, c) {
@@ -1028,12 +1031,12 @@ function heldMapCorner(claw, { at = [8, -16], rot = -0.25, s = 1 } = {}) {
             sh.tone(P.sand, beach, { pressure: 0.8 });
             sh.tone(P.grassGreen, land, { pressure: 0.8 });
             line(sh, q([[-6, -11.5], [-5, -4], [-8, 4], [-12, 10]]), P.foamLine, { width: 1.3, alpha: 0.9 });
-            // Pappersfyren, tiny, and "/K" in the corner
+            // Pappersfyren, tiny, and the same full signature as on the journal map.
             line(sh, q([[8, -1], [8, -8]]), P.graphite, { width: 1.8, passes: 1, smoothIt: false });
             line(sh, q([[6.5, -1], [9.5, -1]]), P.graphite, { width: 1.1, passes: 1, smoothIt: false });
-            line(sh, q([[10.5, 7], [8.5, 2.5]]), P.graphite, { width: 1.2, passes: 1, smoothIt: false });
-            line(sh, q([[12, 2.2], [11.8, 7]]), P.graphite, { width: 1.2, passes: 1, smoothIt: false });
-            line(sh, q([[14.6, 2], [12.2, 4.6], [14.8, 7]]), P.graphite, { width: 1.2, passes: 1, smoothIt: false });
+            drawHand(sh, signature.letters.flatMap(l => l.strokes),
+                ([x, y]) => q([[-12 + x * scale, 7 + y * scale]])[0],
+                { width: 0.5, wobble: 0.05 });
             outlineMask(sh, pm, P.graphite, { width: 1.7, wobble: 0.4 });
         }
     };

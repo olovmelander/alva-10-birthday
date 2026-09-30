@@ -4,7 +4,7 @@ export function createPressQueue() {
     let pending = {};
     return {
         push(edges) {
-            for (const key of ['act', 'hide', 'hideUp', 'tapHero', 'neigh']) if (edges[key]) pending[key] = true;
+            for (const key of ['hop', 'act', 'duck', 'hide', 'hideUp', 'tapHero', 'neigh']) if (edges[key]) pending[key] = true;
         },
         consume() { const edges = pending; pending = {}; return edges; },
         clear() { pending = {}; }

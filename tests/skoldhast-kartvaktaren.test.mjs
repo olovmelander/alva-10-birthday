@@ -74,10 +74,11 @@ test('the ending turns on two proofs: the line holds in the water, and his own f
         'p8_land', 'p8_s1', 'p8_s2', 'p8_s3', 'p8_sea'], checkpoint: 'lineWindow' });
     await R.until(() => R.log.some(e => e.kind === 'fx' && e.name === 'unfold'), {}, 30, 'the unfold');
     const texts = said(R), at = (line) => texts.indexOf(line[1]);
-    const order = [STORY.k3.lastStroke, STORY.k3.proof, STORY.k3.mapBack, STORY.k3.sorry[0], STORY.k3.sorry[1]].map(at);
+    const order = [STORY.k3.lastStroke, STORY.k3.waveReady, STORY.k3.proof, STORY.k3.mapBack, STORY.k3.sorry[0], STORY.k3.sorry[1], STORY.k3.home].map(at);
     assert.ok(order.every(i => i >= 0), 'every line of the resolution is spoken');
     assert.deepEqual([...order].sort((a, b) => a - b), order, 'in this order');
     const fx = R.log.filter(e => e.kind === 'fx').map(e => e.name);
     assert.ok(fx.indexOf('mapAssemble') >= 0 && fx.indexOf('mapAssemble') < fx.indexOf('unfold'), 'his map is whole again before he unfolds the sea');
     assert.ok(R.has('p8_done'));
+    assert.ok(R.has('p8_proven'));
 });

@@ -18,6 +18,11 @@ try {
         pg.on('pageerror', e => errors.push(e.message));
         await pg.goto(`http://127.0.0.1:${server.address().port}/skoldhast/dev/play.html?debug`);
         await pg.waitForSelector('.sk-title');
+        // This matrix exercises the optional detailed guidance layout. Fresh
+        // games now keep it behind Klo's third clue by default.
+        await pg.evaluate(() => window.__skoldhast.debug.ui.settings());
+        await pg.locator('.sk-radio').filter({ has: pg.locator('input[value="guided"]') }).click();
+        await pg.evaluate(() => window.__skoldhast.debug.ui.closePanel());
         await pg.getByText('Jag har en kod').click();
         await pg.fill('.sk-code-input', 'fyr fjun klo');
         await pg.locator('.sk-panel button', { hasText: 'Fortsätt' }).click();

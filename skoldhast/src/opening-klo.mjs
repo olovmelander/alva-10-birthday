@@ -593,6 +593,7 @@ export function createOpeningKlo(PIXI, { parent, texture, x, y, scale = 1, dropF
     render();
     return {
         container,
+        headBounds: () => container.visible ? rig.headBounds() : null,
         get stage() { return motion.stage; },
         /** where the drop is now (or the hole, once it has landed), in local units */
         dropPoint() { return motion.drop >= 0 && !lessMotion() ? dropAt(motion.drop) : [HOLE_X, toY]; },

@@ -35,18 +35,28 @@ test outcomes and remaining observations will be recorded below.
   of the painted sheet folds underneath, and the falling droplets stop during
   the fold. The shoreline remains on the surviving paper. The questions now
   distinguish what happened from who might have done it.
-- Klo's map experiment shows the cause first and its effect second. The small
-  sheet in his claw, its magnified view and the matching sand patch share blue
-  marks. The map folds, the beach responds, both pause for comparison, and then
-  the map and beach unfold in the same order. This establishes the rule before
-  any puzzle depends on it.
+- Klo's map experiment establishes the existing pink fan shell on the map and beach.
+  The map's ink bends first; after a pause the beach's actual sand texture and blue
+  waterline crease and carry the shell. The folded result waits for the player to
+  advance the dialogue. The map then opens before the beach follows. The camera
+  reserves the reading area throughout, including gaps between dialogue cards.
+  Reduced motion retains the ordered before/after poses. Diagram labels, dotted
+  connectors and the old added triangle are gone. The sköldhäst explicitly connects
+  the restored beach to getting its frozen splash back.
 - P1 repairs a path towards the wave evidence. P2 shows a route under the frozen
   surface. P3 connects the displaced shore to Klippudden. The two valid orders
   retain different, accurate next steps.
-- P4–P6 recover the missing parts of that route. The collected fragments use the
-  notebook's same torn silhouettes in a new assembly moment; a continuous blue
-  route then reaches the lighthouse. The camera follows that consequence into
-  the bay.
+- P4–P6 recover the missing parts of that route. The world pickups, discovery
+  close-ups and notebook use the actual shared artwork and torn silhouettes.
+  Every discovery holds while its explanation is read. The three separated pieces
+  join, the matching tear remains visible, then the blue route reaches the lighthouse.
+  Only that completed reveal opens the matching world current. The lighthouse
+  vista stays visible through the figure's explanation.
+- Kartväktaren's separate LAND/HAV classification sheet has a readable close-up
+  matching the paper on his pier table. The missing strand is highlighted while
+  the characters propose it. His table stays on the pier when he moves. In the
+  finale, the recovered geographical map is already repaired: its crease remains
+  visible through Klo's evidence and the first apology, without repeating assembly.
 - P7's shutter mechanisms call back to the musical boardwalk, the heavy shell
   and riding currents with the fish. The purpose is to reach the person seen
   with the ruler. P8 explicitly continues Alva's opening shoreline, and the
@@ -163,3 +173,105 @@ rebuilds and cancellation when leaving a scene.
 These are automated interaction and rendering checks. A fresh player's ability
 to explain the story without prompting still needs a human playtest; physical
 phone performance and listening retain the previous handover's limitations.
+
+## Mission and puzzle causality — 30 September 2026
+
+The plot stays the same. The player's mission is **Få havet att plaska igen**:
+find the person who folded the sea, understand his fear, and help him undo it.
+Klo's research discovers how the sköldhäst's two kinds of abilities make this
+possible. It is not a second mission to complete before rescuing the sea.
+
+The remaining gaps were visible in play-facing content: the mission disappeared
+behind local instructions; map pieces were variously called pieces, marks and
+halves; collecting the second piece opened the current before the assembly;
+and the objective kept asking why Kartväktaren folded the sea after he had
+already explained. The notebook stored clues but did not explain how the
+current task followed from them.
+
+The goal note now keeps the mission above the next action. Its notebook page
+answers three questions: what have we discovered, why does this task help,
+and what can we try next? Recaps derive from saved discoveries and respect
+either collection order. Kartväktaren's motive only appears after he explains
+it. His conversation goal advances from the fold's cause to his map and then
+to the missing shoreline. After the ending, the mission celebrates the restored
+splash and describes exploration as optional.
+
+| Puzzle | Story purpose | Action and consequence |
+| --- | --- | --- |
+| Streckbron | Reach the displaced sea's traces on the steppe. | Galloping hooves repair the broken crossing. |
+| Spegelpölen | Get underneath the frozen wave to follow the fold. | Still water shows the page before the fold; restoring the stone and plank reopens Vattenporten. |
+| Galoppvind | Reach the high wave marks and discover where the folded page continues. | Gallop carries flower fluff to growing ramps; the marks lead toward Klippudden. |
+| Klippudden | Recover the land piece needed to repair the map's route. | The long run-up and leap reach a place Klo cannot cross to. |
+| Lyktfiskarna | Reach the sea piece beyond the dark vault. | The shy fish follow a hidden shell and light the passage. |
+| Kelphjärtat | Recover the sea piece trapped under folded paper. | A current carries the heavy shell into the corner and flattens it. |
+| Pappersfyren | Get contact with the figure who used the ruler. | Trace visible chains to the shutter mechanisms; hooves, weight and currents reuse earlier discoveries. |
+| Det sista strecket | Give Kartväktaren the proof he needs to unfold the sea. | Continue Alva's interrupted shoreline with hooves on land, the shell in water, and her pencil joining the ends. |
+
+The map now opens the current **after** its visible assembly. This repeats the
+beach demonstration: changing the map changes its world. Restoring a save
+during assembly resumes that payoff; older saves with the current already open
+can still finish the chapter report. The existing collection flags, word codes,
+two valid discovery orders and puzzle controls remain compatible.
+
+Setups, goals, hints, reports and map descriptions now consistently call the
+collectibles *kartbitar*. The lighthouse's drum hint only refers back to the
+optional Spången machine if the player actually activated it. Kartväktaren
+explicitly promises to unfold the sea if the shoreline holds in water, giving
+the last puzzle a clear consequence before it begins.
+
+Focused checks live in `tests/skoldhast-story-thread.test.mjs`, the assembly
+recovery cases in `tests/skoldhast-story-flow.test.mjs`, and the real notebook/HUD
+check `tests/browser/skoldhast-story-thread.mjs`. The UI check covers 844×390,
+390×844 and 320×700 with larger text at the narrowest size, including both hint
+buttons and the completed mission.
+
+Validation for this pass: **179/179 pure tests passed**, including the complete
+game simulation and both collection orders. Notebook checks passed at all three
+phone sizes; contextual guidance passed at 844×390 and 390×844. A fresh touch
+browser journey at 844×390 finished P1–P8, the ending and the harness's optional
+activities in 44,708 fixed steps, with no captured browser errors. The asset
+check passed at 2,603,260 bytes for first playable against the 3 MB budget.
+
+For a comprehension playtest, pause before the map search, at the lighthouse,
+and before the final line. Ask the player to explain what they want to achieve,
+why their next action helps, and what they expect to change when it works.
+Automated route and layout checks cannot establish whether those answers feel
+obvious to a new player.
+
+## Finale follow-through: the experiment and the way home
+
+The final pencil gesture now repairs a visible gap in a small folded coast at
+Pappersfyren. The pier is its approach route; the hidden shell flattens the coast
+as it did at Kelphjärtat. The same paper illustration appears in the world and
+in the drawing close-up, replacing the unexplained pair of underwater marks.
+A small animated wave then crosses the repaired shore, leaves droplets, and
+recedes while the intact page remains on screen for Kartväktaren's response.
+His agreement precedes P8: if this paper holds, he will release the whole sea.
+
+The ending names each destination before changing scene. After the repair and
+map return, the unfolded page takes the player directly to the original beach.
+The original wave finally splashes the hooves. Klo celebrates there, then names
+Alva's table. A wet hoofprint beside her whole drawing closes the experiment.
+The completion card explains the success and offers **Tillbaka till stranden –
+utforska fritt**. The former automatic gallop, distant vista, and forced notebook
+page no longer interrupt this payoff.
+
+The drawing commits immediately. Reloading after drawing repeats only the
+demonstration; reloading after unfolding returns directly to the beach. The
+completed mission and beach checkpoint commit before the table. The coast
+card refits around dialogue/drawing tools and survives same-scene asset reloads.
+The wave has a reduced-motion presentation with the same visible outcome.
+
+Regression checks: `tests/skoldhast-shore-trial.test.mjs` covers causal ordering
+and recovery from all three ending phases. `tests/browser/skoldhast-finale.mjs`
+traces the real pencil anchors, checks the wet-paper proof, beach destination,
+completion card and free exploration, with rotation and saved-phase options.
+
+Validation: the full unit suite and focused ending/save reruns passed. Browser
+finales passed at 844×390 with rotation, at 390×844 with reduced motion and an
+already drawn coast, and from an already unfolded save. A fresh touch journey
+completed P1–P8, the new ending, Signe's race, the shell tune and the remaining
+land activities in 42,637 fixed steps, with no captured browser errors. Its
+runner now refreshes the action button before tapping between accelerated
+frames, uses the separate Jump input, and stops clear of Signe for the shells.
+The asset check remains under budget: 2,635,353 bytes for first playable.

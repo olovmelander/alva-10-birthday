@@ -15,7 +15,7 @@
  * The goal note and the hint share a column at the top, so they never overlap; the ui's
  * toasts read --sk-guide-free (set here) to start below that column.
  */
-import { NAMES, UI } from './content/sv.mjs';
+import { NAMES, UI, KLO_COMPANION } from './content/sv.mjs';
 
 const el = (tag, cls, text) => {
     const n = document.createElement(tag);
@@ -26,7 +26,7 @@ const el = (tag, cls, text) => {
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 const HL_PX = 200; // world units per horse length
 
-export function createGuide(root, { img, heroScreen, onGoalTap } = {}) {
+export function createGuide(root, { img, portrait, heroScreen, onGoalTap, onDismissHelp } = {}) {
     const layer = el('div', 'sk-guide');
     root.appendChild(layer);
     const top = el('div', 'sk-guide-top');
@@ -47,7 +47,8 @@ export function createGuide(root, { img, heroScreen, onGoalTap } = {}) {
     hintEl.setAttribute('role', 'status');
     hintEl.setAttribute('aria-live', 'polite');
     const hintFace = el('span', 'sk-hint-face');
-    if (img) hintFace.style.backgroundImage = `url("${img('ui-claw')}")`;
+    if (img && !portrait) hintFace.style.backgroundImage = `url("${img('ui-claw')}")`;
+    let hintSpeaker = null;
     const hintBody = el('span', 'sk-hint-body');
     const hintWho = el('span', 'sk-hint-who');
     const hintText = el('span', 'sk-hint-text');
@@ -86,6 +87,12 @@ export function createGuide(root, { img, heroScreen, onGoalTap } = {}) {
     const contextMeter = el('progress', 'sk-context-meter');
     contextProgress.append(contextLabel, contextMeter);
     contextEl.append(contextText, contextControl, contextProgress);
+    let dismissHelp = null;
+    if (onDismissHelp) {
+        dismissHelp = el('button', 'sk-help-dismiss', KLO_COMPANION.ui.hideHelp);
+        dismissHelp.type = 'button'; dismissHelp.addEventListener('click', () => onDismissHelp());
+        contextEl.appendChild(dismissHelp);
+    }
     layer.appendChild(contextEl);
     let contextNow = '', progressNow = '', contextSide = 'right';
     function placeContext() {
@@ -99,6 +106,9 @@ export function createGuide(root, { img, heroScreen, onGoalTap } = {}) {
         if (next !== contextSide) { contextSide = next; contextEl.dataset.side = next; }
     }
     function context(cue) {
+        if (dismissHelp) dismissHelp.hidden = !cue?.requested;
+        const mission = cue?.thread?.mission;
+        if (mission && goalLabel.textContent !== mission) { goalLabel.textContent = mission; freeTop(); }
         const show = !!cue?.instruction && (!!cue.action || !!cue.progress);
         contextEl.hidden = !show;
         if (!show) { contextNow = ''; progressNow = ''; contextText.textContent = ''; return; }
@@ -274,6 +284,8 @@ export function createGuide(root, { img, heroScreen, onGoalTap } = {}) {
         },
         hint(text, who = 'klo', ms = 7000) {
             if (!text) return;
+            if (hintSpeaker !== who && portrait) hintFace.replaceChildren(...[portrait(who)].filter(Boolean));
+            hintSpeaker = who;
             hintWho.textContent = NAMES[who] || '';
             hintText.textContent = text;
             hintEl.className = 'sk-hintbubble who-' + who;
@@ -282,6 +294,7 @@ export function createGuide(root, { img, heroScreen, onGoalTap } = {}) {
             placeHint();
             freeTop();
         },
+        speaker: () => shown && hintEl.classList.contains('on') ? hintSpeaker : null,
         think(text, ms = 2600) {
             if (!text) return;
             thinkText.textContent = text;

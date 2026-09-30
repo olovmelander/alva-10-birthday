@@ -31,10 +31,17 @@ export function createRobot({ released = 3, verbose = false } = {}) {
         audio: null,
         save: () => log.push({ t: G.time, kind: 'save', checkpoint: G.checkpoint }),
         fx: async (name, data) => {
-            log.push({ t: G.time, kind: 'fx', name });
+            log.push({ t: G.time, kind: 'fx', name, variant: data?.variant, fragment: data?.fragment, focus: data?.focus });
             data?.onCovered?.();
             await G.wait(name === 'plask' ? 1 : 0.3);
-            await data?.whileVisible?.();
+            const phases = name === 'foldDemo' ? ['arrive', 'fold', 'unfold', 'depart'] : name === 'mapAssemble' ? ['arrive', 'join', 'reveal', 'depart'] : null;
+            const controller = phases ? Object.fromEntries(
+                phases.map(phase => [phase, async () => {
+                    log.push({ t: G.time, kind: 'fxPhase', name, phase, variant: data?.variant });
+                    await G.wait(0.1);
+                }])
+            ) : undefined;
+            await data?.whileVisible?.(controller);
         }
     };
     const story = createStory(G, io);

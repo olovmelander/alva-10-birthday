@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /*
- * Browser check of the first minutes of a new game with the guidance layer (src/guide.mjs):
+ * Browser check of the explicitly enabled Guida mig mode (src/guide.mjs):
  * through Alva's table (the pencil prompts are confirmed with Enter), then Kapitel 1 must say
  * what to do at every step without a word from anyone:
  *   - the goal note asks for a gallop past Klo, and a tip explains the gallop;
@@ -29,6 +29,9 @@ const text = (sel) => pg.locator(sel).first().textContent();
 
 await pg.goto(`${base}/skoldhast/dev/play.html`, { waitUntil: 'load' });
 await pg.waitForSelector('.sk-title');
+await D(() => window.__skoldhast.debug.ui.settings());
+await pg.locator('.sk-radio').filter({ has: pg.locator('input[value="guided"]') }).click();
+await D(() => window.__skoldhast.debug.ui.closePanel());
 await pg.locator('.sk-title button').first().click(); // Börja
 await pg.waitForFunction(() => { const b = document.querySelector('.sk-notes-skip'); b?.click(); return !!b || !!document.querySelector('.sk-draw.on'); }, null, { timeout: 60000, polling: 100 }); // skip Alva's notes (skoldhast-notes.mjs plays them)
 

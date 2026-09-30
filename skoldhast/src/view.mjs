@@ -18,12 +18,21 @@ import { createWaterLight, createAtmosphere, seaAnchorY } from './scenery.mjs';
 import { pencilAvailable } from './puzzles.mjs';
 import { createRouteCue, createPencilBeam } from './route-cue.mjs';
 import { createActionCue } from './action-cue.mjs';
-import { createFoldDemo } from './fold-demo.mjs';
+import { createFoldDemo, FOLD_BEACH } from './fold-demo.mjs';
 import { createMapAssemble } from './map-assemble.mjs';
+import { createMapFragmentProp, createGuardianMapPaper } from './map-props.mjs';
+import { createFoldedSeabed } from './folded-seabed.mjs';
+import { createVaultDiscovery } from './vault-discovery.mjs';
 import { createKvMemory } from './kv-memory.mjs';
+import { createWorldCoastFold, createShoreTrial, sampleShoreTrial } from './shore-trial.mjs';
+import { createSeaFoldWall, createSeaFoldCoverEdge } from './sea-fold-wall.mjs';
+import { createLighthouseMechanisms } from './lighthouse-mechanisms.mjs';
+import { createBeachPlay } from './beach-play.mjs';
+import { landPuzzleFrame, fitLandPuzzleFrame } from './land-puzzle-focus.mjs';
+import { createWaveEvidence } from './wave-evidence.mjs';
 import { cloudSkyLayout } from './cloud-sky.mjs';
 import { createStuckWave, STILL_CLOCK } from './stuck-wave.mjs';
-import { STORY } from './content/sv.mjs';
+import { STORY, MAP } from './content/sv.mjs';
 
 const h = (v) => v * HL;
 const lerp = (a, b, t) => a + (b - a) * t;
@@ -46,8 +55,12 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
     const pendingFrames = new Set();
     const comparisonObservers = new Set();
     let foldDemo = null;
+    let foldRequest = 0;
     let mapAssembly = null;
+    let mapRequest = 0;
     let kvMemory = null; // Kartväktaren's memory card while he explains the fold
+    let shoreTrial = null;
+    let landFocus = null;
     function nextFrame(callback) {
         if (destroyed) return;
         const id = requestAnimationFrame((time) => {
@@ -499,6 +512,22 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
                 d.items.push({ s: wave.view, it, wave });
                 continue;
             }
+            if (it.sprite === 'veckmuren') {
+                const boundary = def.walls.find(wall => wall.id === 'fold');
+                const seaTop = def.waters.find(water => water.kind === 'sea')?.top ?? 0;
+                const foot = drawnGround(def)(boundary.x) ?? it.y;
+                const fold = createSeaFoldWall(PIXI, { texture: T, x: boundary.x,
+                    top: seaTop - 140, bottom: Math.min(boundary.y1, foot + 35), width: h(2.15) });
+                L.mid.addChild(fold.container);
+                d.items.push({ s: fold.container, it });
+                continue;
+            }
+            if (it.sprite === 'wave-marks') {
+                const face = createWaveEvidence(PIXI, { texture: T, x: it.x, ground: drawnGround(def), scale: it.scale || 1 });
+                L.mid.addChild(face);
+                d.items.push({ s: face, it });
+                continue;
+            }
             const s = spr(it.sprite);
             if (it.scale) s.scale.set(it.scale);
             if (it.flip) s.scale.x = -Math.abs(s.scale.x);
@@ -610,6 +639,8 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
             const edgePts = []; for (let y = y0; y <= y1; y += 80) edgePts.push([edgeX + Math.sin(y * 0.013) * 14 + Math.sin(y * 0.041) * 6, y]);
             const edge = rope('stroke-graphite', edgePts, { width: 4, alpha: 0.7 });
             const c = new PIXI.Container(); c.addChild(g, edge);
+            if (pc.id === 'trench-paper') c.addChild(createSeaFoldCoverEdge(PIXI,
+                { texture: T, x: pc.x0, top: y0, bottom: y1 }));
             L.cover.addChild(c);
             // covered → (the chapter is out) waiting → turning (peels away like a page) → gone
             const state = !G.flags.has(pc.until) ? 'covered' : G.flags.has('peeled_' + pc.id) ? 'gone' : 'waiting';
@@ -738,7 +769,9 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
             glow.alpha = G.flags.has(v.until) ? 1 : 0;
             L.far.addChild(glow);
             const lit = G.flags.has(v.until) ? 1 : 0;
-            d.vaults.push({ v, sl, dark, strips, lamps, glow, back, roof, lines, fade: 1 - lit, key: '' });
+            const discovery = createVaultDiscovery(PIXI, { texture: T, x0, x1, roofAt: under, groundAt });
+            L.far.addChild(discovery.container);
+            d.vaults.push({ v, sl, dark, strips, lamps, glow, back, roof, lines, discovery, fade: 1 - lit, key: '' });
         }
     }
 
@@ -751,6 +784,8 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
             vt.back.visible = vt.roof.visible = vt.lines.visible = show;
             vt.fade = damp(vt.fade, lit ? 0 : 1, 1.1, dt);
             vt.glow.alpha = 1 - vt.fade;
+            vt.discovery.container.visible = show;
+            vt.discovery.update({ lit, light: 1 - vt.fade, reducedMotion: G.lessMotion, time: G.time });
             vt.dark.visible = show && vt.fade > 0.005;
             if (!vt.dark.visible) continue;
             // the school's light: the swimmers' centre while they are out (their bed, or following the shell)
@@ -1255,12 +1290,26 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
             }
             L.far.addChild(O.glimpseRidge);
             L.far.addChild(O.glimpse.view);
-            O.landmark = spr('mark-land'); O.landmark.x = def.spots.landmark.x; O.landmark.y = def.spots.landmark.y - h(0.4); O.landmark.anchor?.set?.(0.5); L.objects.addChild(O.landmark);
+            O.landmark = createMapFragmentProp(PIXI, { texture: T, fragment: 'land' });
+            O.landmark.x = def.spots.landmark.x; O.landmark.y = def.spots.landmark.y - 18; L.objects.addChild(O.landmark);
             O.ropeDown = spr('rope-plank-down'); O.ropeDown.x = h(7.95); O.ropeDown.y = h(-4.0) + 10; O.ropeDown.anchor?.set?.(0, 0.5); L.mid.addChild(O.ropeDown);
         }
         if (def.id === 'kelp') {
-            O.flaps = (def.flaps || []).map((f) => { const s = spr('paper-flap'); s.x = f.x; s.y = f.y; L.mid.addChild(s); return { f, s }; });
-            O.corners = (def.corners || []).map((c) => { const s = spr('paper-corner'); s.x = c.x; s.y = c.y + h(0.25); L.objects.addChild(s); const m = spr('mark-sea'); m.anchor?.set?.(0.5); m.x = c.x; m.y = c.y - h(0.2); m.visible = false; L.objects.addChild(m); return { c, s, m }; });
+            O.flaps = (def.flaps || []).map(f => {
+                const fold = createFoldedSeabed(PIXI, { texture: T, x: f.x, y: f.y - 72,
+                    groundY: f.y + 10, width: 210, flat: G.flags.has(f.flag) });
+                L.mid.addChild(fold.container); return { f, fold };
+            });
+            O.corners = (def.corners || []).map((c) => {
+                const groundY = drawnGround(def)(c.x) ?? c.y + h(2.8);
+                const fold = createFoldedSeabed(PIXI, { texture: T, x: c.x, y: c.y + 24,
+                    groundY, width: h(3.1), flat: G.flags.has(c.flag) });
+                const m = createMapFragmentProp(PIXI, { texture: T, fragment: 'sea', width: 154 });
+                m.x = c.x + h(1.3); m.y = groundY - 8;
+                // A torn, blue printed edge peeks out BEFORE the fold is pressed.
+                // It becomes the same full fragment shown in the notebook.
+                L.mid.addChild(m, fold.container); return { c, fold, m, groundY };
+            });
             O.school = [];
             if (def.school) for (let i = 0; i < def.school.count; i++) { const s = spr('lyktfisk-' + (1 + (i % 2))); s.anchor?.set?.(0.5); L.actors.addChild(s); const g = spr('p-glow'); g.anchor?.set?.(0.5); g.alpha = 0.6; g.scale.set(1.4); L.fx.addChild(g); O.school.push({ s, g, a: i * 0.9, r: 40 + i * 9 }); }
             O.shy = (def.shy || []).map((c) => { const s = spr(c.kind + '-1'); s.anchor?.set?.(0.5, 1); s.x = c.x; s.y = c.y; L.actors.addChild(s); return { c, s }; });
@@ -1289,13 +1338,10 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
             O.shutters = def.shutters.map((sh) => { const s = spr('shutter-closed'); s.anchor?.set?.(0.5); s.x = sh.x; s.y = sh.y; L.objects.addChild(s); return { sh, s }; });
             O.lamp = spr('lamp-lit'); O.lamp.anchor?.set?.(0.5); O.lamp.x = def.lamp.x; O.lamp.y = def.lamp.y; O.lamp.alpha = G.flags.has('lamp_lit') ? 1 : 0; L.fx.addChild(O.lamp);
             O.beam = createPencilBeam(PIXI); O.beam.position.set(def.lamp.x, def.lamp.y); O.beam.alpha = G.flags.has('lamp_lit') ? .88 : 0; L.far.addChild(O.beam);
-            O.windowMarks = new PIXI.Container(); O.windowMarks.label = 'p8-window-marks';
-            for (const [i, name] of ['mark-land', 'mark-sea'].entries()) {
-                const mark = spr(name); mark.anchor?.set?.(.5); mark.scale.set(.54);
-                mark.position.set(def.spots.window.x + (i ? 36 : -36), def.spots.window.y - 84);
-                O.windowMarks.addChild(mark);
-            }
-            O.windowMarks.visible = false; L.hints.addChild(O.windowMarks);
+            O.coastPatch = createWorldCoastFold(PIXI, { texture: T });
+            O.coastPatch.container.position.set(def.spots.window.x - 10, def.spots.window.y - 70);
+            O.coastPatch.container.visible = false;
+            L.mid.addChild(O.coastPatch.container);
             // chains hang: a sag that grows with their span, so none reads as a ruled line
             O.chains = (def.chains || []).map((c) => {
                 const span = Math.hypot(c.to.x - c.from.x, c.to.y - c.from.y), sag = Math.min(h(1.6), span * 0.06), pts = [];
@@ -1303,19 +1349,12 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
                 const r = rope('stroke-chain', pts, { color: 0x6b635a, width: 4, scale: 1 }); r.alpha = 0.72; L.mid.addChild(r); return { c, r };
             });
             O.map = spr('map-closed'); O.map.visible = false; L.objects.addChild(O.map);
+            O.mapPaper = createGuardianMapPaper(PIXI, { texture: T });
+            O.mapPaper.container.scale.set(252 / 640, 56 / 420);
+            O.mapPaper.container.visible = false; L.objects.addChild(O.mapPaper.container);
             O.ratchet = d.items.find((q) => q.it.ratchet)?.s;
-            // progress rings: the pier drum (gallop steps) and the seabed plate (seconds resting on it)
-            const ring = () => { const g = new PIXI.Graphics(); g._frac = -1; L.hints.addChild(g); return g; };
-            if (O.ratchet && def.drums?.[0]) {
-                const s = O.ratchet, ax = s.anchor?.x ?? 0.5, ay = s.anchor?.y ?? 0.5;
-                O.drumRing = ring(); O.drumRing.x = s.x + (0.5 - ax) * s.width; O.drumRing.y = s.y + (0.5 - ay) * s.height;
-                O.drumRing._r = Math.max(s.width, s.height) / 2 + 18; O.drumRing._drum = def.drums[0];
-            }
-            if (def.plates?.[0]) {
-                const pl = def.plates[0];
-                O.plateRing = ring(); O.plateRing.x = pl.x; O.plateRing.y = pl.y - 14; O.plateRing._rx = pl.w / 2 + 14; O.plateRing._ry = 26; O.plateRing._plate = pl;
-                O.plateGlow = spr('p-glow'); O.plateGlow.anchor?.set?.(0.5); O.plateGlow.x = pl.x; O.plateGlow.y = pl.y - 16; O.plateGlow.alpha = 0; L.hints.addChild(O.plateGlow);
-            }
+            O.mechanisms = createLighthouseMechanisms(PIXI, def);
+            L.hints.addChild(O.mechanisms.container);
         }
         // pencils and props to colour
         O.pencils = (def.pencils || []).map((pc) => {
@@ -1333,6 +1372,7 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
         O.figure = O.figureRig.container; O.figure.label = 'guardian-figure'; O.figure.visible = false; L.actors.addChild(O.figure);
         O.guardianOptions = { scene: def.id, hero: G.player, time: 0, dt: 0, reducedMotion: false, figure: false };
         O.signe = spr('turtle-signe'); O.signe.visible = false; L.actors.addChild(O.signe);
+        if (def.race) { O.beachPlay = createBeachPlay(PIXI, def); L.mid.addChild(O.beachPlay.container); }
         // Sandpapperet: hoofprints on sand (walk prints fade, gallop prints stay as graphite)
         if (def.printMats) { O.prints = new PIXI.Container(); L.mid.addChild(O.prints); O.printSprites = []; }
         // the hint mark and Alva's own gull
@@ -1392,6 +1432,7 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
 
     function clearScene() {
         if (!S) return;
+        if (shoreTrial) { shoreTrial.effect.destroy(); shoreTrial = null; app.canvas.parentElement?.classList.remove('sk-shore-trial'); }
         endFoldDemo(false);
         endMapAssembly(false);
         dropPeels();
@@ -1410,22 +1451,31 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
 
     function setScene(id, { keepCam = false, turn = null } = {}) {
         if (destroyed) return null;
+        // A request waiting for map art belongs to this visit, even if we later return here.
+        if (id !== S?.id) { foldRequest++; mapRequest++; }
         // the old picture becomes a page that turns away over the new one
         const rt = turn && S ? capture() : null;
         // A late atlas bundle can rebuild this same scene. Keep an already
         // awaited experiment alive; only leaving the scene abandons its story.
         const carryFold = id === S?.id ? foldDemo : null;
         const carryMap = id === S?.id ? mapAssembly : null;
-        if (carryFold) { carryFold.effect.container.parent?.removeChild(carryFold.effect.container); foldDemo = null; }
+        const carryShore = id === S?.id ? shoreTrial : null;
+        if (carryFold) {
+            carryFold.effect.container.parent?.removeChild(carryFold.effect.container);
+            carryFold.effect.beach.parent?.removeChild(carryFold.effect.beach);
+            releaseFoldBeach(carryFold); foldDemo = null;
+        }
         if (carryMap) mapAssembly = null;
+        if (carryShore) shoreTrial = null;
         clearScene();
         for (const layer of Object.values(L)) layer.visible = true;
         S = buildScene(G.scenes[id]);
         S.id = id;
         S.placeholders = countPlaceholders();
         L.hero.addChild(hero.view);
-        if (carryFold) { foldDemo = carryFold; L.fx.addChild(foldDemo.effect.container); }
+        if (carryFold) { foldDemo = carryFold; bindFoldBeach(carryFold); L.fx.addChild(foldDemo.effect.container); }
         if (carryMap) mapAssembly = carryMap;
+        if (carryShore) shoreTrial = carryShore;
         cam.snap = !keepCam;
         makeTooth();
         if (rt) return startTurn(rt, { hinge: turn });
@@ -1621,26 +1671,31 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
         // one wind for the whole page: the grass, the clouds and the foam move together
         const wind = G.lessMotion ? 0 : 0.8 + 0.3 * Math.sin(time * 0.21) + 0.2 * Math.sin(time * 0.57 + 1.3);
         if (mapAssembly) {
-            const previous = mapAssembly.elapsed;
-            mapAssembly.elapsed += dt;
-            mapAssembly.state = mapAssembly.effect.update(mapAssembly.elapsed);
-            mapAssembly.effect.fit(W, H);
-            if (previous < 1.15 && mapAssembly.elapsed >= 1.15) onFx?.('sfx', 'pencil');
-            if (mapAssembly.state.done) endMapAssembly(true);
+            mapAssembly.state = mapAssembly.effect.update(dt);
+            mapAssembly.measureIn -= dt;
+            if (mapAssembly.measureIn <= 0) fitMapAssembly();
         }
         if (kvMemory) {
             kvMemory.effect.update(dt);
             kvMemory.measureIn -= dt;
             if (kvMemory.measureIn <= 0) fitKvMemory();
         }
+        if (shoreTrial) {
+            shoreTrial.effect.update(dt);
+            shoreTrial.measureIn -= dt;
+            if (shoreTrial.measureIn <= 0) fitShoreTrial();
+        }
+        if (landFocus) {
+            landFocus.measureIn -= dt;
+            if (landFocus.measureIn <= 0) fitLandFocus();
+        }
         if (foldDemo) {
-            foldDemo.elapsed += dt;
-            foldDemo.state = foldDemo.effect.update(foldDemo.elapsed);
+            foldDemo.state = foldDemo.effect.update(dt);
             frameFoldDemo();
-            if (foldDemo.state.done) endFoldDemo(true);
         }
 
         // hero
+        if (G.speaker === 'horse' && !snap.action && !G.lessMotion && !snap.hide) { snap.action = 'talk'; snap.actionT = 0; }
         hero.update(dt, snap);
         hero.view.x = snap.x; hero.view.y = snap.y;
         hero.view.visible = !G.hideHero;
@@ -1864,7 +1919,9 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
         }
         // lanes
         for (const ln of S.lanes) {
-            const active = cond(ln.ln.when, F);
+            // The repaired coast still needs its calm physical landing during
+            // the wave experiment. Finishing the drawing only removes its cue.
+            const active = cond(ln.ln.when, F) && !(ln.ln.id === 'p8-lane' && F.has('p8_done'));
             if (ln.line) ln.line.visible = active && !ln.route;
             if (ln.route) ln.route.update({ visible: active, time, reducedMotion: G.lessMotion });
             if (ln.band) ln.band.visible = active;
@@ -1893,9 +1950,17 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
         }
         // paper covers: once the chapter is out, the white page peels away when you first see it
         for (const pc of S.paper) {
-            if (!F.has(pc.pc.until)) { pc.state = 'covered'; pc.c.visible = true; pc.c.alpha = 1; continue; }
+            if (!F.has(pc.pc.until)) {
+                pc.state = 'covered'; pc.c.alpha = 1;
+                // The read-held vista looks beyond the turned-over page at
+                // the actual crease. Walking collision and chapter gates stay
+                // in place; ending/cancelling that view restores the cover.
+                pc.c.visible = !(pc.pc.id === 'trench-paper' && landFocus?.id === 'sea-fold-reveal');
+                continue;
+            }
             if (pc.state === 'covered') { pc.state = 'waiting'; pc.wait = 0; }
             if (pc.state === 'waiting') {
+                pc.c.visible = true;
                 // peel when a good part of it is in view (so the whole turn can be seen), and nothing else is on
                 const halfW = W / cam.zoom / 2;
                 const seen = Math.max(0, Math.min(pc.pc.x1, cam.x + halfW) - Math.max(pc.pc.x0, cam.x - halfW)) / (2 * halfW);
@@ -2007,6 +2072,7 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
             for (const t of O.tussocks) { t.s.visible = !F.has(t.t.flag) || t.t.decor; if (t.t.decor && F.has(t.t.flag)) setTex(t.s, 'feathergrass-2'); }
             for (const pw of O.pinwheels) { pw.a += (Z.pinwheels[pw.pw.id] || 0.3) * dt * 2; pw.hd.rotation = pw.a; }
             for (const sh of O.shells) { const rung = Z.shells[sh.sh.id]; sh.s.tint = rung ? 0xfff2c8 : 0xffffff; }
+            O.beachPlay.update(Z.shells, F);
             for (const b of O.butterflies) {
                 const t = G.lessMotion ? b.ph : time * 0.9 + b.ph, cy = b.c.y - h(0.75);
                 const x = b.c.x + Math.sin(t) * b.r + Math.sin(t * 2.7) * h(0.12), y = cy + Math.sin(t * 1.9) * h(0.28) - Math.abs(Math.sin(t * 0.7)) * h(0.2);
@@ -2026,11 +2092,17 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
             O.glimpse.view.visible = !G.finalRun;
             O.glimpse.update(dt, { x: gp.x, y: gp.y, facing: -1, gait: 'stand', mode: 'ground', hide: lie, speed: 0, time, groundAt: () => gp.y });
             O.landmark.visible = F.has('ch2_open') && !F.has('mark_land');
+            if (O.landmark.visible) O.landmark.refreshTexture();
             O.ropeDown.visible = F.has('p4_plank') && !F.has('final_run');
         }
         if (def.id === 'kelp') {
-            for (const f of O.flaps) setTex(f.s, F.has(f.f.flag) ? 'paper-flap-flat' : 'paper-flap');
-            for (const c of O.corners) { setTex(c.s, F.has(c.c.flag) ? 'paper-corner-flat' : 'paper-corner'); c.m.visible = F.has(c.c.flag) && !F.has('mark_sea_taken'); }
+            for (const f of O.flaps) f.fold.update({ flat: F.has(f.f.flag), dt, reducedMotion: G.lessMotion });
+            for (const c of O.corners) {
+                const shape = c.fold.update({ flat: F.has(c.c.flag), dt, reducedMotion: G.lessMotion });
+                c.m.visible = !F.has('clue_mark_sea');
+                c.m.y = c.groundY - 8 - shape.flat * h(.32);
+                if (c.m.visible) c.m.refreshTexture();
+            }
             const sch = Z.school;
             const lamps = S.vaults.find(v => v.v.id === 'vault')?.lamps;
             O.school.forEach((f, i) => {
@@ -2083,41 +2155,22 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
         }
         if (def.id === 'viken') {
             O.shutters.forEach((o) => setTex(o.s, F.has(o.sh.flag) ? 'shutter-open' : 'shutter-closed'));
-            // a ring (or a flat ellipse on the seabed) that fills as the progress grows
-            const drawRing = (g, frac, on) => {
-                g.alpha = damp(g.alpha, on ? 1 : 0, 3, dt);
-                g.visible = g.alpha > 0.01;
-                if (!g.visible || Math.abs(frac - g._frac) < 0.004) return;
-                g._frac = frac;
-                g.clear();
-                const rx = g._rx || g._r, ry = g._ry || g._r, w = g._ry ? 7 : 9;
-                const path = (f) => { const n = Math.max(2, Math.ceil(48 * f)); for (let i = 0; i <= n; i++) { const a = -Math.PI / 2 + (i / n) * f * Math.PI * 2; const x = Math.cos(a) * rx, y = Math.sin(a) * ry; if (i) g.lineTo(x, y); else g.moveTo(x, y); } };
-                path(1); g.stroke({ width: w, color: 0x3b3530, alpha: 0.28 });
-                if (frac > 0) { path(frac); g.stroke({ width: w, color: frac >= 1 ? 0xf6c14a : 0xe0782a, alpha: 0.95, cap: 'round', join: 'round' }); }
-            };
-            if (O.drumRing) {
-                const dr = O.drumRing._drum, done = F.has(dr.flag);
-                if (done && !O.drumRing._doneAt) O.drumRing._doneAt = time;
-                const n = Z.drums[dr.id] || 0;
-                drawRing(O.drumRing, done ? 1 : n / dr.notches, F.has('viken_arrived') && (!done ? n > 0 || Math.abs(snap.x - O.drumRing.x) < h(9) : time - O.drumRing._doneAt < 1.6));
-            }
-            if (O.plateRing) {
-                const pl = O.plateRing._plate, done = F.has(pl.flag);
-                if (done && !O.plateRing._doneAt) O.plateRing._doneAt = time;
-                const held = Z.plates[pl.id] || 0;
-                const nearPlate = !done && F.has('viken_arrived') && snap.mode === 'swim' && Math.hypot(snap.x - pl.x, snap.y - pl.y) < h(5);
-                drawRing(O.plateRing, done ? 1 : Math.min(1, held / pl.hold), done ? time - O.plateRing._doneAt < 1.6 : held > 0 || nearPlate);
-                O.plateGlow.alpha = damp(O.plateGlow.alpha, nearPlate ? 0.5 + Math.sin(time * 3) * 0.2 : 0, 3, dt);
-                O.plateGlow.visible = O.plateGlow.alpha > 0.01;
-                O.plateGlow.scale.set(1.8 + Math.sin(time * 2) * 0.2, 0.7);
-            }
+            O.mechanisms.update(Z, F);
             O.lamp.alpha = damp(O.lamp.alpha, F.has('lamp_lit') ? 0.95 + Math.sin(time * 2) * 0.05 : 0, 1.2, dt);
             O.beam.alpha = damp(O.beam.alpha, F.has('lamp_lit') ? .88 : 0, 2, dt);
-            O.windowMarks.visible = F.has('p8_land') && !F.has('p8_done');
+            O.coastPatch.container.visible = F.has('talk_done');
+            O.coastPatch.update(sampleShoreTrial(F.has('p8_proven') ? 'proof' : F.has('p8_sea') ? 'draw' : 'folded', 0, { repaired: F.has('p8_done') }));
             O.chains.forEach((c) => { const on = F.has(def.shutters[c.c.shutter].flag); c.r.alpha = on ? 0.95 : 0.7; c.r.tint = on ? 0xffe08a : 0xffffff; });
             const kv = G.actors.kv;
-            O.map.visible = kv.visible && kv.scene === 'viken';
-            if (O.map.visible) { O.map.x = kv.x - h(0.7); O.map.y = kv.y; setTex(O.map, kv.map === 'open' ? 'map-open' : 'map-closed'); }
+            // The table belongs to the pier, even when its owner walks elsewhere.
+            O.map.visible = kv.scene === 'viken' && !!kv.map;
+            O.mapPaper.container.visible = O.map.visible && kv.map === 'open';
+            if (O.map.visible) {
+                O.map.x = def.spots.kvPier.x - h(.7); O.map.y = def.spots.kvPier.y;
+                setTex(O.map, kv.map === 'open' ? 'map-open' : 'map-closed');
+                O.mapPaper.container.position.set(O.map.x - 126, O.map.y - 148);
+                O.mapPaper.setShore(F.has('talk_done') ? 1 : 0);
+            }
         }
         for (const pc of O.pencils) {
             const available = pencilAvailable(pc.pc, F);
@@ -2129,7 +2182,10 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
         }
         // actors
         const k = G.actors.klo;
-        O.kloRig.update(k, { scene: S.id, time: G.time, dt, underwater: S.def.underwater || (S.id === 'viken' && k.y > 0), hero: G.player, talking: k.talking || k.talkUntil > G.time, reducedMotion: G.lessMotion });
+        const demoKlo = foldDemo ? { ...k, pose: 'point', facing: 1,
+            eyeAim: foldDemo.state.world > .1 ? [-.22, -.18] : [.18, .22],
+            eyeWide: foldDemo.state.world * .55 } : k;
+        O.kloRig.update(demoKlo, { scene: S.id, time: G.time, dt, underwater: S.def.underwater || (S.id === 'viken' && k.y > 0), hero: G.player, talking: k.talking || k.talkUntil > G.time, reducedMotion: G.lessMotion });
         O.kloSign.visible = O.klo.visible && !!k.holding;
         if (O.kloSign.visible) { setTex(O.kloSign, k.holding); O.kloSign.x = O.klo.x + 20 * k.facing; O.kloSign.y = O.klo.y - 70; }
         const guardianOptions = O.guardianOptions;
@@ -2141,10 +2197,12 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
         drawActor(O.signe, G.actors.signe, 'signe', dt);
         drawPrints();
         // hints
-        const hi = G.story?.hintInfo?.();
-        O.actionCue.update(G.guidance, { scene: S.id, hero: G.player, cam, width: app.screen.width, height: app.screen.height,
+        const requestingHelp = G.helpLevel === 'guided' || G.companion?.markerActive();
+        const chatting = G.companion?.suspended();
+        const hi = G.helpLevel === 'guided' ? G.story?.hintInfo?.() : G.companion?.hintInfo();
+        O.actionCue.update(requestingHelp && !chatting ? G.guidance : null, { scene: S.id, hero: G.player, cam, width: app.screen.width, height: app.screen.height,
             busy: !!G.busy || G.hideHero || G.vista, time, lessMotion: G.lessMotion });
-        if (hi && hi.level >= 0.5 && hi.spot && !G.busy) {
+        if (hi && hi.level >= 0.5 && hi.spot?.scene === S.id && !G.busy && !chatting) {
             O.hint.visible = true;
             O.hint.x = hi.spot.x; O.hint.y = hi.spot.y - h(0.4);
             O.hint.alpha = 0.35 + 0.35 * Math.sin(time * 3);
@@ -2243,6 +2301,14 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
         if (L0 && L0.pan) { tx = lerp(L0.from.x, L0.to.x, 0.75); ty = Math.min(L0.from.y, L0.to.y) - h(1.2); zoom *= 0.85; }
         const hint = G.camHint;
         if (hint) { if (hint.x !== undefined) tx = hint.x; if (hint.y !== undefined) ty = hint.y; if (hint.zoom) zoom = (hint.zoom * restPx) / HL; }
+        if (hint?.companion) {
+            // Keep the pair in the open part of the page, beside the paper in
+            // landscape and above it in portrait. Recompute on device rotation.
+            const pair = hint.companion;
+            zoom = restPx / HL * (S.def.underwater ? .8 : 1);
+            tx = pair.x + (portrait ? 0 : W * .24 / zoom * (pair.side === 'right' ? 1 : -1));
+            ty = pair.ground - H / zoom * (portrait ? -.1 : .25);
+        }
         if (hint?.frame) {
             // Both the lamp and its reflection fit in landscape and portrait. This is
             // a distant view, so it is independent of the playable page's edge clamps.
@@ -2259,8 +2325,10 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
         const b = S.def.bounds;
         const hw = W / zoom / 2, hh = H / zoom / 2;
         tx = clamp(tx, b.x0 + hw, Math.max(b.x0 + hw, b.x1 - hw));
-        ty = clamp(ty, b.y0 + hh, Math.max(b.y0 + hh, b.y1 - hh));
-        if (cam.snap) { cam.x = tx; cam.y = ty; cam.zoom = zoom; cam.snap = false; return; }
+        // The companion paper covers the lower portrait viewport. Clamping to
+        // that hidden part would push both actors down behind their notebook.
+        if (!hint?.companion) ty = clamp(ty, b.y0 + hh, Math.max(b.y0 + hh, b.y1 - hh));
+        if (cam.snap || (G.lessMotion && hint?.companion)) { cam.x = tx; cam.y = ty; cam.zoom = zoom; cam.snap = false; return; }
         const calm = G.lessMotion ? 0.6 : 1;
         const rate = (hint ? 2.4 : 4) * calm;
         cam.x = damp(cam.x, tx, rate, dt);
@@ -2324,6 +2392,33 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
     }
 
     // --- effects the story asks for -------------------------------------------------------------------
+    function fitLandFocus() {
+        if (!landFocus || destroyed) return;
+        landFocus.measureIn = .1;
+        const W = app.screen.width, H = app.screen.height, canvas = app.canvas.getBoundingClientRect();
+        const rects = [...document.querySelectorAll('.sk-dialogue.on, .sk-goal:not(.empty)')].map(node => {
+            const r = node.getBoundingClientRect();
+            return { top: (r.top - canvas.top) * H / canvas.height, height: r.height * H / canvas.height, width: r.width * W / canvas.width };
+        });
+        fitLandPuzzleFrame(landFocus.frame, W, H, rects);
+    }
+
+    function fitShoreTrial() {
+        if (!shoreTrial || destroyed) return;
+        shoreTrial.measureIn = .1;
+        const W = app.screen.width, H = app.screen.height, canvas = app.canvas.getBoundingClientRect();
+        const sy = H / (canvas.height || H), insets = { top: 24, bottom: 24 };
+        // Drawing tools and speech use different parts of the screen. Refit the
+        // actual card; its drawing anchors are queried again after a rotation.
+        for (const n of document.querySelectorAll('.sk-dialogue.on, .sk-draw.on .sk-draw-toolbar, .sk-draw.on .sk-draw-actions')) {
+            const b = n.getBoundingClientRect();
+            if (!b.width || !b.height) continue;
+            const top = (b.top - canvas.top) * sy, bottom = (b.bottom - canvas.top) * sy;
+            if ((top + bottom) / 2 < H / 2) insets.top = Math.max(insets.top, bottom + 12);
+            else insets.bottom = Math.max(insets.bottom, H - top + 12);
+        }
+        shoreTrial.effect.fit(W, H, insets);
+    }
     /** Keep the memory card clear of the dialogue box above it (measured a few times a second, not every frame). */
     function fitKvMemory() {
         if (!kvMemory || destroyed) return;
@@ -2338,39 +2433,167 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
         }
         kvMemory.effect.fit(W, H, insets);
     }
+    function fitMapAssembly() {
+        if (!mapAssembly || destroyed) return;
+        mapAssembly.measureIn = .12;
+        const W = app.screen.width, H = app.screen.height;
+        const portrait = H > W;
+        const reserve = mapAssembly.insets ||= { width: W, height: H, top: portrait ? 172 : 18, bottom: portrait ? 24 : 145 };
+        if (reserve.width !== W || reserve.height !== H) Object.assign(reserve,
+            { width: W, height: H, top: portrait ? 172 : 18, bottom: portrait ? 24 : 145 });
+        const dialog = app.canvas.closest('.sk-root')?.querySelector('.sk-dialogue.on');
+        if (dialog) {
+            const box = dialog.getBoundingClientRect(), canvas = app.canvas.getBoundingClientRect();
+            const sy = H / (canvas.height || H), top = (box.top - canvas.top) * sy, bottom = (box.bottom - canvas.top) * sy;
+            if ((top + bottom) / 2 < H / 2) reserve.top = Math.max(reserve.top, Math.min(H - 110, bottom + 14));
+            else reserve.bottom = Math.max(reserve.bottom, Math.min(H - 110, H - top + 14));
+        }
+        mapAssembly.layout = mapAssembly.effect.fit(W, H, { ...reserve, left: 20, right: 20 });
+    }
     function endMapAssembly(completed) {
         if (!mapAssembly) return;
         const effect = mapAssembly; mapAssembly = null;
         effect.effect.destroy();
-        if (completed && !destroyed) effect.resolve();
+        app.canvas.parentElement?.classList.remove('sk-map-scene');
+    }
+    function releaseFoldBeach(demo) {
+        for (const layer of [L.terrainBack, L.mid]) if (layer.mask === demo.beachMask) layer.mask = null;
+        demo.beachMask?.destroy(); demo.beachMask = null;
+    }
+    /** Capture just the existing sand, shell and pencil marks, in world coordinates.
+     * Replace that rectangle with the deforming ink; no duplicate shell stays behind. */
+    function bindFoldBeach(demo) {
+        releaseFoldBeach(demo);
+        const { x, y } = demo, w = FOLD_BEACH.width, top = y - FOLD_BEACH.above;
+        const height = FOLD_BEACH.above + FOLD_BEACH.below, left = x - w / 2;
+        const rt = PIXI.RenderTexture.create({ width: w, height, resolution: 2 });
+        const copy = new PIXI.Container(); copy.position.set(-left, -top);
+        const layers = [L.terrainBack, L.mid], indices = layers.map(l => world.getChildIndex(l));
+        const shell = S.obj.shells?.find(q => q.sh.id === 'sh1')?.s, shellVisible = shell?.visible;
+        try {
+            if (shell) shell.visible = false;
+            for (const layer of layers) copy.addChild(layer);
+            app.renderer.render({ container: copy, target: rt, clear: true });
+        } finally {
+            if (shell) shell.visible = shellVisible;
+            layers.forEach((layer, i) => world.addChildAt(layer, indices[i]));
+            copy.destroy();
+        }
+        demo.effect.setBeach(rt, shell);
+        const b = S.def.bounds, pad = h(20), mask = new PIXI.Graphics();
+        // Four surrounding rectangles leave a hole without depending on inverse-mask support.
+        mask.rect(b.x0 - pad, b.y0 - pad, left - b.x0 + pad, b.y1 - b.y0 + pad * 2)
+            .rect(left + w, b.y0 - pad, b.x1 + pad - left - w, b.y1 - b.y0 + pad * 2)
+            .rect(left, b.y0 - pad, w, top - b.y0 + pad)
+            .rect(left, top + height, w, b.y1 + pad - top - height).fill(0xffffff);
+        mask.label = 'fold-beach-source-mask'; world.addChild(mask);
+        for (const layer of layers) layer.mask = mask;
+        demo.beachMask = mask;
+        L.objects.addChildAt(demo.effect.beach, 0);
     }
     function frameFoldDemo() {
         if (!foldDemo) return;
         const W = app.screen.width, H = app.screen.height;
-        // Labels, actors and the lifted patch stay above the touch controls. The
-        // same authored frame is refitted on rotation, never a cached pixel crop.
-        foldDemo.hint.frame.insets = { left: 38, right: 38, top: H > W ? 100 : 26, bottom: H > W ? 150 : 90 };
+        const insets = { left: 24, right: 24, top: 32, bottom: 32 };
+        const canvas = app.canvas.getBoundingClientRect(), sy = H / (canvas.height || H);
+        const dialog = app.canvas.closest('.sk-root')?.querySelector('.sk-dialogue.on');
+        if (dialog) {
+            const b = dialog.getBoundingClientRect(), top = (b.top - canvas.top) * sy, bottom = (b.bottom - canvas.top) * sy;
+            if ((top + bottom) / 2 < H / 2) insets.top = Math.min(H - 150, bottom + 16);
+            else insets.bottom = Math.min(H - 150, H - top + 16);
+        }
+        // Reserve one reading area throughout the experiment, including its silent actions.
+        const reserved = foldDemo.reservedInsets ||= { top: H > W ? 170 : 32, bottom: H > W ? 32 : 142, width: W, height: H };
+        if (reserved.width !== W || reserved.height !== H) Object.assign(reserved,
+            { top: H > W ? 170 : 32, bottom: H > W ? 32 : 142, width: W, height: H });
+        reserved.top = Math.max(reserved.top, insets.top); reserved.bottom = Math.max(reserved.bottom, insets.bottom);
+        insets.top = reserved.top; insets.bottom = reserved.bottom;
+        const old = foldDemo.hint.frame.insets;
+        if (old && (old.top !== insets.top || old.bottom !== insets.bottom)) cam.snap = true;
+        foldDemo.hint.frame.insets = insets;
     }
     function endFoldDemo(completed) {
         if (!foldDemo) return;
         const demo = foldDemo; foldDemo = null;
+        releaseFoldBeach(demo);
         demo.effect.destroy();
         if (G.camHint === demo.hint) G.camHint = demo.before;
         cam.snap = !completed;
         // An abandoned scene must not resume its dialogue in a different scene.
-        if (completed && !destroyed) demo.resolve();
+        if (completed && !destroyed) demo.resolve?.();
     }
     async function fx(name, data) {
         if (destroyed) return new Promise(() => {});
         const def = S?.def;
         switch (name) {
+            case 'landFocus': {
+                const before = G.camHint, player = G.player, scene = G.sceneId;
+                const focus = { id: data.id, frame: data.frame || landPuzzleFrame(data.id), measureIn: 0 };
+                const hint = { frame: focus.frame };
+                landFocus = focus; G.camHint = hint; fitLandFocus();
+                try {
+                    await G.wait(G.lessMotion ? .12 : .4);
+                    if (destroyed || G.sceneId !== scene || G.player !== player) await new Promise(() => {});
+                    await data.whileVisible?.();
+                    if (destroyed || G.sceneId !== scene || G.player !== player) await new Promise(() => {});
+                } finally {
+                    if (landFocus === focus) landFocus = null;
+                    if (G.camHint === hint) G.camHint = before;
+                }
+                break;
+            }
+            case 'shoreTrial': {
+                shoreTrial?.effect.destroy();
+                const effect = createShoreTrial(PIXI, { texture: T, lessMotion: G.lessMotion });
+                overlay.addChild(effect.container);
+                shoreTrial = { effect, measureIn: 0 };
+                app.canvas.parentElement?.classList.add('sk-shore-trial');
+                fitShoreTrial();
+                onFx?.('sfx', 'rustle');
+                try {
+                    await data.whileVisible?.({
+                        flatten: () => effect.flatten(), complete: () => effect.complete(), wave: () => effect.wave(),
+                        geometry() { fitShoreTrial(); return effect.geometry(app.canvas); }
+                    });
+                } finally {
+                    if (shoreTrial?.effect === effect) {
+                        shoreTrial = null;
+                        app.canvas.parentElement?.classList.remove('sk-shore-trial');
+                    }
+                    effect.destroy();
+                }
+                break;
+            }
             case 'mapAssemble': {
                 endMapAssembly(false);
-                const effect = createMapAssemble(PIXI, { texture: T, caption: data.caption || STORY.k2.mapAssemble, route: data.route !== false, lessMotion: G.lessMotion });
+                const request = ++mapRequest, sceneAtStart = S?.id;
+                await assets.load('map');
+                if (destroyed || request !== mapRequest || S?.id !== sceneAtStart) return new Promise(() => {});
+                const variant = data.variant || 'assembly';
+                const caption = data.caption || (variant === 'fragment' ? MAP.pieces[data.fragment || 'corner'].name : STORY.k2.mapAssemble);
+                const effect = createMapAssemble(PIXI, { ...data, variant, texture: T, caption, flags: G.flags, lessMotion: G.lessMotion });
                 overlay.addChild(effect.container);
-                effect.fit(app.screen.width, app.screen.height);
+                const demo = mapAssembly = { effect, variant, fragment: data.fragment, measureIn: 0, state: effect.update(0) };
+                app.canvas.parentElement?.classList.add('sk-map-scene');
+                fitMapAssembly();
                 onFx?.('sfx', 'rustle');
-                await new Promise((resolve) => { mapAssembly = { effect, elapsed: 0, state: effect.update(0), resolve }; });
+                const active = () => mapAssembly === demo && !destroyed;
+                const controller = Object.fromEntries(['arrive', 'join', 'reveal', 'depart'].map(action => [action, () => {
+                    if (!active()) return new Promise(() => {});
+                    if (action === 'join' || action === 'reveal') onFx?.('sfx', action === 'join' ? 'rustle' : 'pencil');
+                    return effect[action]();
+                }]));
+                controller.focus = value => { if (active()) effect.focus(value); };
+                try {
+                    if (data.whileVisible) await data.whileVisible(controller);
+                    else {
+                        await controller.arrive();
+                        if (variant === 'assembly') await controller.join();
+                        if (variant !== 'fragment') await controller.reveal();
+                        await G.wait(1.5); await controller.depart();
+                    }
+                    if (!active()) return new Promise(() => {});
+                } finally { if (active()) endMapAssembly(true); }
                 break;
             }
             case 'kvMemory': {
@@ -2400,15 +2623,16 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
             }
             case 'foldDemo': {
                 endFoldDemo(false);
-                const x = data.x, y = G.terrain.groundNear(x, data.y, 120) ?? data.y;
+                const request = ++foldRequest;
+                const sceneAtStart = S;
+                await assets.load('map');
+                if (destroyed || request !== foldRequest || S?.id !== sceneAtStart.id) return new Promise(() => {});
+                const shell = S.obj.shells?.find(q => q.sh.id === 'sh1');
+                const x = shell?.s.x ?? data.x, y = shell?.s.y ?? G.terrain.groundNear(x, data.y, 120) ?? data.y;
                 const k = G.actors.klo;
                 const kx = k?.visible && Math.abs(k.x - x) < h(5) ? k.x : x + h(1.6), ky = k?.y ?? y;
                 const effect = createFoldDemo(PIXI, {
-                    texture: T, x, y,
-                    leftY: G.terrain.groundNear(x - 110, y, 120) ?? y,
-                    rightY: G.terrain.groundNear(x + 110, y, 120) ?? y,
-                    mapX: kx + 60, mapY: ky - 330, clawX: kx + 29, clawY: ky - 65,
-                    labels: STORY.k1.mapDemoLabels, lessMotion: G.lessMotion
+                    texture: T, x, y, clawX: kx + 29, clawY: ky - 65, lessMotion: G.lessMotion
                 });
                 L.fx.addChild(effect.container);
                 const frame = { ...effect.bounds };
@@ -2419,10 +2643,19 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
                 }
                 const before = G.camHint, hint = { frame };
                 G.camHint = hint;
-                await new Promise((resolve) => {
-                    foldDemo = { effect, elapsed: 0, state: effect.update(0), before, hint, resolve };
-                    frameFoldDemo();
-                });
+                const demo = foldDemo = { effect, x, y, state: effect.update(0), before, hint };
+                bindFoldBeach(demo); frameFoldDemo();
+                const active = () => foldDemo === demo && !destroyed;
+                const controller = Object.fromEntries(['arrive', 'fold', 'unfold', 'depart'].map(action => [action, () => {
+                    if (!active()) return new Promise(() => {});
+                    if (action === 'fold' || action === 'unfold') onFx?.('sfx', 'rustle');
+                    return effect[action]();
+                }]));
+                try {
+                    if (data.whileVisible) await data.whileVisible(controller);
+                    else { await controller.arrive(); await controller.fold(); await G.wait(1.5); await controller.unfold(); await controller.depart(); }
+                    if (!active()) return new Promise(() => {});
+                } finally { if (active()) endFoldDemo(true); }
                 break;
             }
             case 'archOpen':
@@ -2561,8 +2794,10 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
         if (tooth) { tooth.width = app.screen.width; tooth.height = app.screen.height; }
         cam.snap = true;
         frameFoldDemo();
-        mapAssembly?.effect.fit(app.screen.width, app.screen.height);
+        fitMapAssembly();
         fitKvMemory();
+        fitShoreTrial();
+        fitLandFocus();
     }
 
     function destroy() {
@@ -2590,11 +2825,23 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
         get vista() { return S?.vista || null; },
         /** the playable beach's stuck wave (for checks) */
         get stuckWave() { return S?.items.find(q => q.wave)?.wave || null; },
-        get foldDemo() { return foldDemo ? { ...foldDemo.state, elapsed: foldDemo.elapsed, bounds: { ...foldDemo.hint.frame } } : null; },
-        get mapAssembly() { return mapAssembly ? { ...mapAssembly.state, elapsed: mapAssembly.elapsed } : null; },
+        get foldDemo() { return foldDemo ? { ...foldDemo.effect.state, phase: foldDemo.effect.phase, elapsed: foldDemo.effect.elapsed, bounds: { ...foldDemo.hint.frame } } : null; },
+        get mapAssembly() { return mapAssembly ? { ...mapAssembly.state, phase: mapAssembly.effect.phase, elapsed: mapAssembly.effect.elapsed,
+            variant: mapAssembly.variant, fragment: mapAssembly.fragment, bounds: mapAssembly.layout?.bounds } : null; },
         /** Kartväktaren's memory card while it is shown (for checks) */
         get kvMemory() { return kvMemory ? { stage: kvMemory.effect.stageIndex } : null; },
+        get shoreTrial() { return shoreTrial ? { phase: shoreTrial.effect.phase, ...shoreTrial.effect.state, ...shoreTrial.effect.geometry(app.canvas) } : null; },
+        get landFocus() { return landFocus ? { id: landFocus.id, frame: { ...landFocus.frame } } : null; },
         kloBounds() { return S?.obj?.klo?.visible ? S.obj.klo.getBounds() : null; },
+        speakerBounds(who) {
+            if (!root.visible || !S || G.vista) return null;
+            if (who === 'horse') return hero.view.visible && !G.hideHero ? hero.headBounds() : null;
+            const actor = G.actors[who], o = S.obj;
+            if (G.hideActors || !actor?.visible || actor.scene !== S.id || actor.inHole) return null;
+            if (who === 'klo' && o.klo.visible) return o.kloRig.headBounds();
+            if (who === 'kv' && o.kv.visible) return o.kvRig.headBounds();
+            return who === 'signe' && o.signe.visible ? o.signe.getBounds() : null;
+        },
         built(id) { return S?.id === id && S.placeholders === 0; },
         replaceHero(newHero) { L.hero.removeChild(hero.view); hero.destroy?.(); hero = newHero; L.hero.addChild(hero.view); },
         world, root, layers: L,

@@ -15,8 +15,10 @@
 import { HL } from './sim.mjs';
 import { beginKloWalk, stepKloWalk, createKloReactions } from './klo.mjs';
 import { p8Progress } from './puzzles.mjs';
+import { SHORE_PATCH } from './shore-trial.mjs';
 import { describeGuidance, controlTip } from './guidance-state.mjs';
-import { STORY, HINTS, JOURNAL, BALK, HER_TEXT, FAMILY, UI, KLO_JOKES, CONTEXT_LABELS } from './content/sv.mjs';
+import { describeKloHelp } from './klo-help.mjs';
+import { STORY, HINTS, JOURNAL, BALK, HER_TEXT, FAMILY, UI, KLO_JOKES, KLO_COMPANION, CONTEXT_LABELS } from './content/sv.mjs';
 
 const h = (v) => v * HL;
 
@@ -26,7 +28,21 @@ export function createStory(G, io) {
     const beats = [];
     let running = null;
     const queue = [];
-    const hintState = { key: null, t: 0, level: 0, shown: 0 };
+    const hintState = { key: null, t: 0, level: 0, said: 0, reminded: false };
+    const guided = () => G.helpLevel === 'guided';
+    const discovery = (full, observation) => guided() ? full : KLO_COMPANION.story[observation];
+    const landLook = async (s, id, inspect, frame) => {
+        const before = G.worldInspection, hold = { player: G.player };
+        G.worldInspection = hold;
+        try {
+            if (!io.fx) return await inspect();
+            let shown = false;
+            await s.fx('landFocus', { id, frame, whileVisible: async () => { shown = true; await inspect(); } });
+            if (!shown) await inspect(); // logic-only clients retain the same required story
+        } finally {
+            if (G.worldInspection === hold) G.worldInspection = before;
+        }
+    };
 
     // --- actors -------------------------------------------------------------------
     G.actors.klo = { id: 'klo', scene: null, x: 0, y: 0, pose: 'idle', facing: -1, visible: false, pop: 0, walk: null, holding: null };
@@ -39,9 +55,10 @@ export function createStory(G, io) {
     const reactions = createKloReactions(KLO_JOKES);
     const say = async (lines) => {
         const list = Array.isArray(lines[0]) ? lines : [lines];
-        for (const id of ['klo', 'kv']) G.actors[id].talking = list.some(([who]) => who === id);
-        try { return await io.ui.say(list); }
-        finally { for (const id of ['klo', 'kv']) G.actors[id].talking = false; }
+        const onSpeaker = who => { for (const id of ['klo', 'kv']) G.actors[id].talking = who === id; };
+        onSpeaker(list.find(([, text]) => text)?.[0]);
+        try { return await io.ui.say(list, { onSpeaker }); }
+        finally { onSpeaker(null); }
     };
     function tapKlo({ visible = false } = {}) {
         const actor = G.actors.klo;
@@ -64,11 +81,22 @@ export function createStory(G, io) {
         flag: (f) => G.flag(f),
         has: (f) => F.has(f),
         async fx(name, data) {
-            if (name !== 'vista') return io.fx(name, data || {});
+            if (!['vista', 'foldDemo', 'mapAssemble', 'landFocus'].includes(name)) return io.fx(name, data || {});
             const controlsOn = !io.ui.controls?.classList.contains('off');
             io.ui.showControls?.(false);
             try { return await io.fx(name, data || {}); }
             finally { io.ui.showControls?.(controlsOn); }
+        },
+        async map(data, explain) {
+            let shown = false;
+            const present = async (demo) => {
+                shown = true;
+                await demo?.arrive?.();
+                await explain(demo);
+                await demo?.depart?.();
+            };
+            await api.fx('mapAssemble', { ...data, whileVisible: present });
+            if (!shown) await present(null); // logic clients retain every explanation
         },
         sfx: (n, o) => io.audio?.sfx(n, o),
         stinger: (n) => io.audio?.stinger(n),
@@ -95,10 +123,11 @@ export function createStory(G, io) {
             G.flag('clue_' + key);
             io.ui.toast(quiet ? JOURNAL.clueSaved : JOURNAL.clues + ': ' + short(JOURNAL.clueText[key]));
         },
-        experiment(id, sign) {
+        experiment(id, sign, { quiet = false } = {}) {
             if (F.has('exp_' + id + '_logged')) return;
             G.flag('exp_' + id); G.flag('exp_' + id + '_logged');
             G.puz.tally += sign === 'hast' ? 1 : -1;
+            if (quiet) return;
             G.actors.klo.holding = sign === 'hast' ? 'sign-hast' : 'sign-skoldpadda';
             G.later(2.5, () => { G.actors.klo.holding = null; });
             io.ui.toast(JOURNAL.measurements + ': ' + short(JOURNAL.experiments[id]));
@@ -109,10 +138,17 @@ export function createStory(G, io) {
         remark(lines) {
             const list = Array.isArray(lines[0]) ? lines : [lines];
             if (!io.guide) return say(list); // (the robot has no guide)
+            // A question and answer need real turns, in their authored order.
+            // Use the familiar, player-paced paper card for an exchange; single
+            // passing comments still leave swimming and galloping uninterrupted.
+            if (new Set(list.map(([who]) => who)).size > 1) {
+                io.guide.clear?.();
+                return say(list);
+            }
             const own = list.filter(([who]) => who === 'horse').map(([, t]) => t).join(' ');
             const said = list.filter(([who]) => who !== 'horse');
             if (said.length) io.guide.hint(said.map(([, t]) => t).join(' '), said[0][0], 5500 + 1500 * said.length);
-            if (own) io.guide.think(own, 2600);
+            if (own) io.guide.think(own, Math.max(4000, 1800 + own.length * 65));
             return G.wait(0.2);
         },
         report: (n) => io.ui.report(n)
@@ -218,7 +254,7 @@ export function createStory(G, io) {
     let nearHoleT = 0;
     beat('k1_hide_nudge', {
         when: () => {
-            if (!inScene('land') || !F.has('klo_hidden') || F.has('klo_ja') || G.player.hidden) { nearHoleT = 0; return false; }
+            if (!guided() || !inScene('land') || !F.has('klo_hidden') || F.has('klo_ja') || G.player.hidden) { nearHoleT = 0; return false; }
             const near = Math.abs(P().x - G.sceneDef.spots.kloHole.x) < h(3) && Math.abs(P().vx) < 40;
             nearHoleT = near ? nearHoleT + 1 / 120 : 0;
             return nearHoleT > 4;
@@ -247,14 +283,57 @@ export function createStory(G, io) {
     beat('k1_mapcorner', {
         when: () => inScene('land') && F.has('klo_ja') && !G.player.hidden,
         async run(s) {
-            G.actors.klo.pose = 'map-corner';
-            await s.say(STORY.k1.mapCorner.slice(0, 2));
-            s.sfx('rustle');
-            await s.fx('foldDemo', { x: G.sceneDef.spots.kloBeach.x - h(1.6), y: G.sceneDef.spots.kloBeach.y });
-            await s.say(STORY.k1.mapCorner[2]);
+            const player = G.player, scene = G.sceneId, klo = G.actors.klo;
+            const { kloHole: besideShell, kloBeach: beach } = G.sceneDef.spots;
+            const shell = G.sceneDef.shells.find(item => item.id === 'sh1');
+            const beforePose = klo.pose, stillHere = () => G.player === player && G.sceneId === scene;
+            let ownNudge = null, ownWalk = null;
+            const clearNudge = () => { if (ownNudge && player.nudge === ownNudge) player.nudge = null; };
+            try {
+                // A small real step gives the pink shell room to rise. Keep
+                // players already clear of it where they chose to stand.
+                if (player.mode === 'ground' && !player.nudge && Math.abs(player.x - shell.x) < h(.85)) {
+                    ownNudge = { x: besideShell.x, t: 2 };
+                    player.nudge = ownNudge;
+                }
+                if (klo.scene === scene && Math.abs(klo.x - beach.x) > 6) {
+                    void s.walk('klo', beach.x, 430);
+                    ownWalk = klo.walk;
+                }
+                while (stillHere() && ((ownNudge && (player.nudge === ownNudge || Math.abs(player.vx) > 1)) || (ownWalk && klo.walk === ownWalk))) await s.wait(.05);
+                if (!stillHere()) {
+                    clearNudge();
+                    if (ownWalk && klo.walk === ownWalk) klo.walk = null;
+                    await new Promise(() => {}); // an abandoned scene must not finish this discovery
+                }
+                if (ownNudge && player.mode === 'ground' && !player.hidden) player.facing = -1;
+                klo.pose = 'map-corner';
+                await s.say(STORY.k1.mapCorner[0]);
+                let shown = false;
+                const demonstrate = async (demo) => {
+                    shown = true;
+                    await demo?.arrive?.();
+                    // Each completed pose holds while Alva reads. The same pink
+                    // shell is visible on the map and on the beach throughout.
+                    await s.say(STORY.k1.mapCorner[1]);
+                    await s.say(STORY.k1.mapCorner[2]);
+                    await demo?.fold?.();
+                    await s.say(STORY.k1.mapCorner[3]);
+                    await demo?.unfold?.();
+                    await s.say(STORY.k1.mapCorner.slice(4));
+                    await demo?.depart?.();
+                };
+                await s.fx('foldDemo', {
+                    x: G.sceneDef.spots.kloBeach.x - h(1.6), y: G.sceneDef.spots.kloBeach.y,
+                    whileVisible: demonstrate
+                });
+                if (!shown) await demonstrate(null); // logic clients keep the same story
+            } finally {
+                clearNudge();
+                if (stillHere()) klo.pose = beforePose;
+            }
             s.clue('map_corner');
             G.flag('rule_demo');
-            G.actors.klo.pose = 'idle';
             hintOnce('mapPurpose', STORY.k1.mapPurpose);
         }
     });
@@ -269,13 +348,13 @@ export function createStory(G, io) {
         when: () => inScene('land') && inArea('note1'),
         async run(s) {
             await s.appear('klo', { scene: 'land', x: G.sceneDef.spots.kloNote.x + h(0.6), y: G.sceneDef.spots.kloNote.y, pose: 'idle', facing: -1 });
-            await s.say([STORY.k1.note1, ...STORY.k1.noteKlo]);
+            await landLook(s, 'bridge', () => s.say([STORY.k1.note1, ...(guided() ? STORY.k1.noteKlo : [KLO_COMPANION.story.note])]));
             s.clue('note1');
             G.flag('note1_read');
         }
     });
     beat('k1_note2', {
-        on: 'balk', filter: (e) => e.reason === 'thin' && e.id === 'p1-arch' && F.has('note1_read'),
+        on: 'balk', filter: (e) => guided() && e.reason === 'thin' && e.id === 'p1-arch' && F.has('note1_read'),
         lock: false,
         async run(s) { await s.remark(STORY.k1.noteKlo2); }
     });
@@ -307,7 +386,7 @@ export function createStory(G, io) {
         when: () => inScene('land') && inArea('branten') && F.has('p1_inked'),
         async run(s) {
             await s.appear('klo', { scene: 'land', x: G.sceneDef.spots.kloBranten.x, y: G.sceneDef.spots.kloBranten.y, pose: 'point', facing: -1 });
-            await s.say(STORY.k1.wavemarksSeen);
+            await landLook(s, 'ramp', () => s.say(discovery(STORY.k1.wavemarksSeen, 'branten')));
             G.actors.klo.pose = 'notebook';
             await s.wait(0.4);
             if (!F.has('p3_t1')) hintOnce('tufts', STORY.k1.brantenTufts);
@@ -319,7 +398,7 @@ export function createStory(G, io) {
         async run(s) {
             await s.appear('klo', { scene: 'land', x: G.sceneDef.spots.kloLedge.x - h(0.6), y: G.sceneDef.spots.kloLedge.y, pose: 'notebook', facing: 1 });
             s.stinger('discovery');
-            await s.say(STORY.k1.wavemarks);
+            await landLook(s, 'waveMarks', () => s.say(STORY.k1.wavemarks));
             s.clue('wave_marks');
             G.flag('p3_done');
             s.checkpoint('ledge');
@@ -327,8 +406,15 @@ export function createStory(G, io) {
         }
     });
 
+    beat('k1_pool_purpose', {
+        when: () => inScene('land') && F.has('rule_demo') && !F.has('p2_seen') && P().x > h(98.8) && P().x < h(105.2),
+        async run(s) {
+            await landLook(s, 'pool', () => s.say(STORY.k1.poolPurpose));
+        }
+    });
+
     beat('k1_pool_klo', {
-        when: () => inScene('land') && inArea('pool') && F.has('rule_demo') && !F.has('p2_open') && !done('k1_pool_klo'),
+        when: () => guided() && inScene('land') && inArea('pool') && F.has('rule_demo') && !F.has('p2_open') && !done('k1_pool_klo'),
         lock: false,
         async run(s) {
             const k = G.actors.klo;
@@ -340,12 +426,15 @@ export function createStory(G, io) {
         on: 'reflectionSeen', filter: (e) => e.id === 'pool',
         async run(s) {
             await s.wait(0.8);
-            await s.say(STORY.k1.mirror);
-            // say what differs, so the player knows what to do next
-            const lines = [];
-            if (G.puz.stone !== G.sceneDef.rail.target) lines.push(STORY.k1.mirrorStone);
-            if (!F.has('p2_plank')) lines.push(STORY.k1.mirrorPlank);
-            if (lines.length) await s.say(lines);
+            await landLook(s, 'pool', async () => {
+                await s.say(discovery(STORY.k1.mirror, 'reflection'));
+                // Exact comparisons stay optional; the purpose and visible
+                // route belong to every player's required discovery.
+                const lines = [];
+                if (guided() && G.puz.stone !== G.sceneDef.rail.target) lines.push(STORY.k1.mirrorStone);
+                if (guided() && !F.has('p2_plank')) lines.push(STORY.k1.mirrorPlank);
+                if (lines.length) await s.say(lines);
+            });
             s.clue('reflection');
         }
     });
@@ -371,6 +460,7 @@ export function createStory(G, io) {
             G.flag('kelp_entered');
             await s.appear('klo', { scene: 'kelp', x: G.sceneDef.spots.klo.x, y: G.sceneDef.spots.klo.y, pose: 'idle', facing: -1 });
             s.checkpoint('kelp');
+            await s.remark(STORY.k1.seaPurpose);
             tipOnce('swim');
             hintOnce('swim', STORY.k1.swimTip);
         }
@@ -398,8 +488,11 @@ export function createStory(G, io) {
         on: 'experiment', filter: (e) => e.id === 'djup',
         lock: false,
         async run(s) {
-            await s.remark(STORY.k1.deep);
-            s.experiment('djup', 'skoldpadda');
+            // Measurements queued during the finale may reach the front only
+            // after returning home. Keep the notebook fact, not stale sea talk.
+            const here = !F.has('conclusion') && P().mode === 'swim' && P().y > h(5);
+            if (here) await s.remark(STORY.k1.deep);
+            s.experiment('djup', 'skoldpadda', { quiet: !here });
         }
     });
     beat('k1_flap', {
@@ -426,7 +519,7 @@ export function createStory(G, io) {
 
     let waitCool = 0;
     beat('k1_hook_wait', {
-        when: () => inScene('kelp') && inArea('overlook') && !F.has('ch1_end')
+        when: () => guided() && inScene('kelp') && inArea('overlook') && !F.has('ch1_end')
             && (!F.has('p3_done') || !F.has('p2_open')) && G.time >= waitCool,
         repeat: true, lock: false,
         async run(s) {
@@ -439,18 +532,19 @@ export function createStory(G, io) {
             && F.has('p3_done') && F.has('p2_open'),
         async run(s) {
             const vk = G.sceneDef.spots.veckmuren;
-            await s.cam({ x: vk.x - h(4), y: h(4.5), zoom: 0.7, t: 1.4, hold: 1.8 });
-            s.stinger('reveal');
-            await s.say(STORY.k1.hook.slice(0, 2));
-            // a thin paper figure with a ruler hurries out of sight on the white paper
-            const fig = G.actors.figure;
-            Object.assign(fig, { scene: 'kelp', x: vk.x - h(0.6), y: h(1.4), visible: true, pose: 'kv-walk-1', facing: 1 });
-            s.sfx('rustle');
-            await s.walk('figure', vk.x + h(1.5), 320);
-            fig.visible = false;
-            await s.say(STORY.k1.hook.slice(2));
+            await landLook(s, 'sea-fold-reveal', async () => {
+                s.stinger('reveal');
+                await s.say(STORY.k1.hook.slice(0, 2));
+                // The figure belongs to the upright painted page, visible
+                // beyond the near folded edge in both phone orientations.
+                const fig = G.actors.figure;
+                Object.assign(fig, { scene: 'kelp', x: vk.x - h(0.6), y: h(1.4), visible: true, pose: 'kv-walk-1', facing: 1 });
+                s.sfx('rustle');
+                await s.walk('figure', vk.x + h(1.5), 320);
+                fig.visible = false;
+                await s.say(STORY.k1.hook.slice(2));
+            }, { x0: h(44.7), y0: h(-.9), x1: h(50.4), y1: h(9.6) });
             s.clue('fold'); s.clue('figure');
-            s.camFree();
             G.flag('ch1_end');
             G.chapterFlags();
             s.checkpoint('overlook');
@@ -468,7 +562,7 @@ export function createStory(G, io) {
         async run(s) {
             if (inScene('kelp')) await s.appear('klo', { scene: 'kelp', x: P().x - h(1.2), y: P().y + h(0.2), pose: 'map-corner', facing: 1 });
             else await s.appear('klo', { scene: 'land', x: P().x - h(1.2) * P().facing, y: P().y, pose: 'map-corner', facing: P().facing });
-            await s.say(STORY.k2.open);
+            await s.map({ variant: 'fragment', fragment: 'corner' }, () => s.say(STORY.k2.open));
             await s.fx('paperFill', {});
             G.actors.klo.pose = 'idle';
         }
@@ -486,6 +580,15 @@ export function createStory(G, io) {
         }
     });
 
+    beat('k2_vault_purpose', {
+        when: () => inScene('kelp') && F.has('ch2_open') && !F.has('p5_lit') && !F.has('mark_sea')
+            && P().x > h(22.3) && P().x < h(27) && P().y > h(7.7)
+            && G.puz.school.state === 'home',
+        async run(s) {
+            await landLook(s, 'vault-approach', () => s.say(STORY.k2.vaultPurpose),
+                { x0: h(22.6), y0: h(8.7), x1: h(27.4), y1: h(12.8) });
+        }
+    });
     beat('k2_lanterns', {
         on: 'schoolFollow', filter: () => !done('k2_lanterns'),
         lock: false,
@@ -497,8 +600,25 @@ export function createStory(G, io) {
         async run(s) {
             s.stinger('aha');
             await s.wait(0.6);
-            await s.remark(STORY.k2.lanterns);
+            await s.remark(STORY.k2.vaultReveal);
             s.checkpoint('trench');
+        }
+    });
+
+    beat('k2_corner_purpose', {
+        when: () => inScene('kelp') && F.has('ch2_open') && !F.has('p6_flat')
+            && P().x > h(32) && P().x < h(39) && P().y > h(6.4),
+        async run(s) {
+            await landLook(s, 'seabed-fold', () => s.say(STORY.k2.cornerPurpose),
+                { x0: h(32.5), y0: h(7.2), x1: h(38.3), y1: h(11.8) });
+        }
+    });
+
+    beat('k2_leap_purpose', {
+        when: () => inScene('land') && F.has('ch2_open') && !F.has('mark_land') && !F.has('p4_leap')
+            && P().x > h(13.1) && P().x < h(17) && P().mode === 'ground',
+        async run(s) {
+            await landLook(s, 'leap', () => s.say(STORY.k2.landmarkPurpose));
         }
     });
 
@@ -508,7 +628,7 @@ export function createStory(G, io) {
             if (F.has('final_run')) return;
             s.stinger('leap');
             await s.appear('klo', { scene: 'land', x: G.sceneDef.spots.kloUdden.x, y: G.sceneDef.spots.kloUdden.y, pose: 'stopwatch', facing: 1 });
-            await s.say(STORY.k2.record);
+            await landLook(s, 'landmark', () => s.say(STORY.k2.record));
             s.experiment('sprang', 'hast');
             s.checkpoint('udden');
         }
@@ -519,33 +639,60 @@ export function createStory(G, io) {
         async run(s) {
             s.stinger('discovery');
             s.clue('mark_land');
+            await s.map({ variant: 'fragment', fragment: 'land' }, async () => {
+                await s.say(STORY.k2.landFound);
+                if (!F.has('mark_sea')) await s.say(STORY.k2.halfSea);
+            });
             await s.cam({ x: G.sceneDef.spots.cleftView.x + h(2.5), y: h(-5), zoom: 0.75, t: 1.2, hold: 1.2, lookSea: true });
             await s.say(STORY.k2.lighthouse);
             s.clue('lighthouse');
-            if (!F.has('mark_sea')) await s.say(STORY.k2.halfSea);
             s.camFree();
         }
     });
     beat('k2_mark_sea', {
         on: 'mark', filter: (e) => e.id === 'mark_sea',
+        // The shell commits its contact before the player reads the discovery.
+        // A save at that moment may restore on land, so recover from inventory
+        // before joining the map; never replay a kelp camera over another scene.
+        when: () => F.has('mark_sea') && !F.has('ch2_end') && !done('k2_mark_sea'),
         async run(s) {
             s.stinger('discovery');
+            if (inScene('kelp') && !F.has('clue_mark_sea')) {
+                await landLook(s, 'freed-map-fragment', async () => {
+                    await s.wait(G.lessMotion ? .15 : 1.0);
+                    await s.say(STORY.k2.cornerFlat);
+                }, { x0: h(33.4), y0: h(7.6), x1: h(38.2), y1: h(11.9) });
+            }
             s.clue('mark_sea');
-            await s.say(STORY.k2.seaFound);
-            if (!F.has('mark_land')) await s.say(STORY.k2.half);
+            await s.map({ variant: 'fragment', fragment: 'sea' }, async () => {
+                await s.say(STORY.k2.seaFound);
+                if (!F.has('mark_land')) await s.say(STORY.k2.half);
+            });
         }
     });
 
     beat('k2_end', {
         on: 'marksBoth',
+        // Collection can be saved before its queued assembly starts. Rebuild
+        // the payoff from inventory too, including older saves with an open route.
+        when: () => F.has('mark_land') && F.has('mark_sea') && !F.has('ch2_end'),
         async run(s) {
-            await s.fx('mapAssemble', {});
-            await s.say([STORY.k2.bothHalves, STORY.k2.torn]);
+            await s.map({ variant: 'assembly', focus: 'route' }, async (demo) => {
+                await s.say(STORY.k2.fitPieces);
+                await demo?.join?.();
+                await s.say(STORY.k2.torn);
+                await demo?.reveal?.();
+                G.flag('marks_both'); // the visible repaired route opens its matching current
+                await s.say(STORY.k2.bothHalves);
+            });
             s.clue('torn_map', { quiet: true });
             if (inScene('kelp')) await s.cam({ x: h(43), y: h(3.5), zoom: 0.8, t: 1.6, hold: 1.2 });
             // a glimpse of the lighthouse: the paper figure peeks and snaps a shutter shut
-            await s.fx('vista', { scene: 'viken', lighthouse: true, t: 3.2, peek: true });
-            await s.say(STORY.k2.end);
+            let figureExplained = false;
+            const explainFigure = () => { figureExplained = true; return s.say(STORY.k2.end); };
+            await s.fx('vista', { scene: 'viken', lighthouse: true, t: 3.2, peek: true,
+                whileVisible: explainFigure });
+            if (!figureExplained) await explainFigure();
             s.camFree();
             G.flag('ch2_end');
             G.chapterFlags();
@@ -573,7 +720,7 @@ export function createStory(G, io) {
     });
 
     beat('k3_klo_pier', {
-        when: () => inScene('viken') && done('k3_arrive') && inArea('pier') && G.actors.klo.x < h(3),
+        when: () => guided() && inScene('viken') && done('k3_arrive') && inArea('pier') && G.actors.klo.x < h(3),
         lock: false,
         async run(s) { await s.appear('klo', { scene: 'viken', x: G.sceneDef.spots.klo.x, y: G.sceneDef.spots.klo.y, pose: 'idle', facing: -1 }); }
     });
@@ -585,15 +732,24 @@ export function createStory(G, io) {
             // Keep the actual answer visible for the whole explanation. The
             // reversible comparison removes the rock face hiding the reflection.
             await s.fx('vista', { scene: 'viken', lighthouse: true, comparison: true,
-                whileVisible: () => s.say(STORY.k3.mirror), hold: 0.6 });
+                whileVisible: () => s.say(discovery(STORY.k3.mirror, 'bayReflection')), hold: 0.6 });
             s.checkpoint('pier');
         }
     });
 
     beat('k3_shutter', {
         on: 'latch', filter: (e) => /^shutter/.test(e.flag || ''),
-        repeat: true, lock: false,
-        async run(s) { s.stinger('aha'); }
+        repeat: true,
+        async run(s) {
+            s.stinger('aha');
+            // Show the visible consequence at its destination. The third
+            // mechanism already earns the full lamp/keeper reveal below.
+            if (F.has('lamp_lit')) return;
+            const L = G.sceneDef.lamp;
+            await s.cam({ x: L.x, y: L.y - h(.3), zoom: .95, t: .65, hold: .8 });
+            await s.say(STORY.k3.shutterOpened);
+            s.camFree();
+        }
     });
 
     beat('k3_pipe', {
@@ -664,9 +820,13 @@ export function createStory(G, io) {
     // =========================================================================
     beat('k3_line', {
         on: 'flag', filter: (e) => e.flag === 'talk_done',
+        when: () => inScene('viken') && F.has('talk_done') && !F.has('p8_land') && !F.has('ended'),
         async run(s) {
             await s.fx('lineAppears', {});
-            await s.say(STORY.k3.line);
+            await s.say(discovery(STORY.k3.line, 'line'));
+            const corner = G.sceneDef.spots.window;
+            await s.cam({ x: corner.x, y: corner.y, zoom: .9, t: 1, hold: 1 });
+            await s.say(STORY.k3.corner);
             await s.cam({ x: h(12), y: h(-1.2), zoom: 0.62, t: 1.2, hold: 1.2 });
             s.camFree();
         }
@@ -674,99 +834,99 @@ export function createStory(G, io) {
 
     beat('k3_window', {
         on: 'windowReached',
-        filter: () => !F.has('p8_done'),
-        when: () => inScene('viken') && F.has('p8_sea') && !F.has('p8_done') && G.checkpoint === 'lineWindow',
+        filter: () => !F.has('ended'),
+        when: () => inScene('viken') && F.has('p8_sea') && !F.has('ended') && G.checkpoint === 'lineWindow',
         async run(s) {
+            // Resume a committed drawing without asking the player to repeat it.
+            if (F.has('unfolded')) { await finale(s); return; }
             const win = G.sceneDef.spots.window;
             io.save(); // preserve the completed sea half before opening the final drawing
             await s.cam({ x: win.x, y: win.y, zoom: 1.2, t: 0.8, hold: 0.9 });
-            await s.say(STORY.k3.lastStroke);
-            // Alva's pencil joins the two half-marks across the window (tap or trace the anchors; it can't fail)
-            const getGeometry = () => {
-                const anchors = [];
-                for (let i = 0; i < 4; i++) { const q = io.toScreen?.(win.x - h(0.9) + i * h(0.6), win.y); if (q) anchors.push([q.x, q.y]); }
-                return { anchors: anchors.length ? anchors : null };
+            let shown = false;
+            const demonstrate = async (trial) => {
+                shown = true;
+                await trial?.flatten();
+                if (!F.has('p8_done')) {
+                    await s.say(STORY.k3.lastStroke);
+                    const getGeometry = () => trial?.geometry() || { anchors: SHORE_PATCH.anchors.flatMap(([x, y]) => {
+                        const q = io.toScreen?.(win.x + x - 300, win.y + y - 170);
+                        return q ? [[q.x, q.y]] : [];
+                    }) };
+                    await io.ui.draw({ prompt: UI.drawLast, ...getGeometry(), getGeometry, allowReverse: true, width: 6, color: '#355f78' });
+                    G.flag('p8_done');
+                    io.save();
+                }
+                trial?.complete();
+                s.stinger('aha');
+                await s.say(STORY.k3.waveReady);
+                s.sfx('splash', { size: .3 });
+                await trial?.wave();
+                G.flag('p8_proven');
+                await s.say(STORY.k3.proof);
             };
-            await io.ui.draw({ prompt: UI.drawLast, ...getGeometry(), getGeometry, allowReverse: true, width: 6, color: '#3b3530' });
-            G.flag('p8_done');
-            s.stinger('aha');
-            // Kartväktaren chooses, on two proofs: the line runs into the water and the
-            // paper holds; and his own map, torn by his fold, not by water.
+            if (io.fx) await s.fx('shoreTrial', { whileVisible: demonstrate });
+            if (!shown) await demonstrate(null); // logic clients retain the same causal order
             Object.assign(G.actors.kv, { x: h(23.4), y: h(-0.62), visible: true, pose: 'point', facing: 1 });
             Object.assign(G.actors.klo, { x: h(22.5), y: h(-0.62), visible: true, scene: 'viken', walk: null, inHole: false, pose: 'idle', facing: 1 });
-            // a wide view: the two of them on the pier, and the line running down into the water to the window
-            await s.cam({ x: h(24.8), y: h(0.15), zoom: 0.66, t: 0.9, hold: 0.3 });
             G.player.hidden = false;
-            await s.say(STORY.k3.proof);
             await s.cam({ x: h(23.2), y: h(-1.0), zoom: 1.0, t: 0.8, hold: 0.1 });
             G.actors.klo.pose = 'map-corner';
             s.sfx('rustle');
-            await s.say(STORY.k3.mapBack);
-            await s.fx('mapAssemble', { caption: STORY.k3.mapCaption, route: false });
+            await s.map({ variant: 'inspect', focus: 'crease', caption: STORY.k3.mapCaption, route: false }, async (demo) => {
+                await demo?.reveal?.();
+                await s.say(STORY.k3.mapBack);
+                G.actors.kv.pose = 'bow';
+                await s.say(STORY.k3.sorry[0]);
+            });
             G.actors.klo.pose = 'idle';
             G.actors.kv.pose = 'bow';
-            await s.say(STORY.k3.sorry);
+            await s.say(STORY.k3.sorry[1]);
+            await s.say(STORY.k3.home);
             G.actors.kv.pose = 'unfold';
             s.stinger('unfold');
             await s.fx('unfold', {});
             G.flag('unfolded');
+            io.save();
             s.camFree();
             await finale(s);
         }
     });
 
     async function finale(s) {
-        // PLASK: back at her picture, time starts in the same instant
+        // One clear destination: the original beach, then Alva's table.
         G.flag('final_run');
         G.freeze = true;
         G.goto('land', 'start', { silent: true });
         G.actors.klo.visible = false; G.actors.kv.visible = false;
         io.audio?.setArea('quiet');
         await s.fx('cutToPicture', {});
+        await s.say(STORY.final.arrival);
+        G.flag('plask');
+        P().wet = 1; P().wetTimer = 30;
         s.stinger('plask');
         await s.fx('plask', {});
         G.freeze = false;
         G.evening = true;
-        await s.wait(2.4);
-        // Galoppen över stäpperna: automatic, no fail, nothing chasing
         io.audio?.setArea('final');
-        G.auto = { dir: -1, speed: 1320 };
-        G.busy--; // let the gallop run with Hoppa flourishes
-        G.finalRun = true;
-        await new Promise((resolve) => {
-            const off = G.on('bigLanding', () => { off(); resolve(); });
-        });
-        G.busy++;
-        G.auto = null; G.finalRun = false;
-        await s.wait(1.2);
-        io.audio?.setArea('quiet');
-        // The same distant page as Kapitel 2: the real lamp now matches its reflection,
-        // and Kartväktaren stands on his open gallery in the spray, arms wide (the distant
-        // page draws only the island, the tower and his figure). Keep the player on
-        // Klippudden while the view visits the bay.
-        const keeper = G.actors.figure, gallery = G.scenes.viken?.spots.kvGallery;
-        if (gallery) Object.assign(keeper, { scene: 'viken', x: gallery.x, y: gallery.y, visible: true, walk: null, pose: 'unfold', facing: -1 });
-        await s.fx('vista', { scene: 'viken', lighthouse: true, hold: 1.8 });
-        keeper.visible = false;
-        io.audio?.setArea('final');
-        await s.appear('klo', { scene: 'land', x: G.player.x - h(1.7), y: G.sceneDef.spots.kloUdden.y, pose: 'sign-folded', facing: 1 });
+        await s.say(STORY.final.splash);
+        await s.appear('klo', { scene: 'land', x: G.sceneDef.spots.kloBeach.x, y: G.sceneDef.spots.kloBeach.y, pose: 'sign-folded', facing: 1 });
         s.camFree();
         await s.say(STORY.final.conclusion);
         G.flag('conclusion');
-        await s.wait(0.6);
-        // home to her beach while the table covers the screen, so play resumes there after the epilogue
-        await io.fx('epilogue', {
-            // called once the table covers the screen
-            onCovered: () => { G.actors.klo.visible = false; G.goto('land', 'start', { silent: true }); }
-        });
+        await s.say(STORY.final.home);
+        // Save completion before the table/end card: closing there restores
+        // free play on the beach, never an unfinished puzzle at the lighthouse.
         G.flag('ended');
         G.flag('b:k3_window');
-        G.evening = false;
         G.finalRun = false;
         G.flags.delete('final_run');
         G.terrain.refresh();
         s.checkpoint('beachEnd');
         io.save();
+        await io.fx('epilogue', {
+            onCovered: () => { G.actors.klo.visible = false; G.goto('land', 'start', { silent: true }); }
+        });
+        G.evening = false;
     }
 
     // =========================================================================
@@ -788,6 +948,12 @@ export function createStory(G, io) {
             const r = G.sceneDef.race;
             const sg = G.actors.signe;
             G.busy++;
+            // Talking happens on clear sand beside Signe. Both racers line up
+            // at the visible start, so approaching her never shortens the race.
+            const p = P(), ground = G.terrain.support(r.start.x, r.start.y, h(.6), h(.6));
+            Object.assign(p, { x: r.start.x, px: r.start.x, y: ground?.y ?? r.start.y, py: ground?.y ?? r.start.y,
+                vx: 0, vy: 0, mode: 'ground', surface: ground?.s || p.surface,
+                hidden: false, hide: 0, hideQueued: false, facing: -1, nudge: null });
             Object.assign(sg, { x: r.start.x - h(0.2), y: r.start.y, facing: -1, pose: 'idle', visible: true, scene: 'land' });
             await s.say(F.has('signe_race') ? STORY.after.signeAgain : STORY.after.signeGo);
             G.busy--;
@@ -799,7 +965,7 @@ export function createStory(G, io) {
             await s.say(won ? STORY.after.signeLose : STORY.after.signeGiveUp);
             G.busy--;
             if (won) { G.flag('signe_race'); s.stinger('aha'); }
-            // back to her place by the shells
+            // Back to her clear patch of sand beyond the shell row.
             await s.walk('signe', r.signe.x, r.speed);
         }
     });
@@ -861,7 +1027,11 @@ export function createStory(G, io) {
         manual: true,
         async run(s) {
             G.actors.kv.pose = 'point'; G.actors.kv.map = 'open';
-            await s.say(STORY.k3.talk2);
+            await s.map({ variant: 'guardian', focus: 'coast', caption: STORY.k3.guardianCaption }, async (demo) => {
+                await s.say(STORY.k3.talk2.slice(0, 2));
+                await demo?.reveal?.();
+                await s.say(STORY.k3.talk2[2]);
+            });
             s.clue('kv_map', { quiet: true });
             G.flag('talk2');
             // Klo climbs onto the map and taps its shoreline
@@ -872,7 +1042,10 @@ export function createStory(G, io) {
     beat('_talk3', {
         manual: true,
         async run(s) {
-            await s.say(STORY.k3.talk3);
+            await s.map({ variant: 'guardian', focus: 'coast', caption: STORY.k3.guardianCaption }, async (demo) => {
+                await demo?.reveal?.();
+                await s.say(STORY.k3.talk3);
+            });
             G.actors.kv.pose = 'stand';
             G.flag('talk_done');
             G.terrain.refresh();
@@ -885,6 +1058,7 @@ export function createStory(G, io) {
     // =========================================================================
     function start(b) {
         if (!b || running) return;
+        G.companion?.yieldToStory?.();
         running = b;
         const lock = b.lock !== false;
         if (lock) G.busy++;
@@ -960,7 +1134,14 @@ export function createStory(G, io) {
         }
         // Kapitel 2: the two halves of the mark, one on land and one in the sea
         if (F.has('ch2_open')) {
-            if (inScene('kelp')) return !F.has('mark_sea') ? (!F.has('p5_lit') ? 'p5' : 'p6') : 'p4';
+            if (inScene('kelp')) {
+                if (F.has('mark_sea')) return 'p4';
+                // Light reveals the inviting route through the cave. An
+                // explorer can also discover the fold by swimming over it;
+                // fish are not a remote switch for a natural whirlpool.
+                const foundHeart = F.has('b:k2_corner_purpose') || (P().x > h(31.5) && P().y > h(6.4));
+                return F.has('p5_lit') || foundHeart ? 'p6' : 'p5';
+            }
             if (!F.has('mark_land')) return 'p4';
             return 'toSea';
         }
@@ -994,22 +1175,24 @@ export function createStory(G, io) {
     }
     function goal() { return guidance().goal; }
     const PROGRESS = new Set(['inked', 'grow', 'opened', 'latch', 'lit', 'mark', 'flattened', 'push', 'reflectionSeen', 'scene', 'bigLanding', 'streckDone', 'ratchet', 'taste', 'pickup', 'colorin']);
-    G.on('*', (type) => { if (PROGRESS.has(type)) { hintState.t = 0; hintState.level = 0; hintState.said = 0; } });
+    G.on('*', (type) => { if (PROGRESS.has(type)) { hintState.t = 0; hintState.level = 0; hintState.said = 0; hintState.reminded = false; } });
     G.on('pickup', () => { if (objective() === 'freeComplete') io.guide?.hint(HINTS.freeComplete.note); });
 
-    /**
-     * When the player seems stuck, Klo helps without stopping play: first a nudge (the margin note),
-     * then the plain answer with a mark on the spot and Alva's gull circling it. Help level scales the waits.
-     */
+    /** Optional invitations contain no answer. Only Guida mig supplies automatic clues. */
     function hints(dt) {
-        const cue = guidance(), key = cue.key;
-        if (key !== hintState.key) { hintState.key = key; hintState.t = 0; hintState.level = 0; hintState.said = 0; }
+        const cue = guidance(), key = describeKloHelp(G, cue).key;
+        if (key !== hintState.key) { hintState.key = key; hintState.t = 0; hintState.level = 0; hintState.said = 0; hintState.reminded = false; }
+        if (!guided()) hintState.level = 0;
         if (G.busy || running) return;
         hintState.t += dt;
-        const mult = G.helpLevel === 'easy' ? 0.6 : G.helpLevel === 'hard' ? 2 : 1;
+        if (G.helpLevel === 'remind' && hintState.t > 45 && !hintState.reminded) {
+            hintState.reminded = true;
+            G.emit('kloReminder', { key });
+        }
+        if (!guided()) return;
         const H = cue.hint;
         if (!H) return;
-        const first = 30 * mult, second = 75 * mult, again = 60 * mult;
+        const first = 30, second = 75, again = 60;
         if (hintState.said === 0 && hintState.t > first) {
             hintState.said = 1; hintState.level = 0.5;
             io.guide?.hint(H.note);
@@ -1030,10 +1213,15 @@ export function createStory(G, io) {
         const text = controlTip(id, { touch: io.touch, ...io.settings?.() });
         if (F.has('tip_' + id) || !text) return;
         F.add('tip_' + id);
+        if (!io.touch && ['gallop', 'act', 'hide', 'swim', 'journal'].includes(id)) return;
         io.guide?.tip(text, { at: io.touch || id === 'journal' ? TIP_AT[id] : null });
     }
-    /** a one-off hint from Klo (remembered in the save) */
+    // Earned feedback is still useful. Everything else here explains a future
+    // solution and belongs to explicitly enabled automatic guidance.
+    const FEEDBACK = new Set(['mapPurpose', 'teach', 'plank', 'stone', 'fluff', 'ramp']);
+    /** a one-off hint or earned response from Klo (remembered in the save) */
     function hintOnce(id, text, who = 'klo') {
+        if (!guided() && !FEEDBACK.has(id)) return;
         if (F.has('hint_' + id) || !text) return;
         F.add('hint_' + id);
         io.guide?.hint(text, who);
@@ -1047,6 +1235,7 @@ export function createStory(G, io) {
     // the same refusal again and again: Klo steps in with the plain answer for what you are doing now
     const balks = { key: '', n: 0, t: 0 };
     G.on('balk', (e) => {
+        if (!guided()) return;
         if (e.reason === 'thin' && !F.has('p1_inked')) hintOnce('thin', STORY.k1.firstThin);
         if (e.reason === 'slow' && e.id === 'sprang-p4') hintOnce('leap', STORY.k2.leapHint);
         if (e.id === 'klipp-edge' && F.has('p4_leap') && !F.has('p4_plank')) hintOnce('rope', STORY.k2.ropeHint);
@@ -1057,14 +1246,14 @@ export function createStory(G, io) {
             const cue = guidance();
             if (cue.hint) G.later(1.2, () => {
                 const current = guidance();
-                if (current.key === cue.key) io.guide?.hint(current.hint.sketch || current.hint.note, 'klo', 9000);
+                if (guided() && !G.busy && !running && current.key === cue.key) io.guide?.hint(current.hint.sketch || current.hint.note, 'klo', 9000);
             });
         }
     });
     G.on('push', (e) => { if (e.notch === G.sceneDef.rail?.target) hintOnce('stone', STORY.k1.stoneDone); });
     // fluff that found no tuft: the sköldhäst wonders (twice at most, so it never nags)
     let fluffMisses = 0;
-    G.on('fluffMiss', (e) => { if (fluffMisses++ < 2) io.guide?.think(e.dir > 0 ? STORY.k1.fluffWrongWay : STORY.k1.fluffMiss); });
+    G.on('fluffMiss', (e) => { if (fluffMisses++ < 2) io.guide?.think(guided() ? (e.dir > 0 ? STORY.k1.fluffWrongWay : STORY.k1.fluffMiss) : KLO_COMPANION.story.fluffMiss); });
     G.on('grow', (e) => {
         if (e.decor) hintOnce('fluff', STORY.k1.teachFluff);
         else hintOnce('ramp', STORY.k1.rampGrew);
@@ -1089,7 +1278,7 @@ export function createStory(G, io) {
         // hidden by the fish but lying still, outside the current that would carry the shell into the vault
         if (inScene('kelp') && F.has('ch2_open') && !F.has('p5_lit') && p.hidden && p.mode === 'swim' && !p.inLane && G.puz.school.state === 'follow') hintOnce('laneHide', STORY.k2.laneHide);
         if (inScene('viken') && F.has('viken_arrived') && !F.has('lamp_lit')) {
-            if (!F.has('shutter1') && p.surface?.id === 'pier' && p.x > h(4) && p.x < h(22)) hintOnce('drum', STORY.k3.drumHint);
+            if (!F.has('shutter1') && p.surface?.id === 'pier' && p.x > h(4) && p.x < h(22)) hintOnce('drum', F.has('spangen_flag') ? STORY.k3.drumHint : STORY.k3.drumFirstHint);
             if (!F.has('shutter2') && p.mode === 'swim' && Math.abs(p.x - h(14.2)) < h(3) && p.y > h(3)) hintOnce('plate', STORY.k3.plateHint);
             if (!F.has('shutter3') && p.mode === 'swim' && Math.abs(p.x - h(26.4)) < h(2.5)) hintOnce('pipe', STORY.k3.pipeHint);
         }
@@ -1102,10 +1291,10 @@ export function createStory(G, io) {
     return {
         step(dt) { step(dt); watch(); },
         actions,
-        objective, goal, guidance, tipOnce, hintOnce, tapKlo,
+        objective, goal, guidance, tipOnce, hintOnce, tapKlo, restoreActors,
         hintInfo() {
             const cue = guidance();
-            return { key: cue.objective, level: hintState.level, spot: cue.target, text: cue.hint };
+            return { key: cue.objective, level: guided() ? hintState.level : 0, spot: cue.target, text: cue.hint };
         },
         running: () => !!running,
         herText: HER_TEXT, family: FAMILY, balkText: BALK

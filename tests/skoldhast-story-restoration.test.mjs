@@ -77,7 +77,7 @@ test('Signe restores without another introduction and strolls slowly on the beac
     const R = restore(endedFlags, 'beachEnd');
     assert.equal(R.G.actors.signe.visible, true);
     assert.equal(R.G.actors.signe.scene, 'land');
-    await R.walkTo(107.2);
+    await R.walkTo(R.G.scenes.land.race.signe.x / HL - 1);
     assert.equal(R.log.filter(e => e.kind === 'say').length, 0, 'her introduction stays committed');
     await R.context('race');
     await R.until(() => R.G.actors.signe.racing, {}, 5, 'race begins');
@@ -97,14 +97,14 @@ test('Signe restores without another introduction and strolls slowly on the beac
     await R.settle(20);
     assert.equal(sg.x, R.G.sceneDef.race.signe.x);
     assert.equal(sg.speed, 0);
-    await R.walkTo(107.2);
+    await R.walkTo(R.G.scenes.land.race.signe.x / HL - 1);
     await R.context('race');
     await R.until(() => sg.racing, {}, 5, 'race can be repeated');
 });
 
 test('leaving Signe’s race cancels it without blocking return or replay', async () => {
     const R = restore(endedFlags, 'beachEnd');
-    await R.walkTo(107.2);
+    await R.walkTo(R.G.scenes.land.race.signe.x / HL - 1);
     await R.context('race');
     await R.until(() => R.G.actors.signe.racing, {}, 5, 'race begins');
     await R.hold(2);
@@ -113,7 +113,7 @@ test('leaving Signe’s race cancels it without blocking return or replay', asyn
     assert.equal(R.G.busy, 0);
     assert.equal(R.G.actors.signe.racing, false);
     assert.equal(R.has('signe_race'), false);
-    R.G.goto('land', { x: 107.2 * HL, y: -0.37 * HL, facing: -1 });
+    R.G.goto('land', { x: R.G.scenes.land.race.signe.x - HL, y: -0.30 * HL, facing: 1 });
     await R.context('race');
     await R.until(() => R.G.actors.signe.racing, {}, 5, 'race is available after returning');
 });

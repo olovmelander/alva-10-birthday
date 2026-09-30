@@ -307,8 +307,8 @@ function h(v) { return v * HL; }
 
 function checkMarks(G) {
     if (G.flags.has('mark_land') && G.flags.has('mark_sea') && !G.flags.has('marks_both')) {
-        G.flags.add('marks_both');
-        G.terrain.dirty = true; G.terrain.refresh();
+        // Inventory is ready; the story opens the current after the player
+        // sees these pieces repair the map. Each piece is collected only once.
         G.emit('marksBoth', {});
     }
 }
@@ -385,10 +385,10 @@ export function p8Progress(G) {
 }
 
 // ---------------------------------------------------------------------------
-// Context actions (the Hoppa button changes label near things)
+// Context actions (the separate Använd button changes label near things)
 // ---------------------------------------------------------------------------
 /**
- * Returns the best context action here, or null (→ the button says Hoppa).
+ * Returns the best context action here, or null (the Använd button is disabled).
  * { id, label, run() }
  */
 export function contextAction(G) {

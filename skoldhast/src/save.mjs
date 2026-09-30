@@ -85,6 +85,7 @@ function migrate(d) {
         checkpoint: typeof d.checkpoint === 'string' ? d.checkpoint : 'start',
         puz: d.puz && typeof d.puz === 'object' ? d.puz : {},
         settings: d.settings && typeof d.settings === 'object' ? d.settings : {},
+        companionHints: Array.isArray(d.companionHints) ? d.companionHints.slice(0, 128) : [],
         note: typeof d.note === 'string' ? d.note.slice(0, 200) : '',
         strokes: d.strokes && typeof d.strokes === 'object' ? d.strokes : null,
         label: d.label, ended: !!d.ended

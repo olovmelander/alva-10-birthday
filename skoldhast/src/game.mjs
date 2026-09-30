@@ -30,6 +30,7 @@ export function createGame({ released = RELEASED_CHAPTER } = {}) {
         freeze: false,     // time stopped (prologue/final), for effects
         evening: false,
         camHint: null,     // { x, y, zoom, t } a camera target set by the story
+        worldInspection: null, // transient read-held world view; never serialized
         lastEvents: [],
         stats: { gallopTime: 0, maxSpeed: 0, leaps: 0 },
 
@@ -55,6 +56,7 @@ export function createGame({ released = RELEASED_CHAPTER } = {}) {
             const s = typeof spawn === 'string' ? G.sceneDef.spots[spawn] : spawn;
             const keepWet = G.player.wet;
             G.player = createPlayer(s || G.sceneDef.spots.start || { x: 0, y: 0 });
+            G.worldInspection = null;
             if (s?.hidden) { G.player.hidden = true; G.player.hide = 1; }
             G.player.wet = keepWet;
             // settle on the ground or in the water
@@ -91,24 +93,37 @@ export function createGame({ released = RELEASED_CHAPTER } = {}) {
         context: null,
         storyActions() { return G.story ? G.story.actions() : []; },
 
-        /** One fixed step of the whole game. input: { x, y, hop, hide, hideRelease, act, tapHero } */
+        /** One fixed step. hop jumps/emerges; act only interacts; duck only hides. */
         step(input) {
+            // Reading with Klo freezes currents, momentum, puzzle holds and timers.
+            // His arrival/gestures use presentation time in the render loop.
+            if (G.companion?.suspended()) return;
             const dt = STEP;
             G.time += dt; G.sceneTime += dt;
             // timers
             for (let i = timers.length - 1; i >= 0; i--) {
                 if (timers[i].t <= G.time) { const t = timers.splice(i, 1)[0]; t.fn(); }
             }
+            // A close look may last as long as the reader needs. Keep currents,
+            // momentum and puzzle holds still, while story waits and actor
+            // walks continue (the figure still walks along the distant fold).
+            if (G.worldInspection?.player === G.player) {
+                G.context = null; G.lastEvents = [];
+                G.story?.step(dt);
+                return;
+            }
             const locked = G.busy > 0 || G.inputLock > 0;
             if (G.inputLock > 0) G.inputLock -= dt;
             const inp = locked ? { x: 0, y: 0 } : input;
-            // the context button: an action here, or Hoppa
+            // Jumping never invokes a nearby object, and interacting never jumps.
             G.context = locked ? null : contextAction(G);
             const events = [];
-            const simInput = { x: inp.x || 0, y: inp.y || 0, hop: false, hide: !!inp.hide, hideRelease: !!inp.hideRelease, hopHeld: !!inp.hopHeld };
-            if (inp.act) {
-                if (G.context) { const c = G.context; G.emit('context', { id: c.id }); c.run(); }
-                else simInput.hop = true;
+            const emerge = !!inp.hop && (G.player.hidden || G.player.hideQueued);
+            const simInput = { x: inp.x || 0, y: inp.y || 0, hop: !!inp.hop && !emerge,
+                hide: !inp.hop && (!!inp.hide || (!!inp.duck && !G.player.hidden && !G.player.hideQueued)),
+                hideRelease: !!inp.hideRelease || emerge, hopHeld: !!inp.hopHeld && !emerge };
+            if (inp.act && !inp.hop && !simInput.hide && !G.player.hidden && G.context) {
+                const c = G.context; G.emit('context', { id: c.id }); c.run();
             }
             if (G.auto) { G.player.auto = G.auto; } else G.player.auto = null;
             if (!locked && inp.tapHero && !G.player.hidden) neigh();
@@ -191,6 +206,8 @@ export function createGame({ released = RELEASED_CHAPTER } = {}) {
     G.neigh = neigh;
 
     function chapterFlags() {
+        // Earlier completed saves predate the explicit splash state.
+        if (G.flags.has('ended')) G.flags.add('plask');
         if (G.flags.has('ch1_end') && G.released >= 2) G.flags.add('ch2_open');
         if (G.flags.has('ch2_end') && G.released >= 3) G.flags.add('ch3_open');
     }

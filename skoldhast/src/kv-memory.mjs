@@ -19,6 +19,7 @@
  */
 import { openingCrease } from './opening-fold.mjs';
 import { createGuardian } from './guardian.mjs';
+import { createMapFragmentProp } from './map-props.mjs';
 
 const clamp01 = (v) => Math.max(0, Math.min(1, v));
 const ease = (v) => { const p = clamp01(v); return p * p * (3 - 2 * p); };
@@ -210,9 +211,7 @@ export function createKvMemory(PIXI, { texture, makeHero, caption = '', lessMoti
     ruler.visible = false; sheet.addChild(ruler);
     // as in the prologue: one to her sand beside the sköldhäst (it stays), one away over the land, one into the sea
     const scraps = [[512, 118, 168, 222, 5.2, true], [536, 176, -20, 70, -3.6], [498, 92, 300, 290, 3.3]].map(([x0, y0, x1, y1, spin, rest], i) => {
-        const g = paperFill(new PIXI.Graphics(), [[-11, -8], [9, -9], [12, 3], [4, 9], [-10, 7]]);
-        line(g, [[-11, -8], [9, -9], [12, 3], [4, 9], [-10, 7], [-11, -8]], 0x8c7651, .8, 1.3);
-        line(g, [[-6, -2], [6, -3]], i === 1 ? BLUE : 0x607955, .6, 1.5); // a ruled scrap of his map
+        const g = createMapFragmentProp(PIXI, { texture, fragment: ['corner', 'land', 'sea'][i], width: 25 });
         g.visible = false; sheet.addChild(g);
         return { g, x0, y0, x1, y1, spin, rest: !!rest, delay: i * .12 };
     });

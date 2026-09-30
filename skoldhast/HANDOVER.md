@@ -1,5 +1,246 @@
 # Sköldhästen – handover
 
+## Every map scene keeps its evidence visible (30 September)
+
+Pappa asked to carry the first-map improvements through all map scenes. The map now has
+consistent artwork from the opening scraps to the final returned sheet, and each close-up
+waits for its reader.
+
+- The chapter 2 plan and both discoveries show the actual torn fragment during the explanation.
+  Assembly holds the three pieces apart, joins them, explains the tear, then traces the route.
+  The matching world current opens only after that reveal finishes. The lighthouse explanation
+  stays with its vista. The sea pickup also preserves the new world-fold explanation before its close-up.
+- Kartväktaren's separate LAND/HAV classification sheet is shared by his pier table and both
+  dialogue close-ups. The proposed STRAND highlights the missing place between his categories.
+  The table stays on the pier and does not appear on his gallery. In the finale, the recovered
+  geographical map arrives already repaired; its crease stays visible through Klo's evidence
+  and the first apology. Existing memory and coast-proof sequences retain their reading holds.
+- World collectibles, opening scraps and memory scraps use the notebook's same torn shapes
+  and geographical ink. Small exposed paper edges keep the sea piece legible underwater;
+  a geographical fallback remains available before the shared texture arrives.
+- The notebook has real fragment thumbnails, clear selected-piece isolation, readable zoom
+  status and distinct accessible names for missing pieces. Zoom/pan no longer repeats the whole
+  discovery paragraph. Unknown pieces and labels stay gated by earned flags, including old saves.
+- Close-ups reserve measured dialogue space, including large text and orientation changes.
+  Controls, notification cards and world speech pointers do not cover the map. Reduced motion
+  keeps discrete poses. Scene rebuilding, delayed loads, cancellation and shared-texture cleanup
+  are covered; an abandoned callback cannot resume its story or clear a newer presentation.
+- Implementation: `src/map-assemble.mjs`, `src/map-props.mjs`, `src/mapbook.mjs`, with story,
+  view, prologue and memory integration. No new bitmap assets or chapter-release change.
+  Reproduce the review with [story scene checks](../tests/browser/skoldhast-map-scenes.mjs),
+  [world prop checks](../tests/browser/skoldhast-map-props.mjs) and [notebook checks](../tests/browser/skoldhast-mapbook.mjs).
+  Generated review images stay local under the ignored `docs/skoldhast/shots/maps/` directory.
+- Verification: **255/255** automated tests pass, including the full-game robot and held-story
+  regressions. Ticket launch/cancel/reopen checks pass. The original first-fold matrix and map
+  loading/cancellation races pass. Notebook keyboard/touch checks cover 320x568, 390x844,
+  844x390 and 1440x900, large text, reduced motion and missing artwork. World map props pass
+  desktop and both phone orientations, including late textures, collection and table placement.
+  The actual story passes **51 held map cards and three sea-floor preludes** across portrait,
+  landscape and desktop, including large text, reduced motion, route unlock order and restored
+  controls. Rotating a held assembly preserves its dialogue, phase and complete flag set, with
+  the route still closed until its reveal. No browser errors were captured. First playable is
+  approximately **2.658 MB**, below the **3 MB** budget. No new decision or implementation
+  work remains for this map pass.
+
+## The first map visibly changes the beach (30 September)
+
+Pappa found the old triangular fold overlay confusing. The first map experiment now uses
+the actual map artwork and a captured piece of the actual beach. A pink fan shell appears
+in both places: Klo folds the paper first, then the sand lifts and carries the existing shell.
+Unfolding reverses those steps. The shell retains its shape, and the textured beach joins
+the surrounding ground without a cutout edge. Klo points and watches the experiment.
+
+- The story establishes the matching shell before the movement. Observation, the raised
+  beach and the restored beach each remain visible until the player advances the dialogue.
+  The final line connects this discovery to freeing the original frozen wave. The journal
+  and Klo's recap describe the same evidence. Kartväktaren's full signature remains on the map.
+- The camera reserves measured dialogue space and holds its framing through silent movement.
+  Large text fits in both phone orientations. Touch controls stay hidden during the experiment
+  and return afterward. Reduced motion preserves the sequence with discrete fold poses.
+- A horse standing over the shell takes a short simulated step aside before the introduction;
+  Klo walks out to his beach position. Clear player positions are preserved. Owned movement is
+  canceled safely if the scene changes, without completing the abandoned discovery.
+- Scene rebuilds recapture the terrain; scene changes restore masks and cancel the experiment.
+  Loading guards prevent an abandoned or superseded map request from attaching later.
+  Rebuilt the shared map with mipmaps for clean scaling; first playable is **2,636,142 bytes**
+  against the 3 MB budget. No chapter-release setting changed.
+- Validation: **233/233** full automated tests after the final staging change. Browser checks
+  pass at 390x844, 844x390 and 1440x900, plus reduced motion, long reading holds,
+  exact geometry restoration, rotation, scene rebuilds,
+  cancellation and concurrent asset-loading races. The actual six-card story passes with large
+  text in both phone orientations, starting directly over the shell, including saved clues
+  and restored HUD/controls. All ticket
+  launcher checks pass. No browser errors were captured.
+- Reproduce the effect stages and actual story with large text using
+  [the fold-demo browser checks](../tests/browser/skoldhast-fold-demo.mjs).
+  Generated WebP previews stay local under the ignored `docs/skoldhast/shots/k1/` directory.
+  Core implementation: `src/fold-demo.mjs`, `src/view.mjs`, `src/story.mjs` and `src/content/sv.mjs`.
+  No remaining implementation work or new decision is needed for this change.
+
+## A visible finale and a clear way home (30 September)
+
+Pappa could not tell why the final line mattered or where it led. P8 now sets up
+one small wave experiment. Hooves repair the approach to Pappersfyren; the hidden
+shell flattens a folded coast; Alva traces the missing shore. The shared vector
+coast illustration appears in the world and in a responsive drawing card.
+A wave crosses, leaves droplets, and recedes; the whole wet page remains visible
+while Kartväktaren decides to release the sea. His promise precedes the puzzle.
+
+The ending explicitly returns to the original beach for the original wave's
+PLASK. Klo celebrates there, then names Alva's table as the next destination.
+The wet hoofprint and intact drawing lead to **Havet är hemma igen!**, with
+**Tillbaka till stranden – utforska fritt** as the next action. The long automatic
+gallop and mandatory final journal have been removed from this sequence.
+
+Drawing, sea release and completion have separate save points. Saved drawings
+are not repeated; completion saves beachEnd before opening the table. Older
+completed saves acquire the sea's released state. Tests cover the causal order,
+three resume phases, rotation, reduced motion and the actual completion button.
+See `src/shore-trial.mjs`, `tests/skoldhast-shore-trial.test.mjs` and
+`tests/browser/skoldhast-finale.mjs`.
+
+Validation: unit and save checks passed; real browser finales passed in both
+phone orientations, after rotation and with reduced motion. The fresh touch
+journey passed all eight puzzles, the ending and optional activities in 42,637
+steps without browser errors. First playable is 2.635 MB against the 3 MB budget.
+
+## Professor Klo is now a callable companion (30 September)
+
+Pappa approved the companion design below and asked for its implementation. **Ropa på Klo**, **K**,
+or tapping the crab now opens one shared conversation, including offscreen calls during ordinary play.
+
+- Ten scenery-aware arrivals use the existing pencil rig: sand, pool, wooden planks, grass, cliff,
+  kelp, dark vault, current, pier and gallery. Nearby/repeated calls are shorter. He stays briefly
+  with his notebook or stopwatch, reacts to success, then leaves. Story beats own his staging when
+  needed; calls preserve the opening stopwatch position and never pull him out of his hiding hole.
+- The paper conversation offers a clue, a recap of earned discoveries, and local research chatter.
+  Three separately authored clue levels end in an optional exact instruction and temporary marker.
+  The notebook shares this help history. Calling alone reveals no clue and changes no puzzle flags.
+- New games use **Bara när jag frågar**. **Påminn mig om Klo** gently pulses the call control;
+  **Guida mig** retains automatic help. Old hard/normal/easy settings become ask/remind/guided.
+  Mission text, meaningful action buttons and environmental puzzle evidence remain visible.
+- Reading suspends movement, currents and puzzle timers while Klo animates independently. Closing
+  preserves hiding and momentum, clears held input and releases pointer capture. Scene changes,
+  authored story, blur, pause and close cancel the visit. Saves retain only requested clue depths.
+- Conversation framing keeps the pair beside the paper in landscape and above it in portrait.
+  Native buttons support keyboard focus, large text scrolls, and reduced motion avoids animated pans.
+- Implementation: [companion controller](src/klo-companion.mjs),
+  [arrival resolver](src/klo-arrival.mjs) and [browser checks](../tests/browser/skoldhast-companion.mjs).
+  The original audit `docs/skoldhast/klo-companion-audit.md` and generated captures in
+  `docs/skoldhast/shots/klo-companion/` are ignored local working material.
+  Pure verification: `npm test` **229/229**, including the full-game robot. The asset budget check
+  reports **2.636 MB** first playable (limit 3 MB); the companion adds no bitmap assets.
+  The companion browser checks pass for touch, mouse, K, follow-finger, three clue levels, journal
+  sharing, hidden-current suspension, story/scene cancellation and all ten entrances at 390×844,
+  844×390 and 1440×900. Large text, reduced motion and the mid-jump margin fallback also pass.
+  Save/reopen preserves requested clue depth and journal text without resuming a suspended visit;
+  all ticket-page launch, cancellation, close/reopen and prologue-lifecycle checks pass.
+- No new decision is needed from Pappa. Physical-phone and child playtesting remain useful for
+  entrance timing and discovering the new call button; no chapter-release setting was changed.
+
+## Key reference in Settings (30 September)
+
+Pappa asked to find the bindings in Settings. **Inställningar → Tangenter** now opens the key reference,
+including how Space emerges before jumping and how hold-to-hide works. It is available on every device;
+closing Settings removes the reference, so the playing view stays clear.
+
+## Controls stay out of keyboard play (30 September)
+
+Pappa's follow-up: no controls displayed in the playing view. Keyboard play now hides the stick and
+action buttons, removes the movement legend and pause-menu key list, and suppresses automatic key
+reminders. The keyboard bindings continue to work. Touch devices retain the controls needed to play.
+The keyboard browser check now verifies hidden overlays at all three viewport sizes.
+Validation: 207/207 automated tests pass, along with keyboard play and portrait-phone touch checks.
+
+## Kartväktaren signs his full name (30 September)
+
+Pappa pointed out that `/K` could mean Professor Klo. The map and both notes now name **Kartväktaren**.
+
+- Klo reads the name on the first map corner and recognises it on the Streckbron note. His old denial
+  ("K? Det är inte jag!") is gone. The bottle clue, journal entries and map detail use the full name too.
+- At the meeting, Kartväktaren explicitly says he wrote the notes and drew the map. Finding him and
+  understanding why he folded the page remain the mystery.
+- The shared map artwork and the tiny corner in Klo's claw use the full handwritten signature. The
+  shared drawing places it clear of the place labels, inside the first fragment. Rebuilt `npcs` and `map`;
+  first playable 2,603,327 bytes, below 3 MB. Plan and story audit updated.
+- Validation: `npm test` **187/187**; fold-demo and ticket launcher browser checks pass. Both notes and the meeting text
+  fit at 390×844, 844×390 and 1440×900, with no browser errors. The
+  [map browser checks](../tests/browser/skoldhast-mapbook.mjs) reproduce the map review;
+  map and note WebP previews stay local in the ignored `docs/skoldhast/shots/k3/signature/` directory.
+- No remaining work or new questions for Pappa on the signature change.
+
+## Independent jumping, hiding and object controls (30 September)
+
+Pappa asked for reliable Space jumps, Down/S hiding, Space to stand up, and a sensible button for
+painting, moving the stone and other nearby actions.
+
+- **Space / Hoppa** now has its own input and touch button. If hidden (or waiting to tuck in), it
+  comes out/cancels the tuck; the next press jumps. A nearby drawing, stone or conversation never takes
+  over Space. Existing jump buffering and held-jump styling still apply.
+- **Down/S** only hides, on land and in water; repeated presses never bring the horse out. **G** and
+  the shell button retain toggle mode. Hold-to-hide supports overlapping keys, release/cancellation,
+  and Space to emerge even while a hide key remains held.
+- **E** uses the separate contextual button: Färglägg, Knuffa, Dra, Prata, Läs, etc. It is disabled
+  without an available action, and never falls back to a jump. Enter still activates focused buttons
+  and otherwise interacts. Space/E/Enter continue dialogue without leaking that press into play.
+- **Left/Right or A/D** moves; **Up/W** swims up and **X** dives. Down/S therefore never also drops
+  through a pier; E on Hoppa i enters the water. Touch retains full two-axis swimming.
+- Three distinct touch buttons, keyboard badges, movement hints and a pause-menu key reference share
+  the updated Swedish wording. The shell label also respects hold-to-hide mode. Plan §4.1 is updated.
+- Regression coverage: separate jumping/painting/pushing, emergence on land and underwater, queued
+  hiding, auto-repeat, keyboard focus, overlapping keys, blur and the fixed-step press queue.
+  `npm test`: 187/187 pass; touch and ticket-page launch/close/reopen browser checks pass.
+  The new [controls browser check](../tests/browser/skoldhast-controls.mjs) also checks real Space/E/Down/S routing, hold-mode
+  release/repress between frames, dialogue consumption, painting, pushing and button bounds. It passes;
+  reviewed screenshots at 390×844, 844×390 and 1440×900 stay local in the ignored `docs/skoldhast/shots/controls/` directory.
+- No content, save-format or chapter-release changes are needed. No open questions for Pappa.
+
+## Clearer conversations, with the same illustrated cards (30 September)
+
+Pappa wants to keep the current look while making it easier to follow who says what.
+
+- The existing coloured name tabs now carry small portraits made from the game's own atlas artwork:
+  Sköldhästen, Klo, Kartväktaren and Signe. Hints use the same portraits. Notes and family voices keep
+  their existing treatment. Portraits wait for their atlas image to decode; there are no new art files.
+- One small pencil speech mark follows the current speaker's rendered head, including the opening's
+  moving picture. It disappears for an off-screen/hidden actor, a note, menus and closing, and stays
+  clear of the reading cards. The portrait and name remain available when there is no room for the mark.
+- Klo and Kartväktaren now gesture only on their own dialogue turns. Sköldhästen uses its existing
+  quiet talk gesture when no authored action takes precedence. Reduced motion keeps the static mark
+  and removes the new speaking movement.
+- Mixed-speaker passing exchanges (such as the cloud question and reply) use the existing paper card,
+  one line at a time, advanced by the reader. They previously showed both turns simultaneously and
+  removed the reply after 2.6 seconds. Single passing remarks remain non-blocking; the horse's short
+  thoughts get at least four seconds, increasing with their length.
+- Regression coverage: `tests/skoldhast-dialogue.test.mjs` checks the real cloud beat, turn order and
+  gesture handoff. The [dialogue browser check](../tests/browser/skoldhast-dialogue.mjs) checks portraits, character anchors, tap to
+  advance, notes, off-screen speakers, large text, reduced motion and closing at 844×390, 390×844 and
+  1440×900. `--opening --viewport 390x844` (or `844x390`) checks the actual opening's horse and Klo.
+  Screenshots stay local in the ignored `docs/skoldhast/shots/k3/dialogue/` directory.
+- Validation: all 187 pure tests pass, including the whole-game robot; the dialogue checks pass at all
+  three sizes, the opening checks pass at both phone sizes, and every ticket-page launcher check passes.
+- No new decision needed from Pappa. The speech mark intentionally gives way to a reading card when
+  space is tight; it does not move or duplicate the dialogue text.
+
+## Original Professor Klo audit and proposed design (30 September)
+
+Pappa wants to call Klo anywhere, ask for clues, and see entrances that fit each place, with fewer
+unsolicited instructions. The audit and proposed design remain local in the ignored
+`docs/skoldhast/klo-companion-audit.md`; the [implemented companion](#professor-klo-is-now-a-callable-companion-30-september)
+and [browser checks](../tests/browser/skoldhast-companion.mjs) document the resulting behavior.
+
+- Current K/tap interaction only gives jokes while Klo is visible. Persistent instructions, timed hints,
+  nearby triggers and refusal callbacks independently reveal solutions. The contextual hint builder
+  also replaces gentle notes with explicit instructions.
+- Proposal: a global **Ropa på Klo** control; optional clues with increasing detail; recap and local
+  research conversation; ten local entrance treatments; brief visits that react to experiments.
+  Preserve story discoveries, the opening hiding lesson, and the player's responsibility for puzzles.
+- Implementation needs shared hint state, clear ownership of the one Klo actor, and actual simulation
+  suspension while reading in currents. The note includes delivery steps and acceptance checks.
+- This pass changed documentation only. Existing concurrent story and presentation edits were preserved.
+  At the audit baseline, `npm test` passed 173 tests; Klo's 844×390 browser interaction check and the
+  contextual-guidance checks at 844×390 and 390×844 passed. The companion is now implemented above.
+
 ## Latest: Kartväktaren easy to see in the intro (30 September)
 
 Pappa: "It is hard to see the kartväktaren in the intro scene." Fixed in `prologue.mjs` and `opening-canvas.mjs`:
@@ -809,3 +1050,17 @@ release is part of this branch.
 - Tap the map or choose a piece, then zoom, pan with arrow buttons, reset or return to the whole map. The existing paper texture is reused. No new saves or art downloads are needed. Older clue aliases work too.
 - The current-hint page links directly to the map. The existing seven-page notebook structure remains. At 320px the piece choices stack, and footer arrows/count remain usable.
 - Four pure collection tests and keyboard/touch browser checks pass at 844×390, 390×844 and 320×568, including big text, zoom/pan limits, old saves and rebuilds; zero console errors. Preview `dev/menus.html?m=journal&page=4&map=all` (`map=none`, `corner`, `land` also work).
+
+### Puzzle/story audit — 30 September 2026
+
+- This section preserves the implementation and final verification for P1–P8 and all implemented optional activities. The detailed audit reports (`docs/skoldhast/puzzle-audit*.md`), generated before/after captures (`docs/skoldhast/shots/puzzle-audit/`) and logs (`artifacts/`) remain ignored local working material. O7 remains an unimplemented stretch-plan item.
+- Core purpose/payoff is required even with requested-only hints. `landFocus` accepts an authored ID or explicit world frame and reserves the real dialogue/HUD space. `landLook` owns a transient `G.worldInspection` lease: player/puzzle physics pause for the reader, but story timers and actor walks continue. Scene changes clear the lease. Keep the P5 light payoff nonblocking so the school/current ride continues.
+- P3 tide evidence is attached to grounded rock (`wave-evidence.mjs`). P5 reveals current/spiral/fold drawings on the cave wall (`vault-discovery.mjs`). The illustrated seabed folds (`folded-seabed.mjs`) and upright painted sea (`sea-fold-wall.mjs`) replace floating white/glass-like symbols. The actual torn map fragment peeks from beneath P6 and disappears after its collected clue is presented.
+- P5 is an inviting discovery route, not a switch for a distant natural whirlpool. An explorer may swim over the roof and solve P6 first; objectives, recaps, outside-cave pencils, map assembly and saves support this. The cave remains solvable later. A saved unreported sea fragment resumes its presentation before map assembly, including from a land checkpoint.
+- The first distant sea-fold inspection temporarily looks beyond the chapter cover. Its read-held vista does not change collision or progression. The cover must return in `waiting` before its ordinary peel; browser coverage checks this ordering.
+- P7 now has visible wheel/plate/pull-loop mechanisms, paired symbols and individual shutter feedback (`lighthouse-mechanisms.mjs`). P8's world crease is attached to the rock instead of a large postcard. Its calm endpoint remains active through drawing/proof and reload, ending only at `unfolded`/`ended`; rendered route dots can disappear earlier.
+- Shells retain drawn musical notes and Signe has separate sand space plus start/finish marks (`beach-play.mjs`). Race approach fixtures use authored Signe coordinates; the actual race still starts at 107.4 HL and ends at 103.6 HL. Delayed depth remarks record quietly when their underwater context no longer applies.
+- Regressions: `skoldhast-story-flow`, `world-inspection`, `folded-seabed`, `vault-discovery`, `sea-fold-wall`, `land-puzzle-focus`, `lighthouse-mechanisms`, `beach-play`, hiding-puzzles and full playthrough. Reproduce the browser checks with [land discoveries](../tests/browser/skoldhast-land-focus.mjs), [underwater story](../tests/browser/skoldhast-underwater-story.mjs), [finale](../tests/browser/skoldhast-finale.mjs) and [fresh touch journey](../tests/browser/skoldhast-journey.mjs). Staged screenshot fixtures are distinct from ordinary-input journeys.
+- Final integrated verification: **261/261 automated tests passed**, including the full game, both map orders, all fifteen pencils, alternate cave traversal, interrupted discoveries, race restoration, finale holds and the 30-second inspection test.
+- **Both fresh touch browser journeys passed with no browser errors:** 45,249 simulation steps at **844×390** and 45,321 at **390×844**. Each completes the prologue, P1–P8, ending, Signe, shell music and extra-activity route. Fourteen land discovery cases, pool rotation and eight underwater story cases also passed; the underwater checks cover restored chapter covers and real hide input, with reduced motion in portrait.
+- The final browser finale passed actual tracing, rotation, visible wave proof, a held swimmer, return to the original beach and explicit completion. The refreshed asset manifest reports **2.658 MB** for the first playable download, below the **3 MB** budget.

@@ -2674,7 +2674,7 @@ item('props-sea', 'note-bottle', [0.5, 1], () => {
     soft(S, PP.mint, nm, { angle: -0.3, gap: 2.4, pressure: 0.55 });
     pen(S, PP.mintDeep, rim(S, glass, gm, 0, -5), { angle: 0.3, gap: 2, pressure: 0.55 });
     paintWood(S, cork, cm, { base: P.wood, dark: P.woodDark, angle: Math.PI / 2, grain: 2 });
-    // the rolled note inside, with his ruled writing and /K
+    // the rolled note inside, with miniature writing; reading it shows his full signature
     const note = transform(rect(-34, -7, 44, 13), tilt);
     const noteM = body(S, note);
     soft(S, P.paperCream, noteM, { angle: -0.2, pressure: 0.9 });

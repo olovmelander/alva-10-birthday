@@ -83,7 +83,7 @@ const event = (target, type, fields = {}) => {
 test('Klo touch/mouse taps and K key coexist with the hero, the stick and canceled pointers', () => {
     const oldWindow = globalThis.window, oldDocument = globalThis.document;
     globalThis.window = new Element(); globalThis.document = new Element(); document.activeElement = null;
-    const ui = Object.fromEntries(['stickZone', 'stickBase', 'stickKnob', 'actBtn', 'hideBtn'].map((key) => [key, new Element()]));
+    const ui = Object.fromEntries(['stickZone', 'stickBase', 'stickKnob', 'hopBtn', 'actBtn', 'hideBtn'].map((key) => [key, new Element()]));
     const canvas = new Element();
     const input = createInput(new Element(), ui, { canvas, settings: () => ({}), isGalloping: () => false, isStopped: () => true,
         heroHit: (x) => x < 150, kloHit: (x) => x < 60, heroScreen: () => ({ x: 100, y: 100 }) });
@@ -112,7 +112,7 @@ test('follow-finger routes the left overlay to steering and Klo taps; canceled g
     globalThis.window = new Element(); globalThis.document = new Element(); document.activeElement = null;
     window.innerWidth = 844; window.innerHeight = 390;
     const settings = { followFinger: true, holdGallop: true };
-    const ui = Object.fromEntries(['stickZone', 'stickBase', 'stickKnob', 'actBtn', 'hideBtn'].map((key) => [key, new Element()]));
+    const ui = Object.fromEntries(['stickZone', 'stickBase', 'stickKnob', 'hopBtn', 'actBtn', 'hideBtn'].map((key) => [key, new Element()]));
     const canvas = new Element();
     const input = createInput(new Element(), ui, { canvas, settings: () => settings, isGalloping: () => true, isStopped: () => false,
         heroHit: (x) => x < 150, kloHit: (x) => x < 60, heroScreen: () => ({ x: 100, y: 100 }) });

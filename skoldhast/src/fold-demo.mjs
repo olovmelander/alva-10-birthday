@@ -1,158 +1,192 @@
-/* Klo's small experiment: change the map first, let the matching beach answer,
- * then undo it in the same order. No terrain, save or actor state is changed.
- * The map card is the real corner piece: cut from the one map drawing (map-page)
- * along the same torn edges as in the journal (map-layout.mjs), and the dune he
- * folds is the dune drawn on its beach. */
-import { MAP_FRAGMENTS, MAP_SCALE, MAP_DUNE, MAP_COAST, MAP_WATERLINE, fragmentPoints } from './map-layout.mjs';
-
-export const FOLD_DEMO_DURATION = 6.4;
+﻿/* Klo's paper experiment. The map ink and a captured piece of the real beach
+ * travel with their folds. Each action ends in a still pose for the reader. */
+import { MAP_FRAGMENTS, MAP_SCALE, MAP_SHELL, fragmentPoints } from './map-layout.mjs';
 const CORNER = MAP_FRAGMENTS.find(f => f.id === 'corner');
-const CORNER_PTS = fragmentPoints(CORNER);
-const CX0 = Math.min(...CORNER_PTS.map(p => p[0])), CY0 = Math.min(...CORNER_PTS.map(p => p[1]));
-const CW = Math.max(...CORNER_PTS.map(p => p[0])) - CX0, CH = Math.max(...CORNER_PTS.map(p => p[1])) - CY0;
-const clamp = (x) => Math.max(0, Math.min(1, x));
-const ease = (x) => { x = clamp(x); return x * x * (3 - 2 * x); };
+const OUTLINE = fragmentPoints(CORNER);
+const X0 = Math.min(...OUTLINE.map(p => p[0])), Y0 = Math.min(...OUTLINE.map(p => p[1]));
+const WIDTH = Math.max(...OUTLINE.map(p => p[0])) - X0, HEIGHT = Math.max(...OUTLINE.map(p => p[1])) - Y0;
+const HINGE = MAP_SHELL.x + 25;
+const FLAP = OUTLINE.flatMap((p, i) => {
+    const q = OUTLINE[(i + 1) % OUTLINE.length], points = p[0] <= HINGE ? [p] : [];
+    if ((p[0] < HINGE && q[0] > HINGE) || (p[0] > HINGE && q[0] < HINGE))
+        points.push([HINGE, p[1] + (q[1] - p[1]) * (HINGE - p[0]) / (q[0] - p[0])]);
+    return points;
+});
+const clamp = v => Math.max(0, Math.min(1, Number.isFinite(v) ? v : 0));
+const ease = v => { const t = clamp(v); return t * t * (3 - 2 * t); };
 const between = (t, a, b) => ease((t - a) / (b - a));
+export const FOLD_DEMO_PHASES = Object.freeze({ arrive: .85, fold: 2.9, unfold: 2.9, depart: .85 });
+export const FOLD_BEACH = Object.freeze({ width: 296, above: 76, below: 146, lift: 78 });
 
-/** Seconds, sampled by the view clock. Separate map/world timings make cause and
- * consequence readable even without audio, and leave a long comparison hold. */
-export function sampleFoldDemo(t) {
-    t = Math.max(0, Number.isFinite(t) ? t : 0);
-    return {
-        map: between(t, .7, 1.4) * (1 - between(t, 3.8, 4.45)),
-        world: between(t, 1.65, 2.35) * (1 - between(t, 4.7, 5.4)),
-        opacity: between(t, 0, .3) * (1 - between(t, 5.9, FOLD_DEMO_DURATION)),
-        phase: t < .7 ? 'observe' : t < 1.65 ? 'map-fold' : t < 2.35 ? 'world-fold' : t < 3.8 ? 'compare' : t < 4.7 ? 'map-open' : t < 5.4 ? 'world-open' : 'restored',
-        done: t >= FOLD_DEMO_DURATION
-    };
+export function sampleFoldDemo(phase = 'observe', seconds = 0) {
+    const t = Math.max(0, Number.isFinite(seconds) ? seconds : 0);
+    let map = 0, world = 0, opacity = 1;
+    if (phase === 'fold') { map = between(t, .15, 1.05); world = between(t, 1.5, 2.7); }
+    if (phase === 'compare') map = world = 1;
+    if (phase === 'unfold') { map = 1 - between(t, .1, 1); world = 1 - between(t, 1.5, 2.7); }
+    if (phase === 'arrive') opacity = between(t, 0, .85);
+    if (phase === 'depart') opacity = 1 - between(t, 0, .85);
+    if (phase === 'gone') opacity = 0;
+    return { phase, map, world, opacity, done: phase in FOLD_DEMO_PHASES && t >= FOLD_DEMO_PHASES[phase] };
 }
 
-/** Small textured facets, graphite hatching and matching blue pencil marks.
- * Reduced motion crossfades between the two poses, keeping the same evidence. */
-export function createFoldDemo(PIXI, { texture, x, y, leftY = y, rightY = y, mapX, mapY, clawX, clawY, labels, lessMotion = false }) {
-    const container = new PIXI.Container();
-    container.label = 'fold-demo';
-    const ink = 0x625b50, blue = 0x457d98, paper = 0xf7eed8;
-    const shadow = new PIXI.Graphics();
-    const link = new PIXI.Graphics();
-    const dune = [new PIXI.Graphics(), new PIXI.Graphics()];
-    const W = 220, MW = 174, SC = MW / CW, MH = CH * SC;
-    // the corner piece as a card: paper, the map drawing clipped to its torn edge, the seam
+/** The paper to the left of a vertical crease lifts; its ink keeps fixed UVs. */
+export function foldMapPoint([x, y], amount) {
+    const d = Math.max(0, HINGE - x), angle = clamp(amount) * Math.PI * .34;
+    return [x + d * (1 - Math.cos(angle)), y - Math.sin(angle) * d * .3];
+}
+
+/** An attached, shallow pleat: its sides and lower edge remain on the beach.
+ * The shell and sand share this deformation, including the original waterline. */
+export function foldBeachPoint([x, y], amount) {
+    const edge = Math.abs(x) / (FOLD_BEACH.width / 2);
+    const ridge = Math.pow(Math.max(0, 1 - edge), 1.35);
+    const depth = 1 - ease(Math.max(0, y) / FOLD_BEACH.below);
+    const lift = clamp(amount) * ridge * depth;
+    return [x - 15 * lift, y - FOLD_BEACH.lift * lift];
+}
+
+function grid(PIXI, texture, box, uv, cols = 32, rows = 18) {
+    const rest = [], positions = new Float32Array((cols + 1) * (rows + 1) * 2);
+    const uvs = new Float32Array(positions.length), indices = [];
+    for (let j = 0; j <= rows; j++) for (let i = 0; i <= cols; i++) {
+        const p = [box.x + box.w * i / cols, box.y + box.h * j / rows], k = rest.length;
+        rest.push(p); positions.set(p, k * 2); uvs.set(uv(p), k * 2);
+        if (j < rows && i < cols) { const a = j * (cols + 1) + i, b = a + cols + 1; indices.push(a, a + 1, b, a + 1, b + 1, b); }
+    }
+    const geometry = new PIXI.MeshGeometry({ positions, uvs, indices: new Uint32Array(indices) });
+    const mesh = new PIXI.Mesh({ geometry, texture: texture || PIXI.Texture.WHITE });
+    return { mesh, geometry, update(fn) {
+        for (let i = 0; i < rest.length; i++) positions.set(fn(rest[i]), i * 2);
+        geometry.getBuffer('aPosition').update();
+    }, destroy() { geometry.destroy(); } };
+}
+
+export function createFoldDemo(PIXI, { texture, x, y, clawX, clawY, lessMotion = false }) {
+    const container = new PIXI.Container(); container.label = 'fold-demo';
+    const beach = new PIXI.Container(); beach.label = 'fold-demo-beach'; beach.position.set(x, y);
+    const ink = 0x625b50;
+    const mapScale = 310 / WIDTH, mx = x - 207, my = y - 386;
     const art = texture('map-page');
-    function card() {
-        const c = new PIXI.Container(), pts = CORNER_PTS.flatMap(([px, py]) => [mapX + (px - CX0) * SC, mapY + (py - CY0) * SC]);
-        const back = new PIXI.Graphics();
-        back.poly(pts.map((v, i) => v + (i % 2 ? 3 : 2))).fill({ color: 0x5f513d, alpha: .16 });
-        back.poly(pts).fill({ color: paper });
-        let pic;
-        if (art) { pic = new PIXI.Sprite(art); pic.scale.set(SC / MAP_SCALE); pic.position.set(mapX - CX0 * SC, mapY - CY0 * SC); }
-        else { // the drawing still loading: plain washes in the same places
-            const at = ([px, py]) => [mapX + (px - CX0) * SC, mapY + (py - CY0) * SC];
-            pic = new PIXI.Graphics().poly(pts).fill({ color: 0x8fbfd6 });
-            pic.poly([...at([MAP_WATERLINE[0][0], -10]), ...MAP_WATERLINE.flatMap(at), ...at([-10, MAP_WATERLINE.at(-1)[1]])]).fill({ color: 0xefd9a4 });
-            pic.poly([...at([MAP_COAST[0][0], -10]), ...MAP_COAST.flatMap(at), ...at([-10, MAP_COAST.at(-1)[1]])]).fill({ color: 0xb9c98f });
+    const mapStage = new PIXI.Container(); container.addChild(mapStage);
+    const paper = new PIXI.Graphics(), cast = new PIXI.Graphics(), rim = new PIXI.Graphics(), mask = new PIXI.Graphics();
+    const mapGrid = grid(PIXI, art, { x: X0, y: Y0, w: WIDTH, h: HEIGHT },
+        ([px, py]) => [px * MAP_SCALE / (art?.width || 1920), py * MAP_SCALE / (art?.height || 1260)]);
+    mapGrid.mesh.label = 'fold-map-ink'; mapGrid.mesh.mask = mask;
+    if (!art) mapGrid.mesh.tint = 0xeddcaf;
+    mapStage.addChild(cast, paper, mapGrid.mesh, mask, rim);
+    const handStage = new PIXI.Container(); container.addChild(handStage);
+    // A second mesh shows the same fold in the small sheet held in Klo's claw.
+    const handMask = new PIXI.Graphics();
+    const handGrid = grid(PIXI, art, { x: X0, y: Y0, w: WIDTH, h: HEIGHT },
+        ([px, py]) => [px * MAP_SCALE / (art?.width || 1920), py * MAP_SCALE / (art?.height || 1260)]);
+    handGrid.mesh.mask = handMask; handStage.addChild(handGrid.mesh, handMask);
+    handStage.scale.set(.12); handStage.position.set(clawX - (X0 + WIDTH / 2) * .12, clawY - (Y0 + HEIGHT / 2) * .12);
+    const beachShadow = new PIXI.Graphics(), beachRim = new PIXI.Graphics();
+    beach.addChild(beachShadow, beachRim);
+    const mapRing = new PIXI.Graphics(), beachRing = new PIXI.Graphics();
+    mapStage.addChild(mapRing); beach.addChild(beachRing);
+    const shell = new PIXI.Sprite(texture('shell-1') || PIXI.Texture.WHITE);
+    shell.label = 'fold-demo-shell'; shell.anchor.set(.5, 1); beach.addChild(shell);
+    let beachGrid = null, beachTexture = null, phase = 'arrive', elapsed = 0, resolve = null, dead = false;
+    let state = sampleFoldDemo(phase, 0), lastMap = -1, lastWorld = -1;
+    // The sand texture continues below the camera's action frame, seamlessly into the beach.
+    const bounds = { x0: x - 218, x1: Math.max(x + 164, clawX + 42), y0: y - 425, y1: y + 32 };
+    container.boundsArea = new PIXI.Rectangle(bounds.x0, bounds.y0, bounds.x1 - bounds.x0, bounds.y1 - bounds.y0);
+    const outlineAt = amount => OUTLINE.map(p => foldMapPoint(p, amount));
+    const reduced = (amount) => lessMotion ? (amount < .5 ? 0 : 1) : amount;
+    function drawMap(amount) {
+        if (amount === lastMap) return; lastMap = amount;
+        mapGrid.update(p => foldMapPoint(p, amount)); handGrid.update(p => foldMapPoint(p, amount));
+        const pts = outlineAt(amount), flat = pts.flat();
+        mask.clear().poly(flat).fill(0xffffff); handMask.clear().poly(flat).fill(0xffffff);
+        paper.clear().poly(flat).fill(0xf8efdd);
+        cast.clear();
+        for (let i = 3; i >= 1; i--) cast.poly(pts.map(([px, py]) => [px + 3 + i * 1.5, py + 4 + i * 1.5]).flat()).fill({ color: 0x4e4237, alpha: .045 });
+        rim.clear().poly(flat).stroke({ color: ink, alpha: .5, width: 1.5 });
+        if (amount > 0) {
+            const hinge = HINGE;
+            rim.poly(FLAP.map(p => foldMapPoint(p, amount)).flat()).fill({ color: 0x71624c, alpha: .065 * amount });
+            rim.moveTo(hinge, Y0 + 4).lineTo(hinge, Y0 + HEIGHT - 8).stroke({ color: 0x62523d, alpha: .25 * amount, width: 5 });
+            rim.moveTo(hinge - 2, Y0 + 4).lineTo(hinge - 2, Y0 + HEIGHT - 8).stroke({ color: 0xfffbec, alpha: .8 * amount, width: 2 });
+            // A narrow light edge gives the raised paper thickness without covering its drawing.
+            rim.moveTo(...pts.at(-1)); for (const p of pts.slice(0, 3)) rim.lineTo(...p);
+            rim.stroke({ color: 0xfffae9, alpha: .9 * amount, width: 2.4 });
         }
-        const mask = new PIXI.Graphics().poly(pts).fill(0xffffff); pic.mask = mask;
-        const seam = new PIXI.Graphics().poly(pts).stroke({ width: 2, color: ink, alpha: .5 });
-        const folds = [new PIXI.Graphics(), new PIXI.Graphics()];
-        c.addChild(back, pic, mask, seam, ...folds);
-        return { c, folds };
     }
-    const map = card(), hand = card();
-    const origin = new PIXI.Graphics();
-    container.addChild(shadow, link, ...dune, map.c, origin, hand.c);
-    hand.c.scale.set(.24);
-    hand.c.position.set(clawX - (mapX + MW / 2) * .24, clawY - (mapY + MH / 2) * .24);
-    const label = (text, px, py) => {
-        const s = new PIXI.Text({ text, style: { fontFamily: '"Patrick Hand", cursive', fontSize: 27, fill: ink } });
-        s.anchor.set(.5, 1); s.position.set(px, py); container.addChild(s); return s;
-    };
-    const captions = [label(labels.map, mapX + MW / 2, mapY - 7), label(labels.world, x, Math.min(leftY, rightY) - 136)];
-    const drawPoly = (g, pts, mat, color) => {
-        g.poly(pts.flat());
-        const t = texture(mat);
-        g.fill(t ? { texture: t, textureSpace: 'global' } : { color });
-    };
-    const line = (g, pts, color = ink, alpha = .7, width = 2.3) => {
-        g.moveTo(...pts[0]); for (let i = 1; i < pts.length; i++) g.lineTo(...pts[i]);
-        g.stroke({ color, alpha, width, cap: 'round', join: 'round' });
-    };
-    const marks = (g, px, py, scale = 1) => {
-        for (let i = -1; i <= 1; i++) line(g, [[px + i * 11 * scale - 4 * scale, py + 2 * scale], [px + i * 11 * scale, py - 4 * scale], [px + i * 11 * scale + 4 * scale, py + 2 * scale]], blue, .85, 2 * scale);
-    };
-    function drawDune(g, amount) {
-        g.clear();
-        const a = [x - W / 2, leftY], b = [x + W / 2, rightY];
-        const tip = [x - 10 * amount, y - 102 * amount];
-        const lower = [tip[0] + 18 * amount, tip[1] + 20 * amount + 3];
-        drawPoly(g, [a, tip, b, [b[0], b[1] + 8], [a[0], a[1] + 8]], 'mat-sand', 0xe8cc8e);
-        if (amount > .002) {
-            drawPoly(g, [a, tip, lower], 'mat-paper', paper);
-            g.poly([tip[0], tip[1], b[0], b[1], lower[0], lower[1]]).fill({ color: 0xa98758, alpha: .14 });
-            for (let i = 1; i <= 9; i++) {
-                const q = i / 11, px = tip[0] + (b[0] - tip[0]) * q, py = tip[1] + (b[1] - tip[1]) * q;
-                line(g, [[px, py + 3], [px - 8 * amount, py + 9 * amount]], ink, .2, 1.5);
-            }
+    function drawBeach(amount) {
+        if (amount === lastWorld) return; lastWorld = amount;
+        beachGrid?.update(p => foldBeachPoint(p, amount));
+        const foot = foldBeachPoint([0, 0], amount);
+        shell.position.set(...foot); shell.rotation = -.055 * amount;
+        beachShadow.clear(); beachRim.clear();
+        if (amount > 0) {
+            for (let i = 4; i >= 1; i--) beachShadow.ellipse(-6, 3 + i * 2, 113 + i * 2, 4 + i * 2).fill({ color: 0x67503d, alpha: .018 * amount });
+            const pts = Array.from({ length: 25 }, (_, i) => foldBeachPoint([-FOLD_BEACH.width / 2 + i * FOLD_BEACH.width / 24, 1], amount));
+            // Only the paper lip; the sand and blue pencil contour are in the moving texture.
+            beachRim.moveTo(...pts[0]); for (const [px, py] of pts.slice(1)) beachRim.lineTo(px, py + 1.5);
+            beachRim.stroke({ color: 0xfff6db, alpha: .72 * amount, width: 2.3 });
         }
-        line(g, [a, tip, b], ink, .64, 2.8);
-        line(g, [[a[0] + 2, a[1] - 1], [tip[0], tip[1] - 2], [b[0] - 3, b[1] - 1]], 0xfff8d8, .58, 1.8);
-        marks(g, tip[0], tip[1] - 10);
     }
-    /** The dune on the card's beach, folding up like the one on the sand. */
-    function drawMap(g, amount) {
-        g.clear();
-        // flat: the dune drawn on the map shows (hidden, an empty Graphics would still count in the bounds)
-        g.visible = amount > .002;
-        if (!g.visible) return;
-        const dx = mapX + (MAP_DUNE.x - CX0) * SC, dy = mapY + (MAP_DUNE.y - CY0) * SC;
-        const a = [dx - 13, dy + 3], b = [dx + 13, dy + 3], tip = [dx - 3 * amount, dy + 3 - 34 * amount];
-        drawPoly(g, [a, tip, b], 'mat-sand', 0xe8cc8e);
-        drawPoly(g, [a, tip, [tip[0] + 9 * amount, tip[1] + 11 * amount]], 'mat-paper', paper);
-        line(g, [[tip[0], tip[1]], [tip[0] + 9 * amount, tip[1] + 11 * amount], b], ink, .23, 1.6);
-        line(g, [a, tip, b], ink, .7, 2.2);
-        marks(g, tip[0], tip[1] - 7, .7);
-    }
-    // A magnified corner belongs to the physical sheet in Klo's claw. The leader
-    // ends there, rather than presenting an unexplained second floating map.
-    line(origin, [[clawX, clawY], [mapX + MW * .5, mapY + MH + 5]], ink, .35, 1.8);
-    origin.circle(clawX, clawY, 8).stroke({ color: ink, alpha: .45, width: 1.8 });
-    for (let i = 0; i < 4; i++) shadow.ellipse(x + 9, y + 9, W * .53 + i * 3, 8 + i * 3).fill({ color: 0x5f513d, alpha: .027 });
-    drawDune(dune[0], 0); drawDune(dune[1], 1);
-    for (const { folds } of [map, hand]) { drawMap(folds[0], 0); drawMap(folds[1], 1); }
-    function update(t) {
-        const state = sampleFoldDemo(t);
-        container.alpha = state.opacity;
-        shadow.alpha = state.world;
-        if (lessMotion) {
-            dune[0].alpha = 1 - state.world; dune[1].alpha = state.world;
-            for (const { folds } of [map, hand]) { folds[0].alpha = 1 - state.map; folds[1].alpha = state.map; }
-        } else {
-            dune[1].visible = false;
-            drawDune(dune[0], state.world);
-            for (const { folds } of [map, hand]) { folds[1].visible = false; drawMap(folds[0], state.map); }
-        }
-        // The pencil trail only appears after the map has changed, in the
-        // direction of its matching patch, then fades before both flatten.
-        link.clear();
-        const showLink = between(t, 1.3, 1.6) * (1 - between(t, 3.4, 3.8));
-        link.visible = showLink > .001;
-        if (showLink > .001) {
-            const ax = mapX + (MAP_DUNE.x - CX0) * SC - 14, ay = mapY + (MAP_DUNE.y - CY0) * SC, bx = x + 17, by = y - 122;
-            for (let i = 0; i < 9; i++) {
-                const q = i / 9, r = (i + .55) / 9;
-                line(link, [[ax + (bx - ax) * q, ay + (by - ay) * q], [ax + (bx - ax) * r, ay + (by - ay) * r]], blue, .5 * showLink, 2.2);
-            }
+    function paint() {
+        state = sampleFoldDemo(phase, elapsed);
+        const ma = reduced(state.map), wa = reduced(state.world);
+        drawMap(ma); drawBeach(wa);
+        const flight = lessMotion ? 1 : phase === 'arrive' ? state.opacity : phase === 'depart' ? state.opacity : 1;
+        const zoom = .12 + (mapScale - .12) * flight;
+        mapStage.scale.set(zoom);
+        mapStage.position.set(clawX - (X0 + WIDTH / 2) * .12 + (mx - X0 * mapScale - (clawX - (X0 + WIDTH / 2) * .12)) * flight,
+            clawY - (Y0 + HEIGHT / 2) * .12 + (my - Y0 * mapScale - (clawY - (Y0 + HEIGHT / 2) * .12)) * flight);
+        mapStage.alpha = state.opacity; handStage.alpha = state.opacity;
+        // The beach remains exactly present during arrival/departure; no disappearing patch.
+        const focus = phase === 'observe' ? .75 : phase === 'arrive' ? state.opacity * .75 : 0;
+        mapRing.clear(); beachRing.clear();
+        if (focus) {
+            const p = foldMapPoint([MAP_SHELL.x, MAP_SHELL.y - 4], ma);
+            mapRing.ellipse(p[0], p[1], 17, 13).stroke({ color: 0xb68750, alpha: focus * .72, width: 1.2 });
+            beachRing.ellipse(0, -24, 39, 32).stroke({ color: 0xb68750, alpha: focus * .6, width: 1.8 });
         }
         return state;
     }
-    update(0);
-    return {
-        container, update,
-        bounds: { x0: x - W * .7, x1: mapX + MW + 22, y0: mapY - 59, y1: y + 32 },
-        fit(zoom) {
-            const size = Math.max(27, 16 / Math.max(.1, zoom));
-            for (const c of captions) if (Math.abs(c.style.fontSize - size) > .1) c.style.fontSize = size;
+    function update(dt) {
+        if (dead) return state;
+        elapsed += Math.max(0, Number.isFinite(dt) ? dt : 0);
+        paint();
+        if (state.done && resolve) {
+            const done = resolve; resolve = null;
+            phase = ({ arrive: 'observe', fold: 'compare', unfold: 'restored', depart: 'gone' })[phase] || phase;
+            elapsed = 0; if (phase !== 'gone') paint();
+            done();
+        }
+        return state;
+    }
+    function play(next) {
+        if (dead) return new Promise(() => {});
+        phase = next; elapsed = 0;
+        return new Promise(r => { resolve = r; paint(); });
+    }
+    paint();
+    return { container, beach, bounds, update,
+        get phase() { return phase; }, get elapsed() { return elapsed; }, get state() { return state; },
+        arrive: () => play('arrive'), fold: () => play('fold'), unfold: () => play('unfold'), depart: () => play('depart'),
+        setBeach(t, originalShell) {
+            if (beachGrid) { beachGrid.mesh.destroy(); beachGrid.destroy(); }
+            beachTexture?.destroy(true); beachTexture = t;
+            beachGrid = grid(PIXI, t, { x: -FOLD_BEACH.width / 2, y: -FOLD_BEACH.above, w: FOLD_BEACH.width, h: FOLD_BEACH.above + FOLD_BEACH.below },
+                ([px, py]) => [(px + FOLD_BEACH.width / 2) / FOLD_BEACH.width, (py + FOLD_BEACH.above) / (FOLD_BEACH.above + FOLD_BEACH.below)], 40, 24);
+            beachGrid.mesh.label = 'fold-beach-ink'; beach.addChildAt(beachGrid.mesh, 1);
+            if (originalShell) {
+                shell.texture = originalShell.texture; shell.anchor.copyFrom(originalShell.anchor);
+                shell.scale.copyFrom(originalShell.scale); shell.tint = originalShell.tint;
+            }
+            lastWorld = -1; paint();
         },
-        destroy() { container.parent?.removeChild(container); if (!container.destroyed) container.destroy({ children: true }); }
+        fit() {},
+        destroy() {
+            if (dead) return; dead = true; resolve = null;
+            container.parent?.removeChild(container); beach.parent?.removeChild(beach);
+            container.destroy({ children: true }); beach.destroy({ children: true });
+            mapGrid.destroy(); handGrid.destroy(); beachGrid?.destroy(); beachTexture?.destroy(true);
+        }
     };
 }

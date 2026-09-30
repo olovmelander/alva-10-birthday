@@ -187,5 +187,5 @@ export function createGuardian(PIXI, { texture }) {
         pencil.rotation = Math.sin(time*4.2) * (reducedMotion ? 0 : 0.05);
         initialized=true;
     }
-    return { container, update, pose: current };
+    return { container, update, pose: current, headBounds: () => ready ? head.getBounds() : fallback.getBounds() };
 }

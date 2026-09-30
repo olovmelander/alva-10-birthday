@@ -101,7 +101,7 @@ try {
         const pointer = (node, type, x, y) => node.dispatchEvent(new PointerEvent(type, { bubbles: true, cancelable: true, pointerId: 71, pointerType: 'touch', isPrimary: true, clientX: x, clientY: y, buttons: type === 'pointerup' ? 0 : 1 }));
         // Synthetic DOM pointers have no native capture target. Ignore capture
         // only inside this test; native CDP capture is covered by skoldhast-touch.
-        for (const n of [zone, ui.actBtn, ui.hideBtn]) n.setPointerCapture = () => {};
+        for (const n of [zone, ui.actBtn, ui.hopBtn, ui.hideBtn]) n.setPointerCapture = () => {};
         const key = (name, down) => window.dispatchEvent(new KeyboardEvent(down ? 'keydown' : 'keyup', { key: name, bubbles: true, cancelable: true }));
         const button = (node, keyName) => {
             if (touchMode) { const r = node.getBoundingClientRect(); pointer(node, 'pointerdown', r.x + r.width / 2, r.y + r.height / 2); pointer(node, 'pointerup', r.x + r.width / 2, r.y + r.height / 2); }
@@ -166,14 +166,18 @@ try {
             await panels();
             // The epilogue's table uses real-time DOM/RAF tweens, rather than
             // simulation timers. Do not spend virtual travel time awaiting it.
-            while (G.flags.has('conclusion') && !G.flags.has('ended') && ui.root.classList.contains('table-mode')) {
+            while (G.flags.has('conclusion') && ui.root.classList.contains('table-mode')) {
                 drive(0, 0); await panels(); await sleep(16);
             }
             drive(inp.x || 0, inp.y || 0);
-            if (inp.act) button(ui.actBtn, ' ');
+            // Accelerated steps can discover an action between rendered frames.
+            // Present that enabled button before tapping it, as real play does.
+            if (inp.act) ui.setContext(G.context?.label, G.player.hidden);
+            if (inp.act) button(ui.actBtn, 'e');
+            if (inp.hop) button(ui.hopBtn, ' ');
             if (inp.hide) button(ui.hideBtn, 'g');
             const cont = input.state(), e = input.consume();
-            G.step({ ...cont, act: e.act, hide: e.hide, tapHero: e.tapHero || e.neigh });
+            G.step({ ...cont, hop: e.hop, act: e.act, duck: e.duck, hide: e.hide, tapHero: e.tapHero || e.neigh });
             await Promise.resolve();
             if (++steps % 12 === 0) render();
             // Effects such as the map demonstration own RAF callbacks. Give
@@ -207,6 +211,7 @@ try {
         const R = { G, log, events, story, p, has, where, step, hold, until, settle, walkTo, swimTo,
             flag: (f, inp, max = 30) => until(() => has(f), inp, max, `flag ${f}`),
             act: () => step({ act: true }), hide: () => step({ hide: true }),
+            hop: () => step({ hop: true }),
             gallopPast: async (x, { max = 60, hopHeld = false } = {}) => { const dir = Math.sign(x * 200 - p().x); await until(() => (p().x - x * 200) * dir > 0, { x: dir, hopHeld }, max, `gallop ${x}`); },
             context: async id => { await until(() => G.context?.id === id, {}, 5, `context ${id}`); await step({ act: true }); }
         };
@@ -226,12 +231,12 @@ try {
         await chapter[1](R); await shot('02-chapter2');
         await chapter[2](R); await shot('03-ending');
         await R.flag('signe_met', {}, 20); await settle();
-        await walkTo(107.2); await R.context('race');
+        await walkTo(G.sceneDef.race.signe.x / 200 - 1); await R.context('race');
         await until(() => G.busy === 0 && G.actors.signe.pose !== 'idle', {}, 10, 'race starts');
         await until(() => has('signe_race'), { x: -.2 }, 90, 'Signe race'); await settle();
-        for (const x of [105.35, 106.3, 107.8]) { await walkTo(x); await R.context('skaka'); await hold(1.1); }
-        assert.ok(has('shells_tune'), 'all shells ring'); await shot('04-shell-tune');
-        for (const hs of G.sceneDef.hoppstallen) { await walkTo(hs.x / 200, { gallop: true, max: 160 }); await R.act(); await hold(1.3); assert.ok(has('hopp_' + hs.id), `hoppställe ${hs.id}`); }
+        for (const x of [105.35, 106.3, 107.8]) { await walkTo(x, { tol: .03 }); await R.context('skaka'); await hold(1.1); }
+        assert.ok(has('shells_tune'), `all shells ring: ${JSON.stringify(G.puz.shells)} at ${where()}`); await shot('04-shell-tune');
+        for (const hs of G.sceneDef.hoppstallen) { await walkTo(hs.x / 200, { gallop: true, max: 160 }); await R.hop(); await hold(1.3); assert.ok(has('hopp_' + hs.id), `hoppställe ${hs.id}`); }
         for (const pc of G.sceneDef.pencils) {
             if (!has('penna_' + pc.id)) await walkTo(pc.x / 200, { gallop: true, max: 160 });
             await walkTo(pc.propAt.x / 200, { gallop: true, max: 160 }); await R.context('farglagg'); await hold(.5);

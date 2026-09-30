@@ -75,7 +75,7 @@ if (!process.env.NO_TEST) {
             else {
                 walk(G, pc.x);
                 if ((scene.hoppstallen || []).some(h => h.pencil === pc.id)) {
-                    G.step({ act: true });
+                    G.step({ hop: true });
                     until(G, () => G.flags.has('penna_' + pc.id), {}, 3, `${pc.id}: hop onto perch`);
                 }
             }

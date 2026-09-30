@@ -133,7 +133,7 @@ try {
             check(badge.right <= goal.left || badge.left >= goal.right || badge.bottom <= goal.top || badge.top >= goal.bottom,
                 `${scene}: the goal note cannot cover the regional counter`);
             await move(pc.x, pc.y, start.mode === 'swim');
-            if (hop) { await step({ act: true }); await until(() => G.flags.has('penna_' + pc.id), {}, 4, `${pc.id} perch hop`); }
+            if (hop) { await step({ hop: true }); await until(() => G.flags.has('penna_' + pc.id), {}, 4, `${pc.id} perch hop`); }
             check(G.flags.has('penna_' + pc.id), `${pc.id}: contact pickup (${where()})`);
             await move(pc.propAt.x, pc.propAt.y - (start.mode === 'swim' ? 40 : 0), start.mode === 'swim');
             await until(() => G.context?.id === 'farglagg', {}, 5, `${pc.id} colour action`);

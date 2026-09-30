@@ -6,12 +6,13 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
+import sharp from 'sharp';
 import { serve, launch } from '../../scripts/skoldhast-shot.mjs';
 import { MAP } from '../../skoldhast/src/content/sv.mjs';
 import { MAP_FRAGMENTS } from '../../skoldhast/src/mapbook.mjs';
 const oi=process.argv.indexOf('--out'),out=oi<0?null:process.argv[oi+1];
 const vi=process.argv.indexOf('--viewport'),ii=process.argv.indexOf('--input');
-const sizes=vi<0?['844x390','390x844','320x568']:[process.argv[vi+1]];
+const sizes=vi<0?['844x390','390x844','320x568','1440x900']:[process.argv[vi+1]];
 const inputs=ii<0?['keyboard','touch']:[process.argv[ii+1]];
 if(out)fs.mkdirSync(out,{recursive:true});
 const server=await serve(),browser=await launch(),errors=[],records=[];
@@ -54,7 +55,7 @@ try {
         const shot=async name=>{
             if(!out||input!=='touch')return;
             await pg.locator('.sk-mapbook-stage').scrollIntoViewIfNeeded();
-            await pg.screenshot({path:path.join(out,`${name}-${size}.png`)});
+            await sharp(await pg.screenshot()).webp({quality:90}).toFile(path.join(out,`${name}-${size}.webp`));
         };
         const layout=async label=>{
             const d=await pg.locator('.sk-mapbook').evaluate(root=>{
@@ -79,7 +80,12 @@ try {
             assert.deepEqual(await pg.locator('.sk-map-piece').evaluateAll(ns=>ns.map(n=>n.dataset.piece)),found);
             assert.equal(await pg.locator('.sk-map-missing').count(),3-found.length);
             assert.equal(await pg.locator('.sk-mapbook-count').textContent(),MAP.count(found.length,3));
+            assert.equal(await pg.locator('.sk-mapbook-scale').textContent(),MAP.zoomLevel(100));
+            assert.equal(await pg.locator('.sk-mapbook-piece-icon svg').count(),3,'each selector shows the real torn silhouette');
+            assert.equal(await pg.locator('.sk-mapbook-piece-icon image').count(),found.length,'missing pieces cannot reveal unearned artwork');
+            assert.ok((await pg.locator('.sk-mapbook-stage svg').getAttribute('aria-label')).includes(MAP.collectedSummary(found.map(id=>MAP.pieces[id].name))));
             for(const id of ['corner','land','sea'])assert.equal(await pg.locator(`.sk-mapbook-piece[data-piece="${id}"]`).isDisabled(),!found.includes(id));
+            for(const [index,id] of ['corner','land','sea'].entries())if(!found.includes(id))assert.equal(await pg.locator(`.sk-mapbook-piece[data-piece="${id}"]`).getAttribute('aria-label'),MAP.missingPiece(index+1,3));
             assert.equal(await pg.getByRole('button',{name:MAP.zoomIn,exact:true}).isDisabled(),!found.length);
             assert.equal(await pg.locator('.sk-mapbook-pan').isVisible(),false);
             const dimensions=await layout(`${size}/${input}/${state}`);await shot(state);
@@ -102,12 +108,21 @@ try {
             },{x,y});
             if(input==='touch')await pg.touchscreen.tap(p.x,p.y);else await pg.mouse.click(p.x,p.y);
             assert.equal(await pg.locator('.sk-mapbook').getAttribute('data-selected'),id,`${size}: direct ${input} on${id}`);
+            assert.equal(await pg.locator('.sk-mapbook-stage .sk-map-piece.selected').getAttribute('data-piece'),id);
+            await shot(`inspect-${id}`);
         }
         await activate(pg.locator('.sk-mapbook-piece[data-piece="land"]'));
+        await pg.locator('.sk-mapbook-detail').evaluate(detail=>{
+            window.__mapDetailChanges=0;
+            window.__mapDetailObserver=new MutationObserver(records=>{window.__mapDetailChanges+=records.length;});
+            window.__mapDetailObserver.observe(detail,{childList:true,subtree:true,characterData:true});
+        });
         for(let i=0;i<3;i++)await activate(pg.getByRole('button',{name:MAP.zoomIn,exact:true}));
         assert.ok(Number(await pg.locator('.sk-mapbook').getAttribute('data-zoom'))>2.7);
         assert.equal(await pg.getByRole('button',{name:MAP.zoomIn,exact:true}).isDisabled(),true);
         assert.equal(await pg.locator('.sk-mapbook-pan').isVisible(),true);
+        assert.equal(await pg.locator('.sk-mapbook-scale').textContent(),MAP.zoomLevel(274));
+        assert.equal(await pg.locator('.sk-mapbook-scale').getAttribute('aria-label'),MAP.viewStatus(MAP.pieces.land.name,274));
         await layout(`${size}/${input}/zoomed`);
         const bounds=MAP_FRAGMENTS.find(p=>p.id==='land').box;
         for(const direction of ['left','up','right','down']) {
@@ -119,6 +134,8 @@ try {
                 direction==='left'?bounds[0]:direction==='up'?bounds[1]:direction==='right'?bounds[0]+bounds[2]:bounds[1]+bounds[3]);
         }
         await shot('land-zoom-pan');
+        assert.equal(await pg.evaluate(()=>window.__mapDetailChanges),0,'zoom and pan announce the view without repeating the discovery paragraph');
+        await pg.evaluate(()=>window.__mapDetailObserver.disconnect());
         await activate(pg.getByRole('button',{name:MAP.reset,exact:true}));
         assert.deepEqual(await box(),bounds);assert.equal(await pg.locator('.sk-mapbook').getAttribute('data-selected'),'land');
         assert.equal(await pg.locator('.sk-mapbook-pan').isVisible(),false);
@@ -157,6 +174,25 @@ try {
             await pg.evaluate(()=>window.__menus.ui.setBigText(true));
             await layout(`${size}/${input}/big-text`);await shot('all-big-text');
         }
+        // Reversed collection order has no land picture or land-dependent names.
+        await pg.evaluate(()=>window.__menus.ui.journal({flags:new Set(['clue_map_corner','clue_mark_sea']),visited:new Set(['land','kelp']),objective:'p4',page:4}));
+        await waitBook();
+        assert.deepEqual(await pg.locator('.sk-map-piece').evaluateAll(ns=>ns.map(n=>n.dataset.piece)),['corner','sea']);
+        assert.equal(await pg.locator('.sk-mapbook-piece.land').isDisabled(),true);
+        assert.equal(await pg.locator('.map-labels [data-place="tower"]').count(),0,'unearned lighthouse name stays hidden');
+        await activate(pg.locator('.sk-mapbook-piece.sea'));await shot('sea-before-land');
+        // The same controls work immediately with reduced motion, including a
+        // late/absent image fallback that retains the map's real coast.
+        await pg.emulateMedia({reducedMotion:'reduce'});
+        await pg.evaluate(async()=>{
+            const {createMapBook}=await import('/skoldhast/src/mapbook.mjs');
+            document.querySelector('.sk-mapbook').replaceWith(createMapBook({flags:new Set(['clue_map_corner'])}));
+        });
+        assert.equal(await pg.locator('.sk-mapbook-stage image').count(),0);
+        assert.ok(await pg.locator('.sk-mapbook-stage .sk-map-piece path[fill="#efd9a4"]').count(),'fallback keeps the actual beach geography');
+        await activate(pg.locator('.sk-mapbook-piece.corner'));
+        await activate(pg.getByRole('button',{name:MAP.zoomIn,exact:true}));
+        await layout(`${size}/${input}/reduced-fallback`);await shot('reduced-fallback');
         await activate(pg.locator('.sk-x'));assert.equal(await pg.locator('.sk-panel').evaluate(n=>n.classList.contains('on')),false);
         await pg.close();console.log(`mapbook ${size} ${input}: pieces, inspect, zoom/pan/reset, rebuild`);
     }

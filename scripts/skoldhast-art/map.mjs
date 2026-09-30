@@ -13,9 +13,12 @@
  * the kelp forest, and Pappersfyren in Spegelviken, lit only in its reflection.
  */
 import * as pencil from './pencil.mjs';
+import { writeWord, drawHand } from './npcs.mjs';
+import { lighten } from './materials.mjs';
+import { NAMES } from '../../skoldhast/src/content/sv.mjs';
 import {
     MAP_VIEW, MAP_SCALE as K, MAP_COAST, MAP_WATERLINE, MAP_CLIFF, MAP_CLEFT, MAP_BRIDGE, MAP_POOL, MAP_GATE,
-    MAP_DUNE, MAP_VAULT, MAP_HEART, MAP_TOWER, MAP_FOLD_X, MAP_MARK, MAP_COMPASS, MAP_ROUTES
+    MAP_SHELL, MAP_VAULT, MAP_HEART, MAP_TOWER, MAP_FOLD_X, MAP_MARK, MAP_COMPASS, MAP_ROUTES
 } from '../../skoldhast/src/map-layout.mjs';
 
 const { Sheet, PENCILS: P, smooth, resample, ellipse, edgeBand, gradientMap, multiplyMasks, subtractMask, unionMasks, rng } = pencil;
@@ -130,7 +133,7 @@ export function drawMapPage() {
         line([[x - 3, y + 1.5], [x, y - 1.5], [x + 3, y + 1.5]], P.seaBlue, { width: 0.9, alpha: 0.8 });
     }
 
-    // --- the beach: sand, a pool, a dune, shells, hoofprints and Vattenporten -------------
+    // --- the beach: sand, a pool, shells, hoofprints and Vattenporten --------------------
     sh.fill('#efd9a4', beach, { pressure: 0.8, grain: 0.3 });
     sh.tone(P.sand, beach, { pressure: 0.6, angle: 1.05, gap: 2.2 });
     sh.hatch(P.sandShade, { clip: beach, angle: 0.3, gap: u(1.8), len: [u(3), u(9)], width: u(0.55), pressure: 0.42 });
@@ -139,10 +142,6 @@ export function drawMapPage() {
     sh.fill('#bfe2ee', sh.mask(pool), { pressure: 1, grain: 0.2 });
     sh.tone(P.skyBlue, sh.mask(pool), { pressure: 0.6, angle: 0 });
     sh.outline(P.foamLine, pool, { width: u(0.8), wobble: 0.5, passes: 1, alpha: 0.8, opaque: false });
-    const dune = [[MAP_DUNE.x - 10, MAP_DUNE.y + 3], [MAP_DUNE.x - 2, MAP_DUNE.y - 5], [MAP_DUNE.x + 10, MAP_DUNE.y + 3]];
-    sh.tone(P.sandShade, mask(dune), { pressure: 0.7 });
-    sh.tone(P.sandShadow, mask([dune[1], dune[2], [MAP_DUNE.x + 2, MAP_DUNE.y + 3]]), { pressure: 0.45 });
-    line(dune, P.graphiteSoft, { width: 0.9, alpha: 0.75 });
     const shells = [[352, 64], [366, 150], [331, 176], [296, 196], [258, 202], [370, 94]].map(([x, y]) => [u(x), u(y), 1]);
     sh.dots(MAP.rose, shells.filter((_, i) => i % 2 === 0), { rx: u(1.8), ry: u(1.3), alpha: 0.9 });
     sh.dots(MAP.peach, shells.filter((_, i) => i % 2 === 1), { rx: u(1.8), ry: u(1.3), alpha: 0.9 });
@@ -165,6 +164,29 @@ export function drawMapPage() {
     for (const [x, y] of resample(MAP_WATERLINE, 9).slice(1, -1)) {
         line([[x + 1.5, y + 1], [x + 4, y + 3.2], [x + 7, y + 2.2]], P.foamLine, { width: 0.7, alpha: 0.45 });
     }
+
+    // The same pink scallop as shell-1 on the beach: its fan and ribs let Alva
+    // recognise the place before Klo folds the map. MAP_SHELL marks its centre.
+    // As a cartographic landmark it sits above the coastline, on reserved paper,
+    // so the surrounding ochre and grass cannot muddy its recognisable pink.
+    const shellX = MAP_SHELL.x, hingeY = MAP_SHELL.y + 6.75, radius = 15.6;
+    const scallopFan = Array.from({ length: 15 }, (_, i) => {
+        const a = Math.PI * (1.08 + 0.84 * i / 14);
+        return [shellX + Math.cos(a) * radius * 0.98 * (1 + 0.05 * Math.sin(i * 1.8 * Math.PI)), hingeY + Math.sin(a) * radius];
+    });
+    const scallop = smooth([...scallopFan, [shellX + 3.6, hingeY + 0.75], [shellX + 4.5, hingeY + 1.5],
+        [shellX - 4.5, hingeY + 1.5], [shellX - 3.6, hingeY + 0.75]], { steps: 3, tension: 0.4 });
+    const scallopMask = mask(scallop);
+    lighten(sh, scallopMask, { color: MAP.paper, amount: 1, grain: 0 });
+    sh.fill('#f0b3c2', scallopMask, { pressure: 1, grain: 0.15 });
+    sh.tone('#d77f97', multiplyMasks(scallopMask, edgeBand(scallopMask, W, H, u(1.1))), { pressure: 0.38, angle: 0.8 });
+    for (let i = 1; i < 9; i++) {
+        const a = Math.PI * (1.12 + 0.76 * i / 9);
+        line([[shellX, hingeY], [shellX + Math.cos(a) * radius * 0.95, hingeY + Math.sin(a) * radius * 0.95]],
+            '#d77f97', { width: 0.65, alpha: 0.95, wobble: 0.06, clip: scallopMask });
+    }
+    line([[shellX - 4.5, hingeY + 0.4], [shellX + 4.5, hingeY + 0.4]], '#d77f97', { width: 0.75, wobble: 0.05 });
+    line(scallop, P.graphite, { width: 0.9, alpha: 0.9, wobble: 0.08, closed: true });
 
     // --- Streckbron: a gully to the coast, crossed by a dashed arch -------------------------
     const b = MAP_BRIDGE;
@@ -262,13 +284,15 @@ export function drawMapPage() {
     line(box(39, 37, 599, 383), P.graphite, { width: 0.7, alpha: 0.6, wobble: 0.1 });
     for (let x = 44, k = 0; x < 600; x += 14, k++) line([[x, 32], [x, k % 5 ? 34.6 : 36]], P.graphite, { width: 0.6, alpha: 0.7, wobble: 0 });
     for (let y = 46, k = 0; y < 384; y += 14, k++) line([[34, y], [k % 5 ? 36.6 : 38, y]], P.graphite, { width: 0.6, alpha: 0.7, wobble: 0 });
-    const k0 = [566, 208];
-    line([[k0[0] + 3, k0[1] - 7], [k0[0] - 1, k0[1] + 5]], P.graphite, { width: 1.2 });
-    line([[k0[0] + 4, k0[1] - 6.5], [k0[0] + 3.4, k0[1] + 5]], P.graphite, { width: 1.2 });
-    line([[k0[0] + 9, k0[1] - 7], [k0[0] + 3.8, k0[1] - 0.4], [k0[0] + 9.4, k0[1] + 5]], P.graphite, { width: 1.2 });
+    const signature = writeWord(NAMES.kv, { wander: 0.2, seed: 41 });
+    const scale = 118 / signature.width;
+    // Open water above the bay label; entirely inside the first torn corner.
+    drawHand(sh, signature.letters.flatMap(l => l.strokes),
+        ([x, y]) => [u(398 + x * scale), u(84 + y * scale)],
+        { width: u(0.8), wobble: 0.1 });
     return sh.toCanvas();
 }
 
 export async function build(api) {
-    api.image('map-page', drawMapPage(), { bundle: 'map', quality: 76 });
+    api.image('map-page', drawMapPage(), { bundle: 'map', quality: 76, mip: true });
 }

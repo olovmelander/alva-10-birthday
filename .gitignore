@@ -4,3 +4,19 @@ node_modules/
 
 .DS_Store
 Thumbs.db
+
+# Local browser runs and audit working material
+/.playwright-mcp/
+/artifacts/
+/docs/skoldhast/shots/controls/
+/docs/skoldhast/shots/k1/
+/docs/skoldhast/shots/k3/dialogue/
+/docs/skoldhast/shots/k3/signature/
+/docs/skoldhast/shots/klo-companion/
+/docs/skoldhast/shots/maps/
+/docs/skoldhast/shots/puzzle-audit/
+/docs/skoldhast/klo-companion-audit.md
+/docs/skoldhast/puzzle-audit.md
+/docs/skoldhast/puzzle-audit-land.md
+/docs/skoldhast/puzzle-audit-lighthouse-extras.md
+/docs/skoldhast/puzzle-audit-research.md

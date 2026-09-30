@@ -135,6 +135,22 @@ test('P8 progress follows completed segments and actual drift geometry', () => {
     assert.equal(p8Progress(G).target.scene, 'viken');
 });
 
+test('the completed P8 drawing keeps its calm landing throughout the wave proof and on reload', () => {
+    const G = swimming('viken', 25.8, .7, lineFlags);
+    step(G, 5, { hide: true });
+    assert.ok(G.has('p8_sea'));
+    G.flag('p8_done'); G.terrain.refresh();
+    for (const game of [G, (() => { const H = createGame(); H.restore(G.serialize()); return H; })()]) {
+        const at = [game.player.x, game.player.y];
+        step(game, 20);
+        assert.deepEqual([game.player.x, game.player.y], at, 'the adjacent upward pipe cannot steal the resting shell');
+        assert.ok(game.player.hidden, 'the demonstration preserves the hidden shell');
+        assert.equal(game.player.inLane?.id, 'p8-lane');
+        game.flag('unfolded'); game.terrain.refresh();
+        assert.equal(game.terrain.lanes.some(l => l.id === 'p8-lane'), false, 'the landing releases after the sea unfolds');
+    }
+});
+
 test('P8 calm arrival is deterministic across render schedules', () => {
     const states = [];
     for (const hz of [30, 60, 120, 144]) {

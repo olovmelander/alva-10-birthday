@@ -24,20 +24,21 @@ const node = (tag, className, text) => {
 // All three pieces share the same pencil drawing (map-page). Clipping reveals the
 // exact part each owns; inspecting a piece enlarges its real position and texture.
 // Without the image (it still loading, or an old cache), plain washes stand in.
-function mapArtwork(flags, mapUrl) {
+function mapArtwork(flags, mapUrl, { labels = true } = {}) {
     const { w, h } = MAP_VIEW;
     const pts = (list) => list.map(([x, y]) => `${x} ${y}`).join(' L');
-    const art = mapUrl
-        ? `<image href="${esc(mapUrl)}" x="0" y="0" width="${w}" height="${h}" preserveAspectRatio="none"/>`
-        : `<rect width="${w}" height="${h}" fill="#8fbfd6"/>
+    // Keep the geography beneath the image so a failed/late image still leaves
+    // the same recognisable coast instead of apparently blank collected paper.
+    const fallback = `<rect width="${w}" height="${h}" fill="#8fbfd6"/>
       <path fill="#efd9a4" d="M${MAP_WATERLINE[0][0]} -10 L${pts(MAP_WATERLINE)} L-10 ${MAP_WATERLINE.at(-1)[1]} L-10 -10Z"/>
       <path fill="#b9c98f" d="M${MAP_COAST[0][0]} -10 L${pts(MAP_COAST)} L-10 ${MAP_COAST.at(-1)[1]} L-10 -10Z"/>`;
-    return `${art}${mapLabelsSvg(flags)}`;
+    const art = `${fallback}${mapUrl ? `<image href="${esc(mapUrl)}" x="0" y="0" width="${w}" height="${h}" preserveAspectRatio="none"/>` : ''}`;
+    return `${art}${labels ? mapLabelsSvg(flags) : ''}`;
 }
 /** The place names known so far, in the same spots as on the drawing. */
 function mapLabelsSvg(flags) {
     return `<g class="map-labels" fill="#354f50" stroke="#fbf4df" stroke-width="4" paint-order="stroke" stroke-linejoin="round">${
-        mapLabels(flags).map(l => `<text x="${l.x}" y="${l.y}" text-anchor="middle" class="${l.minor ? 'minor' : ''}"${
+        mapLabels(flags).map(l => `<text x="${l.x}" y="${l.y}" text-anchor="middle" data-place="${l.key}" class="${l.minor ? 'minor' : ''}"${
             l.vertical ? ` transform="rotate(-90 ${l.x} ${l.y})"` : ''}>${esc(MAP.places[l.key])}</text>`).join('')}</g>`;
 }
 
@@ -50,6 +51,7 @@ function piecesSvg(found, prefix, flags, mapUrl) {
       <path d="${p.path}" fill="#f6eed8"/>
       <g clip-path="url(#${prefix}-${p.id})">${art}</g>
       <path class="sk-map-seam" d="${p.path}" fill="none" stroke="#8c7651" stroke-width="1.1"/>
+      <path class="sk-map-focus" d="${p.path}" fill="none" stroke="#8b602c" stroke-width="3"/>
     </g>` : `<g class="sk-map-missing" data-piece="${p.id}"><path d="${p.path}" fill="#e5ddca" fill-opacity=".34" stroke="#a39477" stroke-width="1.4" stroke-dasharray="4 6"/><text x="${p.box[0] + p.box[2] / 2}" y="${p.box[1] + p.box[3] / 2}" text-anchor="middle" fill="#a39477" font-size="28">?</text></g>`).join('')}`;
 }
 
@@ -82,18 +84,28 @@ export function createMapBook(state, { mapUrl, onSound } = {}) {
     svg.setAttribute('viewBox', '0 0 640 420');
     svg.setAttribute('role', 'img');
     svg.setAttribute('aria-label', MAP.assembled);
+    svg.setAttribute('aria-describedby', `${prefix}-description`);
+    svg.id = `${prefix}-drawing`;
     svg.innerHTML = piecesSvg(found, prefix, flags, mapUrl);
     stage.append(svg);
     const choices = node('div', 'sk-mapbook-pieces');
     choices.setAttribute('role', 'group'); choices.setAttribute('aria-label', MAP.detailHint);
     const buttons = [];
-    let selected = null, zoom = 1, panX = .5, panY = .5;
-    for (const piece of MAP_FRAGMENTS) {
+    let selected = null, zoom = 1, panX = .5, panY = .5, previousSelection;
+    for (const [index, piece] of MAP_FRAGMENTS.entries()) {
         const b = node('button', `sk-mapbook-piece ${piece.id}`);
         b.type = 'button'; b.disabled = !found.has(piece.id); b.dataset.piece = piece.id;
         b.setAttribute('aria-pressed', 'false');
+        b.setAttribute('aria-controls', `${prefix}-drawing ${prefix}-description`);
+        if (!found.has(piece.id)) b.setAttribute('aria-label', MAP.missingPiece(index + 1, MAP_FRAGMENTS.length));
         const icon = node('span', 'sk-mapbook-piece-icon'); icon.setAttribute('aria-hidden', 'true');
-        icon.textContent = piece.id === 'corner' ? '✎' : piece.id === 'land' ? '△' : '≈';
+        // The selector shows the actual torn piece, in the same orientation as
+        // its place on the map. Missing pieces expose only their silhouette.
+        const preview = document.createElementNS(svgNS, 'svg');
+        preview.setAttribute('viewBox', piece.box.join(' '));
+        preview.setAttribute('aria-hidden', 'true');
+        preview.innerHTML = `<defs><clipPath id="${prefix}-preview-${piece.id}"><path d="${piece.path}"/></clipPath></defs><g clip-path="url(#${prefix}-preview-${piece.id})">${found.has(piece.id) ? mapArtwork(flags, mapUrl, { labels: false }) : `<path d="${piece.path}" fill="#e5ddca"/>`}</g><path d="${piece.path}" fill="none" stroke="#8c7651" stroke-width="4"/>`;
+        icon.append(preview);
         b.append(icon, node('span', '', found.has(piece.id) ? MAP.pieces[piece.id].name : MAP.missing));
         b.addEventListener('click', () => choose(piece.id));
         choices.append(b); buttons.push(b);
@@ -109,6 +121,9 @@ export function createMapBook(state, { mapUrl, onSound } = {}) {
     };
     const overview = action(MAP.overview, () => choose(null), 'overview');
     const minus = action('−', () => { zoom = Math.max(1, zoom / 1.4); render(); onSound?.('ui'); }); minus.setAttribute('aria-label', MAP.zoomOut);
+    const scale = node('output', 'sk-mapbook-scale');
+    scale.setAttribute('aria-live', 'polite'); scale.setAttribute('aria-atomic', 'true');
+    controls.append(scale);
     const plus = action('+', () => { zoom = Math.min(2.74, zoom * 1.4); render(); onSound?.('ui'); }); plus.setAttribute('aria-label', MAP.zoomIn);
     const reset = action(MAP.reset, () => { zoom = 1; panX = panY = .5; render(); onSound?.('ui'); }, 'reset');
     const pan = node('div', 'sk-mapbook-pan');
@@ -120,6 +135,7 @@ export function createMapBook(state, { mapUrl, onSound } = {}) {
         pan.append(b); panButtons.push({ b, dx, dy });
     }
     const detail = node('div', 'sk-mapbook-detail'); detail.setAttribute('aria-live', 'polite'); detail.setAttribute('aria-atomic', 'true');
+    detail.id = `${prefix}-description`;
     const name = node('strong'), where = node('span', 'sk-mapbook-found'), description = node('p');
     detail.append(name, where, description);
     const workspace = node('div', 'sk-mapbook-workspace');
@@ -132,17 +148,30 @@ export function createMapBook(state, { mapUrl, onSound } = {}) {
         panX = Math.max(margin, Math.min(1 - margin, panX)); panY = Math.max(margin, Math.min(1 - margin, panY));
         svg.setAttribute('viewBox', `${box[0] + box[2] * panX - w / 2} ${box[1] + box[3] * panY - h / 2} ${w} ${h}`);
         root.dataset.zoom = zoom.toFixed(3);
+        const percent = Math.round(zoom * 100);
+        const nextScale = MAP.zoomLevel(percent);
+        if (scale.textContent !== nextScale) scale.textContent = nextScale;
+        scale.setAttribute('aria-label', MAP.viewStatus(selected ? MAP.pieces[selected].name : null, percent));
         pan.hidden = reset.hidden = zoom <= 1;
         for (const { b, dx, dy } of panButtons) b.disabled = dx < 0 ? panX <= margin : dx > 0 ? panX >= 1 - margin : dy < 0 ? panY <= margin : panY >= 1 - margin;
-        svg.setAttribute('aria-label', selected ? MAP.selected(MAP.pieces[selected].name) : MAP.assembled);
-        for (const g of svg.querySelectorAll('.sk-map-piece,.sk-map-missing')) g.style.opacity = selected && g.dataset.piece !== selected ? '0.12' : '1';
+        svg.setAttribute('aria-label', selected ? MAP.selected(MAP.pieces[selected].name) : `${MAP.assembled}. ${MAP.collectedSummary(pieces.map(p => MAP.pieces[p.id].name))}`);
+        for (const g of svg.querySelectorAll('.sk-map-piece,.sk-map-missing')) {
+            const active = g.dataset.piece === selected;
+            g.style.visibility = selected && !active ? 'hidden' : '';
+            g.setAttribute('aria-hidden', String(!!selected && !active));
+            g.classList.toggle('selected', active);
+        }
         for (const b of buttons) { const on = b.dataset.piece === selected; b.classList.toggle('selected', on); b.setAttribute('aria-pressed', String(on)); }
         overview.setAttribute('aria-pressed', String(!selected));
         minus.disabled = zoom <= 1; plus.disabled = zoom >= 2.7 || !pieces.length;
         const copy = selected ? MAP.pieces[selected] : null;
-        name.textContent = copy?.name || (pieces.length ? MAP.assembled : MAP.empty);
-        where.textContent = copy?.foundAt || MAP.detailHint;
-        description.textContent = copy?.detail || MAP.legend;
+        // Zooming or panning must not announce the discovery paragraph again.
+        if (previousSelection !== selected) {
+            name.textContent = copy?.name || (pieces.length ? MAP.assembled : MAP.empty);
+            where.textContent = copy?.foundAt || MAP.detailHint;
+            description.textContent = copy ? (MAP.pieceDetail?.(selected, flags) || copy.detail) : MAP.legend;
+            previousSelection = selected;
+        }
         root.dataset.selected = selected || 'all';
         // Selection/reset can collapse controls above the current scroll offset.
         // Keep the paper in view once per interaction, never in a render loop.

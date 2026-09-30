@@ -73,7 +73,7 @@ test('a wet coat does not replace Hoppa beneath an uncollected hoppställe', () 
     const G = beach(94.55);
     G.player.wet = 1;
     assert.equal(contextAction(G), null, 'Hoppa stays available under the pencil');
-    G.step({ act: true });
+    G.step({ hop: true });
     hold(G, 1.5);
     assert.ok(G.flags.has('hopp_hs-94'));
     assert.ok(G.flags.has('penna_p-kite'));

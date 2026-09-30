@@ -86,8 +86,8 @@ finally gets its researcher.
 4. **Three big moments.**
    - The prologue freeze.
    - *Stora språnget*, the biggest leap in the game, off the steppe onto Klippudden.
-   - The finale: PLASK, the page unfolds, and a no-fail gallop *with* the returning waves over the steppe into
-     golden evening, ending in Stora språnget again.
+   - The finale: repair the folded coast, watch one small wave prove the paper holds, and unfold the page
+     back to the original beach for the promised PLASK on the hooves.
 
 ### Design pillars
 
@@ -105,7 +105,8 @@ finally gets its researcher.
 | **Springa** (stick) | horse | Walk → trot → gallop. At gallop: *Språng* (automatic leap at marked edges), *Streck* (inks dashed lines), *Galoppvind* (blows fluff and bends grass), *Trumma* (hoofbeats turn ratchets). |
 | **Simma** (stick, in water) | both | Buoyant two-axis swimming. Kelp fringes and tail float, and surfacing at speed gives a dolphin leap. |
 | **Göm dig / Kom fram** (button) | turtle | Lie down under the shell. Still water settles and shy creatures come out. In deep water it sinks as a weight; in a current it drifts exactly with the flow. |
-| **Hoppa / context** (button) | — | Hoppa by default (a buck at walk, a leap at speed). Near things it becomes Knuffa, Dra, Prata, Läs, Skaka, Färglägg or Rita. |
+| **Hoppa / Kom fram** (button) | — | Always jumps when standing (a buck at walk, a leap at speed). When hidden, the first press comes out; the next press jumps. |
+| **Använd / context** (button) | — | A separate button offers Knuffa, Dra, Prata, Läs, Skaka, Färglägg or Rita near things. Disabled when nothing is in reach. |
 | **Gnägg** (tap the sköldhäst, or N) | horse | A neigh on land, "blubb" under water. Gulls scatter and the crab drops its signs. Never needed. |
 | **Alvas penna** | Alva | In the prologue she draws a gull and a cloud *freely*, and they live on in the world. Elsewhere (one or two story moments and the final stroke) she taps or traces generous anchors. It can never fail. |
 
@@ -364,11 +365,19 @@ and why.
   - If the sköldhäst stands within 3 HL for 4 s without hiding, Klo's eyes peek out at the shell and the Göm dig
     button pulses once (no text).
   - Then: Klo: "Häst eller sköldpadda?" / Sköldhästen: "Ja." / Klo: "… Jag behöver tänka en stund."
-- **Rule demo** with a torn map corner signed /K: the scrap that landed beside Klo, ruled with a ruler.
-  "Det som händer med kartan händer med världen!"
+- **Rule demo** with a torn map corner signed Kartväktaren: the scrap that landed beside Klo, ruled with a ruler.
+  Use his full name on the map and notes; an initial could be confused with Professor Klo.
+  - Establish the same pink fan shell on the map and on the beach before anything changes.
+  - Klo folds the actual map drawing; after a clear pause the sand and its blue shoreline crease, carrying
+    the existing shell. Hold both folded while the player reads the sköldhäst's surprised reaction.
+  - Unfold the map first and let the beach follow. Hold the restored result while Klo explains the rule,
+    then the sköldhäst connects it to getting the frozen splash back.
+  - Use the ordinary dialogue advance. Reading never runs on a timer. Keep the same camera framing through
+    the experiment, clear of dialogue in either phone orientation; reduced motion keeps the ordered poses.
+  - Pencil textures bend with the paper. No added triangle, diagram labels or connecting dotted line.
 - **Spången**, the hollow dune boardwalk on the way (O3), teaches Trumma.
-- **P1 Streckbron.** A note on a post by the dashed arch says "OBS! Ofärdigt streck. Rör ej! /K". Klo:
-  - "K? Det är inte jag! Jag kan inte ens hålla i en linjal."
+- **P1 Streckbron.** A note on a post by the dashed arch says "OBS! Ofärdigt streck. Rör ej! /Kartväktaren". Klo:
+  - "Kartväktaren igen! Samma namn som på kartan. Varför får vi inte röra strecken?"
   - "Men vem skriver så prydligt? Med linjal, dessutom!"
   - "Det här är ju Alvas streck. Då får vi väl rita vidare?"
 - **Stäppen.**
@@ -395,20 +404,22 @@ and why.
 
 **Kapitel 2: Udden och djupet (about 20–25 min, P4 and P5–P6 in either order)**
 
-- **Opening at the kelp entry.** Klo's torn map corner shows a map mark torn in two, drawn as an empty outline.
-  - The "Vad vet vi?" page reads: "Hitta märkets två halvor – en på land och en i havet."
-  - Each half-mark, when found, is drawn into its half of the outline.
+- **Opening at the kelp entry.** Hold Klo's actual torn map corner while he explains the two missing pieces.
+  - Every geographical map uses the same artwork and torn edges: world pickups, discovery close-ups,
+    the notebook and the assembly. Missing pieces remain silhouettes in the notebook.
+  - Each discovery shows its own piece while Klo explains what the player earned and what is still missing.
 - **P4 Stora språnget** onto Klippudden finds the *Landmärket* among the high wave marks.
   - Klo: "Fem hästlängder! Nytt rekord för sköldpaddor. Och för krabbor."
   - From Klippudden: "Fyren lyser – men bara i spegelbilden."
 - **P5 Lyktfiskarnas väg** and **P6 Strömkarusellen** in Kelpskogen find the *Havsmärket*.
 - **Along the way:**
   - A second note, sealed in a bottle on the seabed: "Snälla, rör inte strecken. Det är för teckningens skull.
-    /K" Klo: "Lappen låg i en flaska, så att den inte blev blöt. K verkar vara rädd för vatten!"
+    /Kartväktaren" Klo: "Lappen låg i en flaska så att den inte blev blöt. Är Kartväktaren rädd för vatten?"
   - More far-off glimpses of other sköldhästar, and old hoofprints in the kelp sand.
 - **End**, the same whichever half-mark is found last:
-  - The pieces join, and a ruler-straight crease runs along the tear. Klo: "Titta på rivkanterna! Kartan gick
-    sönder precis där sidan veks."
+  - Hold all three separated pieces for inspection. They join after the player advances; keep the tear
+    visible while Klo explains it. Then trace the continuous blue route to the lighthouse and hold it
+    through the explanation. Only the completed reveal opens the world current.
   - The outflow from Kelphjärtat opens, and the view follows it to the mouth of Spegelviken. The lamp shines in
     the reflection. On the real lighthouse, the paper figure peeks out through a shutter and snaps it shut.
   - Klo: "Där är figuren med linjalen! Han smällde igen luckan. Vad är han så rädd för?"
@@ -422,10 +433,13 @@ and why.
   - *Talk 1: why* (it starts when the sköldhäst comes close). His memory of the prologue is drawn on a card, one
     picture per line (`src/kv-memory.mjs`): his ruled LAND | HAV map of her page; her line and the sea spreading
     towards his tower while the wave rises; his ruler, the fold and the frozen splash.
-    - Kartväktaren: "Jag är Kartväktaren. /K – det är jag. Jag ritar kartan över Alvas sida."
+    - Kartväktaren: "Jag är Kartväktaren. Det är jag som har skrivit lapparna och ritat kartan över Alvas sida."
     - Kartväktaren: "Stranden växte ut på det vita papperet. Havet följde med – och vågen skulle plaska dit!"
     - Kartväktaren: "Jag är av papper. Blött papper går sönder! Så jag vek undan havet – mitt i plasket."
   - *Control returns; the player walks to the map and presses Prata.*
+  - A close-up shows the same separate LAND/HAV classification sheet as the pier table. Hold it through
+    both conversations and highlight the missing shore between its ruled categories. The geographical
+    map remains a distinct artifact; the table stays on the pier when Kartväktaren moves.
   - Kartväktaren: "Här står LAND. Och här står HAV. Ett rakt streck emellan. Var ska jag skriva in dig?"
   - Sköldhästen (quietly): "Jag finns visst inte på kartan."
   - Klo: "Då är det kartan som är fel. Inte du."
@@ -433,55 +447,38 @@ and why.
   - Sköldhästen: "Strandkanten ska inte vara färdig. Den flyttar sig med varje våg."
   - Sköldhästen: "Det är där jag bor – precis i mitten. Blöt om hovarna varje dag, och alldeles hel!"
   - Kartväktaren: "Hel … fast du är blöt? Det måste jag se."
-- **P8 Det sista strecket.** Klo: "Vi visar honom!" The line Alva began in the prologue, cut short by the fold,
-  appears as one glowing dashed line.
-  - The land half is galloped.
-  - The sköldhäst leaps off the pier's end.
-  - The sea half is drifted while hidden.
-  - Alva's pencil finishes her own line with the last stroke.
+- **P8 Det sista strecket.** Kartväktaren agrees to a small experiment: if one wave wets the paper
+  without tearing it, he will unfold the sea.
+  - Galloping hooves repair the route along the pier.
+  - The sköldhäst leaps into the sea and hides; the current carries the heavy shell to the folded coast
+    at the foot of Pappersfyren. Its weight flattens the corner, recalling Kelphjärtat.
+  - A close-up shows the same piece of coast. Alva traces the visible gap between its pencil ends.
+  - A small wave crosses the repaired coast. It leaves water on the sand and beads on the paper;
+    the page outline stays whole. The picture holds while Kartväktaren responds.
 - **Kartväktaren chooses, on two proofs.**
-  - The line holds in the water: "Strecket går ända ner i vattnet … och papperet håller!"
-  - His own map: Klo gives the pieces back, and they join in the same assembly as in Kapitel 2. "Här är din karta.
-    Den gick sönder när du vek sidan – inte av vattnet."
-  - Kartväktaren: "Så det var vikningen som rev sönder. Förlåt, Alva. Ditt streck behövde få fortsätta."
-  - Kartväktaren: "Jag vecklar ut havet. Och strandkanten ritar jag i blyerts – så att vågorna får flytta den."
-  - He unfolds the page.
+  - Wet paper holds: "Vågen kom över på papperet … och det höll! Då vågar jag släppa fram resten."
+  - Klo returns the already repaired geographical map. Hold its matching tear in close-up through
+    his explanation and Kartväktaren's first apology; do not repeat the chapter 2 assembly.
+  - He apologises to Alva, promises to leave the shore in pencil, and unfolds the sea.
 
-**Final: Havet hittar hem (about 3 min, counted in Kapitel 3)**
+**Final: Havet hittar hem (about 2 min, counted in Kapitel 3)**
 
-- **PLASK.** The splash lands on the hooves and time starts in the same instant: the waves roll, the gulls fly,
-  the foam moves. The view holds her exact composition for 2–3 s, with her three gulls back in place, while
-  "SKÖLD häst" writes itself in pencil.
-- **Galoppen över stäpperna** (45–60 s). No fail, nothing chasing, with an automatic speed boost.
-  - The route is not P8's pier. It runs left along the surf line, where the returning waves splash the hooves as
-    in her drawing:
-    - over Spången, whose planks play the first phrase of the theme;
-    - across the inked Streckbron, where gulls burst up;
-    - through the fjädergräs and backsippa fluff of Stäppen;
-    - round the Galoppbanan loop and down the long slope.
-  - Three automatic språng rise in height. Hoppa adds a mane-and-tail flourish but is never needed.
-  - Other sköldhästar run along the far ridge and never come close: always the one from Galoppbanan, more if she
-    saw more.
-  - **The peak** is Stora språnget onto Klippudden in golden-evening light, with the slow-down at the top of the
-    arc and the full arrangement. Then 1–2 s of silence on the view from Kapitel 2, now with Pappersfyren lit
-    both above the water and in its reflection, and Kartväktaren on his open gallery with his arms wide.
-  - A reduced-motion variant is included.
-- **Klo's conclusion, on Klippudden, as the cool-down.** Klo folds PADDA off its SKÖLDPADDA sign. Held next to
-  "häst", it now reads "SKÖLD häst", her own label.
-  - Klo: "Slutsats: För en sköldpadda – världsrekord. För en häst – helt okej."
-  - Klo: "För en sköldhäst … precis lagom."
-  - Klo: "Mer forskning behövs!"
-- **Epilogue at the table, at dusk.**
-  - A wet hoofprint beside her drawing, and a caption: "Teckningen är lite blöt. Och alldeles hel." The splash
-    reached her real paper, and nothing tore.
-  - A new note: her question, in her own words,† followed by
-    "Forskningen fortsätter."
-  - Fallback (Q5 c): "Snabbaste sköldpaddan eller långsammaste hästen? Forskningen fortsätter."
-  - Optional, off-screen: Mira: "Varför är teckningen blöt?" / Alva: "Forskning."
-  - Optional: three stars twinkle in the window.
-- **The journal's last page:** "Slutsats: Sköldhästar är fantastiska.† Forskningen fortsätter.", then
-  "Din anteckning:", where she can write her own finding. Free exploration continues.
-  - Fallback (Q5 c): "Slutsats: Mer forskning behövs."
+- **Name the destination before moving.** The sköldhäst says they are going home to the beach where they
+  began, to get the splash that has waited throughout the adventure.
+- **Return to the original beach.** The page unfolds directly into Alva's starting composition.
+  The sköldhäst recognises their beach and the same wave. There is no automatic tour of the steppe.
+- **PLASK.** The original wave reaches the hooves; the sea starts moving again. This fulfils the mission.
+- **Klo's conclusion, beside the beach.** Klo folds PADDA off its sign and celebrates the sköldhäst.
+  He explicitly names the next destination: Alva's table.
+- **Epilogue at Alva's table.** A wet hoofprint sits beside the intact drawing. Her question, in her own
+  words, is followed by "Forskningen fortsätter." Optional Mira dialogue and stars remain.
+- **Clear completion.** "Havet är hemma igen!" explains that the coast is repaired, Kartväktaren dared to
+  release the water, and the original wave finally splashed. The button
+  "Tillbaka till stranden – utforska fritt" returns to that beach for optional exploration.
+  The notebook's conclusion remains available without being an extra required ending task.
+- The drawing is saved as soon as it completes. Reloading then repeats the demonstration without
+  redrawing; reloading after the sea unfolds goes straight to the beach. Completion and beachEnd
+  are saved before the table so closing the end card resumes free exploration.
 
 ### 3.5 The theme, in one image
 
@@ -525,11 +522,20 @@ same line, and then Alva's own stroke.
 
 | Action | Touch (phone/tablet) | Keyboard |
 | --- | --- | --- |
-| Move | Floating stick: appears where the left thumb lands; horizontal on land, two-axis in water | Arrows / WASD |
-| Hoppa / context verb | Right button, 56 CSS px, always visible, label changes | Space or E |
-| Göm dig / Kom fram | Right button, 56 CSS px, toggle (`aria-pressed`) | G |
+| Move | Floating stick: appears where the left thumb lands; horizontal on land, two-axis in water | Left/Right or A/D; in water Up/W swims up and X dives |
+| Hoppa / Kom fram | Large lower-right button, always available during play | Space: emerge if hidden or cancel a queued hide; otherwise jump |
+| Context verb | Separate upper-right button: Färglägg, Knuffa, Dra, Prata, Läs, etc.; disabled without a nearby action | E (Enter also interacts when no button has focus) |
+| Göm dig / Kom fram | Shell button beside Hoppa, toggle (`aria-pressed`) | Down/S hides, never toggles out; Space emerges. G retains the toggle shortcut. |
 | Gnägg | Tap the sköldhäst (throttled) | N |
 | Forskningsdagbok / paus | Top corners, 48 px, spaced | J / Esc |
+
+Updated 30 September at Pappa's request: jumping and nearby-object actions have independent buttons.
+Holding Space never repeatedly jumps; pressing shortly before landing still uses the jump buffer.
+Down/S has the same hiding meaning on land and in water, so it cannot also drop through a pier.
+Use the pier's Hoppa i action (E) to enter the water. Space, E and Enter can advance dialogue;
+that press is consumed by the dialogue. Keyboard play shows no control buttons or key reminders.
+The on-screen movement and action controls appear only on touch devices.
+The key reference is available on demand under Inställningar → Tangenter.
 
 - **Portrait:** the play view uses the top ~70% of the screen and the controls sit in a band below. Speech
   bubbles are anchored at the top. Landscape uses corner overlays. The ground line sits high enough that thumbs
@@ -660,19 +666,31 @@ same line, and then Alva's own stroke.
 
 ### 4.4 Hints
 
-The hint ladder is the same everywhere:
+Klo is callable throughout ordinary gameplay with **Ropa på Klo**, K, or a tap on the professor.
+He arrives through the local scenery and offers requested clues, a discovery recap, and local research
+conversation. His visits never award evidence or perform a puzzle action. Reading suspends the simulation
+while his presentation continues, preserving hiding and momentum in currents.
+
+The requested hint ladder is shared with the journal:
 
 | Level | What happens |
 | --- | --- |
-| 0 | Automatic and inside the world: the sköldhäst balks or glances, or the key detail shimmers after 40 s with no progress. |
-| 1 | After 90 s, Alva's own gull from the prologue (above water) or a small fish (below) circles the spot. At the same time the Forskningsdagbok button gets a small pencil mark that wiggles once. |
-| 2 | *Visa en ledtråd*: opening the book goes straight to the current page, where a pencil note from Klo sits in the margin, marked with a small claw doodle (never "/K"). |
-| 3 | *En ledtråd till*: a pencil ghost-sketch of the action (a still frame under reduced motion). |
+| 0 | The world remains readable through reflections, currents, chains and available interaction verbs. Calling Klo itself reveals no solution. |
+| 1 | **En liten ledtråd** notices something about the current experiment without prescribing its solution. |
+| 2 | **Lite tydligare** connects the evidence to a useful ability. |
+| 3 | **Visa mig var** gives the exact current action and controls, with a temporary target mark and contextual instruction. The player can dismiss the help. |
 
 Help levels are stored per save slot:
-- **Utforska i lugn och ro** halves the timers (20 s and 45 s). It is suggested for Mira's slot.
-- **Lagom**, the default, uses the timers above.
-- **Lite mer klurigt** doubles them.
+- **Bara när jag frågar** is the default: no timed solution text or automatic target marks.
+- **Påminn mig om Klo** offers one quiet call-button invitation after 45 seconds without progress on a task.
+- **Guida mig** explicitly enables persistent instructions and timed automatic assistance.
+
+Old saves map easy to guided, normal to reminders, and hard to requested help. Requested clue depth is saved
+by meaningful task, shared across Klo and the journal, and is separate from temporary highlights and visits.
+The opening hole lesson and authored discoveries retain their staging. See
+[the companion handover](../skoldhast/HANDOVER.md#professor-klo-is-now-a-callable-companion-30-september)
+and [browser checks](../tests/browser/skoldhast-companion.mjs) for the implementation and local entrances.
+The original audit remains local in the ignored `docs/skoldhast/klo-companion-audit.md`.
 
 ### 4.5 Puzzle catalogue (8 required)
 
@@ -777,14 +795,16 @@ Help levels are stored per save slot:
 - **Margin note:** "Göm dig på bryggan och räkna luckorna i spegelbilden."
 
 **P8 Det sista strecket**
-- **Setup:** the line Alva began in the prologue, cut short by the fold, appears as one glowing dashed line.
-  - It runs from her beach along the pier in segments of 10 HL at most, with runways between them.
-  - The pier-end språngkant appears with the line.
-  - The line continues under water as a dashed current lane to the lighthouse's lower window.
-- **Solution:** gallop the land segments, leap into the sea, then hide and drift the sea half. At the window the
-  two half-marks glow, and Alva's pencil draws the last stroke (tap or trace; it can't fail).
-- **Taught:** Streck (P1), Språng (P4) and drift (P5–P6).
-- **Margin note:** "Följ den streckade linjen med blicken. Var fortsätter den efter bryggan?"
+- **Purpose:** let one small wave through and show Kartväktaren that the wet paper holds, so he will
+  release the whole sea.
+- **Setup:** a dotted repair route runs along the pier and continues underwater to the folded coast
+  at the foot of the lighthouse. The same coast appears in the world and in the pencil close-up.
+- **Solution:** gallop the broken land segments, leap into the sea, hide and drift to flatten the corner.
+  Alva then traces the missing coast between generous anchors, in either direction.
+- **Payoff:** a small wave visibly crosses, wets the page and recedes. The intact wet paper remains
+  visible for Kartväktaren's reply; a completed pencil gesture alone does not count as proof.
+- **Taught:** Streck (P1), Spr?ng (P4), drift (P5?P6), and shell weight flattening paper (P6).
+- **Margin note:** follow the dotted route to the corner, flatten it, and repair the gap for one wave.
 
 ### 4.6 Optional delights (never required for the ending)
 
@@ -869,7 +889,7 @@ Kelpskogen (kelp entry, Mörka valvet, Kelphjärtat; Veckmuren along its seaward
 | Prolog | Her table | Three margin strokes | The freeze | 1.5 min |
 | Kapitel 1 | Stranden, Stäppen, kelp entry | P1, P2, P3 | Veckmuren, "Med linjal.", and a paper figure on the white paper | 20–25 min |
 | Kapitel 2 | Klippudden, Kelpskogen | P4, P5, P6 | The mouth of Spegelviken; the paper figure snaps a shutter shut | 20–25 min |
-| Kapitel 3 | Spegelviken, Pappersfyren, final | P7, P8 | PLASK, the gallop over the steppe, the epilogue | 15–25 min |
+| Kapitel 3 | Spegelviken, Pappersfyren, final | P7, P8 | Small wave proof, home-beach PLASK, the table and completion card | 15–25 min |
 
 Re-estimate these from timed greybox play in Stage 1–2. The first ten minutes, as Alva should experience them:
 
@@ -878,7 +898,7 @@ Re-estimate these from timed greybox play in Stage 1–2. The first ten minutes,
 | 0:00–1:30 | The prologue: her picture, "Forskare? Här!", her own gull and cloud, the freeze, the blink, the choice | Likeness, the hook, the tone; it works without sound |
 | 1:30–3:00 | Her beach: gallop, Hoppa onto driftwood, Gnägg, gulls scatter, splashing by the frozen wave, Skaka at the shell row; Klo's stopwatch gag | Game feel, joy with no goal, humour |
 | 3:00–4:30 | The stamp sends Klo away; *Göm dig* brings it out; "Häst eller sköldpadda?" "Ja."; the map-corner rule | Both halves are fun; the world rules |
-| 4:30–7:00 | Spången, P1 Streckbron and the /K note; Galoppbanan with gull flocks, low hurdles and the first distant sköldhäst | Speed solves things; the mystery has a culprit; there are more of them |
+| 4:30–7:00 | Spången, P1 Streckbron and Kartväktaren's signed note; Galoppbanan with gull flocks, low hurdles and the first distant sköldhäst | Speed solves things; the mystery has a culprit; there are more of them |
 | 7:00–10:00 | P3 or P2, in her chosen order; a checkpoint as she arrives somewhere beautiful, never a menu test | Real puzzles, an aha and a hook |
 
 ---

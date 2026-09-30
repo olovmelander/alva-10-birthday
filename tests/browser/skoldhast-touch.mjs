@@ -57,9 +57,9 @@ assert.ok(Math.abs(after.vx) < 30, 'letting go stops ' + JSON.stringify(after));
 // Hoppa: a tap hops (a buck in place when standing), away from anything the button could offer instead
 await G(() => { const { G, view } = window.__skoldhast.debug; G.goto('land', { x: 95.6 * 200, y: -0.66 * 200, facing: -1 }); G.player.wet = 0; G.player.wetTimer = 0; view.cam.snap = true; });
 await pg.waitForTimeout(400);
-assert.equal(await pg.locator('.sk-act').textContent(), 'Hoppa');
+assert.equal(await pg.locator('.sk-hop').textContent(), 'Hoppa');
 const hopBefore = await G(() => window.__skoldhast.debug.G.player.y);
-const act = await pg.locator('.sk-btn.act, .sk-act').first().boundingBox();
+const act = await pg.locator('.sk-hop').boundingBox();
 await G(() => { window.__minY = Infinity; const G = window.__skoldhast.debug.G; G.on('hop', () => { window.__hop = true; }); });
 await touch('touchStart', [[act.x + act.width / 2, act.y + act.height / 2]]);
 await pg.waitForFunction(() => window.__hop, null, { timeout: 3000 }).catch(() => {});

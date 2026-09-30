@@ -202,7 +202,7 @@ export async function chapter3(R) {
     await R.until(() => R.p().mode === 'swim', { x: 1 }, 5, 'into the sea');
     await R.hide();
     await R.flag('p8_done', {}, 20);
-    // the final: PLASK, the gallop over the steppes, the conclusion and the epilogue
+    // the final: small-wave proof, home-beach PLASK, conclusion and table
     await R.flag('ended', {}, 180);
     await R.settle();
     assert.equal(G.checkpoint, 'beachEnd');
@@ -226,8 +226,9 @@ if (!process.env.NO_TEST) {
         // after the ending: Signe challenges you, and you always win, even at a crawl (O8)
         await R.flag('signe_met', {}, 20);
         await R.settle();
-        await R.walkTo(107.2);
+        await R.walkTo(R.G.sceneDef.race.signe.x / 200 - 1);
         await R.context('race');
+        assert.ok(Math.abs(R.p().x - R.G.sceneDef.race.start.x) < 1, 'both racers line up at the marked start');
         await R.until(() => R.G.busy === 0 && R.G.actors.signe.pose !== 'idle', {}, 10, 'the race starts');
         await R.until(() => R.has('signe_race'), { x: -0.15 }, 90, 'win the race');
         assert.ok(R.G.actors.signe.x > R.p().x, 'Signe crossed the line after you');

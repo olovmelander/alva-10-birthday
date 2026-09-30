@@ -28,10 +28,11 @@ async function frames(G, seconds, input = () => ({})) {
     return busy;
 }
 
-test('visiting the fold before the wave marks gives a calm reminder and never seizes swimming control', async () => {
+test('guided mode at the fold gives a calm reminder and never seizes swimming control', async () => {
     const flags = ['intro_done', 'b:k1_enter', 'b:k1_kelp_first', 'b:k1_stopwatch',
         'klo_hidden', 'klo_ja', 'rule_demo', 'p1_inked', 'p2_open'];
     const { G, hints, sayings } = stage(flags, { x: 20.8 * HL, y: 3.4 * HL, mode: 'swim' });
+    G.helpLevel = 'guided';
     const busy = await frames(G, 23, () => ({
         x: clamp((20.8 * HL - G.player.x) / 100),
         y: clamp((3.4 * HL - G.player.y) / 100)
@@ -46,13 +47,13 @@ test('visiting the fold before the wave marks gives a calm reminder and never se
 });
 
 test('lighting the vault explains the route while the fish and hidden shell continue through it', async () => {
-    const flags = [...CODE_RESTORE[1].flags, 'ch2_open', 'b:k2_open', 'b:k2_note2'];
+    const flags = [...CODE_RESTORE[1].flags, 'ch2_open', 'b:k2_open', 'b:k2_note2', 'b:k2_vault_purpose'];
     const { G, hints, sayings } = stage(flags, { x: 23.4 * HL, y: 9 * HL, mode: 'swim' });
     const busy = await frames(G, 14, i => i ? {} : { hide: true });
     assert.equal(busy, 0, 'the payoff never pauses the current ride');
     assert.ok(G.has('p5_lit'));
     assert.ok(G.player.x > 27 * HL, 'the swimmer entered the illuminated vault');
-    assert.ok(hints.includes(STORY.k2.lanterns[1]));
+    assert.ok(hints.includes(STORY.k2.vaultReveal[1]));
     assert.equal(sayings.length, 0);
 });
 
@@ -84,6 +85,93 @@ for (const first of ['land', 'sea']) test(`the map story joins both pieces with 
         'Klo never sends the player after a land piece already in the notebook');
     assert.equal(lines.filter(t => t === STORY.k2.halfSea[1]).length, first === 'land' ? 1 : 0,
         'Klo never sends the player after a sea piece already in the notebook');
+    assert.equal(R.log.filter(e => e.kind === 'report' && e.n === 2).length, 1);
+    assert.equal(R.story.objective(), 'toViken');
+});
+
+test('asking for hints only still introduces the cave purpose and the trapped fragment before solving', async () => {
+    const R = createRobot();
+    R.G.helpLevel = 'ask';
+    R.G.restore({ flags: [...CODE_RESTORE[1].flags, 'ch2_open', 'b:k2_open', 'b:k2_note2'], checkpoint: 'trench' });
+    R.G.goto('kelp', { x: 23.1 * HL, y: 8.4 * HL, mode: 'swim' });
+    await R.settle();
+    const lines = () => R.log.filter(e => e.kind === 'say').flatMap(e => e.lines.map(([, text]) => text));
+    assert.ok(lines().includes(STORY.k2.vaultPurpose[0][1]));
+    assert.equal(R.has('p5_lit'), false, 'learning the purpose does not solve the fish puzzle');
+    R.G.flag('p5_lit');
+    R.G.goto('kelp', { x: 33.2 * HL, y: 9.2 * HL, mode: 'swim' });
+    await R.settle();
+    assert.ok(lines().includes(STORY.k2.cornerPurpose[1]));
+    assert.equal(R.has('mark_sea'), false, 'the fragment remains trapped until actual shell contact');
+    await R.hide(); await R.flag('mark_sea', {}, 25); await R.settle();
+    assert.ok(lines().indexOf(STORY.k2.cornerFlat[1]) > lines().indexOf(STORY.k2.cornerPurpose[1]));
+    assert.ok(lines().indexOf(STORY.k2.seaFound[1]) > lines().indexOf(STORY.k2.cornerFlat[1]),
+        'the player sees the physical release before the fragment close-up');
+});
+
+test('an explorer can discover the fold over the roof, save it, repair the map and later light the cave', async () => {
+    let R = createRobot();
+    R.G.restore({ flags: [...CODE_RESTORE[1].flags, 'ch2_open', 'b:k2_open', 'b:k2_note2'], checkpoint: 'trench' });
+    R.G.goto('kelp', { x: 23 * HL, y: 6 * HL, mode: 'swim' });
+    await R.swimTo(30, 8, { max: 45 });
+    await R.swimTo(33.2, 9.2); await R.settle();
+    assert.equal(R.story.objective(), 'p6', 'finding the fold never sends an explorer back for an unrelated switch');
+    await R.hide(); await R.flag('mark_sea', {}, 25); await R.settle();
+    assert.equal(R.has('p5_lit'), false);
+    const saved = R.G.serialize(); R = createRobot(); R.G.restore(saved);
+    assert.ok(R.has('p6_flat') && R.has('mark_sea'));
+    assert.equal(R.has('p5_lit'), false);
+    // Start the separate land approach, then earn the real leap and fragment.
+    R.G.goto('land', { x: 30 * HL, y: -6.3 * HL, facing: -1 });
+    await R.gallopPast(9); await R.flag('p4_leap', {}, 10); await R.settle();
+    await R.walkTo(3.2); await R.flag('ch2_end', {}, 60); await R.settle();
+    assert.ok(R.has('marks_both') && R.has('ch3_open'));
+    assert.equal(R.has('p5_lit'), false, 'the repaired route requires the actual fragments');
+    R.G.goto('kelp', { x: 23.4 * HL, y: 9 * HL, mode: 'swim' });
+    await R.hide(); await R.flag('p5_lit', {}, 20); await R.settle();
+    assert.equal(R.G.puz.school.state, 'lit', 'the optional cave still works after completing the map');
+});
+
+for (const checkpoint of ['trench', 'udden']) test(`a save during the sea fragment release resumes its discovery from ${checkpoint}`, async () => {
+    const R = createRobot();
+    const flags = [...CODE_RESTORE[1].flags, 'ch2_open', 'b:k2_open', 'b:k2_note2', 'p6_flat', 'mark_sea'];
+    if (checkpoint === 'udden') flags.push('mark_land', 'p4_leap', 'b:k2_leap', 'b:k2_mark_land');
+    R.G.restore({ flags, checkpoint });
+    await R.settle();
+    assert.ok(R.has('clue_mark_sea') && R.has('b:k2_mark_sea'), 'committed inventory gets its missing presentation');
+    const lines = R.log.filter(e => e.kind === 'say').flatMap(e => e.lines.map(([, text]) => text));
+    assert.equal(lines.filter(t => t === STORY.k2.seaFound[1]).length, 1);
+    if (checkpoint === 'udden') {
+        assert.ok(R.has('ch2_end'));
+        assert.ok(lines.indexOf(STORY.k2.seaFound[1]) < lines.indexOf(STORY.k2.bothHalves[1]));
+        assert.equal(lines.includes(STORY.k2.cornerFlat[1]), false, 'no underwater camera over a land checkpoint');
+    }
+});
+
+test('collecting the last piece waits for the visible map repair, and a save during assembly recovers it', async () => {
+    let R = createRobot();
+    R.G.restore({ flags: [...CODE_RESTORE[1].flags, 'ch2_open', 'b:k2_open', 'b:k2_note2',
+        'p5_lit', 'b:k2_lit', 'p6_flat', 'mark_sea', 'b:k2_mark_sea', 'p4_leap', 'b:k2_leap'], checkpoint: 'udden' });
+    R.G.goto('land', R.G.scenes.land.spots.landmark);
+    await R.flag('mark_land', {}, 3);
+    assert.equal(R.has('marks_both'), false, 'inventory alone does not open the current');
+    await R.until(() => R.log.some(e => e.kind === 'fx' && e.name === 'mapAssemble' && e.variant === 'assembly'), {}, 12, 'map repair begins');
+    assert.equal(R.has('marks_both'), false, 'the route stays closed while the pieces are joining');
+    const saved = R.G.serialize();
+    R = createRobot(); R.G.restore(saved);
+    await R.flag('ch2_end', {}, 30); await R.settle();
+    assert.ok(R.has('marks_both'), 'the recovered assembly opens the route');
+    assert.equal(R.log.filter(e => e.kind === 'fx' && e.name === 'mapAssemble' && e.variant === 'assembly').length, 1);
+    assert.equal(R.log.filter(e => e.kind === 'report' && e.n === 2).length, 1);
+    R.G.goto('kelp', R.G.scenes.kelp.spots.fromLand);
+    assert.ok(R.G.terrain.lanes.some(l => l.id === 'lane-out'), 'the repaired current is usable in the world');
+});
+
+test('an older save with the current open still finishes its unreported map discovery', async () => {
+    const R = createRobot();
+    R.G.restore({ flags: CODE_RESTORE[2].flags.filter(f => !['ch2_end', 'b:k2_end'].includes(f)), checkpoint: 'overlook' });
+    assert.ok(R.has('marks_both'));
+    await R.flag('ch2_end', {}, 30); await R.settle();
     assert.equal(R.log.filter(e => e.kind === 'report' && e.n === 2).length, 1);
     assert.equal(R.story.objective(), 'toViken');
 });

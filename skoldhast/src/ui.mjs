@@ -11,7 +11,8 @@
  * The UI never changes the game directly; it returns promises and calls the
  * handlers main.mjs gives it.
  */
-import { UI, NAMES, JOURNAL, HINTS, HER_TEXT, WORD_CODES, FAMILY, MENU, MAP, DRAWING } from './content/sv.mjs';
+import { UI, NAMES, JOURNAL, HINTS, HER_TEXT, WORD_CODES, FAMILY, MENU, MAP, DRAWING, THREAD, KLO_COMPANION } from './content/sv.mjs';
+import { describeThread } from './story-thread.mjs';
 
 import { createMapBook, createMapThumb } from './mapbook.mjs';
 import { createDrawing } from './drawing.mjs';
@@ -68,7 +69,12 @@ export function createUI(host, { assetBase, handlers }) {
     // game has already downloaded: frame rectangles from the atlas JSON, so a rebuilt atlas still fits.
     const atlases = new Map();
     const atlas = (name) => {
-        if (!atlases.has(name)) atlases.set(name, fetch(asset(`${name}.json`)).then((r) => (r.ok ? r.json() : null)).catch(() => null));
+        if (!atlases.has(name)) atlases.set(name, fetch(asset(`${name}.json`)).then((r) => (r.ok ? r.json() : null)).then(async j => {
+            if (!j) return null;
+            const picture = new Image(); picture.src = asset(j.meta.image);
+            await picture.decode();
+            return j;
+        }).catch(() => null));
         return atlases.get(name);
     };
     function art(atlasName, frame, cls = '') {
@@ -88,6 +94,20 @@ export function createUI(host, { assetBase, handlers }) {
     }
     const tape = (cls = '') => { const t = el('span', 'sk-tape' + (cls ? ' ' + cls : '')); t.setAttribute('aria-hidden', 'true'); return t; };
     const lessMotion = () => root.classList.contains('less-motion') || !!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+
+    // Small portraits use the same atlas drawings as the characters on the page.
+    // Keep them beside the existing name, with no new portrait asset to download.
+    function portrait(who, pose) {
+        const face = el('span', 'sk-speaker-face face-' + who);
+        face.setAttribute('aria-hidden', 'true');
+        if (who === 'horse') face.append(art('hero', 'hero-head'), art('hero', 'hero-eye-open'), art('hero', 'hero-forelock'));
+        else if (who === 'klo') face.append(art('npcs', pose === 'peek' ? 'klo-peek' : 'klo-idle-1'));
+        else if (who === 'kv') face.append(art('npcs-bay', 'kv-part-head-normal'));
+        else if (who === 'signe') face.append(art('npcs-land', 'turtle-signe'));
+        else return null;
+        return face;
+    }
+    atlas('hero'); atlas('npcs');
 
     // ---------------------------------------------------------------------------
     // HUD: journal and pause buttons, pencil counter, caption line
@@ -114,7 +134,7 @@ export function createUI(host, { assetBase, handlers }) {
     pauseBtn.addEventListener('click', () => handlers.openPause());
 
     // ---------------------------------------------------------------------------
-    // Controls: floating stick area (left) and two buttons (right)
+    // Controls: separate jump, shell and nearby-object buttons.
     // ---------------------------------------------------------------------------
     const controls = el('div', 'sk-controls');
     const stickZone = el('div', 'sk-stick-zone');
@@ -125,13 +145,22 @@ export function createUI(host, { assetBase, handlers }) {
     stickBase.appendChild(stickKnob);
     stickZone.appendChild(stickBase);
     const btnWrap = el('div', 'sk-btns');
-    const actBtn = el('button', 'sk-btn sk-act', UI.hop);
+    const hopBtn = el('button', 'sk-btn sk-hop', UI.hop);
+    hopBtn.type = 'button';
+    hopBtn.setAttribute('aria-keyshortcuts', 'Space');
+    hopBtn.title = UI.jumpHelp;
+    const actBtn = el('button', 'sk-btn sk-act', UI.interact);
     actBtn.type = 'button';
+    actBtn.setAttribute('aria-keyshortcuts', 'E Enter');
+    actBtn.title = UI.interactHelp;
+    actBtn.disabled = true;
     const hideBtn = el('button', 'sk-btn sk-hide', UI.hide);
     hideBtn.type = 'button';
+    hideBtn.setAttribute('aria-keyshortcuts', 'ArrowDown S G');
+    hideBtn.title = UI.hideHelp;
     hideBtn.setAttribute('aria-pressed', 'false');
-    for (const b of [actBtn, hideBtn]) b.style.backgroundImage = `url("${img('ui-btn')}")`;
-    btnWrap.append(hideBtn, actBtn);
+    for (const b of [hopBtn, actBtn, hideBtn]) b.style.backgroundImage = `url("${img('ui-btn')}")`;
+    btnWrap.append(hideBtn, actBtn, hopBtn);
     controls.append(stickZone, btnWrap);
     root.appendChild(controls);
 
@@ -150,6 +179,7 @@ export function createUI(host, { assetBase, handlers }) {
     root.appendChild(dlg);
     let dlgResolve = null;
     let dlgReadyAt = 0;
+    let speaker = null;
     function advance() {
         if (!dlgResolve || performance.now() < dlgReadyAt) return;
         const r = dlgResolve; dlgResolve = null; r();
@@ -157,17 +187,55 @@ export function createUI(host, { assetBase, handlers }) {
     dlg.addEventListener('pointerup', (e) => { e.stopPropagation(); advance(); });
     dlgNext.addEventListener('click', (e) => { e.stopPropagation(); advance(); });
 
-    async function say(lines) {
+    async function say(lines, { onSpeaker } = {}) {
         for (const [who, text] of lines) {
             if (!text) continue;
+            speaker = who;
             dlg.className = 'sk-dialogue on who-' + who;
             dlgName.textContent = who === 'note' || who === 'caption' ? '' : (NAMES[who] || '');
+            const face = portrait(who);
+            if (face) dlgName.prepend(face);
             dlgText.textContent = text;
+            onSpeaker?.(who);
             handlers.onSay?.(who, text);
             dlgReadyAt = performance.now() + 350;
             await new Promise((r) => { dlgResolve = r; });
         }
+        speaker = null;
+        onSpeaker?.(null);
         dlg.className = 'sk-dialogue';
+    }
+
+    // A quiet pencil speech mark connects the paper card to its actual speaker.
+    // It follows the rendered head (including the opening's paper/camera transforms).
+    const speaking = el('div', 'sk-speaking');
+    speaking.setAttribute('aria-hidden', 'true');
+    speaking.innerHTML = '<svg viewBox="0 0 36 30" fill="none"><path class="sk-speaking-paper" d="M6 3 Q17 1 28 3 Q33 4 33 10 L32 17 Q31 21 24 21 L17 28 L17 22 Q3 24 3 16 L2 9 Q2 4 6 3Z"/><path class="sk-speaking-pencil" d="M6 3 Q17 1 28 3 Q33 4 33 10 L32 17 Q31 21 24 21 L17 28 L17 22 Q3 24 3 16 L2 9 Q2 4 6 3Z"/><path class="sk-speaking-dots" d="M10 12h1 M17 12h1 M24 12h1"/></svg>';
+    root.appendChild(speaking);
+    let obstacles = [], measureAt = 0, markWho = null;
+    function updateSpeaker(who, bounds) {
+        if (!who || !bounds || panel.classList.contains('on')) { speaking.classList.remove('on'); markWho = null; return; }
+        const W = root.clientWidth, H = root.clientHeight;
+        const x = (bounds.minX + bounds.maxX) / 2, y = bounds.minY;
+        // An off-screen character is still identified by the portrait and name.
+        if (x < 0 || x > W || bounds.maxY < 0 || y > H) { speaking.classList.remove('on'); return; }
+        const now = performance.now();
+        if (now >= measureAt || markWho !== who) {
+            const origin = root.getBoundingClientRect();
+            obstacles = [...root.querySelectorAll('.sk-dialogue.on, .sk-hintbubble.on, .sk-think.on, .sk-goal:not(.empty), .sk-hud:not(.off) .sk-round')]
+                .filter(n => !n.closest('.sk-guide.off')).map(n => {
+                    const r = n.getBoundingClientRect();
+                    return { left: r.left - origin.left, right: r.right - origin.left, top: r.top - origin.top - (n === dlg ? 38 : 0), bottom: r.bottom - origin.top };
+                });
+            measureAt = now + 150;
+        }
+        const left = x - 18, top = y - 36;
+        const clear = left >= 4 && left + 36 <= W - 4 && top >= 4 && top + 30 <= H - 4 &&
+            !obstacles.some(r => left < r.right + 4 && left + 36 > r.left - 4 && top < r.bottom + 4 && top + 30 > r.top - 4);
+        speaking.classList.toggle('on', clear);
+        speaking.dataset.speaker = who;
+        speaking.style.transform = `translate(${Math.round(left)}px, ${Math.round(top)}px)`;
+        markWho = who;
     }
 
     // choices (the prologue)
@@ -286,8 +354,34 @@ export function createUI(host, { assetBase, handlers }) {
             },
             (c) => {
                 c.classList.add('sk-j-known');
-                c.append(el('h3', '', JOURNAL.known));
-                const hint = state.hint || HINTS[state.objective] || HINTS.explore;
+                const thread = describeThread(state.flags, state.objective);
+                c.append(el('h3', '', THREAD.missionLabel));
+                c.append(el('p', 'sk-j-question sk-j-mission', thread.mission));
+                c.append(el('p', 'sk-j-recap', state.companion?.recap || thread.recap));
+                if (state.companion) {
+                    const help = state.companion, W = KLO_COMPANION.ui;
+                    c.append(el('h4', '', W.remember));
+                    const answer = el('p', 'sk-j-margin');
+                    answer.style.backgroundImage = `url("${img('ui-claw')}")`;
+                    answer.setAttribute('aria-live', 'polite');
+                    const request = btn('', () => {
+                        Object.assign(help, help.request());
+                        refresh();
+                        answer.scrollIntoView?.({ block: 'nearest', behavior: lessMotion() ? 'auto' : 'smooth' });
+                    }, 'sk-j-help');
+                    request.dataset.focus = '';
+                    const refresh = () => {
+                        answer.textContent = help.text || W.question;
+                        answer.classList.toggle('on', help.level > 0);
+                        request.textContent = [W.hint, W.nudge, W.exact, W.repeat][help.level];
+                        request.prepend(icon('bulb'));
+                    };
+                    refresh(); c.append(answer, request);
+                } else {
+                c.append(el('h4', '', THREAD.whyLabel));
+                c.append(el('p', 'sk-j-purpose', thread.why));
+                c.append(el('h4', '', THREAD.nextLabel));
+                const hint = state.hint || thread.conversation?.hint || HINTS[state.objective] || HINTS.explore;
                 c.append(el('p', 'sk-j-question', hint.q));
                 const note = el('p', 'sk-j-margin');
                 note.style.backgroundImage = `url("${img('ui-claw')}")`;
@@ -303,6 +397,7 @@ export function createUI(host, { assetBase, handlers }) {
                 b2.prepend(icon('bulb'));
                 b1.dataset.focus = '';
                 c.append(b1, note, sketch);
+                }
                 // the same map as the clue page, small: the pieces found so far
                 c.append(createMapThumb(state, { mapUrl: img('map-page'), onOpen: () => showJournalPage(4) }));
                 c.append(btn(MAP.inspect, () => showJournalPage(4), 'sk-mapbook-open'));
@@ -562,7 +657,7 @@ export function createUI(host, { assetBase, handlers }) {
             help.setAttribute('role', 'radiogroup');
             help.setAttribute('aria-label', UI.help);
             const opts = el('div', 'sk-help-opts');
-            for (const [v, l] of [['easy', UI.helpEasy], ['normal', UI.helpNormal], ['hard', UI.helpHard]]) {
+            for (const [v, l] of [['ask', UI.helpAsk], ['remind', UI.helpRemind], ['guided', UI.helpGuided]]) {
                 const lab = el('label', 'sk-radio');
                 const r = el('input'); r.type = 'radio'; r.name = 'sk-help'; r.value = v; r.checked = s.help === v;
                 r.addEventListener('change', () => { if (r.checked) handlers.setSetting('help', v); });
@@ -593,11 +688,25 @@ export function createUI(host, { assetBase, handlers }) {
             vol('music', UI.music); vol('sfx', UI.sound); vol('voice', UI.voices);
             const cols = el('div', 'sk-set-cols');
             cols.append(colA, colB);
-            c.append(cols, btn(UI.close, closePanel, 'primary'));
+            const keys = el('details', 'sk-key-reference');
+            keys.append(el('summary', '', UI.keybindings), el('p', 'sk-key-list', UI.keyboardHelp),
+                el('p', 'sk-key-note', UI.jumpHelp), el('p', 'sk-key-note', `${UI.holdToHide}: ${UI.hideHoldHelp}`));
+            c.append(cols, keys, btn(UI.close, closePanel, 'primary'));
         }, { onClose: handlers.resume, kind: 'settings' });
     }
 
     // --- chapter report ----------------------------------------------------------------
+    function ending() {
+        return new Promise(resolve => openPanel((c, sheet) => {
+            c.classList.add('sk-ending');
+            sheet.append(tape('sk-tape-top'));
+            c.append(art('table', 'hoofprint-wet', 'sk-ending-print'));
+            c.append(el('h2', '', UI.endingTitle));
+            c.append(el('p', '', UI.endingBody));
+            c.append(btn(UI.endingExplore, closePanel, 'primary'));
+        }, { onClose: resolve, kind: 'ending' }));
+    }
+
     function report(n) {
         return new Promise((resolve) => {
             openPanel((c, sheet) => {
@@ -713,22 +822,28 @@ export function createUI(host, { assetBase, handlers }) {
 
     // ---------------------------------------------------------------------------
     return {
-        root, hud, controls, stickZone, stickBase, stickKnob, actBtn, hideBtn,
-        say, choice, toast, caption: captionShow, pulse, report, journal, pauseMenu, settings, title, slotPicker, draw,
+        root, hud, controls, stickZone, stickBase, stickKnob, hopBtn, actBtn, hideBtn, portrait, updateSpeaker,
+        say, choice, toast, caption: captionShow, pulse, report, ending, journal, pauseMenu, settings, title, slotPicker, draw,
         closePanel,
         panelOpen: () => panel.classList.contains('on'),
         dialogueOpen: () => !!dlgResolve,
+        speaker: () => speaker,
         advance,
         setPencils(n, total, region = '') {
             pencilCount.textContent = total ? UI.pencilBadge(n, total) : '';
             pencilCount.title = UI.pencilRegion(region || UI.pencils, n, total);
             pencilCount.setAttribute('aria-label', pencilCount.title);
         },
-        setContext(label, hidden) {
-            const l = label || UI.hop;
+        setContext(label, hidden, holdToHide = false) {
+            const l = label || UI.interact;
             if (actBtn.textContent !== l) actBtn.textContent = l;
-            const hl = hidden ? UI.show : UI.hide;
-            if (hideBtn.textContent !== hl) { hideBtn.textContent = hl; hideBtn.setAttribute('aria-pressed', hidden ? 'true' : 'false'); }
+            actBtn.disabled = !label || hidden;
+            const hopLabel = hidden ? UI.show : UI.hop;
+            if (hopBtn.textContent !== hopLabel) hopBtn.textContent = hopLabel;
+            const hl = hidden && !holdToHide ? UI.show : UI.hide;
+            if (hideBtn.textContent !== hl) hideBtn.textContent = hl;
+            hideBtn.setAttribute('aria-pressed', hidden ? 'true' : 'false');
+            hideBtn.title = holdToHide ? UI.hideHoldHelp : UI.hideHelp;
         },
         showControls(on) { controls.classList.toggle('off', !on); hud.classList.toggle('off', !on); },
         setBigText(on) { root.classList.toggle('big-text', !!on); },
