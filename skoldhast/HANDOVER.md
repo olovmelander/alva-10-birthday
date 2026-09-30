@@ -1,5 +1,20 @@
 # Sköldhästen – handover
 
+## Latest: Kartväktaren easy to see in the intro (30 September)
+
+Pappa: "It is hard to see the kartväktaren in the intro scene." Fixed in `prologue.mjs` and `opening-canvas.mjs`:
+
+- He is a quarter larger on the gallery (`KEEPER_SCALE` .21) and no longer faded by distance.
+- The view leans towards the lighthouse **as soon as the sköldhäst invites her to draw the shore**, not only at
+  the fold, so she draws her line while he watches and measures it. The lean frames what matters: from the
+  picture's edge to the paper's edge, and from his head on the gallery down to her waterline, placed between the
+  drawing prompt and the drawing buttons, so her dots are never hidden. Once she has drawn, the prompt and buttons
+  go and the view moves in closer (`towerFree`) while he shrinks back and his ruler flies; it eases out to the
+  whole sheet while the corner folds. Reduced motion keeps the wide view.
+- On a landscape phone he is about 40 px tall at the fold (was about 20), on a portrait phone about 45 px.
+- `tests/browser/skoldhast-opening.mjs` samples the beach before the lean (with the invitation's dialogue box
+  hidden for that one picture) and converts her traced points with the framing she drew in.
+
 ## Latest: one beautiful map, the same everywhere (30 September)
 
 Branch `claude/skoldhast-intro-lighthouse` (on top of the lighthouse work). Pappa asked for the map in the game

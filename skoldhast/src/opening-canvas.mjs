@@ -25,7 +25,7 @@ const LH_SCALE = .152;
 const LH_GALLERY = 1000, LH_LAMP = 1100, LH_SHUTTER = 78; // px above its base / from its axis (world.mjs viken)
 const LH_GAME = 1.37;                                   // the game draws it ×1.37; shutters and lamp are sized for that
 // his size: on the gallery about as in the game (a little larger to read on a phone); on the sketch's islet larger
-const KEEPER_SCALE = .165, KEEPER_SKETCH_SCALE = .18;
+const KEEPER_SCALE = .21, KEEPER_SKETCH_SCALE = .18;
 
 export function createOpeningCanvas(PIXI, { parent, texture, picture, waterY, bed = [], sample = () => null, lessMotion = false }) {
     const container = new PIXI.Container();
@@ -58,8 +58,6 @@ export function createOpeningCanvas(PIXI, { parent, texture, picture, waterY, be
     const sketch = new PIXI.Graphics(); sketch.label = 'opening-tower-sketch';
     const lighthouse = new PIXI.Container(); lighthouse.label = 'opening-lighthouse';
     const keeper = new PIXI.Container(); keeper.label = 'opening-keeper';
-    // distance: a little paler than the picture in front
-    keeper.tint = 0xe6e1d6;
     container.addChild(ridge, water, reeds, light, tower, sketch, lighthouse, figure, keeper, motion);
     let lamp = null;
     let rig = null;

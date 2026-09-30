@@ -58,6 +58,9 @@ export function createTable({ PIXI, app, view, G, ui, audio, assets, makeHero })
     // Just before the fold the view leans towards the far lighthouse, so even a phone
     // sees the small paper man on its gallery measure her line and shrink back.
     let towerFrame = 0;
+    // 0 while her drawing prompt and buttons are on screen, 1 once they have gone:
+    // then the view moves in closer on him as he measures her line and shrinks back
+    let towerFree = 0;
     // Alva's notes: the opening begins in her head, her picture framed beside her note.
     let notes = null, notesFrame = 0;
     const wakeStroke = new PIXI.Graphics(); wakeStroke.label = 'opening-wake-stroke';
@@ -93,11 +96,17 @@ export function createTable({ PIXI, app, view, G, ui, audio, assets, makeHero })
         let s = lerp(wide, cs, closeFrame);
         let px = W / 2 - lerp(PW / 2, cx, closeFrame) * s, py = H / 2 - lerp(PH / 2, cy, closeFrame) * s;
         if (towerFrame > 0) {
-            // her line's end, the lighthouse and the corner that will fold, never past the paper's right edge
-            const sT = Math.max(wide, Math.min((W - 24) / 440, (H - 40) / 420));
-            const cxT = Math.min(820, PW + 16 - W / 2 / sT), cyT = 420;
+            // Frame what matters: from the picture's edge (where her line starts) to the paper's
+            // edge, and from the paper man's head on the gallery down to her waterline. It sits
+            // between the drawing prompt at the top and the drawing buttons at the bottom (her
+            // dots must stay free to trace), so a phone sees him as large as it can.
+            const base = canvasLife?.landmarks.tower.y ?? PIC.y + 380;
+            const f = { x0: PIC.x + PIC.w - 12, x1: PW - 2, y0: base - 196, y1: base + 50 };
+            const inset = lerp(Math.min(130, H * .26), 34, towerFree), below = lerp(Math.min(70, H * .17), 8, towerFree);
+            const sT = Math.max(wide, Math.min((W - 28) / (f.x1 - f.x0), (H - inset - below - 8) / (f.y1 - f.y0), 1.8));
+            const cxT = Math.min((f.x0 + f.x1) / 2, PW + 8 - (W / 2) / sT), cyT = (f.y0 + f.y1) / 2;
             s = lerp(s, sT, towerFrame);
-            px = lerp(px, W / 2 - cxT * sT, towerFrame); py = lerp(py, H / 2 - cyT * sT, towerFrame);
+            px = lerp(px, W / 2 - cxT * sT, towerFrame); py = lerp(py, (H + inset - below) / 2 - cyT * sT, towerFrame);
         }
         if (notes) {
             // while she writes, her picture fills the space beside her note
@@ -163,7 +172,7 @@ export function createTable({ PIXI, app, view, G, ui, audio, assets, makeHero })
 
     function start(evening = false) {
         frozen = false; table.alpha = 1; t = 0;
-        heroAwake = true; closeFrame = 0; kloFrame = 0; focus.k = 0; towerFrame = 0; worldSpeed = 1; table.openingAwake = true;
+        heroAwake = true; closeFrame = 0; kloFrame = 0; focus.k = 0; towerFrame = 0; towerFree = 0; worldSpeed = 1; table.openingAwake = true;
         notes?.destroy(); notes = null; notesFrame = 0;
         openingFold?.destroy(); openingFold = null; shore.clear(); seaWash.clear();
         canvasLife?.destroy(); canvasLife = null;
@@ -490,6 +499,9 @@ export function createTable({ PIXI, app, view, G, ui, audio, assets, makeHero })
         picKlo.setPose('point');
         // the shoreline, traced along generous anchors from the picture's edge; the crease cuts it short
         await ui.say([STORY.prolog.shoreInvite]);
+        // The view leans out towards the white paper where she will draw: the far
+        // lighthouse comes close, with the small paper man on its gallery watching.
+        if (!G.lessMotion) await tween(1.1, (u) => { towerFrame = u * u * (3 - 2 * u); layout(); });
         // The line starts exactly where the wave's crest meets the sea at the
         // picture's edge and runs level on the sea's own height.
         const [shoreStart] = worldToPaper(wave.shoreX, 0);
@@ -792,7 +804,7 @@ export function createTable({ PIXI, app, view, G, ui, audio, assets, makeHero })
             canvasLife?.setMeasure(e);
             paintSeaFollows(endpoint, G.lessMotion ? 1 : e);
             if (u >= .72) canvasLife?.setKeeper('fold');
-            if (!G.lessMotion) { towerFrame = e; layout(); }
+            if (!G.lessMotion) { towerFrame = Math.max(towerFrame, e); towerFree = e; layout(); }
         });
         const front = PIXI.RenderTexture.create({ width: PW, height: PH, resolution: 1 });
         // Render an unattached copy: promoting the live sheet to a render root
