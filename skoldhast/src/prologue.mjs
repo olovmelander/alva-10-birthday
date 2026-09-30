@@ -41,12 +41,16 @@ export function createTable({ PIXI, app, view, G, ui, audio, assets, makeHero })
     const pic = new PIXI.Sprite(PIXI.Texture.EMPTY);
     const onPaper = new PIXI.Container();
     const shore = new PIXI.Graphics(); shore.label = 'opening-shoreline';
-    sheet.addChild(paper, pic, shore);
+    // Her sea deepening along the new line: it follows her out onto the white
+    // paper, towards the far tower. That is what Kartväktaren saw, and feared.
+    const seaWash = new PIXI.Graphics(); seaWash.label = 'opening-sea-follows';
+    sheet.addChild(paper, pic, seaWash, shore);
     paperLayer.addChild(sheet, onPaper);
     const extras = new PIXI.Container(); // window, pencils lying around
     table.addChildAt(extras, 1);
     let picHero = null, picKlo = null, wave = null;
     let canvasLife = null, heroAwake = true, closeFrame = 0, kloFrame = 0;
+    let kloPaper = null; // where Klo stands on the paper: the first torn map scrap lands beside him
     // Slow motion: how fast the picture's world runs (horse, mane, wave spray),
     // and a closer camera that follows the falling drop.
     let worldSpeed = 1;
@@ -151,7 +155,7 @@ export function createTable({ PIXI, app, view, G, ui, audio, assets, makeHero })
         frozen = false; table.alpha = 1; t = 0;
         heroAwake = true; closeFrame = 0; kloFrame = 0; focus.k = 0; worldSpeed = 1; table.openingAwake = true;
         notes?.destroy(); notes = null; notesFrame = 0;
-        openingFold?.destroy(); openingFold = null; shore.clear();
+        openingFold?.destroy(); openingFold = null; shore.clear(); seaWash.clear();
         canvasLife?.destroy(); canvasLife = null;
         picKlo?.destroy(); picKlo = null;
         wakeStroke.removeFromParent(); wakeStroke.clear();
@@ -171,7 +175,7 @@ export function createTable({ PIXI, app, view, G, ui, audio, assets, makeHero })
         table.visible = false;
         notes?.destroy(); notes = null; notesFrame = 0;
         ui.root.classList.remove('table-mode');
-        openingFold?.destroy(); openingFold = null; shore.clear();
+        openingFold?.destroy(); openingFold = null; shore.clear(); seaWash.clear();
         canvasLife?.destroy(); canvasLife = null;
         picKlo?.destroy(); picKlo = null;
         wakeStroke.removeFromParent(); wakeStroke.clear();
@@ -301,6 +305,7 @@ export function createTable({ PIXI, app, view, G, ui, audio, assets, makeHero })
         for (let wx = wave.shoreX; wx <= wave.shoreX + h(2.4); wx += 20) bed.push(worldToPaper(wx, ground(wx) ?? 0));
         canvasLife = createOpeningCanvas(PIXI, { parent: sheet, texture: T, picture: PIC, waterY, bed,
             sample: pictureSampler(pictureTexture), lessMotion: () => !!G.lessMotion });
+        sheet.setChildIndex(seaWash, sheet.children.length - 1);
         sheet.setChildIndex(shore, sheet.children.length - 1);
         const sp = G.scenes.land.spots.splash;
         const [sx, sy] = worldToPaper(sp.x, sp.y);
@@ -344,6 +349,7 @@ export function createTable({ PIXI, app, view, G, ui, audio, assets, makeHero })
         const kloX = startPoint.x - h(.86);
         const kloY = G.terrain.groundNear(kloX, startPoint.y, 90) ?? startPoint.y;
         const [kx, ky] = worldToPaper(kloX, kloY);
+        kloPaper = [kx, ky];
         const zoom = pictureCam().zoom;
         const rimCss = shellRim()[0];
         const rimPaper = [(rimCss[0] - paperLayer.x) / paperLayer.scale.x, (rimCss[1] - paperLayer.y) / paperLayer.scale.y];
@@ -697,11 +703,81 @@ export function createTable({ PIXI, app, view, G, ui, audio, assets, makeHero })
         });
     }
 
+    /** Her sea follows the new line out onto the white paper (u: 0 → 1). */
+    function paintSeaFollows([ex, ey], u) {
+        seaWash.clear();
+        const x0 = PIC.x + PIC.w, front = x0 + (ex - x0 + 10) * u;
+        if (front <= x0 + 4) return;
+        // a thin sheet of her sea running along the new line, thinning towards its front
+        const depth = (x) => 4 + 14 * (1 - (x - x0) / Math.max(1, front - x0));
+        const top = [], bottom = [];
+        for (let x = x0 - 2; x <= front; x += 6) { top.push(x, ey - 1.5); bottom.unshift(x, ey + depth(x)); }
+        seaWash.poly([...top, front, ey + 2, ...bottom]).fill({ color: 0x5b8fc4, alpha: .55 });
+        for (let r = 0; r < 3; r++) {
+            const y = ey + 3 + r * 3.4, x1 = front - 8 - r * 14;
+            if (x1 > x0) seaWash.moveTo(x0 - 2, y).lineTo(x1, y + Math.sin(r * 2.1) * .6)
+                .stroke({ width: 1.3, color: 0x2f5f8f, alpha: .32 - r * .07, cap: 'round' });
+        }
+        // its front: a small curl of foam pushing on towards the tower
+        const fy = ey - 1;
+        seaWash.moveTo(front - 11, fy + 3).quadraticCurveTo(front - 4, fy - 7, front + 3, fy - 1)
+            .stroke({ width: 2, color: 0x244f8f, alpha: .8, cap: 'round' });
+        for (let i = 0; i < 3; i++) seaWash.circle(front - 9 + i * 4.5, fy - 3 - Math.sin(i * 1.2) * 2.5, 2.4 - i * .4)
+            .fill({ color: 0xffffff, alpha: .95 }).stroke({ width: .9, color: 0x244f8f, alpha: .6 });
+    }
+    /** A torn scrap of Kartväktaren's ruled map (paper units, centred). */
+    function mapScrap(tint) {
+        const g = new PIXI.Graphics(); g.label = 'opening-map-scrap';
+        const edge = [-12, -8, -3, -10, 10, -8, 13, -1, 9, 4, 12, 9, 1, 8, -6, 10, -12, 6];
+        g.poly(edge).fill({ color: 0xf8f0da });
+        if (T('mat-paper')) g.poly(edge).fill({ texture: T('mat-paper'), textureSpace: 'global', alpha: .7 });
+        g.poly(edge).stroke({ width: 1.2, color: 0x8c7651, alpha: .8 });
+        g.moveTo(-8, -3).lineTo(8, -4).stroke({ width: 1.4, color: tint, alpha: .7 });
+        g.moveTo(-8, 3).lineTo(5, 2).stroke({ width: 1, color: 0x5d574f, alpha: .5 });
+        return g;
+    }
+    let scrapsFlying = false;
+    function launchScraps() {
+        const from = canvasLife?.landmarks.light || { x: PIC.x + PIC.w + 148, y: PIC.y + 300 };
+        const sp = G.scenes.land.spots.splash;
+        const [sx, sy] = worldToPaper(sp.x + h(1.1), h(0.5));
+        const k = kloPaper || [PIC.x + 240, PIC.y + 470];
+        // one to the sand beside Klo (Kapitel 1), one over the land (Klippudden) and one into the sea (the deep)
+        const paths = [
+            { to: [k[0] + 30, k[1] - 3], lift: 120, dur: 2.9, spin: 5.2, tint: 0x607955, rest: true },
+            { to: [PIC.x - 30, PIC.y + 150], lift: 90, dur: 2.6, spin: -4.1, tint: 0x876548 },
+            { to: [sx, sy], lift: 70, dur: 2.2, spin: 3.4, tint: 0x315e7f }
+        ];
+        for (const [i, path] of paths.entries()) {
+            if (G.lessMotion && !path.rest) continue;
+            const g = mapScrap(path.tint); onPaper.addChild(g);
+            let u = G.lessMotion ? .999 : 0;
+            const start = [from.x + i * 6, from.y + i * 8];
+            g.position.set(...start); g.alpha = 0;
+            run((dt) => {
+                if (g.destroyed) return true;
+                u = Math.min(1, u + dt / path.dur);
+                const e = u * u * (3 - 2 * u), sway = Math.sin(u * 13 + i) * 12 * (1 - u);
+                g.position.set(lerp(start[0], path.to[0], e) + sway, lerp(start[1], path.to[1], e) - Math.sin(u * Math.PI) * path.lift);
+                g.rotation = path.rest ? path.spin * u * (1 - u) * 4 + .12 * u : path.spin * u;
+                g.alpha = path.rest ? Math.min(1, u * 6) : Math.min(1, u * 6) * (1 - Math.max(0, (u - .78) / .22));
+                // the one that lands settles flat on the sand
+                g.scale.set(1.3, path.rest ? lerp(1.3, .7, e) : 1.3);
+                return u >= 1;
+            });
+        }
+    }
+
     async function crease(endpoint) {
+        scrapsFlying = false;
         setPhase('fold-anticipation');
         // A distant measuring glint settles on the new stroke before the same
         // ruler edge approaches. The gesture is visible; its motive is not.
-        await tween(G.lessMotion ? .5 : 1.15, u => canvasLife?.setMeasure(u * u * (3 - 2 * u)));
+        await tween(G.lessMotion ? .5 : 1.15, (u) => {
+            const e = u * u * (3 - 2 * u);
+            canvasLife?.setMeasure(e);
+            paintSeaFollows(endpoint, G.lessMotion ? 1 : e);
+        });
         const front = PIXI.RenderTexture.create({ width: PW, height: PH, resolution: 1 });
         // Render an unattached copy: promoting the live sheet to a render root
         // would invalidate its inherited transform and the mask added next.
@@ -712,7 +788,7 @@ export function createTable({ PIXI, app, view, G, ui, audio, assets, makeHero })
         // installing the sheet mask; never promote the live sheet to a root.
         const canvasIndex = canvasLife ? sheet.getChildIndex(canvasLife.container) : -1;
         if (canvasLife) copy.addChild(canvasLife.container);
-        copy.addChild(new PIXI.Graphics(shore.context));
+        copy.addChild(new PIXI.Graphics(seaWash.context), new PIXI.Graphics(shore.context));
         app.renderer.render({ container: copy, target: front, clear: true });
         if (canvasLife) sheet.addChildAt(canvasLife.container, canvasIndex);
         copy.destroy({ children: true });
@@ -747,6 +823,8 @@ export function createTable({ PIXI, app, view, G, ui, audio, assets, makeHero })
             if (u >= (G.lessMotion ? .5 : .45) && !frozen) {
                 frozen = true; wave?.freeze(); audio?.freeze(true); audio?.stinger('freeze');
             }
+            // the fold tears his map at the tower: three scraps fly into her picture
+            if (u >= .3 && !scrapsFlying) { scrapsFlying = true; launchScraps(); }
         });
         ruler.destroy();
         // the pencil pressed where the fold interrupted it
@@ -790,7 +868,9 @@ export function createTable({ PIXI, app, view, G, ui, audio, assets, makeHero })
         const hp = sprite('hoofprint-wet'); hp.x = PIC.x + PIC.w + 90; hp.y = PIC.y + PIC.h - 40; hp.scale.set(0.8); hp.alpha = 0; onPaper.addChild(hp);
         await tween(0.8, (u) => { hp.alpha = u; });
         audio?.sfx('drip');
-        await wait(0.6);
+        // the splash reached her real paper, and nothing tore
+        ui.caption(STORY.final.wet, 3600);
+        await wait(1.6);
         picHero._action = 'lookdown'; picHero._actionT = 0;
         const note = HER_TEXT.question ? `${HER_TEXT.question} Forskningen fortsätter.` : STORY.final.noteFallback;
         await ui.say([['note', note]]);

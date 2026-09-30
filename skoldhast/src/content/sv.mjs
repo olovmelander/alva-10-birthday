@@ -97,8 +97,10 @@ export const STORY = {
         fold: ['horse', 'Havet veks undan! Och ditt streck tog slut vid vecket.'],
         foldCaption: 'Havet viks in under papperet.',
         afterFreezeCaption: 'Vågen stannar mitt i sitt plask.',
-        choiceWhatAnswer: ['klo', 'Havet hamnade under papperet. Vecket stoppade både vågen och ditt streck.'],
-        choiceWhoAnswer: ['klo', 'Jag såg en skugga vid tornet – och en linjal. Men vem höll i den?'],
+        // Both answers name the ruler; the second also names the tower and the flying scraps
+        // (the torn map pieces of Kapitel 1–2, docs/skoldhast/story-kartvaktaren.md).
+        choiceWhatAnswer: ['klo', 'Någon vek in havet under papperet med en linjal. Vecket stoppade vågen och ditt streck.'],
+        choiceWhoAnswer: ['klo', 'Jag såg någon vid tornet där borta – med en linjal. Och papperslappar som flög!'],
         promise: ['horse', 'Jag vill ha tillbaka plasket på hovarna. Vi följer spåren!'],
         mystery: ['klo', 'Äntligen ett riktigt mysterium!'],
         research: ['horse', 'Då får vi forska på det.']
@@ -115,7 +117,7 @@ export const STORY = {
             ['klo', '… Jag behöver tänka en stund.']
         ],
         mapCorner: [
-            ['klo', 'En kartbit, signerad /K. Samma strand som här – men någon har vikt resten.'],
+            ['klo', 'En av papperslapparna! En karta över Alvas strand, ritad med linjal. Signerad /K.'],
             ['klo', 'Jag viker bara den här sanddynan på kartan. Håll ögonen på stranden!'],
             ['klo', 'Den vek sig också! Och när kartan vecklas ut, kommer sanddynan tillbaka.']
         ],
@@ -165,7 +167,8 @@ export const STORY = {
         hook: [
             ['horse', 'Samma veck som stoppade mitt plask. Det fortsätter ända ner hit!'],
             ['klo', 'Och spåren på land leder mot samma vikta sida. Någon har stängt vägen.'],
-            ['horse', 'Vem var det där?!']
+            ['horse', 'Vem var det där?!'],
+            ['klo', 'Någon av papper … Han skyndade sig bort från vattnet!']
         ],
         paper: 'Nästa sida kommer snart.'
     },
@@ -177,12 +180,16 @@ export const STORY = {
         record: ['klo', 'Fem hästlängder! Nytt rekord för sköldpaddor. Och för krabbor.'],
         lighthouse: ['horse', 'Fyren lyser – men bara i spegelbilden.'],
         note2: ['note', 'Snälla, rör inte strecken. Det är för teckningens skull. /K'],
+        // the note lies sealed in a bottle: the first clue to his fear of water
+        note2Klo: ['klo', 'Lappen låg i en flaska, så att den inte blev blöt. K verkar vara rädd för vatten!'],
         lanterns: ['klo', 'De följde ditt skal och lyste upp vägen! Nu når vi kartbiten längre in.'],
         half: ['klo', 'Halva märket fattas. Den andra halvan ligger nog på Klippudden – dit vågmärkena leder.'],
         halfSea: ['klo', 'Den andra halvan finns i havet. Tillsammans visar de vägen till fyren.'],
         bothHalves: ['klo', 'Bitarna passar! Kartans väg blir hel – och strömmen öppnar sig mot fyren!'],
+        // the irony, planted before the meeting: his own fold tore his map
+        torn: ['klo', 'Titta på rivkanterna! Kartan gick sönder precis där sidan veks.'],
         mapAssemble: 'Kartbitarna passar ihop',
-        end: ['klo', 'Där är figuren med linjalen! Vi följer strömmen till fyren och frågar om vecket.'],
+        end: ['klo', 'Där är figuren med linjalen! Han smällde igen luckan. Vad är han så rädd för?'],
         lyktHint: 'Valvet skymmer vägen till kartbiten. Lyktfiskarna kan lysa upp det – om du gömmer dig!',
         whirlHint: 'Ett vikt karthörn mitt i virveln! Göm dig, så bär strömmen ditt skal dit.',
         seaFound: ['klo', 'Skalet plattade ut hörnet. Där låg havshalvan av kartans märke!'],
@@ -195,29 +202,41 @@ export const STORY = {
     k3: {
         arrive: ['klo', 'Här gömde sig figuren! Om vi öppnar fyrens luckor vågar han kanske titta ut.'],
         mirror: ['klo', 'Som i pölen! Tre öppna luckor i spegeln. Följ kedjorna, så får vi fram ljuset.'],
+        // Why he folded (docs/skoldhast/story-kartvaktaren.md). His first words, as the lamp
+        // lights and the shutters stand open: the fear, before the explanation.
+        kvFirst: ['kv', 'Mina luckor! Nu kan ju havet stänka in!'],
+        memoryCaption: 'Kartväktarens minne',
+        // Talk 1 plays over his memory of the prologue (fx kvMemory), one picture per line.
         talk1: [
-            ['kv', 'Jag såg strandkanten växa ut över papperet. Jag blev rädd att sidan skulle gå sönder.'],
-            ['kv', 'Så jag vek undan havet med min linjal. Jag ville skydda teckningen.']
+            ['kv', 'Jag är Kartväktaren. /K – det är jag. Jag ritar kartan över Alvas sida.'],
+            ['kv', 'Stranden växte ut på det vita papperet. Havet följde med – och vågen skulle plaska dit!'],
+            ['kv', 'Jag är av papper. Blött papper går sönder! Så jag vek undan havet – mitt i plasket.']
         ],
         talk2: [
-            ['kv', 'Här står LAND. Och här står HAV. Var ska jag skriva in dig?'],
+            ['kv', 'Här står LAND. Och här står HAV. Ett rakt streck emellan. Var ska jag skriva in dig?'],
             ['horse', 'Jag finns visst inte på kartan.'],
             ['klo', 'Då är det kartan som är fel. Inte du.']
         ],
         talk3: [
             ['horse', 'Strandkanten ska inte vara färdig. Den flyttar sig med varje våg.'],
-            ['horse', 'Det är där jag bor – precis i mitten.']
+            ['horse', 'Det är där jag bor – precis i mitten. Blöt om hovarna varje dag, och alldeles hel!'],
+            ['kv', 'Hel … fast du är blöt? Det måste jag se.']
         ],
-        line: ['klo', 'Alvas avbrutna strandkant! Rita vidare med hovarna på land och skalet i havet.'],
+        line: ['klo', 'Vi visar honom! Rita vidare på Alvas strandkant – med hovarna på land och skalet i havet.'],
         lastStroke: ['horse', 'Nu når våra streck varandra, Alva. Du kan förena dem med din penna!'],
         chains: 'Tre kedjor går från luckorna: en ner till botten, en till repet på galleriet och en till bryggan.',
         drumHint: 'Som på Spången vid stranden! Hovslagen driver hjulet som öppnar luckan. Galoppera på bryggan!',
         plateHint: 'Tungt skal, precis som på karthörnet. Göm dig över plattan och låt skalet sjunka!',
         pipeHint: 'Som med lyktfiskarna: göm dig och följ strömmen. Här går den upp genom röret!',
         diveHint: 'Göm dig nu – låt strömmen ta dig till fönstret!',
+        // P8 is the proof: the line runs into the water, and the paper holds. Then the
+        // evidence the player carried all game: his map, torn by his own fold.
+        proof: ['kv', 'Strecket går ända ner i vattnet … och papperet håller!'],
+        mapBack: ['klo', 'Här är din karta. Den gick sönder när du vek sidan – inte av vattnet.'],
+        mapCaption: 'Kartväktarens karta',
         sorry: [
-            ['kv', 'Förlåt, Alva. Ditt streck var inte trasigt. Det behövde få fortsätta.'],
-            ['kv', 'Jag vecklar ut havet. Och jag ritar i blyerts, så att strandkanten får röra sig.']
+            ['kv', 'Så det var vikningen som rev sönder. Förlåt, Alva. Ditt streck behövde få fortsätta.'],
+            ['kv', 'Jag vecklar ut havet. Och strandkanten ritar jag i blyerts – så att vågorna får flytta den.']
         ]
     },
     final: {
@@ -228,6 +247,8 @@ export const STORY = {
         ],
         note: null, // her question + "Forskningen fortsätter." when HER_TEXT.question is set
         noteFallback: 'Snabbaste sköldpaddan eller långsammaste hästen? Forskningen fortsätter.',
+        // at the table: the splash reached her real paper, and nothing tore
+        wet: 'Teckningen är lite blöt. Och alldeles hel.',
         mira: [['mira', 'Varför är teckningen blöt?'], ['alva', 'Forskning.']]
     },
     // after the ending: Kapplöpning mot Sköldpaddan Signe (plan §4.6 O8)
@@ -276,7 +297,7 @@ export const HINTS = {
     p6: { q: 'Hur vecklar vi ut hörnet mitt i virveln?', note: 'Skalet är tungt nog att platta till papper. Låt strömmen bära det in till hörnet.', sketch: 'Göm dig i strömmen, så drar den dig in till mitten.' },
     toViken: { q: 'Vart leder strömmen?', note: 'Virveln har öppnat sig åt höger.', sketch: 'Simma till virveln längst in i diket och låt den nya strömmen ta dig vidare.' },
     p7: { q: 'Hur tänds fyren?', note: 'Tre luckor, tre kedjor. Följ varje kedja till sin maskin.', sketch: 'Göm dig över bottenplattan. Göm dig vid röret, åk upp och dra i repet. Galoppera på bryggan för den sista luckan.' },
-    talk: { q: 'Vem bor i Pappersfyren?', note: 'Kartväktaren väntar längst ut på bryggan.', sketch: 'Gå fram till honom och tryck Prata.' },
+    talk: { q: 'Varför vek Kartväktaren undan havet?', note: 'Kartväktaren väntar längst ut på bryggan. Prata med honom vid kartan.', sketch: 'Gå fram till honom och tryck Prata.' },
     p8: { q: 'Hur fortsätter Alvas strandkant?', note: 'Hovarna ritar på land. Skalet följer strecket i havet. Alvas penna förenar dem.', sketch: 'Galoppera längs linjen från stranden, hoppa i vattnet och göm dig där.' },
     signe: { q: 'Vem är snabbast?', note: 'Signe väntar vid snäckorna.', sketch: 'Gå fram till Signe och tryck Prata.' },
     free: { q: 'Snabbaste sköldpaddan eller långsammaste hästen?', note: 'Forskningen fortsätter. Leta efter färgpennor!', sketch: '' },
@@ -302,7 +323,7 @@ export const GOALS = {
     p6: 'Veckla ut karthörnet mitt i virveln.',
     toViken: 'Följ den nya strömmen från virveln till nästa sida.',
     p7: (n) => `Öppna luckorna – locka fram fyrens väktare. (${n}/3)`,
-    talk: 'Prata med Kartväktaren på bryggan.',
+    talk: 'Fråga Kartväktaren varför han vek undan havet.',
     p8: 'Fortsätt Alvas strandkant – på land och i havet!',
     signe: 'Tävla mot sköldpaddan Signe till pölen!',
     free: 'Utforska fritt – och leta färgpennor!',
@@ -433,21 +454,24 @@ export const JOURNAL = {
         smak: 'Smaktestet: äter både gräs och kelp.'
     },
     clueText: {
-        map_corner: 'En kartbit signerad /K. När Klo vek en sanddyna på kartan, vek sig sanddynan på stranden. Den kom tillbaka när kartan vecklades ut igen.',
+        map_corner: 'En kartbit ritad med linjal och signerad /K – en av lapparna som flög när sidan veks. När Klo vek en sanddyna på kartan, vek sig sanddynan på stranden.',
         note1: 'En lapp vid Streckbron: ”OBS! Ofärdigt streck. Rör ej! /K”',
         wave_marks: 'Havets spår går högt uppe på branten, vidare mot Klippudden. Land och hav har hängt ihop där.',
         reflection: 'I stilla vatten syns sidan utan vecket. Där står Vattenporten öppen med stenen mitt framför, och plankan vid pölen är hel.',
         fold: 'Ett veck genom havet – rakt som en linjal.',
-        figure: 'Någon smal, av papper, med en linjal.',
+        figure: 'Någon smal, av papper, med en linjal. Han skyndade sig bort från vattnet.',
         glimpse: 'Det finns fler sköldhästar!',
         lighthouse: 'Pappersfyren lyser bara i spegelbilden. Någon har stängt dess luckor.',
-        note2: 'En lapp i djupet: ”Snälla, rör inte strecken. Det är för teckningens skull. /K”',
+        note2: 'En lapp i en flaska i djupet: ”Snälla, rör inte strecken. Det är för teckningens skull. /K” K vill inte att papper blir blött.',
         mark_land: 'Märkets landhalva låg på Klippudden, dit vågmärkena ledde. Den hör ihop med en kartbit från havet.',
-        mark_sea: 'Märkets havshalva låg under det vikta hörnet i virveln. Två kartbitar visar hela vägen till Pappersfyren.'
+        mark_sea: 'Märkets havshalva låg under det vikta hörnet i virveln. Två kartbitar visar hela vägen till Pappersfyren.',
+        torn_map: 'Kartbitarna passar ihop. Kartan rev sig där sidan veks – och bitarna flög åt alla håll.',
+        kv_why: 'Kartväktaren är av papper. Han trodde att vågen skulle blöta ner sidan så att den gick sönder. Därför vek han undan havet.',
+        kv_map: 'På Kartväktarens karta finns bara LAND och HAV – ingen strand, och ingen sköldhäst.'
     },
     reports: {
-        1: ['Vecket stänger havet både ovanför och under ytan.', 'Vågmärkena leder mot Klippudden. Spegeln visade vägen ner i havet.', 'Hovar ritar. Skal stillar vatten. Två talanger – ett och samma djur!', 'Nästa: hitta märkets två halvor och vägen runt vecket.'],
-        2: ['Språnget nådde landhalvan. Skalet vecklade ut havshalvan.', 'Lyktfiskarna lyser upp djupet. De tog sköldhästen för en sten. Jag sa inget.', 'Kartans väg är hel! Strömmen leder till Pappersfyren.', 'Där finns figuren med linjalen. Varför stängde han havet?']
+        1: ['Vecket stänger havet både ovanför och under ytan.', 'En figur av papper, med linjal, sprang från vecket. Är det han som är /K?', 'Hovar ritar. Skal stillar vatten. Två talanger – ett och samma djur!', 'Nästa: hitta märkets två halvor och vägen runt vecket.'],
+        2: ['Språnget nådde landhalvan. Skalet vecklade ut havshalvan.', 'Kartan rev sig där sidan veks. Lapparna var alltså hans!', 'Kartans väg är hel! Strömmen leder till Pappersfyren.', 'Figuren med linjalen bor där. Varför vek han undan havet?']
     }
 };
 
@@ -490,7 +514,7 @@ export const MAP = {
     detailHint: 'Välj en kartbit för att titta närmare.',
     legend: 'Streck visar vägar. Rivna kanter visar var bitarna möts.',
     pieces: {
-        corner: { name: 'Karthörnet', foundAt: 'Hos Klo på stranden', detail: 'Klo hittade ett karthörn i sanden. När kartan viks, viks världen också. Vem har skrivit /K?' },
+        corner: { name: 'Karthörnet', foundAt: 'Hos Klo på stranden', detail: 'En av lapparna som flög från tornet när sidan veks. När kartan viks, viks världen också. Vem har skrivit /K?' },
         land: { name: 'Märket från land', foundAt: 'På Klippudden', detail: 'Vi följde vågmärkena och tog språnget till udden. Här låg landhalvan av märket som visar vägen runt vecket. Havshalvan passar ihop med den rivna kanten.' },
         sea: { name: 'Märket från havet', foundAt: 'I Kelphjärtats virvel', detail: 'Lyktfiskarna lyste upp vägen. Skalet plattade till hörnet och hittade havshalvan. Med båda bitarna blir strömmen till Pappersfyren fri.' }
     },

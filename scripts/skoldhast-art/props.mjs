@@ -2656,3 +2656,37 @@ item('props-land', 'frozen-runup', [0, 0], () => {
     for (const q of patches) ink(S, q, { color: P.foamLine, width: 1.5, pressure: 0.9, wobble: 0.4 });
     return doneFade(S, fade);
 });
+
+// ---------------------------------------------------------------------------
+// Kartväktaren's second note, sealed in a bottle on the seabed (props-sea): he
+// could not bear to let paper get wet (docs/skoldhast/story-kartvaktaren.md).
+// Appended last so no earlier prop's tooth roll (rollN) changes.
+// ---------------------------------------------------------------------------
+item('props-sea', 'note-bottle', [0.5, 1], () => {
+    const W = 108, H = 50;
+    const S = spriteSheet(W, H, 'note-bottle');
+    const tilt = { x: 54, y: 30, rot: -0.1 };
+    const glass = transform(roundRect(-44, -13, 64, 26, 12), tilt);
+    const neck = transform([[18, -7], [36, -6], [38, -8], [42, -8], [42, 8], [38, 8], [36, 6], [18, 7]], tilt);
+    const cork = transform(rect(41, -6, 9, 12), tilt);
+    const gm = body(S, glass), nm = body(S, neck), cm = body(S, cork);
+    soft(S, PP.mint, gm, { angle: -0.3, gap: 2.4, pressure: 0.45 });
+    soft(S, PP.mint, nm, { angle: -0.3, gap: 2.4, pressure: 0.55 });
+    pen(S, PP.mintDeep, rim(S, glass, gm, 0, -5), { angle: 0.3, gap: 2, pressure: 0.55 });
+    paintWood(S, cork, cm, { base: P.wood, dark: P.woodDark, angle: Math.PI / 2, grain: 2 });
+    // the rolled note inside, with his ruled writing and /K
+    const note = transform(rect(-34, -7, 44, 13), tilt);
+    const noteM = body(S, note);
+    soft(S, P.paperCream, noteM, { angle: -0.2, pressure: 0.9 });
+    const sc = [];
+    for (let k = 0; k < 2; k++) sc.push({ pts: transform([[-30, -3 + k * 5], [2 - k * 10, -3 + k * 5]], tilt), width: 1.1, alpha: 0.85 });
+    sc.push({ pts: transform([[-2, 3], [1, -1], [3, 3], [5, -1]], tilt), width: 1.2, alpha: 0.9 });
+    lines(S, P.graphite, sc, { pressure: 0.8 });
+    ink(S, note, { width: 1.3, pressure: 0.7, passes: 1 });
+    // the glass: a highlight, then the outline
+    lines(S, '#ffffff', [{ pts: transform([[-36, -9], [10, -10]], tilt), width: 2.4, alpha: 0.85 }], { pressure: 0.9, grain: 0.2 });
+    ink(S, glass, { color: PP.mintDeep, width: 2, pressure: 0.9 });
+    ink(S, neck, { color: PP.mintDeep, width: 1.8, pressure: 0.9 });
+    ink(S, cork, { width: 1.6, pressure: 0.85 });
+    return done(S);
+});

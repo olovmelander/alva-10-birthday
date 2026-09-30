@@ -1,12 +1,17 @@
 /* The very same torn silhouettes as the research notebook. Klo's first corner
- * stays put while the two recovered pieces join it and reveal one sea route. */
+ * stays put while the two recovered pieces join it and reveal one sea route.
+ * Once joined, a ruler-straight crease runs along the tear: the map ripped where
+ * the page was folded (docs/skoldhast/story-kartvaktaren.md). Kapitel 3 replays
+ * it in Kartväktaren's hands without the route. */
 import { MAP_FRAGMENTS } from './mapbook.mjs';
 
 const ease = (x) => { x = Math.max(0, Math.min(1, x)); return x * x * (3 - 2 * x); };
 export function sampleMapAssemble(t) {
-    return { joined: ease((t - .4) / .7), route: ease((t - 1.15) / .7), opacity: ease(t / .2) * (1 - ease((t - 2.55) / .4)), done: t >= 2.95 };
+    return { joined: ease((t - .4) / .7), crease: ease((t - 1.0) / .45), route: ease((t - 1.15) / .7), opacity: ease(t / .2) * (1 - ease((t - 2.55) / .4)), done: t >= 2.95 };
 }
-export function createMapAssemble(PIXI, { texture, caption, lessMotion = false }) {
+// the fold, straight across the torn seam between the land pieces and the sea piece
+export const MAP_CREASE = Object.freeze({ x0: 24, x1: 616, y: 227 });
+export function createMapAssemble(PIXI, { texture, caption, lessMotion = false, route: showRoute = true }) {
     const container = new PIXI.Container(); container.label = 'map-assemble';
     const ink = 0x625b50, blue = 0x457d98, gold = 0xb48a49;
     const sheet = new PIXI.Container(); container.addChild(sheet);
@@ -52,6 +57,7 @@ export function createMapAssemble(PIXI, { texture, caption, lessMotion = false }
         mask.poly(points).fill({ color: 0xffffff }); art.mask = mask;
         c.addChild(paper, art, mask); sheet.addChild(c); pieces.push({ id: fragment.id, c });
     }
+    const crease = new PIXI.Graphics(); crease.label = 'map-crease'; sheet.addChild(crease);
     const route = new PIXI.Graphics(); sheet.addChild(route);
     const title = new PIXI.Text({ text: caption, style: { fontFamily: '"Patrick Hand", cursive', fontSize: 34, fill: ink } });
     title.anchor.set(.5, 1); title.position.set(320, -24); sheet.addChild(title);
@@ -64,8 +70,15 @@ export function createMapAssemble(PIXI, { texture, caption, lessMotion = false }
                 lessMotion ? 0 : (id === 'land' ? -14 : id === 'sea' ? 65 : 0) * off);
             c.alpha = lessMotion && id !== 'corner' ? .3 + .7 * state.joined : 1;
         }
-        route.clear(); route.visible = state.route > 0;
-        if (state.route > 0) {
+        crease.clear(); crease.visible = state.crease > 0;
+        if (state.crease > 0) {
+            // drawn along a ruler, left to right: a paper highlight over a fold shadow
+            const { x0, x1, y } = MAP_CREASE, x = x0 + (x1 - x0) * (lessMotion ? 1 : state.crease);
+            line(crease, [[x0, y - 1.6], [x, y - 1.6]], 0xfffaf0, .85, 3.2);
+            line(crease, [[x0, y + 1], [x, y + 1]], 0x8c7651, .6, 1.7);
+        }
+        route.clear(); route.visible = showRoute && state.route > 0;
+        if (route.visible) {
             const len = (routePoints.length - 1) * state.route, n = Math.floor(len), pts = routePoints.slice(0, n + 1);
             if (n < routePoints.length - 1) {
                 const a = routePoints[n], b = routePoints[n + 1], f = len - n;

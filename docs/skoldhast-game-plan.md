@@ -263,9 +263,16 @@ and why.
   - It is never an obstacle and never a quest-giver chain.
 - **Kartväktaren**, an old man of folded paper who lives in Pappersfyren. He is anxious and tidy, and writes with
   a ruler. His map has only two pages, LAND and HAV.
-  - The shore is never finished, because every wave redraws it, and he fears that an unfinished line will tear.
-  - When the waterline began to run off the page, he folded the sea away along a ruler line out at sea, right
-    across Alva's stroke, to protect the drawing.
+  - **Why he folded the page** (the whole chain: `docs/skoldhast/story-kartvaktaren.md`):
+    - He is made of paper, and he believes that wet paper tears.
+    - When Alva drew the shore out onto the white paper, the sea followed her line towards his tower, and her wave
+      was about to splash out there.
+    - So he folded the sea away along a ruler line, right across her stroke and in the middle of the splash. That
+      is why the splash hangs in mid-air.
+    - The shore is never finished, because every wave redraws it, so his map has no place for it, or for a
+      sköldhäst.
+  - **The fold tore his own map.** Its pieces flew across the page. They are the map pieces the player collects,
+    and at the end they prove that the folding, not the water, tore the paper.
   - **The mistake was his fear, never her line**, and he tells her so in Kapitel 3.
   - He is not a villain. He unfolds the page himself at the end, and redraws the shore in *blyerts* (pencil) so
     the waves can move it.
@@ -324,14 +331,18 @@ and why.
    - **"Rita strandkanten vidare – ut på det vita papperet!"** is traced along generous anchors, because P8
      reuses this line. The waterline starts to run off the picture, and the world starts to grow.
 4. Halfway through that third stroke, at a fixed authored point so it cannot fail:
+   - While a far measuring glint settles on her line, a thin sheet of her sea runs along it towards the tower.
    - *Prassel.* A dead-straight crease flicks across the horizon from outside the page and cuts her line short.
+   - Three torn scraps of his ruled map tear loose at the far tower and flutter into her picture: one over the
+     land, one into the sea, and one to the sand right beside Klo.
    - The splash stops in mid-air, the sun stops, and one drop rolls *upward* over the paper. This works even with
      the sound off.
 5. The sköldhäst blinks and looks down: "Alva … vågen har fastnat."
-6. Choice: **[Vad hände?]** or **[Vem gjorde så?]**. Both lead to:
-   - Sköldhästen: "Titta – ett veck. Någon har vikt sidan."
-   - Klo: "Äntligen ett riktigt mysterium!"
-   - Sköldhästen: "Då får vi forska på det."
+6. Choice: **[Vad hände?]** or **[Vem gjorde det?]**. Klo answers; both answers name the ruler:
+   - Vad hände? Klo: "Någon vek in havet under papperet med en linjal. Vecket stoppade vågen och ditt streck."
+   - Vem gjorde det? Klo: "Jag såg någon vid tornet där borta – med en linjal. Och papperslappar som flög!"
+   - Then Sköldhästen: "Jag vill ha tillbaka plasket på hovarna. Vi följer spåren!" and Klo: "Äntligen ett
+     riktigt mysterium!"
 7. The camera dives into the page. The first playable frame is exactly her composition.
 
 **Kapitel 1: Stranden och stäppen (about 20–25 min)**
@@ -350,7 +361,8 @@ and why.
   - If the sköldhäst stands within 3 HL for 4 s without hiding, Klo's eyes peek out at the shell and the Göm dig
     button pulses once (no text).
   - Then: Klo: "Häst eller sköldpadda?" / Sköldhästen: "Ja." / Klo: "… Jag behöver tänka en stund."
-- **Rule demo** with a torn map corner signed /K: "Det som händer med kartan händer med världen!"
+- **Rule demo** with a torn map corner signed /K: the scrap that landed beside Klo, ruled with a ruler.
+  "Det som händer med kartan händer med världen!"
 - **Spången**, the hollow dune boardwalk on the way (O3), teaches Trumma.
 - **P1 Streckbron.** A note on a post by the dashed arch says "OBS! Ofärdigt streck. Rör ej! /K". Klo:
   - "K? Det är inte jag! Jag kan inte ens hålla i en linjal."
@@ -373,7 +385,7 @@ and why.
     - Sköldhästen: "Någon har vikt det här."
     - Klo: "Med linjal."
     - Beyond the fold, on the white paper, a thin paper figure with a ruler hurries out of sight. Sköldhästen:
-      "Vem var det där?!"
+      "Vem var det där?!" Klo: "Någon av papper … Han skyndade sig bort från vattnet!"
   - End card: Forskningsrapport nr 1.
   - Afterwards, play continues freely in Kapitel 1's world. The paths beyond it are white paper: "Nästa sida
     kommer snart."
@@ -388,37 +400,49 @@ and why.
   - From Klippudden: "Fyren lyser – men bara i spegelbilden."
 - **P5 Lyktfiskarnas väg** and **P6 Strömkarusellen** in Kelpskogen find the *Havsmärket*.
 - **Along the way:**
-  - A second note: "Snälla, rör inte strecken. Det är för teckningens skull. /K"
+  - A second note, sealed in a bottle on the seabed: "Snälla, rör inte strecken. Det är för teckningens skull.
+    /K" Klo: "Lappen låg i en flaska, så att den inte blev blöt. K verkar vara rädd för vatten!"
   - More far-off glimpses of other sköldhästar, and old hoofprints in the kelp sand.
 - **End**, the same whichever half-mark is found last:
+  - The pieces join, and a ruler-straight crease runs along the tear. Klo: "Titta på rivkanterna! Kartan gick
+    sönder precis där sidan veks."
   - The outflow from Kelphjärtat opens, and the view follows it to the mouth of Spegelviken. The lamp shines in
     the reflection. On the real lighthouse, the paper figure peeks out through a shutter and snaps it shut.
-  - Klo: "Nu vet han att vi kommer."
+  - Klo: "Där är figuren med linjalen! Han smällde igen luckan. Vad är han så rädd för?"
   - Forskningsrapport nr 2, then "Nästa sida kommer snart."
 
 **Kapitel 3: Pappersfyren (about 15–25 min, including the final)**
 
-- **P7 Pappersfyrens tre luckor** lights the real lamp and brings out Kartväktaren. It is his first line on
-  screen, though he has "spoken" through two notes.
+- **P7 Pappersfyrens tre luckor** lights the real lamp and brings out Kartväktaren. His first words, on the gallery
+  as the shutters stand open: "Mina luckor! Nu kan ju havet stänka in!" He hurries down to the pier with his map.
 - **The talk** has two points where control returns, so it is never more than three boxes at a time.
-  - Kartväktaren: "Strandkanten blir aldrig färdig. Och ett ofärdigt streck kan bli en reva."
-  - Kartväktaren: "Så jag vek bort havet. Det var för teckningens skull!"
+  - *Talk 1: why* (it starts when the sköldhäst comes close). His memory of the prologue is drawn on a card, one
+    picture per line (`src/kv-memory.mjs`): his ruled LAND | HAV map of her page; her line and the sea spreading
+    towards his tower while the wave rises; his ruler, the fold and the frozen splash.
+    - Kartväktaren: "Jag är Kartväktaren. /K – det är jag. Jag ritar kartan över Alvas sida."
+    - Kartväktaren: "Stranden växte ut på det vita papperet. Havet följde med – och vågen skulle plaska dit!"
+    - Kartväktaren: "Jag är av papper. Blött papper går sönder! Så jag vek undan havet – mitt i plasket."
   - *Control returns; the player walks to the map and presses Prata.*
-  - Kartväktaren: "Här står LAND. Och här står HAV. Var ska jag skriva dig?"
+  - Kartväktaren: "Här står LAND. Och här står HAV. Ett rakt streck emellan. Var ska jag skriva in dig?"
   - Sköldhästen (quietly): "Jag finns visst inte på kartan."
   - Klo: "Då är det kartan som är fel. Inte du."
   - *Klo climbs onto the map and taps its shoreline; the player presses Prata at the map.*
   - Sköldhästen: "Strandkanten ska inte vara färdig. Den flyttar sig med varje våg."
-  - Sköldhästen: "Det är där jag bor – precis i mitten."
-- **P8 Det sista strecket.** The line Alva began in the prologue, cut short by the fold, appears as one glowing
-  dashed line.
+  - Sköldhästen: "Det är där jag bor – precis i mitten. Blöt om hovarna varje dag, och alldeles hel!"
+  - Kartväktaren: "Hel … fast du är blöt? Det måste jag se."
+- **P8 Det sista strecket.** Klo: "Vi visar honom!" The line Alva began in the prologue, cut short by the fold,
+  appears as one glowing dashed line.
   - The land half is galloped.
   - The sköldhäst leaps off the pier's end.
   - The sea half is drifted while hidden.
   - Alva's pencil finishes her own line with the last stroke.
-- **Kartväktaren chooses.** He unfolds the page.
-  - Kartväktaren: "Förlåt, Alva. Det var inget fel på ditt streck. Det var bara inte färdigt än."
-  - Kartväktaren: "Jag ritar strandkanten i blyerts. Då kan vågorna flytta den."
+- **Kartväktaren chooses, on two proofs.**
+  - The line holds in the water: "Strecket går ända ner i vattnet … och papperet håller!"
+  - His own map: Klo gives the pieces back, and they join in the same assembly as in Kapitel 2. "Här är din karta.
+    Den gick sönder när du vek sidan – inte av vattnet."
+  - Kartväktaren: "Så det var vikningen som rev sönder. Förlåt, Alva. Ditt streck behövde få fortsätta."
+  - Kartväktaren: "Jag vecklar ut havet. Och strandkanten ritar jag i blyerts – så att vågorna får flytta den."
+  - He unfolds the page.
 
 **Final: Havet hittar hem (about 3 min, counted in Kapitel 3)**
 
@@ -437,7 +461,7 @@ and why.
     saw more.
   - **The peak** is Stora språnget onto Klippudden in golden-evening light, with the slow-down at the top of the
     arc and the full arrangement. Then 1–2 s of silence on the view from Kapitel 2, now with Pappersfyren lit
-    both above the water and in its reflection.
+    both above the water and in its reflection, and Kartväktaren on his open gallery with his arms wide.
   - A reduced-motion variant is included.
 - **Klo's conclusion, on Klippudden, as the cool-down.** Klo folds PADDA off its SKÖLDPADDA sign. Held next to
   "häst", it now reads "SKÖLD häst", her own label.
@@ -445,7 +469,9 @@ and why.
   - Klo: "För en sköldhäst … precis lagom."
   - Klo: "Mer forskning behövs!"
 - **Epilogue at the table, at dusk.**
-  - A wet hoofprint beside her drawing and a new note: her question, in her own words,† followed by
+  - A wet hoofprint beside her drawing, and a caption: "Teckningen är lite blöt. Och alldeles hel." The splash
+    reached her real paper, and nothing tore.
+  - A new note: her question, in her own words,† followed by
     "Forskningen fortsätter."
   - Fallback (Q5 c): "Snabbaste sköldpaddan eller långsammaste hästen? Forskningen fortsätter."
   - Optional, off-screen: Mira: "Varför är teckningen blöt?" / Alva: "Forskning."

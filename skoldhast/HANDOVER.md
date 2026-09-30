@@ -1,6 +1,39 @@
 # Sköldhästen – handover
 
-## Latest: Mörka valvet and the lighthouse stair (30 September)
+## Latest: why Kartväktaren folded the page (30 September)
+
+Branch `claude/skoldhast-story-audit`. Pappa asked for a deeper story audit: when we meet Kartväktaren we must
+understand, clearly, why he folded the page, and the whole game must point at the answer. The audit and the
+answer are in `docs/skoldhast/story-kartvaktaren.md`; plan §3.2 and §3.4 follow it.
+
+- **The answer:** he is made of paper and believes wet paper tears. Alva's shore ran out onto the white paper,
+  the sea followed it towards his tower and her wave was about to splash there, so he folded the sea away in the
+  middle of the splash. **The twist:** the fold tore his own map; its pieces are the ones the player collects.
+- **Planted on the way:**
+  - *Prologue:* a thin sheet of her sea runs along her new line towards the tower (`paintSeaFollows`), and three
+    scraps of his map fly from the tower as it folds, one landing beside Klo (`launchScraps`). Klo's answers
+    both name the ruler; "Vem gjorde det?" also names the tower and the scraps.
+  - *Kapitel 1:* the map corner is "en av papperslapparna"; after the hook Klo notes the figure hurried away from
+    the water.
+  - *Kapitel 2:* note 2 lies sealed in a bottle (`note-bottle`, props-sea, `spots.note2`; the camera looks at it)
+    and Klo concludes K fears water. When the pieces join, a ruler-straight crease runs along the tear
+    (`map-assemble.mjs`) and Klo says the map tore where the page was folded. He slams the shutter: "Vad är han
+    så rädd för?"
+- **The meeting:** his first words when the lamp lights ("Mina luckor! …"), framed beside the window. Talk 1
+  plays over **his memory**, a sketch card with one picture per line (`src/kv-memory.mjs`, fx `kvMemory`):
+  LAND | HAV ruled on her page; her line and the sea spreading to his tower while the wave curls; his ruler, the
+  fold (the prologue's own crease geometry) and the frozen splash, with one scrap landing on her sand. The words
+  never depend on the card: without it the three lines are said as one dialogue.
+- **The ending on two proofs:** after P8 he sees the line hold in the water, then Klo gives back his map (the
+  same assembly, captioned "Kartväktarens karta", no route). Then the apology and the unfold. In the finale vista
+  he stands on his open gallery (the figure actor), and at the table the caption reads "Teckningen är lite blöt.
+  Och alldeles hel."
+- The journal gains the clues `torn_map`, `kv_why` and `kv_map`; reports 1 and 2 ask who /K is and why he did it;
+  the talk goal is "Fråga Kartväktaren varför han vek undan havet."
+- Tests: `tests/skoldhast-kartvaktaren.test.mjs` (card stages, the fold geometry, the order of the resolution).
+  Pure suite **168/168**; the finale browser check passes with the new ending.
+
+## Mörka valvet and the lighthouse stair (30 September)
 
 Branch `claude/skoldhast-vault-stairs`, on `main` at `252423f`. Pappa asked whether the stairs should
 reach from the ground to the top of the lighthouse, and for a better-looking and better-working dark vault.

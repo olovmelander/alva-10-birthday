@@ -106,8 +106,8 @@
    "images": [
     "props-sea.webp"
    ],
-   "bytes": 295914,
-   "frames": 13
+   "bytes": 297480,
+   "frames": 14
   },
   "props-bay": {
    "bundle": "bay",
@@ -672,7 +672,7 @@
     "assets/mat-deep.webp",
     "assets/mat-glass.webp"
    ],
-   "bytes": 682862
+   "bytes": 684428
   },
   "land": {
    "files": [

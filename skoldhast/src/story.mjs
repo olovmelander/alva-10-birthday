@@ -448,7 +448,7 @@ export function createStory(G, io) {
             s.sfx('rustle');
             await s.walk('figure', vk.x + h(1.5), 320);
             fig.visible = false;
-            await s.say(STORY.k1.hook[2]);
+            await s.say(STORY.k1.hook.slice(2));
             s.clue('fold'); s.clue('figure');
             s.camFree();
             G.flag('ch1_end');
@@ -476,7 +476,14 @@ export function createStory(G, io) {
 
     beat('k2_note2', {
         when: () => inScene('kelp') && inArea('trench') && F.has('ch2_open'),
-        async run(s) { await s.say(STORY.k2.note2); s.clue('note2', { quiet: true }); }
+        async run(s) {
+            // his note lies sealed in a bottle on the trench floor: the first clue to his fear of water
+            const at = G.sceneDef.spots.note2;
+            if (at) await s.cam({ x: (P().x + at.x) / 2, y: (P().y + at.y) / 2 - h(0.4), zoom: 1.0, t: 0.8, hold: 0.5 });
+            await s.say([STORY.k2.note2, STORY.k2.note2Klo]);
+            s.clue('note2', { quiet: true });
+            s.camFree();
+        }
     });
 
     beat('k2_lanterns', {
@@ -533,7 +540,8 @@ export function createStory(G, io) {
         on: 'marksBoth',
         async run(s) {
             await s.fx('mapAssemble', {});
-            await s.say(STORY.k2.bothHalves);
+            await s.say([STORY.k2.bothHalves, STORY.k2.torn]);
+            s.clue('torn_map', { quiet: true });
             if (inScene('kelp')) await s.cam({ x: h(43), y: h(3.5), zoom: 0.8, t: 1.6, hold: 1.2 });
             // a glimpse of the lighthouse: the paper figure peeks and snaps a shutter shut
             await s.fx('vista', { scene: 'viken', lighthouse: true, t: 3.2, peek: true });
@@ -609,8 +617,12 @@ export function createStory(G, io) {
             await s.cam({ x: L.x, y: L.y + h(2.5), zoom: 0.72, t: 1.2, hold: 0.6 });
             s.stinger('reveal');
             await s.fx('lamp', {});
-            await s.appear('kv', { scene: 'viken', x: G.sceneDef.spots.kvGallery.x, y: G.sceneDef.spots.kvGallery.y, pose: 'worry', facing: -1 });
-            await s.wait(0.8);
+            // on the gallery, beside the lit window (not in front of its glare)
+            const gallery = G.sceneDef.spots.kvGallery, gx = gallery.x + h(0.62);
+            await s.appear('kv', { scene: 'viken', x: gx, y: gallery.y, pose: 'worry', facing: -1 });
+            // his first words: the open shutters let the spray in (framed below the dialogue box)
+            await s.cam({ x: gx - h(0.4), y: gallery.y - h(1.2), zoom: 0.95, t: 0.7, hold: 0.2 });
+            await s.say(STORY.k3.kvFirst);
             // he hurries down to the pier with his map
             G.actors.kv.visible = false;
             s.sfx('rustle');
@@ -627,7 +639,21 @@ export function createStory(G, io) {
         when: () => inScene('viken') && F.has('kv_met') && Math.abs(P().x - G.actors.kv.x) < h(2.4) && P().mode === 'ground',
         async run(s) {
             G.actors.kv.pose = 'worry';
-            await s.say(STORY.k3.talk1);
+            // Why he folded, told over his memory of the prologue: one picture per line
+            // (his map of her page; the shore and the sea spreading onto the white paper; the fold).
+            // The words never depend on the picture: without it, he still explains.
+            let told = false;
+            const tell = async (memory) => {
+                told = true;
+                if (!memory) return s.say(STORY.k3.talk1);
+                for (let i = 0; i < STORY.k3.talk1.length; i++) {
+                    memory?.stage?.(i);
+                    await s.say([STORY.k3.talk1[i]]);
+                }
+            };
+            await s.fx('kvMemory', { whileVisible: tell }).catch((err) => console.warn('kvMemory', err));
+            if (!told) await tell(null);
+            s.clue('kv_why');
             G.actors.kv.pose = 'point'; G.actors.kv.map = 'open';
             G.flag('talk1');
         }
@@ -664,10 +690,21 @@ export function createStory(G, io) {
             await io.ui.draw({ prompt: UI.drawLast, ...getGeometry(), getGeometry, allowReverse: true, width: 6, color: '#3b3530' });
             G.flag('p8_done');
             s.stinger('aha');
-            // Kartväktaren chooses
-            Object.assign(G.actors.kv, { x: h(23.4), y: h(-0.62), visible: true, pose: 'bow', facing: 1 });
-            await s.cam({ x: h(23.5), y: h(-1.0), zoom: 1.0, t: 0.8, hold: 0.3 });
+            // Kartväktaren chooses, on two proofs: the line runs into the water and the
+            // paper holds; and his own map, torn by his fold, not by water.
+            Object.assign(G.actors.kv, { x: h(23.4), y: h(-0.62), visible: true, pose: 'point', facing: 1 });
+            Object.assign(G.actors.klo, { x: h(22.5), y: h(-0.62), visible: true, scene: 'viken', walk: null, inHole: false, pose: 'idle', facing: 1 });
+            // a wide view: the two of them on the pier, and the line running down into the water to the window
+            await s.cam({ x: h(24.8), y: h(0.15), zoom: 0.66, t: 0.9, hold: 0.3 });
             G.player.hidden = false;
+            await s.say(STORY.k3.proof);
+            await s.cam({ x: h(23.2), y: h(-1.0), zoom: 1.0, t: 0.8, hold: 0.1 });
+            G.actors.klo.pose = 'map-corner';
+            s.sfx('rustle');
+            await s.say(STORY.k3.mapBack);
+            await s.fx('mapAssemble', { caption: STORY.k3.mapCaption, route: false });
+            G.actors.klo.pose = 'idle';
+            G.actors.kv.pose = 'bow';
             await s.say(STORY.k3.sorry);
             G.actors.kv.pose = 'unfold';
             s.stinger('unfold');
@@ -703,9 +740,14 @@ export function createStory(G, io) {
         G.auto = null; G.finalRun = false;
         await s.wait(1.2);
         io.audio?.setArea('quiet');
-        // The same distant page as Kapitel 2: the real lamp now matches its reflection.
-        // Keep the player on Klippudden while the view visits the bay.
+        // The same distant page as Kapitel 2: the real lamp now matches its reflection,
+        // and Kartväktaren stands on his open gallery in the spray, arms wide (the distant
+        // page draws only the island, the tower and his figure). Keep the player on
+        // Klippudden while the view visits the bay.
+        const keeper = G.actors.figure, gallery = G.scenes.viken?.spots.kvGallery;
+        if (gallery) Object.assign(keeper, { scene: 'viken', x: gallery.x, y: gallery.y, visible: true, walk: null, pose: 'unfold', facing: -1 });
         await s.fx('vista', { scene: 'viken', lighthouse: true, hold: 1.8 });
+        keeper.visible = false;
         io.audio?.setArea('final');
         await s.appear('klo', { scene: 'land', x: G.player.x - h(1.7), y: G.sceneDef.spots.kloUdden.y, pose: 'sign-folded', facing: 1 });
         s.camFree();
@@ -820,6 +862,7 @@ export function createStory(G, io) {
         async run(s) {
             G.actors.kv.pose = 'point'; G.actors.kv.map = 'open';
             await s.say(STORY.k3.talk2);
+            s.clue('kv_map', { quiet: true });
             G.flag('talk2');
             // Klo climbs onto the map and taps its shoreline
             Object.assign(G.actors.klo, { x: G.actors.kv.x - h(0.5), y: G.actors.kv.y - h(0.45), pose: 'point', visible: true, scene: 'viken' });
