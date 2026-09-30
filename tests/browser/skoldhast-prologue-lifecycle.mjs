@@ -31,6 +31,7 @@ try {
     await page.evaluate(() => window.__skoldhast.open());
     await page.waitForSelector('.sk-title', { timeout: 30000 });
     await page.locator('.sk-title button', { hasText: /^Börja$/ }).click();
+    await page.waitForFunction(() => { const b = document.querySelector('.sk-notes-skip'); b?.click(); return !!b || !!document.querySelector('.sk-draw.on'); }, null, { timeout: 60000, polling: 100 }); // skip Alva's notes (skoldhast-notes.mjs plays them)
     // The opening now begins with the shell stroke that wakes the drawing;
     // complete it the real way, then wait for the hero's first line.
     await page.waitForSelector('.sk-draw.on.guided', { timeout: 30000 });
@@ -78,6 +79,7 @@ try {
             await page.waitForSelector('.sk-title', { timeout: 30000 });
         }
         await page.locator('.sk-title button', { hasText: /^Börja$/ }).click();
+        await page.waitForFunction(() => { const b = document.querySelector('.sk-notes-skip'); b?.click(); return !!b || !!document.querySelector('.sk-draw.on'); }, null, { timeout: 60000, polling: 100 }); // skip Alva's notes (skoldhast-notes.mjs plays them)
         await page.waitForSelector('.sk-draw.on.guided', { timeout: 30000 });
         await page.keyboard.press('Enter');
         await page.waitForFunction(async (stop) => {

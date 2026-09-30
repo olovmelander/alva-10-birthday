@@ -8,11 +8,12 @@
  * one drop rolls upward, and the sköldhäst blinks. The camera dives into the page.
  */
 import { HL } from './sim.mjs';
-import { STORY, UI, HER_TEXT, FAMILY, CAPTIONS, DRAWING } from './content/sv.mjs';
+import { STORY, UI, HER_TEXT, FAMILY, CAPTIONS, DRAWING, JOURNAL } from './content/sv.mjs';
 import { createOpeningFold } from './opening-fold.mjs';
 import { createOpeningKlo, OPENING_KLO_HOLD, OPENING_KLO_STAGES, openingKloAt, openingKloDuration } from './opening-klo.mjs';
 import { createOpeningCanvas } from './opening-canvas.mjs';
 import { createStuckWave, surfaceGround } from './stuck-wave.mjs';
+import { createOpeningNotes, createScribbleReveal } from './opening-notes.mjs';
 import { CLOUD_PENCILS, createUserCloud, paintUserCloud } from './user-cloud.mjs';
 
 const h = (v) => v * HL;
@@ -50,6 +51,8 @@ export function createTable({ PIXI, app, view, G, ui, audio, assets, makeHero })
     // and a closer camera that follows the falling drop.
     let worldSpeed = 1;
     const focus = { k: 0, x: 0, y: 0 };
+    // Alva's notes: the opening begins in her head, her picture framed beside her note.
+    let notes = null, notesFrame = 0;
     const wakeStroke = new PIXI.Graphics(); wakeStroke.label = 'opening-wake-stroke';
     let t = 0;
     let frozen = false;
@@ -80,10 +83,20 @@ export function createTable({ PIXI, app, view, G, ui, audio, assets, makeHero })
         const cs = lerp(lerp(close, kS, kloFrame), fS, focus.k);
         const cx = lerp(lerp(420, 335, kloFrame), focus.x, focus.k);
         const cy = lerp(lerp(410, 380 + 55 / kS, kloFrame), focus.y, focus.k);
-        const s = lerp(wide, cs, closeFrame);
+        let s = lerp(wide, cs, closeFrame);
+        let px = W / 2 - lerp(PW / 2, cx, closeFrame) * s, py = H / 2 - lerp(PH / 2, cy, closeFrame) * s;
+        if (notes) {
+            // while she writes, her picture fills the space beside her note
+            const r = notes.layout(W, H);
+            if (notesFrame > 0) {
+                const sN = Math.min(r.w / PIC.w, r.h / PIC.h);
+                const xN = r.x + r.w / 2 - (PIC.x + PIC.w / 2) * sN, yN = r.y + r.h / 2 - (PIC.y + PIC.h / 2) * sN;
+                s = lerp(s, sN, notesFrame); px = lerp(px, xN, notesFrame); py = lerp(py, yN, notesFrame);
+            }
+        }
         paperLayer.scale.set(s);
-        paperLayer.x = W / 2 - lerp(PW / 2, cx, closeFrame) * s;
-        paperLayer.y = H / 2 - lerp(PH / 2, cy, closeFrame) * s;
+        paperLayer.x = px;
+        paperLayer.y = py;
         paper.clear();
         const pt = T('mat-paper');
         if (pt) paper.rect(0, 0, PW, PH).fill({ texture: pt, textureSpace: 'global' }); else paper.rect(0, 0, PW, PH).fill({ color: 0xfbf8f1 });
@@ -137,6 +150,7 @@ export function createTable({ PIXI, app, view, G, ui, audio, assets, makeHero })
     function start(evening = false) {
         frozen = false; table.alpha = 1; t = 0;
         heroAwake = true; closeFrame = 0; kloFrame = 0; focus.k = 0; worldSpeed = 1; table.openingAwake = true;
+        notes?.destroy(); notes = null; notesFrame = 0;
         openingFold?.destroy(); openingFold = null; shore.clear();
         canvasLife?.destroy(); canvasLife = null;
         picKlo?.destroy(); picKlo = null;
@@ -155,6 +169,7 @@ export function createTable({ PIXI, app, view, G, ui, audio, assets, makeHero })
     }
     function stop() {
         table.visible = false;
+        notes?.destroy(); notes = null; notesFrame = 0;
         ui.root.classList.remove('table-mode');
         openingFold?.destroy(); openingFold = null; shore.clear();
         canvasLife?.destroy(); canvasLife = null;
@@ -181,6 +196,7 @@ export function createTable({ PIXI, app, view, G, ui, audio, assets, makeHero })
         // The wave keeps its own clock: it breathes and throws spray until the
         // fold, then slows to a stop in mid-air and is outlined as a still drawing.
         wave?.update(dt);
+        notes?.update(real);
         canvasLife?.update({ time: t, alive: heroAwake, frozen });
         if (picKlo) {
             const [x, y] = worldToPaper(G.scenes.land.spots.start.x, G.scenes.land.spots.start.y);
@@ -290,7 +306,9 @@ export function createTable({ PIXI, app, view, G, ui, audio, assets, makeHero })
         const [sx, sy] = worldToPaper(sp.x, sp.y);
         audio?.setArea('table');
         running = true;
-        ui.caption(STORY.prolog.wakeCaption);
+        // Her own field note opens the story: we are in her head as she writes it,
+        // and her words become the picture. Then her sköldhäst comes to life.
+        if (!await playNotes()) ui.caption(STORY.prolog.wakeCaption, 3200);
         setPhase('drawing-wake');
         const wakeGeometry = () => { const rim = shellRim(); return { anchors: SHELL_ANCHORS.map(i => rim[i]), guide: rim }; };
         const wake = await ui.draw({ prompt: UI.drawWake, ...wakeGeometry(), getGeometry: wakeGeometry,
@@ -354,10 +372,10 @@ export function createTable({ PIXI, app, view, G, ui, audio, assets, makeHero })
             while (fired < at) cues[OPENING_KLO_STAGES[++fired]]?.();
         };
         setPhase('klo-entrance');
-        // Her question sets the scene while the camera finds the sand behind the
-        // horse: "Häst eller sköldpadda? Ingen vet. Det behövs en forskare!"
-        const capText = HER_TEXT.lastTwo || STORY.prolog.captionFallback;
-        const capMs = Math.round(1000 * Math.min(8, Math.max(4.2, 1.2 + .055 * capText.length)));
+        // Her own last two sentences set the scene while the camera finds the sand
+        // behind the horse: her question, and her hope that a researcher will come.
+        const capText = HER_TEXT.hope ? `”${HER_TEXT.hope}”` : STORY.prolog.captionFallback;
+        const capMs = Math.round(1000 * Math.min(10, Math.max(4.2, 1.2 + .055 * capText.length)));
         ui.caption(capText, capMs);
         const lead = Math.max(1.2, capMs / 1000 - 2.8);
         if (G.lessMotion) { kloFrame = 1; layout(); await wait(lead); }
@@ -503,6 +521,177 @@ export function createTable({ PIXI, app, view, G, ui, audio, assets, makeHero })
     function snapStand() {
         const st = G.scenes.land.spots.start;
         return { x: st.x, y: st.y, facing: 1, gait: 'stand', mode: 'ground', speed: 0, vx: 0, vy: 0, hide: 0, time: 0, groundAt: () => st.y };
+    }
+
+    /** Run fn(dt) every frame until it returns true (cancelled with the table). */
+    function run(fn) {
+        return new Promise((resolve) => {
+            if (destroyed) return;
+            let last = performance.now(), raf = 0;
+            const cancel = () => cancelAnimationFrame(raf);
+            pending.add(cancel);
+            const step = () => {
+                if (destroyed) return;
+                const now = performance.now(), dt = Math.min(.1, (now - last) / 1000);
+                last = now;
+                if (fn(dt)) { pending.delete(cancel); resolve(); } else raf = requestAnimationFrame(step);
+            };
+            raf = requestAnimationFrame(step);
+        });
+    }
+
+    // --- Alva's notes -------------------------------------------------------------------------
+    async function playNotes() {
+        const text = HER_TEXT.full || JOURNAL.fieldFallback;
+        if (!text || !picHero) return false;
+        const less = () => !!G.lessMotion;
+        if (document.fonts?.load) await Promise.race([document.fonts.load('24px "Patrick Hand"'), wait(1.5)]).catch(() => {});
+        notes = createOpeningNotes(PIXI, { texture: T, heading: JOURNAL.field, text, makeHero, reducedMotion: less });
+        table.addChildAt(notes.dim, table.getChildIndex(paperLayer));
+        table.addChild(notes.container);
+        notesFrame = 1; layout();
+        setPhase('notes');
+        // A blank page: her world and her creature appear as she writes about them.
+        const reveals = [];
+        const reveal = (target, rect, parent) => {
+            const r = createScribbleReveal(PIXI, rect, { rows: rect.h > 200 ? 8 : 6 });
+            parent.addChild(r.mask); target.mask = r.mask; r.set(0);
+            const item = { r, target, u: 0, dur: 0, on: false };
+            reveals.push(item);
+            return item;
+        };
+        const hb = picHero.view.getLocalBounds(), hs = picHero.view.scale.x;
+        const creature = reveal(picHero.view, { x: picHero.view.x + hb.minX * hs - 8, y: picHero.view.y + hb.minY * hs - 8,
+            w: (hb.maxX - hb.minX) * hs + 16, h: (hb.maxY - hb.minY) * hs + 16 }, onPaper);
+        const world = reveal(pic, { x: PIC.x, y: PIC.y, w: PIC.w, h: PIC.h }, sheet);
+        const margin = canvasLife ? reveal(canvasLife.container, { x: PIC.x + PIC.w - 4, y: PIC.y, w: PW - PIC.x - PIC.w, h: PIC.h }, sheet) : null;
+        const colour = (item, dur) => { item.on = true; item.dur = less() ? .35 : dur; };
+        const finishReveals = () => {
+            for (const item of reveals) {
+                item.target.mask = null; item.r.mask.destroy();
+            }
+            reveals.length = 0;
+        };
+        pending.add(finishReveals);
+        // Tap or Enter hurries her pencil; "Hoppa över" (or Esc) skips to the picture.
+        const hold = { hurry: false, skip: false };
+        const ac = new AbortController();
+        const skipBtn = document.createElement('button');
+        skipBtn.type = 'button'; skipBtn.className = 'sk-pbtn sk-notes-skip'; skipBtn.textContent = UI.notesSkip;
+        skipBtn.addEventListener('click', (e) => { e.stopPropagation(); hold.skip = true; }, { signal: ac.signal });
+        window.addEventListener('pointerdown', (e) => { if (e.target !== skipBtn) hold.hurry = true; }, { signal: ac.signal });
+        window.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' || e.key === ' ') { hold.hurry = true; e.preventDefault(); }
+            else if (e.key === 'Escape') hold.skip = true;
+        }, { signal: ac.signal, capture: true });
+        const endNotes = () => { ac.abort(); skipBtn.remove(); };
+        pending.add(endNotes);
+        // the reveals and bubbles run on their own clock beside the writing
+        let live = true;
+        run((dt) => {
+            for (const item of reveals) if (item.on && item.u < 1) { item.u = Math.min(1, item.u + dt / item.dur); item.r.set(item.u * item.u * (3 - 2 * item.u)); }
+            return !live;
+        });
+        const span = (dur, fn) => { let u = 0; return run((dt) => { u = hold.skip ? 1 : Math.min(1, u + dt / dur); fn(u); return u >= 1; }); };
+        const pause = (s) => { let t0 = 0; hold.hurry = false; return run((dt) => { t0 += dt; return t0 >= s || hold.hurry || hold.skip; }).then(() => { hold.hurry = false; }); };
+
+        // 1. Into her head: the room fades, a thought, her notebook.
+        ui.caption(STORY.prolog.thinking, 2600);
+        await span(less() ? .3 : 1.2, (u) => notes.setDim(u));
+        await pause(less() ? .6 : 1.1);
+        ui.root.append(skipBtn);
+        audio?.sfx('page', { gain: .6 });
+        await span(less() ? .3 : .9, (u) => notes.setCard(u));
+        await span(.35, (u) => notes.setPencil(u));
+        notes.setWriting(true);
+        audio?.sfx('write', { gain: .5 });
+        await span(less() ? .2 : .9, (u) => notes.setHeading(u));
+        notes.setWriting(false);
+        await pause(.4);
+
+        // 2. Her words, one sentence at a time; each image appears as its word is written.
+        const heroCss = () => {
+            const [x, y] = toCss(picHero.view.x, picHero.view.y - 120 * picHero.view.scale.y);
+            return [x, y, 90 * picHero.view.scale.x * paperLayer.scale.x];
+        };
+        const region = () => notes.region;
+        const bubbleAt = (fx, fy) => { const r = region(); return [r.x + r.w * fx, r.y + r.h * fy]; };
+        const size = () => { const r = region(); return Math.max(46, Math.min(r.w * .2, r.h * .28)); };
+        const kloSpot = worldToPaper(G.scenes.land.spots.start.x - h(.86), G.scenes.land.spots.start.y);
+        const actions = {
+            creature: () => { colour(creature, 1.6); audio?.sfx('colorin', { gain: .6 }); },
+            sparkle: () => { const [x, y, r] = heroCss(); notes.sparkle(x, y, r); audio?.sfx('sparkle'); },
+            world: () => { colour(world, 2.6); if (margin) colour(margin, 2.6); audio?.sfx('colorin', { gain: .5 }); },
+            steppe: () => { notes.bubble('steppe', notes.tip(), bubbleAt(.26, .24), size()); audio?.sfx('pop', { gain: .25 }); audio?.sfx('hoof', { gain: .2 }); },
+            kelp: () => { notes.bubble('kelp', notes.tip(), bubbleAt(.74, .26), size()); audio?.sfx('bubble', { gain: .35 }); },
+            mystery: () => { notes.clearBubbles(); notes.bubble('mystery', notes.tip(), bubbleAt(.5, .22), size() * 1.1); audio?.sfx('pop', { gain: .3 }); },
+            researcher: () => {
+                notes.clearBubbles();
+                notes.bubble('researcher', notes.tip(), bubbleAt(.66, .22), size());
+                audio?.sfx('pop', { gain: .3 });
+                let u = 0;
+                run((dt) => { u = Math.min(1, u + dt / .6); notes?.underline('researcher', u); return u >= 1 || !notes; });
+                // someone stirs in the sand behind her sköldhäst
+                stirSand(kloSpot);
+            }
+        };
+        const fired = new Set();
+        const fire = (n) => { for (const c of notes.cues) if (c.at <= n && !fired.has(c.cue)) { fired.add(c.cue); actions[c.cue]?.(); } };
+        const CPS = 22, PAUSES = [1.3, 2.4, 2.2, 2.4];
+        for (let i = 0; i < notes.sentences.length && !hold.skip; i++) {
+            const from = i ? notes.sentenceEnds[i - 1] + 1 : 0, to = notes.sentenceEnds[i];
+            setPhase('notes');
+            table.notesSentence = i;
+            hold.hurry = false;
+            notes.setWriting(true);
+            let n = from, sound = from;
+            await run((dt) => {
+                if (hold.skip) return true;
+                n = hold.hurry || less() ? to : Math.min(to, n + dt * CPS);
+                notes.setRevealed(n);
+                fire(n);
+                if (n - sound > 7) { sound = n; audio?.sfx('pencil', { len: .25, gain: .5 }); }
+                return n >= to;
+            });
+            notes.setWriting(false);
+            if (hold.skip) break;
+            await pause((less() ? 1.3 : 1) * (PAUSES[i] ?? 2));
+        }
+
+        // 3. Out of her head, into her picture: exactly as she imagines it.
+        setPhase('notes-end');
+        notes.setRevealed(notes.length); fire(notes.length);
+        for (const item of reveals) { item.on = true; item.u = 1; item.r.set(1); }
+        live = false;
+        finishReveals(); pending.delete(finishReveals);
+        endNotes(); pending.delete(endNotes);
+        notes.clearBubbles();
+        hold.skip = false;
+        audio?.stinger('discovery');
+        await span(less() ? .3 : .9, (u) => { notes.setPencil(1 - u); notes.setCard(1 - u); notes.setDim(1 - u); });
+        // "exactly as she imagines it": read while the camera goes into her picture
+        ui.caption(STORY.prolog.wakeCaption, 3600);
+        if (less()) { notesFrame = 0; layout(); }
+        else await span(1.5, (u) => { notesFrame = 1 - ease(u); layout(); });
+        notes.destroy(); notes = null; notesFrame = 0; layout();
+        table.notesSentence = undefined;
+        await wait(less() ? .8 : 1.2);
+        return true;
+    }
+    /** A few grains of sand hop where Klo is still asleep. */
+    function stirSand([x, y]) {
+        const grains = Array.from({ length: 6 }, (_, i) => {
+            const g = new PIXI.Graphics().poly([-1.2, 0, .5, -1.4, 2.1, .1, .3, .9]).fill({ color: i % 2 ? 0xc2a268 : 0x977650 });
+            g.position.set(x - 8 + i * 3.2, y); onPaper.addChild(g);
+            return g;
+        });
+        let u = 0;
+        run((dt) => {
+            u = Math.min(1, u + dt / 1.1);
+            grains.forEach((g, i) => { const k = Math.max(0, Math.min(1, u * 1.6 - i * .1)); g.y = y - Math.sin(Math.PI * k) * (4 + i % 3 * 2); g.alpha = 1 - Math.max(0, u - .7) / .3; });
+            if (u >= 1) for (const g of grains) g.destroy();
+            return u >= 1;
+        });
     }
 
     async function crease(endpoint) {

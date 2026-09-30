@@ -1,5 +1,24 @@
 # Sköldhästen – handover
 
+## Latest: the opening begins in Alva's head (30 September)
+
+Branch `claude/skoldhast-her-words`. Pappa: her note should open the game and set the scene, so the
+player understands they are inside her thoughts; then, as she imagines it, the horse wakes and the
+professor appears. See [`docs/skoldhast/alva-notes-opening.md`](../docs/skoldhast/alva-notes-opening.md).
+
+- The room dims ("Alva tänker på sin sköldhäst …"), her notebook card slides in and her own pencil
+  writes her four sentences in her handwriting. Her words turn into pictures as they are written:
+  the sköldhäst colours in on a blank page, her world colours in around it, and thought bubbles
+  rise (a steppe gallop, hiding in the kelp, turtle-or-horse race, a researcher's lens). Then the
+  card slides away and the camera goes into her picture: "Precis som Alva tänker sig den." The
+  awakening and Klo follow; her last sentence returns as the caption before Klo's drop.
+- Tap/Enter hurries, *Hoppa över*/Esc skips. Reduced motion keeps every beat without movement.
+  About 28 s at full pace on a device (40 s in the slow test browser), about 13 s when tapping.
+- New `src/opening-notes.mjs`, `tests/skoldhast-opening-notes.test.mjs`,
+  `tests/browser/skoldhast-notes.mjs`; the other browser checks skip her note. First playable
+  2,794,317 bytes.
+- Frågor till Pappa: is ~28 s of her note the right length before the first drawing?
+
 ## Latest: Klo's slow-motion awakening (30 September)
 
 Branch `claude/skoldhast-slowmo-drop`, from `main` at `8323bf0`. Pappa asked for a longer, more
@@ -32,11 +51,15 @@ come up in slow motion.
   lifecycle check now also closes the game while the drop falls, during the whisper and during
   the leap, and checks that nothing comes back. Browser results are listed at the end of
   [`docs/skoldhast/wave-waterline-review.md`](../docs/skoldhast/wave-waterline-review.md).
-- **Alva's own words.** Pappa has allowed them (plan §0 Q5, answer a). The repository has only
-  a paraphrase, so `HER_TEXT` in `sv.mjs` still needs her exact four sentences from the
-  magazine page. Once they are pasted there, they appear in the opening caption, the journal page
-  "Fältanteckning av Alva", the epilogue note and the journal's conclusion. Never commit the
-  photo or the page itself.
+- **Alva's own words are in** (branch `claude/skoldhast-her-words`). Pappa allowed them and gave
+  the text; `HER_TEXT` in `sv.mjs` holds her four printed sentences exactly, including her
+  spelling "stäpperna" and "kelp-skogarna". They appear in the opening caption (her last two
+  sentences, shown for up to 10 s while the camera finds Klo's sand; the table caption now wraps),
+  the journal page "Fältanteckning av Alva" (all four), the evening note (her question +
+  "Forskningen fortsätter.") and the journal's conclusion ("Slutsats: Sköldhästar är fantastiska.
+  Forskningen fortsätter.", which was never wired up before). Her hope that "någon forskare"
+  will take on the mystery now leads straight into Klo's entrance and his "Förlåt! Forskaren är
+  här". The magazine page and its photo are not in the repository.
 
 ## Swedish text review and the P2 plank (29 September)
 
@@ -495,8 +518,6 @@ An agent played for about two hours with the keyboard at 844×390. Its report, w
   and touch-feel check?
 - After reviewing this branch, should it be merged to main?
 
-- Paste Alva's exact four printed sentences into `HER_TEXT` in `src/content/sv.mjs`
-  (she may now be quoted, plan §0 Q5 answer a; 30 September).
 
 Still definitive: first name only, no photos or scans of the magazine page, and
 the ticket button stays hidden behind `?skoldhast` (the existing `#skoldhast`

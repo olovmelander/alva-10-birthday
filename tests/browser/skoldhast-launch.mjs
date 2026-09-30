@@ -93,6 +93,7 @@ await check('pause then close/reopen starts an advancing prologue', async () => 
     });
     await pg.waitForSelector('.sk-root .sk-title', { timeout: 30000 });
     await pg.locator('.sk-title button', { hasText: /^Börja$/ }).click();
+    await pg.waitForFunction(() => { const b = document.querySelector('.sk-notes-skip'); b?.click(); return !!b || !!document.querySelector('.sk-draw.on'); }, null, { timeout: 60000, polling: 100 }); // skip Alva's notes (skoldhast-notes.mjs plays them)
     await pg.waitForSelector('.sk-draw.on.guided', { timeout: 30000 });
     await pg.keyboard.press('Enter'); // the first pencil stroke awakens the still drawing
     await pg.waitForSelector('.sk-dialogue.on.who-horse', { timeout: 30000 });

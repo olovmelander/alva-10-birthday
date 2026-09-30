@@ -42,6 +42,7 @@ try {
         ui.draw = opts => { window.__journeyDraw = opts; return draw(opts); };
     });
     await pg.locator('.sk-title button').first()[touchMode ? 'tap' : 'click']();
+    await pg.waitForFunction(() => { const b = document.querySelector('.sk-notes-skip'); b?.click(); return !!b || !!document.querySelector('.sk-draw.on'); }, null, { timeout: 60000, polling: 100 }); // skip Alva's notes (skoldhast-notes.mjs plays them)
     const prologueDeadline = Date.now() + 90000;
     let cloudPhotographed = false;
     for (let i = 0; i < 500 && Date.now() < prologueDeadline; i++) {

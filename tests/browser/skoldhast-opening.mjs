@@ -53,6 +53,7 @@ async function open(page, lessMotion = false) {
         requestAnimationFrame(watch);
     }, UI.drawShore);
     await page.locator('.sk-title button').first().click();
+    await page.waitForFunction(() => { const b = document.querySelector('.sk-notes-skip'); b?.click(); return !!b || !!document.querySelector('.sk-draw.on'); }, null, { timeout: 60000, polling: 100 }); // skip Alva's notes (skoldhast-notes.mjs plays them)
     await page.waitForFunction(() => !!window.__skoldhast.debug.G);
     await page.evaluate(less => { window.__skoldhast.debug.G.lessMotion = less; }, lessMotion);
 }
