@@ -262,6 +262,11 @@ wear), `ui-frame` and `ui-frame-sm` (pencil frames for cards) and `ui-tape` (a s
 `scripts/skoldhast-art/ui.mjs` describes each. The handwriting font is `skoldhast/fonts/patrick-hand-latin.woff2`
 (SIL OFL 1.1, see `OFL.txt`).
 
+The map (module `map`, `api.image`, bundle `map`, loaded in the background): `map-page`, Kartväktaren's map of
+Alva's page, 1920×1260 (3 px per map unit on a 640×420 layout). Every place sits where
+`skoldhast/src/map-layout.mjs` says; the journal's pieces, the pieces joining in the game and Klo's fold demo are
+all cut from this one image along the same torn edges, with the place names as live text on top.
+
 ## 5. Audio (runtime `skoldhast/src/audio.mjs`)
 
 Everything synthesized with WebAudio (plan §5.5): the theme "Sköldhästens visa" in 6/8 with a modal melody,

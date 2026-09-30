@@ -20,6 +20,7 @@
   "src/kv-memory.mjs",
   "src/main.mjs",
   "src/map-assemble.mjs",
+  "src/map-layout.mjs",
   "src/mapbook.mjs",
   "src/opening-canvas.mjs",
   "src/opening-fold.mjs",

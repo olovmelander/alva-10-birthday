@@ -1,5 +1,29 @@
 # Sköldhästen – handover
 
+## Latest: one beautiful map, the same everywhere (30 September)
+
+Branch `claude/skoldhast-intro-lighthouse` (on top of the lighthouse work). Pappa asked for the map in the game
+and in the journal to look the same, and better: every piece and the whole map.
+
+- **One drawing:** `map-page` (new art module `scripts/skoldhast-art/map.mjs`, bundle `map`, 1920×1260, loaded
+  in the background so the first download is unchanged). Coloured pencil in the game's style: the steppe with
+  tufts and pasque flowers, Klippudden and the cleft of Stora språnget, the sand beach with the pool, the dune,
+  shells, hoofprints and Vattenporten, a sea deepening into Kelpskogen, Mörka valvet and Kelphjärtat,
+  Spegelviken with Pappersfyren lit only in its reflection, the land and sea ways, the torn mark, a compass
+  rose, and Kartväktaren's own touches: a ruled double border with a scale, the fold (Vecket) as a ruled line
+  with the page beyond it shaded, and "/K".
+- **One layout:** `skoldhast/src/map-layout.mjs` holds the torn pieces (moved from `mapbook.mjs`, still exported
+  there), every place's position, the ways and the place names (with the flags that make each known).
+- **Everywhere the same:** the journal's clue page (`mapbook.mjs`, an SVG `<image>` clipped per piece, names as
+  SVG text), a thumbnail of it on "Vad vet vi?" (`createMapThumb`, replacing the old list of places), the pieces
+  joining in the game (`map-assemble.mjs`, a sprite masked per piece, names as Pixi text that grow a little on
+  a small screen), Klo's fold demo (`fold-demo.mjs`: the card is the real corner piece, and the dune he folds is
+  the dune on its beach) and the corner in Klo's claw (`npcs.mjs` `heldMapCorner`, redrawn to match). Until the
+  image has loaded, plain washes in the same places stand in.
+- Tests: `tests/skoldhast-map-layout.test.mjs` (names never across a tear, places on the right pieces, the
+  drawing at the layout size). The fold demo hides its flat dune overlay: an empty Graphics still counts in
+  the bounds and pushed the demo's frame off screen.
+
 ## Latest: the real Pappersfyren in the prologue (30 September)
 
 Branch `claude/skoldhast-intro-lighthouse`. Pappa asked for the game's own lighthouse in the intro instead of the

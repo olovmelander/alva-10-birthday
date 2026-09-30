@@ -13,7 +13,7 @@
  */
 import { UI, NAMES, JOURNAL, HINTS, HER_TEXT, WORD_CODES, FAMILY, MENU, MAP, DRAWING } from './content/sv.mjs';
 
-import { createMapBook } from './mapbook.mjs';
+import { createMapBook, createMapThumb } from './mapbook.mjs';
 import { createDrawing } from './drawing.mjs';
 
 const el = (tag, cls, text) => {
@@ -303,7 +303,8 @@ export function createUI(host, { assetBase, handlers }) {
                 b2.prepend(icon('bulb'));
                 b1.dataset.focus = '';
                 c.append(b1, note, sketch);
-                c.append(mapSketch(state));
+                // the same map as the clue page, small: the pieces found so far
+                c.append(createMapThumb(state, { mapUrl: img('map-page'), onOpen: () => showJournalPage(4) }));
                 c.append(btn(MAP.inspect, () => showJournalPage(4), 'sk-mapbook-open'));
                 c.append(art('npcs', 'klo-point', 'sk-j-klo'));
             },
@@ -324,7 +325,7 @@ export function createUI(host, { assetBase, handlers }) {
                 c.append(el('h3', '', JOURNAL.clues));
                 const ul = el('ul', 'sk-j-list sk-j-clues');
                 for (const [k, text] of Object.entries(JOURNAL.clueText)) if (state.flags.has('clue_' + k)) ul.append(el('li', '', text));
-                c.append(createMapBook(state, { paperUrl: img('ui-paper'), onSound: handlers.onMenuSound }));
+                c.append(createMapBook(state, { mapUrl: img('map-page'), onSound: handlers.onMenuSound }));
                 if (!ul.children.length) { ul.className = 'sk-j-list'; ul.append(el('li', 'sk-j-small', '…')); }
                 c.append(ul);
                 c.append(art('npcs', 'klo-map-corner', 'sk-j-klo'));
@@ -511,18 +512,6 @@ export function createUI(host, { assetBase, handlers }) {
                 else if (e.key === 'ArrowLeft' || e.key === 'PageUp') { e.preventDefault(); step(-1); }
             });
         }, { onClose: () => { settle(); unlisten(); state.onClose?.(); }, kind: 'journal' });
-    }
-
-    function mapSketch(state) {
-        // a tiny pencil map: the regions visited, and the fold between the kelp forest and the bay
-        const d = el('div', 'sk-j-map');
-        d.append(el('span', 'sk-j-map-title', MENU.map));
-        const regions = MENU.regions;
-        for (const [name, id] of regions) {
-            if (id === 'viken') d.append(el('span', 'sk-j-fold', state.flags.has('unfolded') ? '' : MENU.fold));
-            d.append(el('span', `sk-j-region r-${id}` + (state.visited.has(id) ? ' seen' : ''), name));
-        }
-        return d;
     }
 
     /** The word code on a yellow sticky note (the text stays "Kod: KELP MÅS SKAL"). */
