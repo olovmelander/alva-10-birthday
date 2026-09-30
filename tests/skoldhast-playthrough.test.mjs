@@ -122,8 +122,8 @@ export async function chapter2(R) {
     await R.flag('mark_sea', {}, 25);
     await R.settle();
     await R.hide();
-    // back to land through the kelp and the cave
-    for (const [x, y] of [[30, 10.4], [23.0, 5.2], [12, 4.4], [4, 2.6], [-0.4, 2.4]]) {
+    // back to land: under the lit vault's roof, up the trench, through the kelp and the cave
+    for (const [x, y] of [[30, 11.5], [25.0, 10.9], [23.0, 5.2], [12, 4.4], [4, 2.6], [-0.4, 2.4]]) {
         if (G.sceneId !== 'kelp') break;
         await R.swimTo(x, y, { max: 60 });
     }
@@ -152,7 +152,8 @@ export async function chapter3(R) {
     await R.walkTo(101.8, { gallop: true, max: 200 });
     await R.context('exit');
     await R.settle();
-    for (const [x, y] of [[8, 3.2], [20, 4.6], [23.0, 6.0], [30, 10.8], [36, 8.8]]) await R.swimTo(x, y, { max: 60 });
+    // over Mörka valvet's roof on the way to the outflow
+    for (const [x, y] of [[8, 3.2], [20, 4.6], [23.0, 6.0], [30, 8.0], [36, 8.8]]) await R.swimTo(x, y, { max: 60 });
     await R.until(() => G.sceneId === 'viken', { x: 1, y: -0.3 }, 30, 'the outflow to Spegelviken');
     await R.flag('b:k3_arrive', {}, 30);
     await R.settle();

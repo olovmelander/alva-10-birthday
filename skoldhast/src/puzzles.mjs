@@ -46,7 +46,7 @@ export function resetUncommitted(G) {
         if (d && !G.flags.has(d.flag)) S.drums[k] = 0;
     }
     for (const k of Object.keys(S.plates)) S.plates[k] = 0;
-    if (!G.flags.has('p5_lit')) { S.school.state = 'home'; S.school.t = 0; }
+    if (!G.flags.has('p5_lit')) { const home = G.scenes.kelp?.school?.home; S.school.state = 'home'; S.school.t = 0; if (home) { S.school.x = home.x; S.school.y = home.y; } }
 }
 
 function findDrum(G, id) {
@@ -204,13 +204,23 @@ export function stepPuzzles(G, events, dt) {
         const home = sc.school.home;
         const dHome = Math.hypot(p.x - home.x, p.y - home.y);
         if (sch.state === 'home') {
-            sch.x = home.x; sch.y = home.y;
+            // they swim back to their bed (a fresh game or a far jump puts them there at once)
+            if (Math.hypot(sch.x - home.x, sch.y - home.y) > h(12)) { sch.x = home.x; sch.y = home.y; }
+            sch.x += (home.x - sch.x) * Math.min(1, dt * 0.8); sch.y += (home.y - sch.y) * Math.min(1, dt * 0.8);
             if (hidden && dHome < h(4)) { sch.t += dt; if (sch.t > 1.2) { sch.state = 'follow'; G.emit('schoolFollow', {}); } }
             else sch.t = 0;
         } else if (sch.state === 'follow') {
             sch.x += (p.x - sch.x) * Math.min(1, dt * 1.5);
             sch.y += (p.y - h(0.3) - sch.y) * Math.min(1, dt * 1.5);
-            if (!hidden && Math.hypot(p.vx, p.vy) > 80) { sch.state = 'home'; sch.t = 0; G.emit('schoolScatter', {}); }
+            // a swimmer is too big for them: they stop and wait where they are
+            if (!hidden && Math.hypot(p.vx, p.vy) > 80) { sch.state = 'wait'; sch.t = 0; sch.wait = 0; G.emit('schoolScatter', {}); }
+        } else if (sch.state === 'wait') {
+            // hide near them again and they come back; swim far away or leave them long and they go home
+            const dSchool = Math.hypot(p.x - sch.x, p.y - sch.y);
+            sch.wait = (sch.wait || 0) + dt;
+            if (hidden && dSchool < h(4)) { sch.t += dt; if (sch.t > 0.8) { sch.state = 'follow'; G.emit('schoolFollow', {}); } }
+            else sch.t = 0;
+            if (sch.state === 'wait' && (dSchool > h(8) || sch.wait > 12)) { sch.state = 'home'; sch.t = 0; }
         }
     } else if (sc.school && F.has('p5_lit')) { S.school.state = 'lit'; S.school.x = sc.school.lit.x; S.school.y = sc.school.lit.y; }
 
@@ -422,6 +432,7 @@ export function contextAction(G) {
             if (Math.abs(p.x - r.x) < h(1.1) && Math.abs(p.y - r.y) < h(0.6)) add(Math.abs(p.x - r.x) / HL, { id: 'dra', label: CONTEXT_LABELS.pull, run: () => { F.add(r.flag); G.emit('pulled', { id: r.id }); G.emit('latch', { id: r.id, flag: r.flag }); } });
         }
         for (const st of sc.stairs || []) {
+            if (!cond(st.when, F)) continue;
             if (Math.abs(p.x - st.x) < h(1.2) && Math.abs(p.y - st.y) < h(0.6)) add(0.5, { id: 'stair', label: st.label, run: () => G.stair(st) });
         }
         // Skaka: wet and standing still, out of the water (in a pool it would only flicker between Skaka and Hoppa)

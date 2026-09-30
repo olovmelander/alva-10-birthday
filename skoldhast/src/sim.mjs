@@ -120,6 +120,8 @@ export class Terrain {
         this.surfaces = (s.surfaces || []).filter((q) => cond(q.when, f)).map(q => this.rampGrowth.get(q.id)?.surface || q);
         for (const ramp of this.surfaces) if (ramp.ramp && !previous.some(q => q.id === ramp.id)) this.rampAddedAt.set(ramp.id, this.revision);
         this.walls = (s.walls || []).filter((q) => cond(q.when, f));
+        // slabs: solid bands with open water under them (a cave's roof): top and bottom polylines
+        this.slabs = (s.slabs || []).filter((q) => cond(q.when, f));
         this.edges = (s.edges || []).filter((q) => cond(q.when, f));
         this.waters = (s.waters || []).filter((q) => cond(q.when, f));
         this.lanes = (s.lanes || []).filter((q) => cond(q.when, f));
@@ -209,6 +211,11 @@ export class Terrain {
             if (s.thin) continue;
             const sy = heightOn(s.pts, x);
             if (sy !== null && sy < y - tol) return true;
+        }
+        for (const sl of this.slabs) {
+            const top = heightOn(sl.top, x), bottom = heightOn(sl.bottom, x);
+            // positions are at the feet: under a roof the body needs its height of clearance
+            if (top !== null && bottom !== null && y > top - tol && y < bottom + (sl.clear ?? 150)) return true;
         }
         return false;
     }

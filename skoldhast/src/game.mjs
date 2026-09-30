@@ -75,6 +75,8 @@ export function createGame({ released = RELEASED_CHAPTER } = {}) {
                 G.player.x = G.player.px = to.x; G.player.y = G.player.py = to.y; G.player.vx = 0;
                 G.player.facing = to.facing || -1;
                 const sup = G.terrain.support(to.x, to.y, 60, 60); if (sup) G.player.surface = sup.s;
+                // coming down draws the stair gate's bolt, so the stair works both ways from then on
+                if (st.opens && !G.flags.has(st.opens)) G.flag(st.opens);
                 G.busy--;
             });
         },

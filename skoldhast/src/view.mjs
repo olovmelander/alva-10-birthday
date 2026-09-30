@@ -427,6 +427,7 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
         }
         buildShores(def, d);
         buildPosts(def, d);
+        buildTubes(def);
         buildBacks(def, d);
         buildBuried(def);
         if (def.underwater) {
@@ -464,7 +465,10 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
                     const x = lerp(it.x0, it.x1, (i + 0.5) / it.kelp) + (Math.random() - 0.5) * h(0.8);
                     const fy = floorAt(def, x);
                     if (fy === null) continue;
-                    const H = h(2.2 + Math.random() * 2.6);
+                    let H = h(2.2 + Math.random() * 2.6);
+                    // under a cave roof a frond stays below it
+                    const roof = slabBottomAt(def, x);
+                    if (roof !== null && roof < fy) { H = Math.min(H, fy - roof - h(0.25)); if (H < h(0.7)) continue; }
                     const n = 10;
                     const pts = []; for (let k = 0; k <= n; k++) pts.push([x, fy - H * (1 - k / n)]); // top first
                     const r = strip('kelp-strip', n, 44 + Math.random() * 48) || rope('kelp-strip', pts, { color: 0x3e7a34, width: 22 });
@@ -610,15 +614,8 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
             if (state === 'gone') c.visible = false;
             d.paper.push({ pc, c, state, wait: 0 });
         }
-        // darkness (Mörka valvet)
-        d.dark = [];
-        for (const dk of def.darkness || []) {
-            const g = new PIXI.Graphics();
-            g.alpha = G.flags.has(dk.until) ? 0 : 1;
-            g.rect(dk.x0, dk.y0, dk.x1 - dk.x0, dk.y1 - dk.y0).fill({ color: 0x0e1f2a, alpha: 0.86 });
-            L.fore.addChild(g);
-            d.dark.push({ dk, g });
-        }
+        // Mörka valvet: its rock arch and the dark under it
+        buildVaults(def, d);
         buildSceneObjects(def, d);
         buildContactShadows(def, d);
         return d;
@@ -667,6 +664,110 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
             const fade = 1 - (y - top) / h(7.2);
             L.terrainBack.addChild(g);
             d.caustics.push({ g, base: 0.2 + 0.4 * fade, phase: r * 6.3, x: g.x });
+        }
+    }
+
+    /** The underside of a cave roof at x, or null where there is none. */
+    function slabBottomAt(def, x) {
+        let best = null;
+        for (const sl of def.slabs || []) { const y = heightOn(sl.bottom, x); if (y !== null && (best === null || y > best)) best = y; }
+        return best;
+    }
+
+    /**
+     * Mörka valvet as a real arch: a rock roof you swim under (or over), its
+     * legs and back wall behind the swimmer, and under it a darkness in its own
+     * shape that the lyktfiskar light as they come, until the whole vault is lit.
+     */
+    function buildVaults(def, d) {
+        d.vaults = [];
+        const groundAt = drawnGround(def);
+        for (const v of def.vaults || []) {
+            const sl = def.slabs.find(q => q.id === v.roof);
+            const x0 = sl.bottom[0][0], x1 = sl.bottom.at(-1)[0];
+            const under = (x) => heightOn(sl.bottom, clamp(x, x0, x1));
+            // behind: the arch's back wall and its two legs, in shade
+            // behind: the cave's far wall, in shade, fading out toward both mouths
+            const back = new PIXI.Graphics(); back.label = 'vault-back';
+            const fadeIn = h(0.9);
+            for (let x = x0; x < x1; x += 20) {
+                const b = Math.min(x + 20, x1), mid = (x + b) / 2, e = clamp(Math.min(mid - x0, x1 - mid) / fadeIn, 0, 1);
+                const a = e * e * (3 - 2 * e);
+                if (a < 0.02) continue;
+                const quad = [[x, under(x) - 6], [b, under(b) - 6], [b, (groundAt(b) ?? def.bounds.y1) + 50], [x, (groundAt(x) ?? def.bounds.y1) + 50]];
+                fillPoly(back, quad, 'rock', a * 0.9);
+                back.poly(quad.flat()).fill({ color: 0x1d3640, alpha: a * 0.42 });
+                // darkest just under the roof
+                back.poly([quad[0], quad[1], [b, under(b) + 70], [x, under(x) + 70]].flat()).fill({ color: 0x14262e, alpha: a * 0.25 });
+            }
+            L.far.addChild(back);
+            // the roof: rock, outlined, shaded underneath, with weed hanging from it
+            const roof = new PIXI.Graphics(); roof.label = 'vault-roof';
+            const poly = [...sl.top, ...sl.bottom.slice().reverse()];
+            fillPoly(roof, poly, 'rock');
+            roof.poly([...sl.bottom, ...sl.bottom.slice().reverse().map(([x, y]) => [x, y - 44])].flat()).fill({ color: 0x1d3640, alpha: .3 });
+            for (let x = x0 + 70; x < x1 - 40; x += 95) {
+                const y = heightOn(sl.bottom, x), len = 30 + ((x * 7) % 5) * 12;
+                roof.moveTo(x, y - 4).quadraticCurveTo(x + 10, y + len * 0.5, x + 4, y + len);
+            }
+            roof.stroke({ width: 3, color: 0x2f6a3a, alpha: .8, cap: 'round' });
+            const lines = new PIXI.Container();
+            lines.addChild(rope('stroke-graphite', resamplePts(sl.top, 40), { width: 5 }), rope('stroke-graphite', resamplePts(sl.bottom, 40), { width: 5 }));
+            L.terrainBack.addChild(roof, lines);
+            // the dark: strips from the roof to the floor, fading out past each mouth
+            const dark = new PIXI.Graphics(); dark.label = 'vault-dark';
+            L.fore.addChild(dark);
+            const strips = [];
+            const mouth = h(0.55);
+            for (let x = x0; x < x1; x += 20) {
+                const a = x, b = Math.min(x + 20, x1), mid = (a + b) / 2;
+                const env = clamp(Math.min(mid - x0, x1 - mid) / mouth, 0, 1);
+                strips.push({ a, b, mid, env: env * env * (3 - 2 * env), top: [under(a) - 4, under(b) - 4], bottom: [(groundAt(a) ?? def.bounds.y1) + 50, (groundAt(b) ?? def.bounds.y1) + 50] });
+            }
+            // the lamps: where the lyktfiskar settle once they have lit it
+            const lamps = [];
+            for (let i = 0; i < (v.lamps || 7); i++) { const x = lerp(x0 + h(0.55), x1 - h(0.55), i / Math.max(1, (v.lamps || 7) - 1)); lamps.push([x, under(x) + 70 + (i % 2) * 36]); }
+            // after it is lit: warm light on the back wall at each lamp
+            const glow = new PIXI.Container(); glow.label = 'vault-glow';
+            for (const [x, y] of lamps) {
+                const gl = new PIXI.Sprite(shadeTexture()); gl.anchor.set(0.5); gl.position.set(x, y + 60);
+                gl.width = h(1.8); gl.height = h(1.5); gl.tint = 0xffe7a6; gl.alpha = 0.8; glow.addChild(gl);
+            }
+            glow.alpha = G.flags.has(v.until) ? 1 : 0;
+            L.far.addChild(glow);
+            const lit = G.flags.has(v.until) ? 1 : 0;
+            d.vaults.push({ v, sl, dark, strips, lamps, glow, back, roof, lines, fade: 1 - lit, key: '' });
+        }
+    }
+
+    /** The dark follows the lyktfiskar's light, and fades away once they have lit the vault. */
+    function updateVaults(dt) {
+        const O = S.obj, F = G.flags;
+        for (const vt of S.vaults) {
+            const lit = F.has(vt.v.until);
+            const show = !(vt.sl.chapter && !F.has('ch' + vt.sl.chapter + '_open'));
+            vt.back.visible = vt.roof.visible = vt.lines.visible = show;
+            vt.fade = damp(vt.fade, lit ? 0 : 1, 1.1, dt);
+            vt.glow.alpha = 1 - vt.fade;
+            vt.dark.visible = show && vt.fade > 0.005;
+            if (!vt.dark.visible) continue;
+            // the school's light: the swimmers' centre while they are out (their bed, or following the shell)
+            const sch = G.puz.school, fishOut = O.school?.length && F.has('ch2_open');
+            const lx = fishOut ? sch.x : -1e9, ly = fishOut ? sch.y : -1e9, R = h(2.3);
+            const key = `${Math.round(lx / 10)},${Math.round(ly / 10)},${Math.round(vt.fade * 60)}`;
+            if (key === vt.key) continue;
+            vt.key = key;
+            vt.dark.clear();
+            const tex = T('mat-deep');
+            for (const st of vt.strips) {
+                const my = (st.top[0] + st.bottom[0]) / 2;
+                const l = clamp(1 - Math.hypot(st.mid - lx, (my - ly) * 0.8) / R, 0, 1);
+                const a = 0.9 * st.env * (1 - 0.82 * l * l * (3 - 2 * l)) * vt.fade;
+                if (a < 0.01) continue;
+                const quad = [st.a, st.top[0], st.b, st.top[1], st.b, st.bottom[1], st.a, st.bottom[0]];
+                vt.dark.poly(quad).fill({ color: 0x0c1d26, alpha: a * 0.8 });
+                if (tex) vt.dark.poly(quad).fill({ texture: tex, textureSpace: 'global', color: 0x2c4654, alpha: a * 0.45 });
+            }
         }
     }
 
@@ -974,15 +1075,16 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
     function buildPosts(def, d) {
         d.ripples = [];
         const groundAt = drawnGround(def);
-        for (const s of def.surfaces) {
-            if (!s.posts) continue;
-            const { from, to, every, width = 26 } = s.posts;
-            const th = thickness(s);
+        // a pier's posts every few metres, and standalone pilings (the stair's post in the bay)
+        const rows = def.surfaces.filter(s => s.posts).map(s => ({ s, ...s.posts, top: (x) => heightOn(s.pts, x) + thickness(s) - 8 }));
+        for (const pl of def.pilings || []) rows.push({ from: pl.x, to: pl.x, every: 1, width: pl.width, top: () => pl.top });
+        for (const row of rows) {
+            const { from, to, every, width = 26 } = row;
             const g = new PIXI.Graphics(); g.label = 'posts';
             const lines = new PIXI.Container();
             for (let x = from; x <= to + 1; x += every) {
                 const water = (def.waters || []).find(q => q.kind !== 'pipe' && x > q.x0 && x < q.x1);
-                const top = heightOn(s.pts, x) + th - 8;
+                const top = row.top(x);
                 const bed = (groundAt(x) ?? def.bounds.y1) + 40;
                 const lean = (x * 7.3) % 5 - 2.5; // hand-set posts are never quite plumb
                 const L0 = [x - width / 2, top], L1 = [x - width / 2 + lean, bed], R0 = [x + width / 2, top], R1 = [x + width / 2 + lean, bed];
@@ -1005,6 +1107,24 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
                 for (const [a, b] of [[L0, L1], [R0, R1]]) lines.addChild(rope('stroke-graphite', resamplePts([a, b], 50), { width: 4 }));
             }
             L.far.addChild(g, lines);
+        }
+    }
+
+    /** A paper tube standing in the water (Strömröret above the surface), joints and all. */
+    function buildTubes(def) {
+        for (const tb of def.tubes || []) {
+            const g = new PIXI.Graphics(); g.label = 'tube';
+            const l = tb.x - tb.width / 2, r = tb.x + tb.width / 2;
+            fillPoly(g, [[l, tb.y0], [r, tb.y0], [r, tb.y1], [l, tb.y1]], 'cream');
+            // round: shaded at its sides, a light line down its front
+            g.rect(l, tb.y0, tb.width * 0.2, tb.y1 - tb.y0).fill({ color: 0x6b635a, alpha: .16 });
+            g.rect(r - tb.width * 0.16, tb.y0, tb.width * 0.16, tb.y1 - tb.y0).fill({ color: 0x6b635a, alpha: .22 });
+            g.rect(tb.x - tb.width * 0.12, tb.y0, 8, tb.y1 - tb.y0).fill({ color: 0xffffff, alpha: .35 });
+            // joints every horse length, each held by a band of ink-blue
+            for (let y = tb.y1 - h(0.6); y > tb.y0 + 40; y -= h(1)) g.rect(l - 5, y - 7, tb.width + 10, 14).fill({ color: 0x2b4a78, alpha: .55 });
+            const lines = new PIXI.Container();
+            lines.addChild(rope('stroke-graphite', resamplePts([[l, tb.y1], [l, tb.y0]], 50), { width: 4 }), rope('stroke-graphite', resamplePts([[r, tb.y1], [r, tb.y0]], 50), { width: 4 }));
+            L.mid.addChild(g, lines);
         }
     }
 
@@ -1777,7 +1897,7 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
             }
             if (pc.state === 'turning') pc.step?.(dt);
         }
-        for (const dk of S.dark) { const lit = F.has(dk.dk.until); dk.g.alpha = damp(dk.g.alpha, lit ? 0 : 1, 1.5, dt); }
+        updateVaults(dt);
         updateObjects(dt, snap, frozen);
         // minis: distant sköldhästar run along the far ridge during the final gallop (never close)
         stepMinis(dt, snap);
@@ -1904,25 +2024,33 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
         if (def.id === 'kelp') {
             for (const f of O.flaps) setTex(f.s, F.has(f.f.flag) ? 'paper-flap-flat' : 'paper-flap');
             for (const c of O.corners) { setTex(c.s, F.has(c.c.flag) ? 'paper-corner-flat' : 'paper-corner'); c.m.visible = F.has(c.c.flag) && !F.has('mark_sea_taken'); }
-            const sch = Z.school, home = def.school.home;
+            const sch = Z.school;
+            const lamps = S.vaults.find(v => v.v.id === 'vault')?.lamps;
             O.school.forEach((f, i) => {
                 const vis = F.has('ch2_open');
                 f.s.visible = f.g.visible = vis;
                 if (!vis) return;
                 f.a += dt * (1.2 + i * 0.1);
-                const cx = sch.state === 'home' ? home.x : sch.x, cy = sch.state === 'home' ? home.y : sch.y;
-                f.s.x = cx + Math.cos(f.a) * f.r; f.s.y = cy + Math.sin(f.a * 1.3) * f.r * 0.5;
-                f.s.scale.x = Math.cos(f.a) > 0 ? -1 : 1;
-                f.g.x = f.s.x; f.g.y = f.s.y; f.g.alpha = sch.state === 'lit' ? 0.9 : 0.5;
+                // circling their centre while out; once the vault is lit, each keeps its own lamp spot under the roof
+                const lamp = sch.state === 'lit' && lamps ? lamps[i % lamps.length] : null;
+                const tx = lamp ? lamp[0] + Math.cos(f.a * 0.6) * 18 : sch.x + Math.cos(f.a) * f.r;
+                const ty = lamp ? lamp[1] + Math.sin(f.a * 0.8) * 10 : sch.y + Math.sin(f.a * 1.3) * f.r * 0.5;
+                if (f.px === undefined || G.lessMotion) { f.px = tx; f.py = ty; }
+                const was = f.px;
+                f.px = damp(f.px, tx, lamp ? 1.6 : 5, dt); f.py = damp(f.py, ty, lamp ? 1.6 : 5, dt);
+                f.s.x = f.px; f.s.y = f.py;
+                if (Math.abs(f.px - was) > 0.05) f.s.scale.x = f.px > was ? -1 : 1;
+                f.g.x = f.s.x; f.g.y = f.s.y; f.g.alpha = sch.state === 'lit' ? 0.9 : sch.state === 'home' ? 0.5 : 0.75;
+                f.g.scale.set(1.4);
             });
             if (O.schoolHalo) {
                 const vis = F.has('ch2_open'), lit = sch.state === 'lit';
-                const cx = sch.state === 'home' ? home.x : sch.x, cy = sch.state === 'home' ? home.y : sch.y;
-                O.schoolHalo.visible = O.schoolPool.visible = vis;
+                const cx = sch.x, cy = sch.y;
+                O.schoolHalo.visible = O.schoolPool.visible = vis && !lit;
                 O.schoolHalo.position.set(cx, cy);
                 O.schoolHalo.alpha = (lit ? 0.42 : 0.26) * (G.lessMotion ? 1 : 0.9 + 0.1 * Math.sin(time * 2.3));
                 const bed = floorAt(def, cx);
-                O.schoolPool.visible = vis && bed !== null && bed - cy < h(3);
+                O.schoolPool.visible = vis && !lit && bed !== null && bed - cy < h(3);
                 if (bed !== null) O.schoolPool.position.set(cx, bed + 14);
                 O.schoolPool.alpha = (lit ? 0.5 : 0.32) * clamp(1 - (bed - cy) / h(3), 0, 1);
             }
