@@ -2416,20 +2416,24 @@ item('props-bay', 'pipe', [0.5, 1], () => {
     return done(S);
 });
 
-item('props-bay', 'stair', [0.5, 1], () => {
-    const W = 204, H = 904;
+// The spiral stair from the pier to the lamp gallery (anchor: the top landing's
+// top edge, which is the gallery's floor line). Its bottom landing's top is
+// STAIR.rise below that, level with the pier deck; it reaches out left to the
+// pier and its top landing reaches out right to the gallery.
+const STAIR = { W: 340, rise: 1336, cx: 170, landing: 26 };
+item('props-bay', 'stair', [0.5, 0], () => {
+    const { W, rise, cx, landing } = STAIR, H = rise + landing + 6;
     const S = spriteSheet(W, H, 'stair');
-    const cx = 102;
-    // the central post
-    const post = [[cx - 8, 6], [cx + 8, 6], [cx + 8, H - 2], [cx - 8, H - 2]];
+    // the central post, from the gallery down to the pier deck (a piling continues it in the water)
+    const post = [[cx - 9, 2], [cx + 9, 2], [cx + 10, H - 2], [cx - 10, H - 2]];
     paperFacet(S, post, 0.3);
     ruler(S, post.concat([post[0]]), { color: P.graphite, width: 1.8 });
     // treads spiralling round it: seen from the side they swing left and right
-    const steps = 44, rise = (H - 30) / steps;
+    const steps = 52, lo = rise - 16, hi = landing + 22, step = (lo - hi) / steps;
     for (let k = 0; k < steps; k++) {
-        const y = H - 18 - k * rise;
+        const y = lo - k * step;
         const a = k * 0.62;
-        const reach = Math.cos(a) * 88;
+        const reach = Math.cos(a) * 118;
         const front = Math.sin(a) > 0;
         const t = [[cx, y], [cx + reach, y - 3], [cx + reach, y + 7], [cx, y + 9]];
         const m = body(S, t);
@@ -2439,10 +2443,44 @@ item('props-bay', 'stair', [0.5, 1], () => {
     }
     // the handrail: a helix of ink-blue
     const rail = [];
-    for (let k = 0; k <= steps * 4; k++) { const a = (k / 4) * 0.62; const y = H - 18 - (k / 4) * rise - 40; rail.push([cx + Math.cos(a) * 92, y]); }
+    for (let k = 0; k <= steps * 4; k++) { const a = (k / 4) * 0.62; const y = lo - (k / 4) * step - 40; rail.push([cx + Math.cos(a) * 122, y]); }
     lines(S, P.inkBlue, [rail], { width: 2, pressure: 0.85 });
+    // the landings: at the bottom out to the pier (left), at the top out to the gallery (right)
+    for (const [x0, x1, y] of [[0, cx + 30, rise], [cx - 30, W, 0]]) {
+        const slab = [[x0, y], [x1, y], [x1, y + landing], [x0, y + landing]];
+        paperFacet(S, slab, 0.25, { angle: 0 });
+        ruler(S, slab.concat([slab[0]]), { color: P.graphite, width: 2 });
+        // a rail on the landing's outer edge, and a bracket under it
+        const rx = x0 === 0 ? x0 + 8 : x1 - 8;
+        ruler(S, [[rx, y], [rx, y - 60]], { color: P.graphite, width: 2 });
+        ruler(S, [[x0 === 0 ? x0 + 4 : cx - 20, y - 56], [x0 === 0 ? cx - 14 : x1 - 4, y - 56]], { color: P.inkBlue, width: 2 });
+        // the top landing hangs out over the water on a bracket down to the post
+        if (!y) ruler(S, [[x1 - 30, landing], [cx + 10, landing + 90]], { color: P.graphiteSoft, width: 1.6 });
+    }
     return done(S);
 });
+
+// The little gate at the stair's foot: it is bolted from the stair side, so it
+// opens only for someone coming down (then the stair works both ways).
+function stairGate(open) {
+    const W = open ? 40 : 78, H = 118;
+    const S = spriteSheet(W, H, open ? 'stair-gate-open' : 'stair-gate');
+    const bars = open ? [[10, 30]] : [[8, 70]];
+    for (const [a, b] of bars) {
+        const frame = [[a, 14], [b, 14], [b, H - 4], [a, H - 4]];
+        const m = body(S, frame);
+        soft(S, P.paperCream, m, { angle: Math.PI / 2, gap: 2.2, pressure: 0.8 });
+        ruler(S, frame.concat([frame[0]]), { color: P.graphite, width: 2 });
+        if (!open) {
+            for (let x = a + 12; x < b - 4; x += 12) ruler(S, [[x, 18], [x, H - 8]], { color: P.graphiteSoft, width: 1.3 });
+            // the bolt, on the stair side
+            ruler(S, [[b - 4, 56], [b + 4, 56]], { color: P.inkBlue, width: 4 });
+        }
+    }
+    return done(S);
+}
+item('props-bay', 'stair-gate', [0.5, 1], () => stairGate(false));
+item('props-bay', 'stair-gate-open', [0.5, 1], () => stairGate(true));
 
 item('props-bay', 'basin', [0.5, 1], () => {
     const W = 224, H = 84;

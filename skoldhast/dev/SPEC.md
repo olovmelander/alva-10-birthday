@@ -197,8 +197,8 @@ språngkant marker: a hoof mark plus a short pencil tick, 60 wu, anchor [0.5, 1]
 
 **Kelp forest (sea):** `kelp-strip` (a single tall kelp frond as a vertical strip 96×900 px, used as a rope; the
 base at the bottom), `kelp-bed` (a dense low clump, 300 wu wide × 180 high), `kelp-float` (floating kelp at the
-surface, 160 wu, anchor centre), `seabed-rock-1`…`seabed-rock-3`, `shell-under`, `vault-mouth` (the dark
-mouth of Mörka valvet in a rock face, 500 wu wide × 420 high), `paper-flap` (a small paper flap sticking up from
+surface, 160 wu, anchor centre), `seabed-rock-1`…`seabed-rock-3`, `shell-under`, `vault-mouth` (no longer
+placed: Mörka valvet is drawn by the engine from its `slabs` roof in `world.mjs`), `paper-flap` (a small paper flap sticking up from
 the seabed, 60 wu, and `paper-flap-flat`), `paper-corner` (a folded paper corner sticking up in the vortex
 eye, 120 wu, and `paper-corner-flat`), `veckmuren` (the crease wall seen from the side: a vertical, glassy,
 ruler-straight wall with water piled up behind it, 360 wu wide × 1400 high, anchor [0.5, 1]).
@@ -209,7 +209,10 @@ lines, ~1300 wu high × 420 wide, anchor [0.5, 1]; the lamp room at the top with
 anchor centre), `window-lower` (the lighthouse's lower window under water, 140 wu, anchor centre),
 `pier-end-rail` (the rail at the end of the pier, 120 wu high), `plate-up`, `plate-down` (a round seabed
 pressure plate, 160 wu wide), `pipe` (Strömröret: a vertical paper pipe with side vents, 180 wu wide × 900
-high, anchor [0.5, 1]), `stair` (a spiral stair, 200 wu wide × 900 high, anchor [0.5, 1]), `basin` (small
+high, anchor [0.5, 1]), `stair` (the spiral stair from the pier deck to the gallery floor, 340 wu wide, its top landing's
+top edge at the anchor [0.5, 0] and its bottom landing 1336 wu below; landings reach left to the pier and
+right to the gallery), `stair-gate`, `stair-gate-open` (the gate at the stair's foot, bolted from the stair
+side, 118 wu high, anchor [0.5, 1]), `basin` (small
 basin at the top of the pipe, 220 wu wide), `map-closed`, `map-open` (Kartväktaren's map on a table: pages LAND
 and HAV, 300 wu wide).
 

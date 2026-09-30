@@ -171,3 +171,35 @@ test('a saved P8 sea half resumes its final drawing with fresh screen geometry',
     assert.deepEqual([H.player.x, H.player.y], at);
     assert.equal(H.has('p8_done'), false, 'an unfinished or abandoned drawing never commits the ending');
 });
+
+test('P5: the lyktfiskar wait where they are when the shell comes out, and follow again when it hides near them', () => {
+    // beside the bed, outside the current that would carry the shell into the vault
+    const G = swimming('kelp', 23.1, 10.6);
+    step(G, 2, { hide: true });
+    assert.equal(G.puz.school.state, 'follow', 'hiding by the bed calls the school out');
+    step(G, 0.15, { hide: true });
+    step(G, 0.6, { x: -1, y: -1 });
+    assert.equal(G.puz.school.state, 'wait', 'swimming off makes them stop, not flee home');
+    const { x, y } = G.puz.school;
+    step(G, 1, {});
+    assert.ok(Math.hypot(G.puz.school.x - x, G.puz.school.y - y) < 1, 'they wait in place');
+    step(G, 1.5, { hide: true });
+    assert.equal(G.puz.school.state, 'follow', 'hiding near them again brings them back');
+    const H = swimming('kelp', 23.1, 10.6);
+    step(H, 2, { hide: true }); step(H, 0.15, { hide: true });
+    step(H, 8, { x: -0.3, y: -1 });
+    assert.equal(H.puz.school.state, 'home', 'swimming far away sends them home');
+});
+
+test('Mörka valvet has a solid roof and is dark from both mouths until it is lit', () => {
+    const G = swimming('kelp', 28.6, 7.6);
+    step(G, 3, { y: 1 });
+    assert.ok(G.player.y < 8.6 * HL, 'a swimmer cannot pass down through the roof');
+    const E = swimming('kelp', 32.2, 11.3);
+    step(E, 2, { x: -1 });
+    assert.ok(E.player.x > 31 * HL, 'the back way in is dark too');
+    const L = swimming('kelp', 32.2, 11.3, ['p5_lit']);
+    step(L, 2, { x: -1 });
+    assert.ok(L.player.x < 30.5 * HL, 'once lit, the vault can be swum through');
+    assert.ok(L.player.y > 10.6 * HL, 'under the roof');
+});

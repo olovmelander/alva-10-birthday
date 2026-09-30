@@ -189,6 +189,7 @@ export const STORY = {
         leapHint: 'För lite fart vid kanten. Backen är lång – börja högst uppe och galoppera hela vägen!',
         afterEnd: 'Virveln har öppnat sig åt höger. Den nya strömmen leder till nästa sida!',
         laneHide: 'Fiskarna följer dig! Men här ligger du still. Göm dig i strömmen ovanför, så driver ni in i valvet tillsammans.',
+        lyktWait: 'Lyktfiskarna blev blyga och stannade. De väntar! Göm dig nära dem igen, så följer de med.',
         ropeHint: 'Ett rep! Ställ dig vid det och tryck Dra, så fälls plankan ner över klyftan.'
     },
     k3: {
@@ -461,7 +462,7 @@ export const CAPTIONS = {
     rustle: '(prassel)', plask: '(PLASK!)', neigh: '(gnägg!)', blubb: '(blubb!)', ratchet: '(klick)', latch: '(klonk!)', drum: '(dunk dunk)', unfold: '(prassel …)'
 };
 
-export const CONTEXT_LABELS = { talk: 'Prata', read: 'Läs', swimIn: 'Simma in', down: 'Gå ner', taste: 'Smaka', push: 'Knuffa', pull: 'Dra', color: 'Färglägg', shake: 'Skaka', dropIn: 'Hoppa i' };
+export const CONTEXT_LABELS = { talk: 'Prata', read: 'Läs', swimIn: 'Simma in', down: 'Gå ner', up: 'Gå upp', taste: 'Smaka', push: 'Knuffa', pull: 'Dra', color: 'Färglägg', shake: 'Skaka', dropIn: 'Hoppa i' };
 
 // Drawing actions remain available without a precise trace or a keyboard.
 export const DRAWING = {

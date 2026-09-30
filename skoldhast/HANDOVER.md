@@ -1,6 +1,27 @@
 # Sköldhästen – handover
 
-## Latest: depth, shorelines and grounding (30 September)
+## Latest: Mörka valvet and the lighthouse stair (30 September)
+
+Branch `claude/skoldhast-vault-stairs`, on `main` at `252423f`. Pappa asked whether the stairs should
+reach from the ground to the top of the lighthouse, and for a better-looking and better-working dark vault.
+
+- **The stair** now runs the whole height, from the pier's end to the lamp gallery (`stair` art redrawn,
+  1336 wu, landings at both ends, its post standing in the bay). Its gate at the foot is bolted from the
+  stair side: the way up the first time is still the pipe (P7), and walking down (`Gå ner`) opens it
+  (`stair_open`), after which `Gå upp` at the pier's end goes up. Strömröret is drawn above the water too,
+  a tube up the tower's side into the gallery basin, so riding up it reads.
+- **Mörka valvet** is a real rock arch across the trench floor (`slabs` in `world.mjs`, new in `sim.mjs`
+  `insideSolid`): a solid roof you swim under or over, a far wall that fades out at the mouths, and a
+  darkness in its own shape instead of a rectangle. The dark lifts where the lyktfiskar are; once they
+  light it they hang under the roof as a row of lamps with warm light on the wall. The back way in is
+  refused too while dark (`vault-dark-e`).
+- **The lyktfiskar** are gentler: when the sköldhäst comes out of hiding they stop and wait where they
+  are (`wait`), come back when it hides near them again, and swim home (not jump) only if it goes far
+  or leaves them 12 s. Klo says so once (`lyktWait`). They swim smoothly between places.
+- The robot's two routes through the trench now go under the lit roof and over it; two new tests cover
+  the waiting school and the roof. Pure suite **163/163**.
+
+## Depth, shorelines and grounding (30 September)
 
 Branch `claude/skoldhast-visual-depth` (from `49ade5a`), merged to `main` after the opening-notes merge. Pappa asked for the
 recommended visual improvements, in order. Details, causes and before/after pairs:

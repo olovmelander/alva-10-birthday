@@ -1041,6 +1041,8 @@ export function createStory(G, io) {
             if (Math.hypot(p.x - home.x, p.y - home.y) < h(5)) hintOnce('lykt', STORY.k2.lyktHint);
         }
         if (inScene('kelp') && p.inVortex && !p.hidden && !F.has('p6_flat')) hintOnce('whirl', STORY.k2.whirlHint);
+        // the school stopped when the sköldhäst came out; it waits for the shell to hide near it again
+        if (inScene('kelp') && F.has('ch2_open') && !F.has('p5_lit') && !p.hidden && G.puz.school.state === 'wait') hintOnce('lyktWait', STORY.k2.lyktWait);
         // hidden by the fish but lying still, outside the current that would carry the shell into the vault
         if (inScene('kelp') && F.has('ch2_open') && !F.has('p5_lit') && p.hidden && p.mode === 'swim' && !p.inLane && G.puz.school.state === 'follow') hintOnce('laneHide', STORY.k2.laneHide);
         if (inScene('viken') && F.has('viken_arrived') && !F.has('lamp_lit')) {

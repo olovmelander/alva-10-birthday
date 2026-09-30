@@ -326,8 +326,18 @@ SCENES.kelp = {
         { id: 'cave-west', x: h(-0.6), y0: h(-2), y1: h(6) }
     ],
     edges: [
-        { id: 'vault-dark', x: h(25.8), y: h(11.4), dy: h(2.2), dir: 1, kind: 'balk', reason: 'dark', water: true, when: '!p5_lit' }
+        { id: 'vault-dark', x: h(25.8), y: h(11.4), dy: h(2.2), dir: 1, kind: 'balk', reason: 'dark', water: true, when: '!p5_lit' },
+        // nor in by the back way, round the roof, while it is dark
+        { id: 'vault-dark-e', x: h(31.05), y: h(11.4), dy: h(1.6), dir: -1, kind: 'balk', reason: 'dark', water: true, when: '!p5_lit' }
     ],
+    // Mörka valvet: a rock arch across the trench floor. Its roof is solid (you swim
+    // under it or over it); the space under it is dark until the lyktfiskar light it.
+    // Its underside is nearly level, so neither mouth can trap a swimmer.
+    slabs: [
+        { id: 'vault-roof', top: L([25.25, 9.88], [25.5, 9.45], [25.9, 9.1], [26.4, 8.85], [27.6, 8.55], [28.8, 8.45], [30, 8.6], [30.45, 8.8], [30.75, 9.2], [31.0, 9.86]),
+            bottom: L([25.25, 10.02], [25.5, 10.02], [25.9, 9.96], [26.4, 9.93], [27.6, 9.88], [28.8, 9.85], [30, 9.88], [30.45, 9.93], [30.75, 9.98], [31.0, 10.02]), chapter: 2 }
+    ],
+    vaults: [{ id: 'vault', roof: 'vault-roof', until: 'p5_lit', lamps: 7 }],
     waters: [
         // The cave opens directly into the sea: one continuous water level.
         { id: 'cave', x0: h(-1), x1: h(7), top: h(0), kind: 'cave' },
@@ -395,11 +405,9 @@ SCENES.kelp = {
         { sprite: 'seabed-rock-2', x: h(19.8), y: h(6.05), layer: 'fore' },
         { sprite: 'seabed-rock-3', x: h(33.6), y: h(11.25), layer: 'mid', chapter: 2 },
         { sprite: 'shell-under', x: h(16.4), y: h(6.1), layer: 'mid' },
-        { sprite: 'vault-mouth', x: h(27.4), y: h(12.55), layer: 'mid', chapter: 2 },
         { sprite: 'veckmuren', x: h(47.9), y: h(9.1), layer: 'mid' }
     ],
     paper: [{ id: 'trench-paper', x0: h(22.2), x1: h(46.5), until: 'ch2_open', note: { x: h(26), y: h(4) }, under: true }],
-    darkness: [{ id: 'vault', x0: h(25.8), x1: h(31.6), y0: h(9.2), y1: h(13), until: 'p5_lit' }],
     exits: [
         { id: 'to-land', x0: h(-1), x1: h(0.1), to: 'land', spawn: 'fromKelp', auto: true },
         { id: 'to-viken', x0: h(46.9), x1: h(48), y1: h(3), when: 'marks_both', to: 'viken', spawn: 'fromKelp', auto: true }
@@ -462,7 +470,7 @@ SCENES.viken = {
     spots: {
         fromLand: { x: h(0.6), y: h(-0.16), facing: 1 },
         fromKelp: { x: h(8.6), y: h(3.0), facing: 1, mode: 'swim' },
-        stairTop: { x: h(27.2), y: h(-7.3), facing: 1 },
+        stairTop: { x: h(26.5), y: h(-7.3), facing: 1 },
         stairFoot: { x: h(22.6), y: h(-0.62), facing: -1 },
         galleryPop: { x: h(26.9), y: h(-7.3), facing: 1 },
         kvPier: { x: h(23.2), y: h(-0.62) },
@@ -485,7 +493,16 @@ SCENES.viken = {
     // a resting shell within `pull` slides onto the plate; `hold` seconds on it latches the shutter
     plates: [{ id: 'plate', x: h(14.2), y: h(6.86), w: h(1.6), pull: h(1.5), flag: 'shutter2', hold: 1.2 }],
     pullRopes: [{ id: 'shutter3-rope', x: h(28.6), y: h(-7.3), flag: 'shutter3' }],
-    stairs: [{ id: 'stair', x: h(27.2), y: h(-7.3), to: 'stairFoot', label: CONTEXT_LABELS.down }],
+    // The spiral stair joins the gallery to the pier's end. Its gate is bolted from the stair side:
+    // the first way up is the pipe (P7); coming down opens it, and then it works both ways.
+    stairs: [
+        { id: 'stair', x: h(26.6), y: h(-7.3), to: 'stairFoot', label: CONTEXT_LABELS.down, opens: 'stair_open' },
+        { id: 'stair-up', x: h(23.7), y: h(-0.62), to: 'stairTop', label: CONTEXT_LABELS.up, when: 'stair_open' }
+    ],
+    // the stair's post continues down into the bay
+    pilings: [{ x: h(25.15), top: h(-0.62) + 30, width: 20 }],
+    // Strömröret above the water: the tube the current climbs, from its drawn lower part up into the gallery basin
+    tubes: [{ x: h(26.5), y0: h(-7.24), y1: h(1.0), width: 128 }],
     dashed: [
         // runways of about 4 HL (shore and pier start), 1.4 HL and 1.4 HL between the segments; each is at most 10 HL
         { id: 'p8-d1', pts: L([4.0, -0.62], [9.6, -0.62]), flag: 'p8_s1', balk: false, decal: true, dir: 1, when: 'talk_done', glow: true },
@@ -497,7 +514,9 @@ SCENES.viken = {
         { sprite: 'lighthouse', x: h(29.8), y: h(-0.45), layer: 'mid', lighthouse: true, scale: 1.37 },
         { sprite: 'pier-end-rail', x: h(24.1), y: h(-0.62), layer: 'mid', when: '!p8_land' },
         { sprite: 'pipe', x: h(26.5), y: h(5.4), layer: 'mid' },
-        { sprite: 'stair', x: h(25.4), y: h(-0.62), layer: 'mid' },
+        { sprite: 'stair', x: h(25.15), y: h(-7.3), layer: 'mid' },
+        { sprite: 'stair-gate', x: h(24.45), y: h(-0.62), layer: 'mid', when: '!stair_open' },
+        { sprite: 'stair-gate-open', x: h(24.35), y: h(-0.62), layer: 'mid', when: 'stair_open' },
         { sprite: 'basin', x: h(26.6), y: h(-7.25), layer: 'mid' },
         { sprite: 'window-lower', x: h(27.0), y: h(2.6), layer: 'mid' },
         { sprite: 'plate-up', x: h(14.2), y: h(6.86), layer: 'mid', when: '!shutter2' },
