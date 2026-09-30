@@ -17,6 +17,9 @@ professor appears. See [`docs/skoldhast/alva-notes-opening.md`](../docs/skoldhas
 - New `src/opening-notes.mjs`, `tests/skoldhast-opening-notes.test.mjs`,
   `tests/browser/skoldhast-notes.mjs`; the other browser checks skip her note. First playable
   2,794,317 bytes.
+- The thought bubbles are small live scenes made from the game's own art (`src/thought-scenes.mjs`):
+  the steppe gallop and the kelp forest look as they do in play, Signe races past Klo's signs, and
+  a lens follows hoofprints to Klo's eyes. First playable 2,801,158 bytes.
 - Frågor till Pappa: is ~28 s of her note the right length before the first drawing?
 
 ## Latest: Klo's slow-motion awakening (30 September)

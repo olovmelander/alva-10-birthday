@@ -40,6 +40,24 @@ picture, for anyone starting a second game. Reduced motion writes each sentence
 at once, with no pencil movement, drifting dust or camera moves, and keeps every
 image in the same order.
 
+**The thought bubbles use the game's own art** (`src/thought-scenes.mjs`), so
+they look like the places the player will go:
+- *steppe*: the steppe backdrop, the grass texture scrolling at the real gallop
+  speed under a pencil ground line, feather grass, pasque flowers and boulders
+  rushing past, and the real sköldhäst rig galloping and kicking up dust;
+- *kelp forest*: the underwater backdrop and light, the seabed, the game's kelp
+  fronds swaying in front of and behind the sköldhäst (hiding under its shell,
+  peeking out now and then), fish drifting and bubbles rising;
+- *turtle or horse*: on her beach, Signe the turtle races past Klo's
+  SKÖLDPADDA sign with speed lines, hoofprints creep by his "häst" sign, and
+  Klo's stopwatch ticks under a big red question mark;
+- *researcher*: a magnifying glass (with a real magnified view) follows
+  hoofprints over the sand, a pencil scribbles in Klo's notebook, and his eyes
+  come up out of the sand.
+The kelp scene waits for the sea art, which loads in the background; if any art
+is missing, the bubble falls back to simple pencil drawings.
+
+![The four thought bubbles](shots/k3/alva-notes-bubbles.webp)
 ![Her note begins, the creature appears, her world colours in](shots/k3/alva-notes-1440x900-a.webp)
 ![The race of the turtle and the horse, the researcher, into the picture](shots/k3/alva-notes-1440x900-b.webp)
 ![Portrait](shots/k3/alva-notes-390x844.webp)

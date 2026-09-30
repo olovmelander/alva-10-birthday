@@ -37,6 +37,7 @@
   "src/stuck-wave-shape.mjs",
   "src/stuck-wave.mjs",
   "src/terrain-shape.mjs",
+  "src/thought-scenes.mjs",
   "src/ui.mjs",
   "src/user-cloud.mjs",
   "src/view.mjs",

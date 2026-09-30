@@ -8,6 +8,8 @@
  * picture in the region left free by the card and plays the story beats.
  */
 
+import { createThoughtScene } from './thought-scenes.mjs';
+
 const clamp01 = (v) => Math.max(0, Math.min(1, v));
 const ease = (v) => { const p = clamp01(v); return p * p * (3 - 2 * p); };
 const easeOutBack = (v) => { const p = clamp01(v), c = 1.5; return 1 + (c + 1) * (p - 1) ** 3 + c * (p - 1) ** 2; };
@@ -205,6 +207,7 @@ export function createOpeningNotes(PIXI, { texture, heading, text, makeHero, red
         return content;
     }
     function drawContent(b, dt) {
+        if (b.content.scene) { b.content.scene.update(dt); return; }
         const { kind, rx, ry, content: k } = b;
         const g = k.g, t = (k.t += dt), still = less();
         g.clear();
@@ -293,7 +296,9 @@ export function createOpeningNotes(PIXI, { texture, heading, text, makeHero, red
         const cloud = cloudPath(new PIXI.Graphics(), rx, ry).fill({ color: 0xfbf8f1, alpha: .98 });
         const outline = cloudPath(new PIXI.Graphics(), rx, ry).stroke({ width: 2.2, color: INK, alpha: .85, join: 'round' });
         const mask = cloudPath(new PIXI.Graphics(), rx * .985, ry * .985).fill(0xffffff);
-        const content = makeContent(kind, rx * 1.14, ry * 1.14);
+        // the game's own art where it is loaded; simple pencil drawings otherwise
+        const scene = createThoughtScene(PIXI, kind, { texture: T, makeHero, rx, ry, reducedMotion: less });
+        const content = scene ? { c: scene.container, scene, heroes: [], t: 0 } : makeContent(kind, rx * 1.14, ry * 1.14);
         content.c.mask = mask;
         const body = new PIXI.Container();
         body.addChild(cloud, content.c, mask, outline);
@@ -373,7 +378,7 @@ export function createOpeningNotes(PIXI, { texture, heading, text, makeHero, red
         for (const b of bubbles) updateBubble(b, dt);
         for (let i = bubbles.length - 1; i >= 0; i--) {
             const b = bubbles[i];
-            if (b.gone >= 0 && b.age - b.gone > 1) { for (const h of b.content.heroes) h.hero.destroy?.(); b.root.destroy({ children: true }); bubbles.splice(i, 1); }
+            if (b.gone >= 0 && b.age - b.gone > 1) { b.content.scene?.destroy(); for (const h of b.content.heroes) h.hero.destroy?.(); b.root.destroy({ children: true }); bubbles.splice(i, 1); }
         }
         for (let i = sparkles.length - 1; i >= 0; i--) {
             const s = sparkles[i];
@@ -417,7 +422,7 @@ export function createOpeningNotes(PIXI, { texture, heading, text, makeHero, red
         destroy() {
             if (dead) return;
             dead = true;
-            for (const b of bubbles) for (const h of b.content.heroes) h.hero.destroy?.();
+            for (const b of bubbles) { b.content.scene?.destroy(); for (const h of b.content.heroes) h.hero.destroy?.(); }
             dim.destroy(); container.destroy({ children: true });
         }
     };
