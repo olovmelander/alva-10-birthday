@@ -90,6 +90,26 @@ horse's "Ja." stay in Kapitel 1.
 
 The refreshed 27-place contact sheets are `shots/k3/sheet-*.webp`.
 
+## Third round: the drop in slow motion (30 September)
+
+Pappa asked for a longer, more dramatic entrance in which the water drop from
+the sköldhäst to the sand is what wakes Klo, in slow motion. The shake slows
+time to 15 %; the camera follows one drop off the shell (a glint at the top of
+its flight, a pencil trail, its shadow tightening on the sand), two smaller
+drops land short, and the big one lands in slow motion with a crown, a jet and
+wet sand. Time snaps back; Klo's stalks rise with closed eyes that pop open;
+the camera pulls back as he rises (slowed to 45 %) with sand pouring off his
+shell. Reduced motion keeps every beat at normal speed and without camera moves.
+
+![The drop, portrait: flight, landing, waking](shots/k3/klo-drop-390x844.webp)
+![The drop, landscape](shots/k3/klo-drop-844x390.webp)
+
+Also: the dunes' sand and the pool's wet sand now blend instead of meeting in a
+vertical seam, and `mat-glass` (unused) left the first download (2,783,057
+bytes). Pure suite 158/158; all 17 browser checks pass one at a time, including
+a prologue-lifecycle check that closes the game while the drop falls, during
+the whisper and during the leap.
+
 ## Verification
 
 - `npm test`: 150/150, the full-game robot included. New pure tests: Klo's

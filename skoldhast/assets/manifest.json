@@ -277,7 +277,7 @@
    "scale": 1
   },
   "mat-glass": {
-   "bundle": "boot",
+   "bundle": "sea",
    "file": "mat-glass.webp",
    "bytes": 38324,
    "w": 512,
@@ -543,7 +543,6 @@
     "assets/mat-rock.webp",
     "assets/mat-wood.webp",
     "assets/mat-water.webp",
-    "assets/mat-glass.webp",
     "assets/mat-paper.webp",
     "assets/paper-tooth.webp",
     "assets/desk-wood.webp",
@@ -571,7 +570,7 @@
     "assets/ui-icons.webp",
     "assets/hero-rig.json"
    ],
-   "bytes": 1489256
+   "bytes": 1450932
   },
   "sea": {
    "files": [
@@ -582,9 +581,10 @@
     "assets/bg-under.webp",
     "assets/bg-fold.webp",
     "assets/mat-seabed.webp",
-    "assets/mat-deep.webp"
+    "assets/mat-deep.webp",
+    "assets/mat-glass.webp"
    ],
-   "bytes": 644538
+   "bytes": 682862
   },
   "land": {
    "files": [
@@ -613,5 +613,5 @@
    "bytes": 685276
   }
  },
- "built": "2026-09-29"
+ "built": "2026-09-30"
 }

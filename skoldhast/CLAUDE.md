@@ -48,8 +48,8 @@ download grows over 3 MB. `skoldhast/dev/SPEC.md` is the contract between the en
 ## Rules that protect Alva
 
 - The fourth button stays hidden behind `?skoldhast` until Pappa reveals the game.
-- Her printed words appear only as Pappa allows (plan §0 Q5); until then `HER_TEXT` stays null and
-  the paraphrased fallback lines are used. Never put the magazine page or the photo of it in the repo.
+- Her printed words: Pappa allowed them on 30 September (plan §0 Q5, answer a). Only her four
+  printed sentences go in `HER_TEXT`; never put the magazine page or the photo of it in the repo.
 - First name only. Never her surname, school, town, the magazine, or anything Pappa scribbled over.
 - Everything in the repository and on the site is public.
 

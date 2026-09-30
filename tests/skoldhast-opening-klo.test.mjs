@@ -1,8 +1,8 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { sampleOpeningKlo, OPENING_KLO_HOLD, OPENING_KLO_STAGES } from '../skoldhast/src/opening-klo.mjs';
+import { sampleOpeningKlo, OPENING_KLO_HOLD, OPENING_KLO_STAGES, openingKloAt, openingKloBeats, openingKloDuration } from '../skoldhast/src/opening-klo.mjs';
 
-const ORDER = ['drop', 'plip', 'periscope', 'search', 'gaze', 'rise', 'backstep', 'awe', 'toss', 'double-take', 'split',
+const ORDER = ['drop', 'fall', 'plip', 'periscope', 'search', 'gaze', 'rise', 'backstep', 'awe', 'toss', 'double-take', 'split',
     'crouch', 'take', 'land', 'research', 'ready'];
 
 test('Klo wakes behind the horse, stares in wonder, does a double take, leaps and starts researching', () => {
@@ -67,4 +67,33 @@ test('reduced-motion Klo keeps every cause and beat without a leap, tilt, crouch
     assert.equal(reused.stage, 'ready');
     assert.equal(sampleOpeningKlo(NaN).stage, 'hidden');
     assert.equal(sampleOpeningKlo(10).stage, 'ready');
+});
+
+test('the drop falls and Klo rises in slow motion; reduced motion keeps every beat at normal speed', () => {
+    for (const less of [false, true]) {
+        const beats = openingKloBeats(less);
+        assert.deepEqual(beats.map(b => b.name), ['shake', 'fall', 'impact', 'still', 'wake', 'rise', 'settle']);
+        let previous = -1, at = {};
+        const total = openingKloDuration(less);
+        for (let s = 0; s <= total + .001; s += total / 400) {
+            openingKloAt(s, less, at);
+            assert.ok(at.progress >= previous - 1e-9, 'progress never runs backwards');
+            assert.ok(at.speed > 0 && at.speed <= 1);
+            if (less) assert.equal(at.speed, 1, 'no slow motion with reduced motion');
+            previous = at.progress;
+        }
+        assert.ok(Math.abs(openingKloAt(total, less).progress - OPENING_KLO_HOLD) < 1e-9, 'it ends on his held stare');
+        for (const b of beats) assert.ok(b.p1 >= b.p0);
+    }
+    assert.ok(openingKloDuration(false) > 9, 'a long, dramatic entrance');
+    const fall = openingKloAt(.35 + 1.5, false);
+    assert.equal(fall.beat, 'fall'); assert.ok(fall.speed < .2, 'the world nearly stops while the drop falls');
+    assert.equal(sampleOpeningKlo(fall.progress).stage, 'fall');
+    assert.ok(sampleOpeningKlo(fall.progress).drop > 0, 'and the drop is in the air');
+    const still = openingKloAt(.35 + 2.8 + 1.05 + .5, false);
+    assert.equal(still.beat, 'still'); assert.ok(still.speed > .9, 'time snaps back after the landing');
+    assert.equal(sampleOpeningKlo(.125).impact > 0, true, 'the landing throws up a crown');
+    assert.equal(sampleOpeningKlo(.16).eyeFrame, 'blink', 'his eyes are still shut as the stalks come up');
+    assert.equal(sampleOpeningKlo(.18).eyeFrame, 'open', 'then they pop open');
+    assert.ok(sampleOpeningKlo(.37).pour > 0, 'sand pours off him as he rises');
 });

@@ -10,7 +10,7 @@
 import { HL } from './sim.mjs';
 import { STORY, UI, HER_TEXT, FAMILY, CAPTIONS, DRAWING } from './content/sv.mjs';
 import { createOpeningFold } from './opening-fold.mjs';
-import { createOpeningKlo, OPENING_KLO_HOLD, OPENING_KLO_STAGES } from './opening-klo.mjs';
+import { createOpeningKlo, OPENING_KLO_HOLD, OPENING_KLO_STAGES, openingKloAt, openingKloDuration } from './opening-klo.mjs';
 import { createOpeningCanvas } from './opening-canvas.mjs';
 import { createStuckWave, surfaceGround } from './stuck-wave.mjs';
 import { CLOUD_PENCILS, createUserCloud, paintUserCloud } from './user-cloud.mjs';
@@ -46,6 +46,10 @@ export function createTable({ PIXI, app, view, G, ui, audio, assets, makeHero })
     table.addChildAt(extras, 1);
     let picHero = null, picKlo = null, wave = null;
     let canvasLife = null, heroAwake = true, closeFrame = 0, kloFrame = 0;
+    // Slow motion: how fast the picture's world runs (horse, mane, wave spray),
+    // and a closer camera that follows the falling drop.
+    let worldSpeed = 1;
+    const focus = { k: 0, x: 0, y: 0 };
     const wakeStroke = new PIXI.Graphics(); wakeStroke.label = 'opening-wake-stroke';
     let t = 0;
     let frozen = false;
@@ -72,8 +76,10 @@ export function createTable({ PIXI, app, view, G, ui, audio, assets, makeHero })
         // Klo's scene pushes in on the band from the mane to the hooves, so a
         // phone shows his eyes and marks at a readable size.
         const kS = Math.min((W - 40) / 280, (H - 130) / 204, Math.max(close * 1.4, 1.2));
-        const cs = lerp(close, kS, kloFrame);
-        const cx = lerp(420, 335, kloFrame), cy = lerp(410, 380 + 55 / kS, kloFrame);
+        const fS = Math.max(kS, Math.min((W - 40) / 200, (H - 130) / 150, kS * 1.5));
+        const cs = lerp(lerp(close, kS, kloFrame), fS, focus.k);
+        const cx = lerp(lerp(420, 335, kloFrame), focus.x, focus.k);
+        const cy = lerp(lerp(410, 380 + 55 / kS, kloFrame), focus.y, focus.k);
         const s = lerp(wide, cs, closeFrame);
         paperLayer.scale.set(s);
         paperLayer.x = W / 2 - lerp(PW / 2, cx, closeFrame) * s;
@@ -130,7 +136,7 @@ export function createTable({ PIXI, app, view, G, ui, audio, assets, makeHero })
 
     function start(evening = false) {
         frozen = false; table.alpha = 1; t = 0;
-        heroAwake = true; closeFrame = 0; kloFrame = 0; table.openingAwake = true;
+        heroAwake = true; closeFrame = 0; kloFrame = 0; focus.k = 0; worldSpeed = 1; table.openingAwake = true;
         openingFold?.destroy(); openingFold = null; shore.clear();
         canvasLife?.destroy(); canvasLife = null;
         picKlo?.destroy(); picKlo = null;
@@ -163,7 +169,8 @@ export function createTable({ PIXI, app, view, G, ui, audio, assets, makeHero })
         setPhase('idle');
     }
 
-    function tick(dt) {
+    function tick(real) {
+        const dt = real * worldSpeed;
         t += dt;
         if (picHero && heroAwake) {
             const st = G.scenes.land.spots.start;
@@ -326,8 +333,10 @@ export function createTable({ PIXI, app, view, G, ui, audio, assets, makeHero })
             dropFrom: { x: (rimPaper[0] - kx) / zoom, y: (rimPaper[1] - ky) / zoom }, reducedMotion: () => !!G.lessMotion });
         picHero._look = null;
         const cues = {
-            plip: () => audio?.sfx('drip'),
+            fall: () => { audio?.sfx('whoosh', { gain: .18 }); audio?.sfx('sparkle'); },
+            plip: () => { audio?.sfx('drip'); audio?.sfx('splash', { size: .12, gain: .22 }); },
             periscope: () => audio?.sfx('crabclick', { gain: .35 }),
+            rise: () => audio?.sfx('rustle', { gain: .3 }),
             backstep: () => audio?.sfx('pop', { gain: .15 }),
             awe: () => audio?.sfx('sparkle'),
             'double-take': () => { picHero._action = 'stamp'; picHero._actionT = 0; audio?.sfx('hoof', { gain: .6 }); },
@@ -355,7 +364,31 @@ export function createTable({ PIXI, app, view, G, ui, audio, assets, makeHero })
         else await tween(lead, u => { kloFrame = u * u * (3 - 2 * u); layout(); });
         picHero._action = G.lessMotion ? 'nod' : 'shake'; picHero._actionT = 0;
         audio?.sfx('shake', { gain: .5 });
-        await tween(G.lessMotion ? 2.4 : 4.2, u => entrance(u * OPENING_KLO_HOLD));
+        // The shake throws water. Time slows while the camera follows one drop
+        // from the shell into his hole; the world snaps back when it lands, and
+        // slows again as he rises out of the sand.
+        const partA = openingKloDuration(!!G.lessMotion), at = {};
+        const [holeX, holeY] = [kx + picKlo.dropPoint()[0] * zoom, ky];
+        await tween(partA, u => {
+            const s = u * partA;
+            openingKloAt(s, !!G.lessMotion, at);
+            worldSpeed = at.speed;
+            entrance(at.progress);
+            if (!G.lessMotion) {
+                const [dx, dy] = picKlo.dropPoint();
+                const px = kx + dx * zoom, py = ky + dy * zoom;
+                // in on the drop as it leaves the shell, down with it to the hole,
+                // then back out as his eyes climb the horse
+                focus.k = at.beat === 'shake' ? .4 * ease(at.u) : ['fall', 'impact', 'still'].includes(at.beat)
+                    ? (at.beat === 'fall' ? .4 + .6 * ease(Math.min(1, at.u * 3)) : 1)
+                    : at.beat === 'wake' ? 1 - ease(Math.max(0, (at.u - .45) / .55)) : 0;
+                const follow = at.beat === 'shake' || at.beat === 'fall';
+                focus.x = follow ? lerp((px + holeX) / 2, px, .55) : holeX;
+                focus.y = follow ? lerp((py + holeY) / 2, py, .55) : holeY - 26;
+                layout();
+            }
+        });
+        worldSpeed = 1; focus.k = 0; layout();
         setPhase('klo-wonder');
         await ui.say([STORY.prolog.kloWonder]);
         // "A turtle?!" The horse tosses its head; one of Klo's eyes follows the mane.
@@ -610,6 +643,7 @@ export function createTable({ PIXI, app, view, G, ui, audio, assets, makeHero })
         });
     }
     function lerp(a, b, u) { return a + (b - a) * u; }
+    function ease(u) { const v = Math.max(0, Math.min(1, u)); return v * v * (3 - 2 * v); }
 
     return {
         prologue, epilogue, layout,
