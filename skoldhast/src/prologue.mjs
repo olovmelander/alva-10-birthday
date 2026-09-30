@@ -546,6 +546,8 @@ export function createTable({ PIXI, app, view, G, ui, audio, assets, makeHero })
         if (!text || !picHero) return false;
         const less = () => !!G.lessMotion;
         if (document.fonts?.load) await Promise.race([document.fonts.load('24px "Patrick Hand"'), wait(1.5)]).catch(() => {});
+        // the kelp forest bubble uses the sea's art, which may still be arriving
+        const seaReady = Promise.race([assets?.load?.('sea'), wait(4)]).catch(() => {});
         notes = createOpeningNotes(PIXI, { texture: T, heading: JOURNAL.field, text, makeHero, reducedMotion: less });
         table.addChildAt(notes.dim, table.getChildIndex(paperLayer));
         table.addChild(notes.container);
@@ -616,7 +618,7 @@ export function createTable({ PIXI, app, view, G, ui, audio, assets, makeHero })
         };
         const region = () => notes.region;
         const bubbleAt = (fx, fy) => { const r = region(); return [r.x + r.w * fx, r.y + r.h * fy]; };
-        const size = () => { const r = region(); return Math.max(46, Math.min(r.w * .2, r.h * .28)); };
+        const size = () => { const r = region(); return Math.max(52, Math.min(r.w * .22, r.h * .3)); };
         const kloSpot = worldToPaper(G.scenes.land.spots.start.x - h(.86), G.scenes.land.spots.start.y);
         const actions = {
             creature: () => { colour(creature, 1.6); audio?.sfx('colorin', { gain: .6 }); },
@@ -639,6 +641,7 @@ export function createTable({ PIXI, app, view, G, ui, audio, assets, makeHero })
         const fire = (n) => { for (const c of notes.cues) if (c.at <= n && !fired.has(c.cue)) { fired.add(c.cue); actions[c.cue]?.(); } };
         const CPS = 22, PAUSES = [1.3, 2.4, 2.2, 2.4];
         for (let i = 0; i < notes.sentences.length && !hold.skip; i++) {
+            if (i === 1) await seaReady;
             const from = i ? notes.sentenceEnds[i - 1] + 1 : 0, to = notes.sentenceEnds[i];
             setPhase('notes');
             table.notesSentence = i;
