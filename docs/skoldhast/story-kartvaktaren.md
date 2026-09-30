@@ -64,13 +64,15 @@ Each chapter answers one question and asks the next.
 He is seen early, but only from far off, and a little closer each time. The player can wonder who he is long
 before the game says, and the meeting pays that off ("det är han!").
 
-1. **Prolog:** a small paper man on the islet by his tower (the game's own paper rig, faded by distance). He
-   measures her line with his ruler, shrinks back with his hands to his face as the sea comes, and his ruler
-   leaves his hand for the fold. He folds away with the corner. No words, no name, no close face.
+1. **Prolog:** Pappersfyren itself stands in her margin (the game's own drawing, shutters open and the lamp
+   alight: the page as it should be), and a small paper man stands on its gallery (the game's own paper rig).
+   As she draws the shore the view leans towards him: he measures her line with his ruler, shrinks back with
+   his hands to his face as the sea comes, and his ruler leaves his hand for the fold. He folds away with the
+   corner, lighthouse and all. No words, no name, no close face.
 2. **Kapitel 1:** the same figure hurries away from the water beyond Veckmuren.
 3. **Kapitel 2:** he peeks through a lighthouse shutter and slams it shut.
-4. **Kapitel 3:** he comes out. Now we see his face, hear his name and learn why. His memory card shows him on
-   the same islet, in the same poses, as the player saw in the prologue.
+4. **Kapitel 3:** he comes out. Now we see his face, hear his name and learn why. His memory card shows the same
+   lighthouse and him on its gallery, in the same poses, as the player saw in the prologue.
 
 He never appears in Alva's notes opening (that is her head) or on the title screen.
 

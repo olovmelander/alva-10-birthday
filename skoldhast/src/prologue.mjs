@@ -55,6 +55,9 @@ export function createTable({ PIXI, app, view, G, ui, audio, assets, makeHero })
     // and a closer camera that follows the falling drop.
     let worldSpeed = 1;
     const focus = { k: 0, x: 0, y: 0 };
+    // Just before the fold the view leans towards the far lighthouse, so even a phone
+    // sees the small paper man on its gallery measure her line and shrink back.
+    let towerFrame = 0;
     // Alva's notes: the opening begins in her head, her picture framed beside her note.
     let notes = null, notesFrame = 0;
     const wakeStroke = new PIXI.Graphics(); wakeStroke.label = 'opening-wake-stroke';
@@ -89,6 +92,13 @@ export function createTable({ PIXI, app, view, G, ui, audio, assets, makeHero })
         const cy = lerp(lerp(410, 380 + 55 / kS, kloFrame), focus.y, focus.k);
         let s = lerp(wide, cs, closeFrame);
         let px = W / 2 - lerp(PW / 2, cx, closeFrame) * s, py = H / 2 - lerp(PH / 2, cy, closeFrame) * s;
+        if (towerFrame > 0) {
+            // her line's end, the lighthouse and the corner that will fold, never past the paper's right edge
+            const sT = Math.max(wide, Math.min((W - 24) / 440, (H - 40) / 420));
+            const cxT = Math.min(820, PW + 16 - W / 2 / sT), cyT = 420;
+            s = lerp(s, sT, towerFrame);
+            px = lerp(px, W / 2 - cxT * sT, towerFrame); py = lerp(py, H / 2 - cyT * sT, towerFrame);
+        }
         if (notes) {
             // while she writes, her picture fills the space beside her note
             const r = notes.layout(W, H);
@@ -153,7 +163,7 @@ export function createTable({ PIXI, app, view, G, ui, audio, assets, makeHero })
 
     function start(evening = false) {
         frozen = false; table.alpha = 1; t = 0;
-        heroAwake = true; closeFrame = 0; kloFrame = 0; focus.k = 0; worldSpeed = 1; table.openingAwake = true;
+        heroAwake = true; closeFrame = 0; kloFrame = 0; focus.k = 0; towerFrame = 0; worldSpeed = 1; table.openingAwake = true;
         notes?.destroy(); notes = null; notesFrame = 0;
         openingFold?.destroy(); openingFold = null; shore.clear(); seaWash.clear();
         canvasLife?.destroy(); canvasLife = null;
@@ -782,6 +792,7 @@ export function createTable({ PIXI, app, view, G, ui, audio, assets, makeHero })
             canvasLife?.setMeasure(e);
             paintSeaFollows(endpoint, G.lessMotion ? 1 : e);
             if (u >= .72) canvasLife?.setKeeper('fold');
+            if (!G.lessMotion) { towerFrame = e; layout(); }
         });
         const front = PIXI.RenderTexture.create({ width: PW, height: PH, resolution: 1 });
         // Render an unattached copy: promoting the live sheet to a render root
@@ -821,6 +832,8 @@ export function createTable({ PIXI, app, view, G, ui, audio, assets, makeHero })
         await tween(G.lessMotion ? .6 : 2.1, (u) => {
             const e = u * u * (3 - 2 * u);
             openingFold.set(e, { lessMotion: !!G.lessMotion });
+            // back out to the whole sheet while the corner turns under
+            if (towerFrame > 0) { const b = Math.max(0, Math.min(1, (u - .15) / .6)); towerFrame = 1 - b * b * (3 - 2 * b); layout(); }
             ruler.x = rulerX + Math.max(0, (u - .25) / .75) * 230;
             ruler.alpha = Math.max(0, 1 - u * 2);
             // The freeze happens at the visible fold, never before its cause:

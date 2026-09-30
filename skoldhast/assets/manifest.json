@@ -22,7 +22,7 @@
    "images": [
     "npcs.webp"
    ],
-   "bytes": 119576,
+   "bytes": 119076,
    "frames": 43
   },
   "npcs-sea": {
@@ -280,6 +280,15 @@
    "bytes": 54148,
    "w": 2048,
    "h": 1024,
+   "repeat": false,
+   "scale": 1
+  },
+  "map-page": {
+   "bundle": "map",
+   "file": "map-page.webp",
+   "bytes": 633050,
+   "w": 1920,
+   "h": 1260,
    "repeat": false,
    "scale": 1
   },
@@ -658,7 +667,7 @@
     "assets/ui-icons.webp",
     "assets/hero-rig.json"
    ],
-   "bytes": 1458400
+   "bytes": 1457900
   },
   "sea": {
    "files": [
@@ -713,6 +722,12 @@
     "assets/bg-steppe-near-evening.webp"
    ],
    "bytes": 366214
+  },
+  "map": {
+   "files": [
+    "assets/map-page.webp"
+   ],
+   "bytes": 633050
   }
  },
  "built": "2026-09-30"

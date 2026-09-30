@@ -26,7 +26,7 @@ import { writeAtlas, writeImage } from './skoldhast-art/atlas.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const OUT = path.join(ROOT, 'skoldhast', 'assets');
-const MODULES = ['hero', 'npcs', 'props', 'materials', 'backdrops', 'ui'];
+const MODULES = ['hero', 'npcs', 'props', 'materials', 'backdrops', 'ui', 'map'];
 const BOOT_BUDGET = 3_000_000; // first playable, compressed: the requested decimal 3 MB limit
 
 const args = process.argv.slice(2);

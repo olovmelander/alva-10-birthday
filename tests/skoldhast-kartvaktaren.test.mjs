@@ -42,8 +42,12 @@ test("the memory's fold is the prologue's: through the end of her line, clear of
     assert.ok(c.a[0] >= P.x + P.w, 'her picture stays whole');
     // its islet (half-width 42 at the card's 1.4 scale) and its roof (106 above the base)
     assert.ok(tower.x - 42 > xAt(tower.y + 6) && tower.x - 14 > xAt(tower.y - 106), 'his tower stands in the corner that folds under');
-    // he stands on the islet as in the prologue (about 34 units tall), and folds away with it
-    assert.ok(keeper.x - 9 > xAt(keeper.y) && keeper.x - 9 > xAt(keeper.y - 34), 'Kartväktaren is on the folding corner too');
+    // he stands on the lighthouse's gallery as in the prologue (or on the islet by the pencil
+    // stand-in), about 24–34 units tall, and folds away with it
+    for (const at of [keeper, KV_MEMORY.keeperSketch])
+        assert.ok(at.x - 9 > xAt(at.y) && at.x - 9 > xAt(at.y - 34), 'Kartväktaren is on the folding corner too');
+    // the lighthouse drawing (about 150 units high, 48 wide at its base) stands in the corner too
+    assert.ok(tower.x - 25 > xAt(tower.y) && tower.x - 18 > xAt(tower.y - 150), 'the lighthouse folds away whole');
 });
 
 test('the assembled map shows its tear following the fold', () => {

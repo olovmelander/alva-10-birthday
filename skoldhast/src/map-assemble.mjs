@@ -1,9 +1,22 @@
-/* The very same torn silhouettes as the research notebook. Klo's first corner
- * stays put while the two recovered pieces join it and reveal one sea route.
+/* The very same map as the research notebook: the one drawing (map-page), cut
+ * along the same torn silhouettes, with the same place names on top
+ * (map-layout.mjs). Klo's first corner stays put while the two recovered pieces
+ * join it and reveal one sea route.
  * Once joined, a ruler-straight crease runs along the tear: the map ripped where
  * the page was folded (docs/skoldhast/story-kartvaktaren.md). Kapitel 3 replays
  * it in Kartväktaren's hands without the route. */
-import { MAP_FRAGMENTS } from './mapbook.mjs';
+import { MAP_FRAGMENTS, MAP_SCALE, MAP_ROUTES, MAP_COAST, MAP_WATERLINE, fragmentPoints, mapLabels } from './map-layout.mjs';
+import { MAP } from './content/sv.mjs';
+
+/** Is (x, y) inside the polygon `pts` (flat list)? */
+function inside(x, y, pts) {
+    let hit = false;
+    for (let i = 0, j = pts.length - 2; i < pts.length; j = i, i += 2) {
+        const xi = pts[i], yi = pts[i + 1], xj = pts[j], yj = pts[j + 1];
+        if ((yi > y) !== (yj > y) && x < (xj - xi) * (y - yi) / (yj - yi) + xi) hit = !hit;
+    }
+    return hit;
+}
 
 const ease = (x) => { x = Math.max(0, Math.min(1, x)); return x * x * (3 - 2 * x); };
 export function sampleMapAssemble(t) {
@@ -13,49 +26,44 @@ export function sampleMapAssemble(t) {
 export const MAP_CREASE = Object.freeze({ x0: 24, x1: 616, y: 227 });
 export function createMapAssemble(PIXI, { texture, caption, lessMotion = false, route: showRoute = true }) {
     const container = new PIXI.Container(); container.label = 'map-assemble';
-    const ink = 0x625b50, blue = 0x457d98, gold = 0xb48a49;
+    const ink = 0x625b50, blue = 0x457d98;
     const sheet = new PIXI.Container(); container.addChild(sheet);
     const captionPaper = new PIXI.Graphics();
     captionPaper.poly([48, -77, 591, -74, 594, -13, 46, -10]).fill({ color: 0xf7eed8, alpha: .96 }).stroke({ color: 0x8c7651, width: 1.5, alpha: .5 });
     sheet.addChild(captionPaper);
     const pieces = [];
-    const routePoints = [[314, 216], [306, 245], [313, 268], [336, 283], [371, 297], [400, 317], [436, 333], [470, 332], [493, 315], [507, 290], [522, 252], [535, 210], [535, 165], [530, 104]];
+    const routePoints = MAP_ROUTES.sea;
     const line = (g, points, color = ink, alpha = .8, width = 2.4) => {
         g.moveTo(...points[0]); for (let i = 1; i < points.length; i++) g.lineTo(...points[i]);
         g.stroke({ color, alpha, width, cap: 'round', join: 'round' });
     };
+    const art = texture('map-page');
+    const names = mapLabels(true), texts = [];
     // Ordered as the notebook: the familiar corner, the recovered land, then sea.
     for (const fragment of MAP_FRAGMENTS) {
-        const c = new PIXI.Container(), paper = new PIXI.Graphics(), art = new PIXI.Graphics(), mask = new PIXI.Graphics();
-        const points = fragment.path.match(/-?\d+(?:\.\d+)?/g).map(Number);
-        paper.poly(points).fill({ color: 0xf7eed8 });
-        if (texture('mat-paper')) paper.poly(points).fill({ texture: texture('mat-paper'), textureSpace: 'global', alpha: .8 });
-        paper.poly(points).stroke({ width: 2.2, color: 0x8c7651, alpha: .7 });
-        art.poly([26, 25, 321, 25, 363, 141, 290, 225, 26, 237]).fill({ color: 0xb1bd8b, alpha: .5 });
-        art.poly([27, 235, 294, 220, 340, 228, 386, 160, 381, 32, 618, 32, 618, 397, 24, 397]).fill({ color: 0x8db5bf, alpha: .4 });
-        line(art, [[31, 211], [126, 217], [182, 194], [287, 181], [340, 177], [353, 137], [335, 51]], ink, .8, 2.1);
-        for (let i = 0; i < 34; i++) {
-            const x = 40 + i * 97 % 555, y = 244 + i * 41 % 137;
-            line(art, [[x, y], [x + 6, y - 3], [x + 12, y], [x + 18, y - 3], [x + 24, y]], blue, .34, 1.8);
+        const c = new PIXI.Container(), points = fragmentPoints(fragment).flat();
+        const back = new PIXI.Graphics();
+        back.poly(points.map((v, i) => v + (i % 2 ? 3 : 2))).fill({ color: 0x514532, alpha: .16 });
+        back.poly(points).fill({ color: 0xf6eed8 });
+        let pic;
+        if (art) { pic = new PIXI.Sprite(art); pic.scale.set(1 / MAP_SCALE); }
+        else { // the drawing still loading: plain washes in the same places
+            pic = new PIXI.Graphics().rect(0, 0, 640, 420).fill({ color: 0x8fbfd6 });
+            pic.poly([MAP_WATERLINE[0][0], -10, ...MAP_WATERLINE.flat(), -10, MAP_WATERLINE.at(-1)[1], -10, -10]).fill({ color: 0xefd9a4 });
+            pic.poly([MAP_COAST[0][0], -10, ...MAP_COAST.flat(), -10, MAP_COAST.at(-1)[1], -10, -10]).fill({ color: 0xb9c98f });
         }
-        for (let i = 0; i < 30; i++) {
-            const x = 43 + i * 67 % 240, y = 44 + i * 43 % 165;
-            line(art, [[x - 3, y - 8], [x, y], [x + 4, y - 6]], 0x607955, .4, 1.8);
+        const mask = new PIXI.Graphics().poly(points).fill(0xffffff); pic.mask = mask;
+        const labels = new PIXI.Container();
+        for (const l of names) {
+            if (!inside(l.x, l.y - 4, points)) continue;
+            const t = new PIXI.Text({ text: MAP.places[l.key], style: { fontFamily: '"Patrick Hand", cursive', fontSize: l.minor ? 16 : 22,
+                fill: 0x354f50, stroke: { color: 0xfbf4df, width: 4, join: 'round' } } });
+            t.anchor.set(.5, .8); t.position.set(l.x, l.y);
+            if (l.vertical) t.rotation = -Math.PI / 2;
+            labels.addChild(t); texts.push({ t, size: l.minor ? 16 : 22, min: l.minor ? 11 : 14 });
         }
-        line(art, [[43, 82], [66, 52], [92, 82]], ink, .7);
-        line(art, [[297, 222], [297, 201], [303, 190], [314, 185], [325, 190], [329, 202], [329, 222]], ink, .8);
-        for (let i = 0; i < routePoints.length - 1; i++) {
-            const a = routePoints[i], b = routePoints[i + 1];
-            line(art, [a, [a[0] + (b[0] - a[0]) * .48, a[1] + (b[1] - a[1]) * .48]], blue, .4, 3);
-        }
-        // The destination has the same tower outline and position as the journal.
-        art.poly([511, 128, 517, 80, 543, 80, 549, 128]).fill({ color: 0xf7eed8 }).stroke({ color: ink, width: 2.2 });
-        line(art, [[515, 79], [530, 64], [546, 79]], ink, .8, 2.6);
-        art.rect(521, 89, 18, 10).fill({ color: 0xf3d47c }).stroke({ color: ink, width: 1.6 });
-        art.circle(287, 227, 18).stroke({ color: gold, width: 3.3 });
-        line(art, [[276, 238], [298, 216]], gold, .9, 3);
-        mask.poly(points).fill({ color: 0xffffff }); art.mask = mask;
-        c.addChild(paper, art, mask); sheet.addChild(c); pieces.push({ id: fragment.id, c });
+        const seam = new PIXI.Graphics().poly(points).stroke({ width: 1.2, color: 0x8c7651, alpha: .75 });
+        c.addChild(back, pic, mask, labels, seam); sheet.addChild(c); pieces.push({ id: fragment.id, c });
     }
     const crease = new PIXI.Graphics(); crease.label = 'map-crease'; sheet.addChild(crease);
     const route = new PIXI.Graphics(); sheet.addChild(route);
@@ -86,8 +94,8 @@ export function createMapAssemble(PIXI, { texture, caption, lessMotion = false, 
             }
             if (pts.length > 1) { line(route, pts, 0xfff9dc, .9, 9); line(route, pts, blue, .92, 4.3); }
             if (state.route === 1) {
-                route.circle(530, 97, 14).fill({ color: 0xf6da8c, alpha: .65 });
-                line(route, [[523, 115], [530, 104], [537, 115]], blue, .9, 3.3);
+                const [ex, ey] = routePoints.at(-1);
+                route.circle(ex, ey - 22, 14).fill({ color: 0xf6da8c, alpha: .55 });
             }
         }
         return state;
@@ -100,6 +108,8 @@ export function createMapAssemble(PIXI, { texture, caption, lessMotion = false, 
             sheet.scale.set(scale);
             sheet.position.set(width / 2 - 320 * scale, (height - (height > width ? 90 : 54)) / 2 - 210 * scale);
             title.style.fontSize = Math.max(34, 16 / scale);
+            // on a small screen the names grow a little on the map, so they stay readable
+            for (const { t, size, min } of texts) { const want = Math.max(size, min / scale); if (Math.abs(t.style.fontSize - want) > .1) t.style.fontSize = want; }
         },
         destroy() { container.parent?.removeChild(container); if (!container.destroyed) container.destroy({ children: true }); }
     };

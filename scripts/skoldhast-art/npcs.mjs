@@ -1010,27 +1010,30 @@ function heldMapCorner(claw, { at = [8, -16], rot = -0.25, s = 1 } = {}) {
         draw(sh, pose, c) {
             const cc = add(c, at);
             const q = (pts) => sh.T(transform(pts, { x: cc[0], y: cc[1], rot, sx: s, sy: s }));
-            // a paper triangle: two straight page edges and one torn edge
-            const torn = [[-16, 14]];
+            // the corner piece of Kartväktaren's map, as in the journal (map-layout.mjs): straight top
+            // and right page edges, torn left and bottom edges; steppe, beach, sea and his lighthouse
             const rnd = pencil.rng(99);
-            for (let i = 1; i < 12; i++) {
-                const t = i / 12;
-                torn.push([lerp(-16, 16, t) + (rnd() - 0.5) * 1.6, lerp(14, -16, t) + (rnd() - 0.5) * 3.4]);
-            }
-            const shape = [[-16, -16], [16, -16], ...torn.reverse().slice(0, -1), [-16, 14]];
-            const pm = sh.mask(q(shape.reverse()));
+            const bottom = [], left = [];
+            for (let i = 0; i <= 10; i++) bottom.push([lerp(17, -15, i / 10), 10 + (i % 2 ? 1.6 : -0.6) + (rnd() - 0.5) * 1.2]);
+            for (let i = 1; i < 8; i++) left.push([-15 - (i % 2 ? 2.2 : 0.4) + (rnd() - 0.5) * 1.2, lerp(10, -11, i / 8)]);
+            const shape = [[-16.5, -11.5], [17, -12], ...bottom, ...left];
+            const pm = sh.mask(q(shape));
             reserve(sh, pm);
             sh.tone(P.paperCream, pm, { pressure: 0.35 });
-            // a bit of the map: sea hatching, a coastline, a dune and a dashed path
-            const sea = multiplyMasks(pm, sh.mask(q([[-16, -16], [16, -16], [16, -5], [4, -8], [-6, -4], [-16, -6]])));
-            sh.hatch(P.seaBlue, { angle: 0.02, gap: 2.2, len: [6, 16], width: 1.2, clip: sea, pressure: 0.6 });
-            line(sh, q([[-16, -6], [-6, -4.2], [4, -8], [16, -5]]), P.foamLine, { width: 1.4, alpha: 0.9 });
-            line(sh, q([[-13, 4], [-9, 0.5], [-5, 3.5], [-1, 1]]), P.sandShadow, { width: 1.3, alpha: 0.8 });
-            for (let i = 0; i < 3; i++) line(sh, q([[-12 + i * 5, 9 - i * 2.5], [-9.5 + i * 5, 8 - i * 2.5]]), P.graphite, { width: 1.1, passes: 1, smoothIt: false });
-            // "/K" in the corner
-            line(sh, q([[5.5, -2], [2.5, 5]]), P.graphite, { width: 1.4, passes: 1, smoothIt: false });
-            line(sh, q([[7, -2.4], [6.5, 5]]), P.graphite, { width: 1.4, passes: 1, smoothIt: false });
-            line(sh, q([[10.5, -2.6], [7, 1.4], [10.6, 4.6]]), P.graphite, { width: 1.4, passes: 1, smoothIt: false });
+            const sea = multiplyMasks(pm, sh.mask(q([[-6, -13], [18, -13], [18, 12], [-12, 12], [-8, 4], [-5, -4]])));
+            const beach = multiplyMasks(pm, sh.mask(q([[-10, -13], [-6, -13], [-5, -4], [-8, 4], [-12, 12], [-15, 12], [-12, 3], [-9, -4]])));
+            const land = multiplyMasks(pm, sh.mask(q([[-18, -13], [-10, -13], [-9, -4], [-12, 3], [-15, 12], [-19, 12]])));
+            sh.tone(P.skyBlue, sea, { pressure: 0.75 });
+            sh.hatch(P.seaBlue, { angle: 0.02, gap: 2.2, len: [6, 16], width: 1.2, clip: sea, pressure: 0.75 });
+            sh.tone(P.sand, beach, { pressure: 0.8 });
+            sh.tone(P.grassGreen, land, { pressure: 0.8 });
+            line(sh, q([[-6, -11.5], [-5, -4], [-8, 4], [-12, 10]]), P.foamLine, { width: 1.3, alpha: 0.9 });
+            // Pappersfyren, tiny, and "/K" in the corner
+            line(sh, q([[8, -1], [8, -8]]), P.graphite, { width: 1.8, passes: 1, smoothIt: false });
+            line(sh, q([[6.5, -1], [9.5, -1]]), P.graphite, { width: 1.1, passes: 1, smoothIt: false });
+            line(sh, q([[10.5, 7], [8.5, 2.5]]), P.graphite, { width: 1.2, passes: 1, smoothIt: false });
+            line(sh, q([[12, 2.2], [11.8, 7]]), P.graphite, { width: 1.2, passes: 1, smoothIt: false });
+            line(sh, q([[14.6, 2], [12.2, 4.6], [14.8, 7]]), P.graphite, { width: 1.2, passes: 1, smoothIt: false });
             outlineMask(sh, pm, P.graphite, { width: 1.7, wobble: 0.4 });
         }
     };
