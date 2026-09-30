@@ -302,6 +302,7 @@ export const STORY = {
         ],
         signeGo: [['signe', 'Vi börjar vid pilen! Klara … färdiga … gå!']],
         signeLose: [['signe', 'Jag vann på stilpoäng.']],
+        signeWin: [['signe', 'Jag vann! Och jag hade hela huset med mig!']],
         signeAgain: [['signe', 'En gång till? Klara … färdiga … gå!']],
         signeGiveUp: [['signe', 'Vi tar det en annan gång.']]
     }

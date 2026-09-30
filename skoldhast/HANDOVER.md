@@ -1,5 +1,33 @@
 # Sköldhästen – handover
 
+## Signe can finish and win her race (30 September)
+
+Pappa asked for a real turtle win when Sköldhästen moves slowly. Signe now keeps
+her existing 70-unit/s stroll all the way to the marked finish instead of waiting
+just before it. The first crossing wins, including when both cross in one fixed
+step; an exact tie goes to the player.
+
+- A Signe win holds her little celebration pose while she says: **"Jag vann! Och
+  jag hade hela huset med mig!"** The camera shows her at the finish even when the
+  player is far behind on a portrait phone, then returns to normal play. A player
+  win keeps **"Jag vann på stilpoäng."**
+- Either finish completes the optional activity (`signe_raced`), saves the result,
+  and permits the replay greeting. The existing `signe_race` flag still records a
+  player win; older saves remain valid. Signe walks back to her usual sand patch
+  after the dialogue, ready for another race.
+- Leaving or restoring the scene cancels an unfinished race without a false result
+  or a conversation from another scene. Countdown/result dialogues release their
+  input locks, and returning to Signe still permits replay.
+- No new assets, race speed, route, save format or chapter-release change. No new
+  questions for Pappa. This replaces the older guaranteed-player-win policy below.
+- Verification: **265/265 automated tests pass**, including the full-game robot,
+  stationary/slow-player losses, normal-walk wins, both rematches, first-crossing
+  order, held result dialogue, saved completion and interrupted races.
+  Real browser checks pass at **390×844, 844×390 and 1440×900**: Signe is visible
+  at the finish, her joke stays readable until dismissed, and both replay and a
+  player win work. The existing ticket-page launcher suite also passes. No browser
+  errors were captured; reviewed WebP screenshots stay local under `docs/skoldhast/shots/race/`.
+
 ## Every map scene keeps its evidence visible (30 September)
 
 Pappa asked to carry the first-map improvements through all map scenes. The map now has
@@ -928,8 +956,8 @@ release is part of this branch.
 - Audit and exact before views: `docs/skoldhast/polish-round3.md`. Text-to-speech
   is explicitly excluded from this round by the user.
 - Signe now strolls at 70 world units/s, down from 250, with ground-following
-  feet and distance-driven walk phase. She still waits before the finish so
-  the player can pause or walk gently and win; her return is equally slow.
+  feet and distance-driven walk phase. Her return is equally slow. The original
+  finish-line waiting policy was replaced by real race outcomes on 30 September (above).
 - Saved story phases reconstruct Kartväktaren, Signe and Klo. Reloading the
   lighthouse checkpoint no longer loses the keeper and blocks the last puzzle;
   saved conversations resume without replaying introductions. Six focused

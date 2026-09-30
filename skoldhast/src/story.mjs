@@ -930,9 +930,9 @@ export function createStory(G, io) {
     }
 
     // =========================================================================
-    // After the ending: Kapplöpning mot Sköldpaddan Signe (O8). You always win.
+    // After the ending: Kapplöpning mot Sköldpaddan Signe (O8). First to the pool wins.
     // =========================================================================
-    const race = { active: false, done: null, wave: 0 };
+    const race = { active: false, done: null, player: null };
     beat('after_signe', {
         when: () => inScene('land') && F.has('ended') && !G.busy && Math.abs(P().x - G.sceneDef.race.signe.x) < h(6),
         async run(s) {
@@ -947,26 +947,53 @@ export function createStory(G, io) {
         async run(s) {
             const r = G.sceneDef.race;
             const sg = G.actors.signe;
-            G.busy++;
             // Talking happens on clear sand beside Signe. Both racers line up
             // at the visible start, so approaching her never shortens the race.
             const p = P(), ground = G.terrain.support(r.start.x, r.start.y, h(.6), h(.6));
             Object.assign(p, { x: r.start.x, px: r.start.x, y: ground?.y ?? r.start.y, py: ground?.y ?? r.start.y,
                 vx: 0, vy: 0, mode: 'ground', surface: ground?.s || p.surface,
                 hidden: false, hide: 0, hideQueued: false, facing: -1, nudge: null });
-            Object.assign(sg, { x: r.start.x - h(0.2), y: r.start.y, facing: -1, pose: 'idle', visible: true, scene: 'land' });
-            await s.say(F.has('signe_race') ? STORY.after.signeAgain : STORY.after.signeGo);
-            G.busy--;
-            race.active = true; race.wave = 0; sg.racing = true;
-            const won = await new Promise((resolve) => { race.done = resolve; });
-            race.active = false;
-            sg.pose = 'idle'; sg.speed = 0; sg.racing = false;
-            G.busy++;
-            await s.say(won ? STORY.after.signeLose : STORY.after.signeGiveUp);
-            G.busy--;
-            if (won) { G.flag('signe_race'); s.stinger('aha'); }
-            // Back to her clear patch of sand beyond the shell row.
-            await s.walk('signe', r.signe.x, r.speed);
+            Object.assign(sg, { x: r.start.x - h(0.2), y: r.start.y, facing: -1, pose: 'idle', visible: true, scene: 'land', speed: 0, walk: null });
+            const stillHere = () => inScene('land') && P() === p;
+            try {
+                G.busy++;
+                try { await s.say(F.has('signe_raced') || F.has('signe_race') ? STORY.after.signeAgain : STORY.after.signeGo); }
+                finally { G.busy--; }
+                if (!stillHere()) return;
+                race.active = true; race.player = p; sg.racing = true;
+                const result = await new Promise((resolve) => { race.done = resolve; });
+                sg.pose = result === 'signe' ? 'wave' : 'idle'; sg.speed = 0; sg.racing = false;
+                if (!stillHere()) return;
+                sg.facing = Math.sign(p.x - sg.x) || 1;
+                if (result !== 'cancelled') {
+                    G.flag('signe_raced');
+                    if (result === 'horse') G.flag('signe_race');
+                    io.save();
+                    s.stinger('aha');
+                }
+                G.busy++;
+                // A slow player can leave Signe offscreen on a portrait phone.
+                // Show the winner clear of her card, then return to normal play.
+                const before = G.camHint;
+                const resultFocus = result === 'signe' ? { frame: {
+                    x0: sg.x - h(1.8), x1: sg.x + h(1.8),
+                    y0: sg.y - h(1.1), y1: sg.y + h(1.7)
+                } } : null;
+                if (resultFocus) G.camHint = resultFocus;
+                try { await s.say(result === 'horse' ? STORY.after.signeLose : result === 'signe' ? STORY.after.signeWin : STORY.after.signeGiveUp); }
+                finally {
+                    G.busy--;
+                    if (resultFocus && G.camHint === resultFocus) G.camHint = before;
+                }
+                if (!stillHere()) return;
+                sg.pose = 'idle';
+                // Back to her clear patch of sand beyond the shell row.
+                await s.walk('signe', r.signe.x, r.speed);
+            } finally {
+                race.active = false; race.done = null; race.player = null;
+                Object.assign(sg, r.signe, { pose: 'idle', speed: 0, racing: false, facing: -1, walk: null });
+                groundSigne();
+            }
         }
     });
     function groundSigne() {
@@ -984,16 +1011,22 @@ export function createStory(G, io) {
     function stepRace(dt) {
         if (!race.active) return;
         const r = G.sceneDef?.race, sg = G.actors.signe, p = G.player;
-        if (!r || !inScene('land')) { race.done?.(false); return; }
-        if (p.x <= r.finish) { race.done?.(true); return; }
-        if (p.x > r.start.x + h(3)) { race.done?.(false); return; }
-        // A gentle turtle stroll. Near the line she waits as long as the player
-        // needs, so even a pause or the lightest stick movement can still win.
-        const ahead = sg.x < p.x;
-        const nearLine = sg.x - r.finish < h(0.8);
-        if (nearLine && ahead) { sg.pose = 'wave'; sg.speed = 0; race.wave += dt; return; }
-        moveSigne(Math.max(r.finish + h(0.2), sg.x - r.speed * dt), dt);
+        if (!r || !inScene('land') || p !== race.player || p.x > r.start.x + h(3)) { finishRace('cancelled'); return; }
+        // Both racers use the same finish. Compare crossing times within this
+        // fixed step so updating the player first cannot steal Signe's win.
+        const horseTime = p.x <= r.finish ? (p.px <= r.finish ? 0 : (p.px - r.finish) / (p.px - p.x)) : Infinity;
+        const signeTime = Math.max(0, sg.x - r.finish) / (r.speed * dt);
+        const finishTime = Math.min(horseTime, signeTime);
+        moveSigne(Math.max(r.finish, sg.x - r.speed * dt * Math.min(1, finishTime)), dt);
         sg.facing = -1; sg.pose = 'walk';
+        if (finishTime <= 1) finishRace(horseTime <= signeTime ? 'horse' : 'signe');
+    }
+    function finishRace(result) {
+        race.active = false;
+        G.actors.signe.racing = false;
+        G.actors.signe.speed = 0;
+        const resolve = race.done; race.done = null;
+        resolve?.(result);
     }
 
     // =========================================================================
@@ -1122,7 +1155,7 @@ export function createStory(G, io) {
     // =========================================================================
     function objective() {
         if (F.has('ended')) {
-            if (F.has('signe_met') && !F.has('signe_race')) return 'signe';
+            if (F.has('signe_met') && !F.has('signe_raced') && !F.has('signe_race')) return 'signe';
             return pencilFlags.length && pencilFlags.every(flag => F.has(flag)) ? 'freeComplete' : 'free';
         }
         // Kapitel 3: find the way to Spegelviken, light the lamp, talk, draw the last line

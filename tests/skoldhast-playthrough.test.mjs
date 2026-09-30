@@ -223,7 +223,7 @@ if (!process.env.NO_TEST) {
         assert.ok(R.G.time / 60 < 60);
         assert.ok(R.has('conclusion') && R.has('unfolded'));
         assert.equal(R.G.puz.tally, 0, "Klo's signs stay even until the finale");
-        // after the ending: Signe challenges you, and you always win, even at a crawl (O8)
+        // after the ending: a gentle walk can still beat Signe's turtle pace (O8)
         await R.flag('signe_met', {}, 20);
         await R.settle();
         await R.walkTo(R.G.sceneDef.race.signe.x / 200 - 1);

@@ -817,7 +817,7 @@ The original audit remains local in the ignored `docs/skoldhast/klo-companion-au
 | O5 | Glimtar av flocken | Far-off glimpses of other sköldhästar (below). | MUST (the first glimpse, K1) · SHOULD (the rest, K2) |
 | O6 | Färgpennor | About 15 hidden coloured pencils (below). | SHOULD (K1's five are built in Stage 2) |
 | O7 | Flytbryggan | v1's buoyant platform as a toy: gallop on and it dips and splashes; hide on it and fish gather under the shell. | STRETCH |
-| O8 | Kapplöpning mot Sköldpaddan Signe | After the ending, race a proud ordinary turtle. You always win. Signe: "Jag vann på stilpoäng." | SHOULD (K3 after-game) |
+| O8 | Kapplöpning mot Sköldpaddan Signe | After the ending, race a proud ordinary turtle. First over the finish wins; Signe keeps her gentle pace even if you stop. If she wins: "Jag vann! Och jag hade hela huset med mig!" If you win: "Jag vann på stilpoäng." Either finish completes the optional activity, and you can race again. | SHOULD (K3 after-game) |
 
 **O1, Professor Klos mätningar.**
 - The experiments:
