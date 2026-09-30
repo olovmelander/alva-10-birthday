@@ -930,7 +930,7 @@ export const MATERIALS = [
     { name: 'mat-seabed', bundle: 'sea', draw: matSeabed },
     { name: 'mat-water', bundle: 'boot', draw: matWater, transparent: true, quality: 68 },
     { name: 'mat-deep', bundle: 'sea', draw: matDeep },
-    { name: 'mat-glass', bundle: 'boot', draw: matGlass },
+    { name: 'mat-glass', bundle: 'sea', draw: matGlass }, // not drawn by the engine yet; kept out of the first download
     { name: 'mat-paper', bundle: 'boot', draw: matPaper },
     { name: 'mat-cream', bundle: 'bay', draw: matCream },
     { name: 'paper-tooth', bundle: 'boot', draw: paperTooth, canvas: true },

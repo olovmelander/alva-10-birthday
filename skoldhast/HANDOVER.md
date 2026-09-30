@@ -1,8 +1,46 @@
 # Sköldhästen – handover
 
+## Latest: Klo's slow-motion awakening (30 September)
+
+Branch `claude/skoldhast-slowmo-drop`, from `main` at `8323bf0`. Pappa asked for a longer, more
+dramatic entrance: the water drop from the sköldhäst to the sand should wake Klo, and he should
+come up in slow motion.
+
+- **The drop.** The horse shakes; time slows to 15 %. One drop is flung up and back off the
+  shell rim, catches the sun (a glint at the top of its flight), and falls, wobbling and
+  stretched along its path, with a short pencil trail and its shadow tightening on the sand. The
+  camera pushes in and follows it down (`focus` in `prologue.mjs`). Two smaller drops from the
+  same shake land short with tiny rings. The big one lands in slow motion: a crown of water, a
+  jet that lets go of one bead, and a patch of wet sand that soaks in. Time snaps back.
+- **Klo wakes.** A still beat; the sand trembles; the stalks come up with the eyes shut, the eyes
+  pop open, blink, look the wrong way, climb the horse. The camera pulls back as he rises, and the
+  rise is slowed again (45 %): sand pours off his shell with a soft puff where it lands. Then the
+  stare, the whisper and the rest of the scene as before.
+- **How.** `openingKloBeats()` in `opening-klo.mjs` gives the first half as authored beats (real
+  seconds, entrance progress, world speed); `openingKloAt()` samples it, easing in and out of slow
+  motion. The prologue scales its own clock (`worldSpeed`), so the horse, mane, wave spray and
+  margin slow together; dialogue and input are never slowed. Part A is 10.35 s (was 4.2 s), or
+  4.7 s with reduced motion, which keeps every beat and cue in the same order at normal speed
+  and without camera moves. New stage `fall`; cues fire for every stage passed.
+- **Visual fixes Claude recommended.** The dunes' dry sand and the pool's wet sand now blend over
+  a short stretch instead of a ruler-straight seam down the page (`view.mjs`, any two sandy
+  materials that meet on one surface). `mat-glass`, which the engine never draws, moved from the
+  first download to the background `sea` bundle: first playable **2,783,057 bytes** (was
+  2,815,239).
+- **Checks.** Pure suite **158/158** (new: the beat timeline, slow motion off for reduced motion,
+  the drop in the air during `fall`, the crown, eyes shut then open, sand pouring). The prologue
+  lifecycle check now also closes the game while the drop falls, during the whisper and during
+  the leap, and checks that nothing comes back. Browser results are listed at the end of
+  [`docs/skoldhast/wave-waterline-review.md`](../docs/skoldhast/wave-waterline-review.md).
+- **Alva's own words.** Pappa has allowed them (plan §0 Q5, answer a). The repository has only
+  a paraphrase, so `HER_TEXT` in `sv.mjs` still needs her exact four sentences from the
+  magazine page. Once they are pasted there, they appear in the opening caption, the journal page
+  "Fältanteckning av Alva", the epilogue note and the journal's conclusion. Never commit the
+  photo or the page itself.
+
 ## Swedish text review and the P2 plank (29 September)
 
-Same working tree as the stuck-wave continuation below; not yet committed.
+Committed in `c97e3ba` and merged to `main` in `8323bf0`.
 
 - **Text:** 55 fixes in `src/content/sv.mjs` for grammar, idiom and facts after a
   six-lens review with three judges per change. Examples: `uppför` (not `upp för`), `Alla tre strecken`,
@@ -22,7 +60,7 @@ Same working tree as the stuck-wave continuation below; not yet committed.
 ## The tail: lying hidden, long falls, fast screens (29 September)
 
 Pappa: the tail felt glitchy when the sköldhäst lay down to hide and after long falls. All in
-`src/rig.mjs` (the verlet chains); not yet committed.
+`src/rig.mjs` (the verlet chains); committed in `c97e3ba`, merged in `8323bf0`.
 
 - **Hidden tail flailed.** The ground was a y-only clamp after the length pass, and the DFTL term
   handed its push to the parent as a kick every step. Contact is now part of the length pass (a
@@ -43,7 +81,7 @@ Pappa: the tail felt glitchy when the sköldhäst lay down to hide and after lon
   still rests on one horizontal line at hind-hoof height, so it can sink a little into an uphill slope.
   A waterline blend and chord normals in `hero.mjs` were tried and left out (they changed swimming).
 
-## Latest continuation: one stuck wave, one waterline, and Klo's first sight
+## One stuck wave, one waterline, and Klo's first sight (merged in `8323bf0`)
 
 Same review branch, `codex/skoldhast-living-opening`, on top of `dfc1c6d`.
 Pappa's review of the opening and the first beach: the water, the wave and the
@@ -115,19 +153,18 @@ shoreline did not line up, and Klo just appeared. Paired views are in
   slashes on Windows too (it wrote `src\\…` paths, which the loader cannot fetch).
 
 Pure suite: **150/150**, robot included. First playable: **2,815,239 bytes**.
-Browser checks are listed in the review. Nothing here was merged or committed on
-Pappa's behalf. Known and left alone: at 99.3 HL the dunes' sand and the pool's
-wet sand meet in a vertical seam (a terrain material boundary, older than this).
+Browser checks are listed in the review. (The dunes/pool seam noted here was
+fixed on 30 September.)
 Frågor till Pappa: does "från man till hov" make Alva laugh when read aloud? Is
-about 9.5 s of Klo's entrance plus three boxes before the gull the right pace?
+Klo's entrance (now about 16 s including the caption, plus three boxes before the gull) the right pace?
 In portrait the sea band behind the beach is thin (one world anchor for all
 sizes); raise it for portrait? Her blue waterline runs from the shells to the
 shore: does that match her drawing?
 
 ## Previous continuation: the painting wakes under Alva's pencil
 
-Review branch: `codex/skoldhast-living-opening`, based on merged main `3896886`.
-Ask before merging this continuation. Research, staging decisions and comparison
+Review branch: `codex/skoldhast-living-opening`, based on merged main `3896886`;
+merged to `main` in `8323bf0`. Research, staging decisions and comparison
 images are in [`docs/skoldhast/living-opening-review.md`](../docs/skoldhast/living-opening-review.md).
 
 The opening now starts with a completely still Sköldhäst. One forgiving shell
@@ -458,11 +495,13 @@ An agent played for about two hours with the keyboard at 844×390. Its report, w
   and touch-feel check?
 - After reviewing this branch, should it be merged to main?
 
-The current instruction is definitive: first name only, `HER_TEXT` stays null,
-no photos/scans, and the ticket button stays hidden behind `?skoldhast` (the
-existing `#skoldhast` alias only reveals the button). Earlier requests for scans
-or permission to quote her printed words are superseded. No new public reveal
-or additional chapter release is part of this branch.
+- Paste Alva's exact four printed sentences into `HER_TEXT` in `src/content/sv.mjs`
+  (she may now be quoted, plan §0 Q5 answer a; 30 September).
+
+Still definitive: first name only, no photos or scans of the magazine page, and
+the ticket button stays hidden behind `?skoldhast` (the existing `#skoldhast`
+alias only reveals the button). No new public reveal or additional chapter
+release is part of this branch.
 
 ## Known issues and next steps
 

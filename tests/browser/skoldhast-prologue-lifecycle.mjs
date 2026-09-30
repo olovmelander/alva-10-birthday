@@ -68,6 +68,34 @@ try {
     await page.evaluate(() => window.__skoldhast.open());
     await page.waitForSelector('.sk-title', { timeout: 30000 });
     assert.deepEqual(errors, [], 'the next session opens without old table callbacks');
+
+    // Klo's slow-motion entrance: closing while the drop falls, while his
+    // whisper is open, or while he leaps must leave nothing behind.
+    const phaseNow = () => page.evaluate(() => window.__skoldhast.debug.app?.stage.children.find(c => c.label === 'story-table')?.storyPhase);
+    for (const stop of ['fall', 'klo-wonder', 'klo-take']) {
+        if (!(await page.locator('.sk-title').count())) {
+            await page.evaluate(() => window.__skoldhast.open());
+            await page.waitForSelector('.sk-title', { timeout: 30000 });
+        }
+        await page.locator('.sk-title button', { hasText: /^Börja$/ }).click();
+        await page.waitForSelector('.sk-draw.on.guided', { timeout: 30000 });
+        await page.keyboard.press('Enter');
+        await page.waitForFunction(async (stop) => {
+            const d = window.__skoldhast.debug, table = d.app?.stage.children.find(c => c.label === 'story-table');
+            const all = n => [n, ...(n.children || []).flatMap(all)];
+            const klo = table && all(table).find(n => n.label === 'opening-klo');
+            if (stop === 'fall') return klo?.openingKloStage === 'fall';
+            if (d.ui.dialogueOpen() && table?.storyPhase !== stop) d.ui.advance();
+            return table?.storyPhase === stop;
+        }, stop, { timeout: 60000, polling: 50 });
+        await page.evaluate(() => window.__skoldhast.close());
+        await page.evaluate(() => window.__skoldhast.open());
+        await page.waitForSelector('.sk-title', { timeout: 30000 });
+        await page.evaluate(() => new Promise((resolve) => setTimeout(resolve, 1500)));
+        assert.equal(await page.locator('.sk-dialogue.on, .sk-draw.on, .sk-caption.on').count(), 0, `nothing from Klo's scene returns after closing during ${stop}`);
+        assert.equal(await phaseNow(), undefined, `no story table is left running after closing during ${stop}`);
+        assert.deepEqual(errors, [], `closing during ${stop} raises no errors`);
+    }
     await page.evaluate(() => window.__skoldhast.close());
     console.log(`prologue cancellation passed at ${width}x${height}`);
 } finally { await browser.close(); server.close(); }

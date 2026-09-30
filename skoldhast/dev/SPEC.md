@@ -106,7 +106,7 @@ be screenshotted with `node scripts/skoldhast-shot.mjs`.
 | `mat-seabed` | sea | sea-floor sand seen under water: seabed ochre with blue-green tint |
 | `mat-water` | boot | sea water from the side: horizontal blue strokes like her sea, dense (used with alpha) |
 | `mat-deep` | sea | deep water volume: blue-teal, darker, softer strokes |
-| `mat-glass` | boot | the frozen sea: pale blue with long glassy streaks and white highlights |
+| `mat-glass` | sea | the frozen sea (not used by the engine yet, so not in the first download): pale blue with long glassy streaks and white highlights |
 | `mat-paper` | boot | blank white paper with tooth only (unreleased/"white paper" places) |
 | `mat-cream` | bay | cream folded paper (Pappersfyren) with faint fold creases |
 | `paper-tooth` | boot | 256×256 greyscale tooth for the screen-fixed multiply overlay (white with light-grey tooth) |

@@ -302,6 +302,26 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
                 }
                 if (pts !== run) groundLines.addChild(rope('stroke-graphite', resamplePts([run.at(-1), ...s.tail], 50), { width: 5 }));
             }
+            // Where two sandy materials meet on one continuous surface, blend them
+            // over a short stretch instead of a ruler-straight vertical seam down
+            // the whole page (e.g. the dunes' dry sand into the pool's wet sand).
+            const SOFT = new Set(['sand', 'wetsand', 'earth', 'seabed']);
+            const matOf = (s) => s.edgeMat || (s.ramp ? 'earth' : s.mat);
+            for (let i = 1; i < shape.runs.length; i++) {
+                const a = shape.runs[i - 1], b = shape.runs[i], ma = matOf(a.s), mb = matOf(b.s);
+                const [ax, ay] = a.pts.at(-1), [bx, by] = b.pts[0];
+                if (ma === mb || !SOFT.has(ma) || !SOFT.has(mb) || Math.abs(ax - bx) > 1e-6 || Math.abs(ay - by) > 1e-6) continue;
+                const N = 8, span = 110;
+                for (const [run, mat, dir] of [[b, ma, 1], [a, mb, -1]]) {
+                    const lo = run.pts[0][0], hi = run.pts.at(-1)[0];
+                    for (let k = 0; k < N; k++) {
+                        const x0 = bx + dir * span * k / N, x1 = bx + dir * span * (k + 1) / N;
+                        const top = clipX(run.pts, Math.max(lo, Math.min(x0, x1)), Math.min(hi, Math.max(x0, x1)));
+                        if (top.length < 2) continue;
+                        fillPoly(ground, [...top, [top.at(-1)[0], bottom], [top[0][0], bottom]], mat, .5 * (1 - (k + .5) / N));
+                    }
+                }
+            }
             // Her dark-blue waterline where the sand meets the painted sea, ending
             // exactly where the sea's own surface line begins. Graphite elsewhere
             // (and under the water); it overlaps the blue a little at its start.

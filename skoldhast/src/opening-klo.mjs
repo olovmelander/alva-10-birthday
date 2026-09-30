@@ -1,5 +1,7 @@
-/* Klo's first sight of the sköldhäst. A drop shaken off the shell lands in his
- * hole behind the horse; his eye stalks come up, find the wrong thing first,
+/* Klo's first sight of the sköldhäst. The horse shakes itself and time slows:
+ * one drop leaves the shell, catches the light and falls, wobbling, into his
+ * hole behind the horse; a little crown of water, wet sand, and time snaps back.
+ * His eye stalks come up with his eyes still shut, pop open, find the wrong thing first,
  * then climb hoof → leg → shell and he floats out of the sand, mesmerised, and
  * drops his notebook ("?"). The prologue holds there for his whisper. Then the
  * horse tosses its head: one eye jumps to the mane while the other stays on the
@@ -25,11 +27,50 @@ const HOLE_X = -4, BACK_X = -17, TAKE_X = 6, BOOK_X = 34, BOOK_ROT = -.12;
 // Stalk angles that point his (slightly forward-drawn) pupils at the horse from
 // behind it: up at the shell or the tossed mane, down at the hooves.
 const SHELL = -.59, MANE = -.72, HOOF = .27, LEG = 0;
-const STAGES = [['drop', 0], ['plip', .119], ['periscope', .1375], ['search', .2], ['gaze', .231], ['rise', .325],
+const STAGES = [['drop', 0], ['fall', .04375], ['plip', .119], ['periscope', .1375], ['search', .2], ['gaze', .231], ['rise', .325],
     ['backstep', .4125], ['awe', .4625], ['toss', OPENING_KLO_HOLD + 1e-9], ['double-take', .63125], ['split', .69375],
     ['crouch', .73125], ['take', .75625], ['land', .83125], ['research', .86875]];
 /** Every stage in order, so a skipped frame can still play each stage's cue. */
 export const OPENING_KLO_STAGES = Object.freeze(STAGES.map(([name]) => name));
+
+/**
+ * The first half as authored beats: real seconds, the entrance progress each
+ * covers, and how fast the world around it runs (the horse, its mane, the
+ * wave's spray). The drop and Klo's rise play in slow motion; reduced motion
+ * keeps every beat in the same order at normal speed.
+ */
+export function openingKloBeats(reducedMotion = false) {
+    const R = !!reducedMotion;
+    return [
+        { name: 'shake', dur: R ? .3 : .35, p0: 0, p1: .04375, speed: 1 },
+        { name: 'fall', dur: R ? 1 : 2.8, p0: .04375, p1: .119, speed: R ? 1 : .15 },
+        { name: 'impact', dur: R ? .4 : 1.05, p0: .119, p1: .1368, speed: R ? 1 : .15 },
+        { name: 'still', dur: R ? .4 : .75, p0: .1368, p1: .1374, speed: 1 },
+        { name: 'wake', dur: R ? 1.1 : 2.1, p0: .1374, p1: .325, speed: 1 },
+        { name: 'rise', dur: R ? 1 : 2.4, p0: .325, p1: .4125, speed: R ? 1 : .45 },
+        { name: 'settle', dur: R ? .5 : .9, p0: .4125, p1: OPENING_KLO_HOLD, speed: 1 }
+    ];
+}
+/** Total seconds of the first half. */
+export const openingKloDuration = (reducedMotion = false) => openingKloBeats(reducedMotion).reduce((a, b) => a + b.dur, 0);
+/** Where the first half is after `seconds`: its progress, beat and world speed. */
+export function openingKloAt(seconds, reducedMotion = false, out = {}) {
+    const beats = openingKloBeats(reducedMotion);
+    let at = 0, previous = 1;
+    for (const beat of beats) {
+        if (seconds < at + beat.dur || beat === beats.at(-1)) {
+            const local = Math.max(0, Math.min(beat.dur, seconds - at));
+            out.beat = beat.name;
+            out.u = local / beat.dur;
+            out.progress = beat.p0 + (beat.p1 - beat.p0) * out.u;
+            // time eases into and out of slow motion instead of jumping
+            out.speed = previous + (beat.speed - previous) * ease(local / .4);
+            return out;
+        }
+        at += beat.dur; previous = beat.speed;
+    }
+    return out;
+}
 
 /** A reusable output makes entrance sampling allocation-free in the ticker. */
 export function sampleOpeningKlo(progress, reducedMotion = false, out = {}) {
@@ -44,7 +85,7 @@ export function sampleOpeningKlo(progress, reducedMotion = false, out = {}) {
     out.eyeLift = out.eyeLift || [0, 0]; out.eyeLift[0] = out.eyeLift[1] = 0;
     out.eyeWide = 0; out.eyeFrame = null; out.tremble = 0; out.crouch = 0; out.scribble = 0;
     out.mark = ''; out.markAlpha = 0; out.markScale = 1; out.drop = -1; out.dropAlpha = 0;
-    out.mouth = null; out.stars = 0;
+    out.mouth = null; out.stars = 0; out.impact = -1; out.pour = -1;
     out.hole = ease(between(p, .119, .16)); out.ring = ease(between(p, .119, .1375));
     out.crumbs = 0; out.crumbsAt = HOLE_X;
     out.book = 'none'; out.bookX = 0; out.bookY = 0; out.bookRot = 0; out.bookAlpha = 1;
@@ -56,12 +97,19 @@ export function sampleOpeningKlo(progress, reducedMotion = false, out = {}) {
         const u = between(p, .04375, .11875);
         out.drop = u; out.dropAlpha = reducedMotion ? (u < .5 ? 1 - u * 2 : (u - .5) * 2) : 1;
     }
+    // the landing: a crown of water, a wet ring, grains of sand hopping
+    if (p >= .119 && p < .1375) {
+        out.impact = between(p, .119, .1368);
+        if (!reducedMotion) { out.crumbs = .7 * Math.sin(Math.PI * between(p, .119, .1305)); out.crumbsAt = HOLE_X; }
+    }
     if (p >= .1375 && p < .325) {
         // periscope: the left stalk leads, then both crane to see
         out.y = 76 - 28 * ease(between(p, .1375, .19));
         out.eyeLift[0] = -8 + 8 * ease(between(p, .1375, .17));
         out.eyeLift[1] = -8 + 8 * ease(between(p, .1475, .18));
-        if ((t > 1.45 && t < 1.51) || (!reducedMotion && t > 1.53 && t < 1.59)) out.eyeFrame = 'blink';
+        // still asleep as the stalks come up; then the eyes pop open, and blink once
+        if (p < .172 || (!reducedMotion && p > .191 && p < .199)) out.eyeFrame = 'blink';
+        else if (p < .19) { out.eyeFrame = 'open'; out.eyeWide = reducedMotion ? 0 : .5 * Math.sin(Math.PI * between(p, .172, .19)); }
         if (p >= .2 && p < .231) out.facing = t < 1.72 ? -1 : 1; // the bucket first, then the horse
         if (p >= .231) {
             // three saccades up the leg: hoof, leg, shell
@@ -87,6 +135,7 @@ export function sampleOpeningKlo(progress, reducedMotion = false, out = {}) {
         out.eyeWide = .6 * ease(u);
         out.crumbs = reducedMotion ? 0 : Math.sin(Math.PI * u);
         out.crumbsAt = HOLE_X;
+        out.pour = reducedMotion ? -1 : u; // sand pours off his shell as he rises
     }
     if (p >= .369 && p < .86875) {
         // the notebook slips from his claw and lies flat on the sand beside him
@@ -252,10 +301,56 @@ export function createOpeningKlo(PIXI, { parent, texture, x, y, scale = 1, dropF
     looseBook.visible = false;
     container.addChild(looseBook);
 
+    // --- the drop from the shell -------------------------------------------------------
     const dropTex = texture('p-drop');
-    const drop = dropTex ? new PIXI.Sprite(dropTex) : new PIXI.Graphics().circle(0, 0, 5).fill({ color: 0x8fbfe0 });
-    drop.anchor?.set?.(.5); drop.scale.set(.75); drop.visible = false; drop.label = 'opening-klo-drop';
-    container.addChild(drop);
+    const makeDrop = (label) => {
+        const d = dropTex ? new PIXI.Sprite(dropTex) : new PIXI.Graphics().circle(0, 0, 5).fill({ color: 0x8fbfe0 });
+        d.anchor?.set?.(.5); d.visible = false; d.label = label; return d;
+    };
+    // wet sand under the landing: a darker patch that soaks in
+    const wet = new PIXI.Graphics();
+    wet.ellipse(0, .4, 21, 4.8).fill({ color: 0x6f5134, alpha: .5 });
+    wet.ellipse(-2, 0, 13, 3).fill({ color: 0x55391f, alpha: .42 });
+    for (let i = 0; i < 6; i++) wet.moveTo(-15 + i * 5.6, .6 + (i % 2) * .8).lineTo(-11.5 + i * 5.6, 1.4)
+        .stroke({ width: .8, color: 0x4f3a24, alpha: .35 });
+    wet.x = HOLE_X; wet.visible = false; wet.label = 'opening-klo-wet';
+    container.addChildAt(wet, container.getChildIndex(hole));
+    // its shadow on the sand darkens and tightens as it comes down
+    const shadow = new PIXI.Graphics();
+    shadow.ellipse(0, 0, 7, 1.8).fill({ color: 0x5f4329, alpha: .45 });
+    shadow.x = HOLE_X; shadow.visible = false; shadow.label = 'opening-klo-drop-shadow';
+    container.addChildAt(shadow, container.getChildIndex(hole) + 1);
+    const trail = new PIXI.Graphics(); trail.label = 'opening-klo-drop-trail';
+    // the drop, with paper-white light on it so it reads against her blue sea
+    const drop = new PIXI.Container(); drop.label = 'opening-klo-drop'; drop.visible = false;
+    const dropArt = makeDrop('opening-klo-drop-art'); dropArt.visible = true;
+    const shine = new PIXI.Graphics();
+    shine.ellipse(-2.2, -2.6, 1.8, 2.8).fill({ color: 0xffffff, alpha: .95 });
+    shine.ellipse(2.4, 2.4, .8, 1.2).fill({ color: 0xffffff, alpha: .7 });
+    drop.addChild(dropArt, shine);
+    // after the crown, a little jet of water rises from the hole and lets go of one bead
+    const jet = new PIXI.Graphics(); jet.label = 'opening-klo-jet';
+    const bead = makeDrop('opening-klo-bead');
+    // two smaller drops thrown by the same shake land short: plip, plip ... PLIP
+    const minor = [{ to: 40, lift: 22, from: 0, until: .55, size: .5 }, { to: 22, lift: 30, from: .1, until: .74, size: .42 }]
+        .map((m, i) => ({ ...m, s: makeDrop('opening-klo-minor-drop-' + i), ring: new PIXI.Graphics() }));
+    for (const m of minor) {
+        m.ring.ellipse(0, 0, 6, 1.5).stroke({ width: .9, color: 0x4f7fb8, alpha: .7 });
+        m.ring.visible = false;
+    }
+    const glint = new PIXI.Graphics();
+    glint.poly([0, -7, 1.4, -1.4, 7, 0, 1.4, 1.4, 0, 7, -1.4, 1.4, -7, 0, -1.4, -1.4]).fill({ color: 0xfffbe6, alpha: .95 })
+        .stroke({ width: .8, color: 0x8fbfe0, alpha: .9, join: 'round' });
+    glint.visible = false; glint.label = 'opening-klo-drop-glint';
+    // the crown the drop throws up when it lands, in slow motion
+    const crown = Array.from({ length: 7 }, (_, i) => {
+        const c = new PIXI.Graphics();
+        const r = 2.6 + (i % 3) * .8;
+        c.ellipse(0, 0, r, r * 1.3).fill({ color: 0xf4f9ff, alpha: .97 }).stroke({ width: 1, color: 0x244f8f, alpha: .9 });
+        c.visible = false; container.addChild(c);
+        return { c, angle: -Math.PI * (.1 + .8 * i / 6), speed: 20 + (i % 2) * 9 + (i % 3) * 4 };
+    });
+    container.addChild(trail, ...minor.flatMap(m => [m.ring, m.s]), jet, bead, drop, glint);
 
     const marks = { '?': drawMark(new PIXI.Graphics(), '?'), '!': drawMark(new PIXI.Graphics(), '!') };
     for (const [kind, g] of Object.entries(marks)) { g.label = `opening-klo-mark-${kind === '?' ? 'question' : 'exclaim'}`; g.visible = false; container.addChild(g); }
@@ -268,6 +363,19 @@ export function createOpeningKlo(PIXI, { parent, texture, x, y, scale = 1, dropF
         g.label = 'opening-klo-star'; g.visible = false; container.addChild(g);
         return { g, sx, sy, size, phase: i * 2.1 };
     });
+
+    // sand pouring off his shell as he rises, and a soft puff where it lands
+    const pour = Array.from({ length: 16 }, (_, i) => {
+        const g = new PIXI.Graphics().poly([-1.8, 0, .6, -1.9, 2.9, .2, .3, 1.3])
+            .fill({ color: i % 3 ? 0xc2a268 : 0x977650, alpha: .8 });
+        g.visible = false; container.addChild(g);
+        const k = (i * .618) % 1;
+        return { g, x: -17 + 34 * k, y0: -30 - 8 * Math.sin(Math.PI * k), start: .22 + .5 * ((i * .37) % 1), drift: (k - .5) * 9 };
+    });
+    const puff = new PIXI.Graphics();
+    for (const [px, rx, ry] of [[-14, 11, 3.2], [0, 15, 4], [15, 11, 3]]) puff.ellipse(px, -2, rx, ry).fill({ color: 0xd9c29a, alpha: .35 });
+    puff.visible = false; puff.label = 'opening-klo-dust';
+    container.addChild(puff);
 
     const crumbs = [];
     for (let i = 0; i < 9; i++) {
@@ -284,6 +392,11 @@ export function createOpeningKlo(PIXI, { parent, texture, x, y, scale = 1, dropF
     const options = { scene: 'paper', time: 0, dt: 0, hero: localHero, talking: false, reducedMotion: false };
     const motion = {};
     const from = dropFrom || { x: 90, y: -120 };
+    // A parabola from the shell rim to his hole: up and back first, then down.
+    const LIFT = 42, toY = -3;
+    const dropAt = (u) => [from.x + (HOLE_X - from.x) * u, from.y + (toY - from.y) * u - 4 * LIFT * u * (1 - u)];
+    const dropVel = (u) => [HOLE_X - from.x, (toY - from.y) - 4 * LIFT * (1 - 2 * u)];
+    const vMax = Math.max(Math.hypot(...dropVel(0)), Math.hypot(...dropVel(1)));
     let progress = 0, pose = 'notebook', time = 0, dead = false;
     const lessMotion = () => typeof reducedMotion === 'function' ? !!reducedMotion() : !!reducedMotion;
 
@@ -332,19 +445,116 @@ export function createOpeningKlo(PIXI, { parent, texture, x, y, scale = 1, dropF
         const buried = progress < .4125;
         rig.container.mask = buried ? groundMask : null;
         groundMask.visible = buried;
-        const twitch = !less && progress > .119 && progress < .1375 ? Math.sin(progress * 900) * 1.1 : 0;
+        // the sand trembles over his head once the drop has woken him
+        const twitch = !less && progress > .1305 && progress < .1375 ? Math.sin(time * 42) * 1.1 : 0;
         hole.x = HOLE_X + twitch;
         hole.alpha = motion.hole * (1 - .22 * ease(between(progress, .856, 1)));
         rim.alpha = motion.hole;
         ring.alpha = motion.ring * (1 - .75 * ease(between(progress, .16, .3)));
         ring.scale.set(.4 + .6 * motion.ring, 1);
-        // the drop: an arc from the horse's shell into his hole
+        // the drop: flung up and back off the shell, then falling, wobbling,
+        // streamlined along its flight, into his hole
         drop.visible = motion.drop >= 0;
+        trail.clear(); glint.visible = false;
         if (drop.visible) {
-            const u = motion.drop, arc = less ? 0 : Math.sin(Math.PI * u) * 46;
-            drop.position.set(less ? (u < .5 ? from.x : HOLE_X) : from.x + (HOLE_X - from.x) * u,
-                less ? (u < .5 ? from.y : -3) : from.y + (-3 - from.y) * u * u - arc);
+            const u = motion.drop;
+            if (less) {
+                drop.position.set(u < .5 ? from.x : HOLE_X, u < .5 ? from.y : toY);
+                drop.rotation = 0; drop.scale.set(1.4);
+            } else {
+                const [px, py] = dropAt(u), [vx, vy] = dropVel(u);
+                drop.position.set(px, py);
+                drop.rotation = Math.atan2(-vy, -vx) + Math.PI / 2;
+                const speed = Math.min(1, Math.hypot(vx, vy) / vMax);
+                const wobble = Math.sin(u * 22) * .1 * (1 - u * .5);
+                drop.scale.set(1.5 * (1 + wobble) / Math.sqrt(1 + .35 * speed), 1.5 * (1 - wobble) * (1 + .35 * speed));
+                // a pencil trail of the path it has flown
+                for (let k = 1; k <= 7; k++) {
+                    const a = u - k * .03, b = a - .014;
+                    if (b < 0) break;
+                    trail.moveTo(...dropAt(a)).lineTo(...dropAt(b)).stroke({ width: 1.8, color: 0xf4f9ff, alpha: .75 * (1 - k / 8), cap: 'round' });
+                    trail.moveTo(...dropAt(a)).lineTo(...dropAt(b)).stroke({ width: .9, color: 0x4f7fb8, alpha: .55 * (1 - k / 8), cap: 'round' });
+                }
+                // at the top of its flight it catches the sun
+                const g = between(u, .24, .5);
+                if (g > 0 && g < 1) {
+                    glint.visible = true;
+                    glint.position.set(px + 7, py - 10);
+                    glint.scale.set(.35 + .8 * Math.sin(Math.PI * g));
+                    glint.rotation = g * 1.6;
+                    glint.alpha = Math.sin(Math.PI * g);
+                }
+            }
             drop.alpha = motion.dropAlpha;
+        }
+        shadow.visible = motion.drop > .45 && !less;
+        if (shadow.visible) {
+            const k = between(motion.drop, .45, 1);
+            shadow.scale.set(1.6 - .8 * k, 1);
+            shadow.alpha = .2 + .8 * k;
+        }
+        // the jet: rises from the hole after the crown, pinches off one bead
+        jet.clear(); bead.visible = false;
+        if (motion.impact > .28 && !less) {
+            const k = between(motion.impact, .28, 1);
+            const h = 22 * Math.sin(Math.PI * Math.min(1, k * 1.25));
+            if (h > .5 && k < .8) {
+                jet.moveTo(HOLE_X - 2.6, toY).quadraticCurveTo(HOLE_X - 1.2, toY - h * .6, HOLE_X, toY - h)
+                    .quadraticCurveTo(HOLE_X + 1.2, toY - h * .6, HOLE_X + 2.6, toY).closePath()
+                    .fill({ color: 0xf4f9ff, alpha: .95 }).stroke({ width: 1, color: 0x244f8f, alpha: .85 });
+            }
+            const bk = between(k, .35, 1);
+            if (bk > 0 && bk < 1) {
+                bead.visible = true;
+                bead.position.set(HOLE_X + 2 * bk, toY - 20 - 26 * bk + 46 * bk * bk);
+                bead.scale.set(.75); bead.rotation = 0;
+                bead.alpha = 1 - ease(between(bk, .85, 1));
+            }
+        }
+        for (const m of minor) {
+            const u = motion.drop >= 0 ? motion.drop : progress >= .119 && progress < .1375 ? 1 : -1;
+            const k = u < 0 || less ? -1 : between(u, m.from, m.until);
+            m.s.visible = k > 0 && k < 1;
+            if (m.s.visible) {
+                const x0 = from.x - 6, y0 = from.y + 6;
+                m.s.position.set(x0 + (m.to - x0) * k, y0 + (0 - y0) * k * k - 4 * m.lift * k * (1 - k));
+                m.s.scale.set(m.size);
+                m.s.rotation = Math.atan2(-((0 - y0) * 2 * k - 4 * m.lift * (1 - 2 * k)), -(m.to - x0)) + Math.PI / 2;
+            }
+            // a tiny ring where each one lands, gone again in a moment
+            const r = u < 0 || less ? -1 : between(u, m.until, m.until + .2);
+            m.ring.visible = r > 0 && r < 1;
+            if (m.ring.visible) { m.ring.position.set(m.to, 0); m.ring.scale.set(.5 + r); m.ring.alpha = 1 - r; }
+        }
+        // the landing, in slow motion: a crown of water and a patch of wet sand
+        const hit = motion.impact;
+        for (const c of crown) {
+            c.c.visible = hit > 0 && hit < .92 && !less;
+            if (!c.c.visible) continue;
+            const k = hit / .92;
+            c.c.position.set(HOLE_X + Math.cos(c.angle) * c.speed * k * 1.5, toY + Math.sin(c.angle) * c.speed * k * 1.6 + 30 * k * k);
+            c.c.alpha = 1 - ease(between(k, .6, 1));
+        }
+        wet.visible = progress >= .119 && progress < .4125;
+        if (wet.visible) {
+            wet.scale.set(.3 + .7 * ease(between(progress, .119, .13)), 1);
+            wet.alpha = 1 - ease(between(progress, .325, .4125));
+        }
+        for (const q of pour) {
+            const k = motion.pour < 0 ? -1 : between(motion.pour, q.start, q.start + .28);
+            q.g.visible = k > 0 && k < 1;
+            if (!q.g.visible) continue;
+            const y0 = actor.y + q.y0;
+            q.g.position.set(actor.x + q.x + q.drift * k, y0 + (0 - y0) * k * k);
+            q.g.rotation = k * 4 * Math.sign(q.drift || 1);
+            q.g.alpha = 1 - ease(between(k, .8, 1));
+        }
+        puff.visible = motion.pour > 0 && !less;
+        if (puff.visible) {
+            const k = between(motion.pour, .15, 1);
+            puff.position.set(HOLE_X, 0);
+            puff.scale.set(.6 + .8 * k, 1);
+            puff.alpha = Math.sin(Math.PI * k) * .9;
         }
         looseBook.visible = motion.book !== 'none';
         if (looseBook.visible) {
@@ -384,6 +594,8 @@ export function createOpeningKlo(PIXI, { parent, texture, x, y, scale = 1, dropF
     return {
         container,
         get stage() { return motion.stage; },
+        /** where the drop is now (or the hole, once it has landed), in local units */
+        dropPoint() { return motion.drop >= 0 && !lessMotion() ? dropAt(motion.drop) : [HOLE_X, toY]; },
         update({ time: now = time, dt = 1 / 60, hero, talking = false } = {}) {
             time = now;
             render(dt, hero, talking);
