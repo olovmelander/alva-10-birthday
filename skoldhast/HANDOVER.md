@@ -24,6 +24,12 @@ between the beach and the watchtower, since in the intro scene the watchtower is
   labelled "Mellan sidorna". "Vecket" is labelled along the crease from the first piece, since the
   opening already names it ("ditt streck tog slut vid vecket"). The sea route passes Kelphjärtat,
   goes in under the crease once, and comes up under Bryggan; the map journey follows it.
+- **The opening shows Bryggan** (`opening-canvas.mjs`, `landmarks.jetty`): a pencil jetty in her margin
+  from the picture's edge, its deck as high above the water as in the game, level at first and then
+  bending away to the lighthouse's islet, thinning as it recedes. The crease through the end of her
+  line cuts it, so its far end folds under with the lighthouse and the beach keeps a stub at the cut
+  edge, exactly where the game's beach has the bolted gate. `tests/skoldhast-opening-jetty.test.mjs`
+  checks that the crease cuts it wherever her stroke ends at the third dot.
 - **Words:** "runt udden" (round a headland the map never had) became "in under vecket" in Klo's
   lines, the goal, hints, the thread, report 2, Klo's notes and the journey titles. The arrival line
   is now "Vi kom in under vecket! Det här är havet mellan sidorna – Spegelviken. Här under bryggan
@@ -51,7 +57,7 @@ between the beach and the watchtower, since in the intro scene the watchtower is
 - Dev page: `menus.html?m=journal&page=4&map=all&where=land:116` places the marker.
 - No save-format, puzzle, world-geometry or release change; `RELEASED_CHAPTER` remains 3 and the
   ticket gate stays hidden. Plan §3.3 rule 5 describes the fold and the map.
-- Verification: **379/379 pure tests pass**. New `tests/skoldhast-map-here.test.mjs` ties the world
+- Verification: **380/380 pure tests pass**. New `tests/skoldhast-map-here.test.mjs` ties the world
   to the map: the jetty, its gate wall and the viken pier lie on the drawn bridge; walking through the
   gate does not jump; the beach ends and Veckmuren stands on the crease, the lighthouse and the whole
   bay lie beyond it, Alva's line runs from the waterline to the crease, and the current goes in
@@ -60,6 +66,9 @@ between the beach and the watchtower, since in the intro scene the watchtower is
   390×844, 844×390, 320×568 and 1440×900 with keyboard and touch, and now also checks the marker on
   the map page and the thumbnail. Real-game capture: pressing J under water shows the marker in
   Kelpskogen. The crossing capture goes in under Vecket and ends under Bryggan.
+- **Known flaky check (also on `main`):** `tests/browser/skoldhast-opening.mjs` sometimes times out at
+  line 249, waiting for Klo's answer after the fold question (one run in two on clean `main`, on
+  varying viewports). Re-running passes; it needs a sturdier wait, not a game change.
 - **Frågor till Pappa:** should the finale show the corner and its lighthouse folding back into the
   beach's view when Kartväktaren unfolds the page? The bay's far wall still says "Havet är vikt här!";
   it is now the folded corner's edge, which still fits.

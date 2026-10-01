@@ -10,7 +10,10 @@
  *
  * Pappersfyren stands on a far islet in her margin: the game's own drawing of
  * it (props-bay `lighthouse`, shutters open and its lamp alight: the page as it
- * should be, before the fold; afterwards only its reflection shines). On its
+ * should be, before the fold; afterwards only its reflection shines). Bryggan,
+ * the game's jetty, runs from her beach out to the islet, rising and thinning as
+ * it recedes, so the crease that folds the sea away cuts it: its far end goes
+ * under with the lighthouse, and the beach keeps the near end. On its
  * gallery stands Kartväktaren, small and far off: the game's own paper rig
  * (guardian.mjs), a little faded by distance. The player can see someone there,
  * with a ruler, long before they learn who or why
@@ -46,19 +49,24 @@ export function createOpeningCanvas(PIXI, { parent, texture, picture, waterY, be
         get keeper() { return { x: at.x, y: at.y }; },
         // his measuring hand (the 'point' pose): the ruler that folds the page starts here
         get hand() { return { x: at.x - 40 * 1.06 * at.scale, y: at.y - 112 * 1.06 * at.scale }; },
-        shore: Object.freeze({ x: right + 74, y: waterY })
+        shore: Object.freeze({ x: right + 74, y: waterY }),
+        // Bryggan: from her beach at the picture's edge (its deck as high over the water as
+        // in the game), level at first, then bending away to the lighthouse's islet
+        jetty: Object.freeze({ from: Object.freeze([right + 6, waterY - 20]), bend: Object.freeze([right + 62, waterY - 21]),
+            to: Object.freeze([towerX - 40, towerBase + 1]) })
     });
     const ridge = new PIXI.Graphics(); ridge.label = 'opening-distant-steppe';
     const water = new PIXI.Graphics(); water.label = 'opening-sea-margin';
     const reeds = new PIXI.Graphics(); reeds.label = 'opening-kelp-window';
     const tower = new PIXI.Graphics(); tower.label = 'opening-distant-tower';
+    const jetty = new PIXI.Graphics(); jetty.label = 'opening-jetty';
     const light = new PIXI.Graphics(); light.label = 'opening-measuring-light';
     const figure = new PIXI.Graphics(); figure.label = 'opening-distant-observer';
     const motion = new PIXI.Graphics(); motion.label = 'opening-water-breath';
     const sketch = new PIXI.Graphics(); sketch.label = 'opening-tower-sketch';
     const lighthouse = new PIXI.Container(); lighthouse.label = 'opening-lighthouse';
     const keeper = new PIXI.Container(); keeper.label = 'opening-keeper';
-    container.addChild(ridge, water, reeds, light, tower, sketch, lighthouse, figure, keeper, motion);
+    container.addChild(ridge, water, reeds, light, tower, jetty, sketch, lighthouse, figure, keeper, motion);
     let lamp = null;
     let rig = null;
     const actor = { id: 'kv', visible: true, x: 0, y: 0, pose: 'stand', facing: -1, walk: null, pop: 0 };
@@ -198,6 +206,30 @@ export function createOpeningCanvas(PIXI, { parent, texture, picture, waterY, be
         const ry = base + 6 + i * 3.4, half = 40 - i * 7;
         line(tower, [[towerX - half, ry], [towerX - half * .2, ry]], 0xeef4f8, 1.2, .55 - i * .1);
         line(tower, [[towerX + half * .15, ry + .4], [towerX + half, ry + .4]], 0x5f7f97, 1, .32 - i * .06);
+    }
+    // Bryggan, out to the islet: level from her beach, then bending away towards the far
+    // islet, so its deck and posts thin, the pencil lightens and the water under it rises.
+    {
+        const { from: [ax, ay], bend: [cx, cy], to: [bx, by] } = landmarks.jetty;
+        const at = (t) => [(1 - t) ** 2 * ax + 2 * (1 - t) * t * cx + t * t * bx, (1 - t) ** 2 * ay + 2 * (1 - t) * t * cy + t * t * by];
+        const thick = (t) => 8 - 4.6 * t, fade = (t) => 1 - .35 * t;
+        const surface = (t) => waterY + (base + 2 - waterY) * t * t;
+        // posts first, behind the deck: down into the water, a pale ring where they meet it
+        for (const t of [.02, .19, .37, .55, .72, .88]) {
+            const [px, py] = at(t), foot = surface(t) + 10 - 7 * t;
+            line(jetty, [[px, py + thick(t) - 1], [px, foot]], 0x5d4129, 3.4 - 2 * t, .85 * fade(t));
+            line(jetty, [[px - 4.5 + 2 * t, surface(t) + .5], [px + 4.5 - 2 * t, surface(t) + .5]], 0xeef4f8, 1.2, .75 * fade(t));
+        }
+        const steps = 24, top = [], under = [];
+        for (let i = 0; i <= steps; i++) { const t = i / steps, [px, py] = at(t); top.push([px, py]); under.unshift([px, py + thick(t)]); }
+        jetty.poly([...top, ...under].flat()).fill({ color: 0xc19a68, alpha: .92 });
+        // the planks' ends along its side, closer together as it recedes
+        for (let t = .025; t < .99; t += .03 + .012 * (1 - t)) {
+            const [px, py] = at(t);
+            line(jetty, [[px, py + .8], [px - .2, py + thick(t) - .6]], 0x6b4a2c, .8, .45 * fade(t));
+        }
+        line(jetty, top, 0x5d4129, 1.6, .85);
+        line(jetty, under.slice().reverse(), 0x5d4129, 1.1, .6);
     }
     // The stand-in: a small folded-paper tower, two faces and sparse diagonal grain.
     sketch.poly([towerX - 15, base - 3, towerX - 11, roof + 17, towerX + 9, roof + 17,

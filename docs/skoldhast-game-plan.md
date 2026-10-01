@@ -361,10 +361,13 @@ and why.
      reuses this line. The waterline starts to run off the picture, and the world starts to grow.
 4. Halfway through that third stroke, at a fixed authored point so it cannot fail:
    - Far off in her margin stands Pappersfyren (the game's own drawing, lamp alight), and on its gallery a small
-     paper man (Kartväktaren, not yet named) lifts his ruler and measures her line. The view leans towards him.
+     paper man (Kartväktaren, not yet named) lifts his ruler and measures her line. Bryggan, the game's jetty,
+     runs from her beach out to the lighthouse's islet. The view leans towards him.
      As a thin sheet of her sea runs along the line towards him, he shrinks back, hands to his face, and his
      ruler leaves his hand for the fold.
    - *Prassel.* A dead-straight crease flicks across the horizon from outside the page and cuts her line short.
+     It cuts Bryggan too: the jetty's far end and the lighthouse fold under with the sea corner, and the beach
+     keeps the near end, where the game's beach later finds the bolted gate.
    - Three torn scraps of his ruled map tear loose at the far tower and flutter into her picture: one over the
      land, one into the sea, and one to the sand right beside Klo.
    - The splash stops in mid-air, the sun stops, and one drop rolls *upward* over the paper. This works even with

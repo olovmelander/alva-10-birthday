@@ -73,7 +73,7 @@ before the game says, and the meeting pays that off ("det är han!").
    alight: the page as it should be), and a small paper man stands on its gallery (the game's own paper rig).
    As she draws the shore the view leans towards him: he measures her line with his ruler, shrinks back with
    his hands to his face as the sea comes, and his ruler leaves his hand for the fold. He folds away with the
-   corner, lighthouse and all. No words, no name, no close face.
+   corner, lighthouse and all, and the crease cuts the jetty that led out to it. No words, no name, no close face.
 2. **Kapitel 1:** the same figure hurries away from the water beyond Veckmuren.
 3. **Kapitel 2:** he peeks through a lighthouse shutter and slams it shut.
 4. **Kapitel 3:** he comes out. Now we see his face, connect him to the name on the notes and learn why.
