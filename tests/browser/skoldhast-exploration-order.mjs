@@ -113,7 +113,9 @@ try {
                     if (Math.abs(iy) < .95 && pulse >= Math.abs(iy)) y = 0;
                 }
                 if (x !== kx) { if (kx) key(kx < 0 ? 'ArrowLeft' : 'ArrowRight', false); if (x) key(x < 0 ? 'ArrowLeft' : 'ArrowRight', true); kx = x; }
-                if (y !== ky) { if (ky) key(ky < 0 ? 'ArrowUp' : 'x', false); if (y) key(y < 0 ? 'ArrowUp' : 'x', true); ky = y; }
+                // Under water ↓ swims down (on land it would tuck in, but the
+                // robot only steers vertically while swimming).
+                if (y !== ky) { if (ky) key(ky < 0 ? 'ArrowUp' : 'ArrowDown', false); if (y) key(y < 0 ? 'ArrowUp' : 'ArrowDown', true); ky = y; }
             }
         }
         drive.pulse = 0;
