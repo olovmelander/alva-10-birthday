@@ -1488,12 +1488,14 @@ item('props', 'p-fluff', [0.5, 0.5], () => {
     return done(S);
 });
 item('props', 'p-glow', [0.5, 0.5], () => {
+    // The halo must reach zero well inside the frame: stretched over a lit
+    // vault or a school of lyktfiskar, any alpha at the border shows as a box.
     const W = 64, C = 32;
     const S = spriteSheet(W, W, 'p-glow');
-    const g = S.mask(ellipse(C, C, 30, 30, 40), { feather: 8 });
-    addSolid(S, fmap(g, (v) => v * 0.55));
-    soft(S, P.sunGlow, g, { angle: 0.6, gap: 2.2, len: [6, 14], pmap: radial(S, C, C, 4, 30, 1, 0) });
-    soft(S, P.warmLight, g, { angle: -0.6, gap: 2.6, len: [5, 10], pmap: radial(S, C, C, 2, 18, 0.8, 0) });
+    const g = S.mask(ellipse(C, C, 21, 21, 40), { feather: 8 });
+    addSolid(S, fmap(radial(S, C, C, 0, 29, 1, 0), (v, i) => g[i] * 0.55 * v * v));
+    soft(S, P.sunGlow, g, { angle: 0.6, gap: 2.2, len: [6, 14], pmap: radial(S, C, C, 3, 27, 1, 0) });
+    soft(S, P.warmLight, g, { angle: -0.6, gap: 2.6, len: [5, 10], pmap: radial(S, C, C, 2, 16, 0.8, 0) });
     return done(S);
 });
 item('props', 'p-star', [0.5, 0.5], () => {

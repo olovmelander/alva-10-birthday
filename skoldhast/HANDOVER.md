@@ -1,5 +1,65 @@
 # Sköldhästen – handover
 
+## One art style: the engine's own shapes drawn in pencil (1 October)
+
+Branch `claude/skoldhast-one-art-style`. Pappa found parts of the world that did not belong to the
+same drawing (his example: the risen hill ramps beside the landscape) and asked for one beautiful,
+magical art style through the whole game. A full screenshot review (30 staged views at 1440×900,
+844×390 and 390×844, plus the hill puzzle in every phase) found one root cause and several
+local ones. The root cause: everything baked by the art build is coloured pencil on paper, but
+shapes the engine draws while playing used flat vector colour and smooth lines.
+
+- **Pencil for the engine's shapes** (`src/pencil-style.mjs`). Two new tintable boot tiles,
+  `pencil-grain` (a line broken on the paper's tooth) and `pencil-hatch` (colour laid in with one
+  hand's strokes), give `line`, `fill`, `hatch` and `material` styles. The world renderer's
+  `Graphics` breaks every stroke on the tooth (`pencilPixi`). Alva's beach keeps plain Pixi: her
+  frozen wave, the shell play and the fold demo that lifts her sand are untouched.
+- **The hill strips are the hillside.** A risen P3 strip is the hill's own earth and ragged turf
+  in the ground's world space, under the same graphite line, so it joins the landscape seamlessly.
+  The cream paper underside and curl show only while the strip lies folded or lifts; roots are pale
+  pencil in the earth; the target is the legend's dotted tussock. Collision is unchanged (the
+  drawn top is still the real surface; the hill-scene tests pass).
+- **Skies that read as air, not rain.** `bg-steppe` and `bg-bay` are blended pencil skies:
+  grainy colour first, then short strokes crossing in three directions, a warm haze low down.
+  The long parallel slants that looked like rain are gone; the near hills' pale slashes and
+  wind stripes are calmed. A faint line across the sky (also in the baseline) came from the hill
+  layers wrapping vertically at small mip levels: layers are now `repeat: 'x'` (wrap sideways,
+  clamp vertically) and their sheets are cleared above every crest.
+- **Materials.** `mat-rock` is layered bedrock (strata, offset joints, lichen) instead of
+  hexagonal paving; `mat-earth` uses short crossing strokes. Turf over earth or rock ends in a
+  ragged edge with a little shade (`raggedBand`), shared by the ground and the hill strips. The
+  steppe floors are turf over soil, like the hill, instead of a wall of grass. Soft grounds that
+  meet at a gully wall blend below its floor instead of a ruled seam to the page's foot.
+- **Places.** The tide-mark rock, the kelp headland outcrop (broader and stepped, never a
+  tombstone), the cave roof, the vault's back wall (a wide uneven fade), the gully back walls
+  (shaded sides, a far turf lip), Veckmuren's face and the glimpse hill are drawn in stone,
+  hatching and pencil. The P6 cradle and the snagged frond use the kelp forest's own `kelp-strip`
+  texture bent along their curves. The bay's cliffs have form, strata and sage turf; its still
+  water and underwater layer have far fewer white scratches. Underwater stone is tinted by the
+  sea; the cave's air is shaded; light shafts are soft wedges rather than thin rain-like lines.
+  The lighthouse's reflection is masked to the water and no longer shows through the islet rock.
+- **Bugs fixed.** `p-glow`'s halo ran past its 64-px frame, so every stretched glow (the lit vault's
+  lamps, the lyktfiskar, hints) showed as a square box; it now fades to zero inside the frame.
+- **A little magic, within the rules** (no bloom, filters or dynamic light): a soft page vignette,
+  as if the sheet lay under a lamp; the steppe's dust became slowly twinkling pollen specks
+  (static with reduced motion); the paper below the ground appears stroke by stroke instead of
+  as mist. The frozen-world timing, white cloud interiors and creature colours are unchanged.
+- No save-format, collision, puzzle, story or release change; `RELEASED_CHAPTER` remains 3 and the
+  ticket gate remains hidden. `dev/SPEC.md` documents the new tiles, the engine-shape rule, the
+  skies, the rock and `repeat: 'x'`; the visual audit gains the rules this pass added.
+- Verification: **340/340 pure tests pass**. The world-art matrix captures **93 staged views** at
+  1440×900, 844×390 and 390×844 (with `--tables --verify`) with no browser errors, and painted
+  ground covers every camera view. Both real hill journeys pass with touch controls (portrait
+  12,212 and landscape 11,792 simulation steps, large text, landscape with reduced motion): the
+  seeds, stone and strips still match the simulation. All five ticket-launcher checks and the view
+  lifecycle check pass. First playable is **2,327,678 bytes** (was 2,222,323), below 3 MB.
+  Before/after contact sheets are committed under `docs/skoldhast/shots/k3/one-art-style/`;
+  the "before" views were rendered from `main` at `88845de` with the same staged matrix.
+- **Frågor till Pappa:** the steppe's ground is now soil under its turf (as on the hill) instead
+  of grass all the way down, and there is a soft page vignette. Both are easy to undo if he
+  preferred the old look. Real-phone performance has not been measured (the engine draws more
+  textured fills; renderer counts were not re-sampled).
+
 ## One sea around the headland, and a visible lighthouse clue (1 October)
 
 Pappa noticed that the kelp-to-bay crossing felt like surfacing into another sea,

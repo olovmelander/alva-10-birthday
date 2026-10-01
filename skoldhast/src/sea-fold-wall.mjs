@@ -1,4 +1,5 @@
 /* Veckmuren is a bent piece of the drawn ocean, never a pane of glass. */
+import { pencilStyle } from './pencil-style.mjs';
 export function seaFoldWallLayout({ x, top, bottom, width = 430 }) {
     if (![x, top, bottom, width].every(Number.isFinite) || bottom <= top || width <= 0)
         throw new RangeError('A sea fold needs finite bounds and a positive size.');
@@ -40,6 +41,7 @@ export function createSeaFoldWall(PIXI, { texture, ...options } = {}) {
     container.addChild(paper, continuation, sea, marks);
     paper.poly(layout.shadow.flat()).fill({ color: 0x384b48, alpha: .16 });
     paper.poly(layout.back.flat()).fill(0xeee2c4).stroke({ color: 0x82775f, width: 2.4, alpha: .9 });
+    paper.poly(layout.back.flat()).fill(pencilStyle(texture).hatch(0xc9b892, .4));
     const paperTexture = texture?.('mat-paper'), seaTexture = texture?.('mat-deep');
     if (paperTexture) paper.poly(layout.back.flat()).fill({ texture: paperTexture, textureSpace: 'global', alpha: .68 });
     // Irregular pencil pressure across the reverse, not vertical glass glints.
@@ -47,8 +49,11 @@ export function createSeaFoldWall(PIXI, { texture, ...options } = {}) {
         const depth = (y - top) / height, a = x - reverse * (1 - depth * .42);
         pencilLine(paper, [[a + 3, y + 5], [x - 3, y - 5]], 0x988666, 1.5, .24);
     }
+    const pen = pencilStyle(texture);
     sea.poly(layout.face.flat()).fill(0x79a7ae);
     if (seaTexture) sea.poly(layout.face.flat()).fill({ texture: seaTexture, textureSpace: 'global', color: 0xbad3c2, alpha: .5 });
+    // the raised sea is drawn, so its depth is laid in with the same hand's strokes
+    sea.poly(layout.face.flat()).fill(pen.hatch(0x2f5f74, .22));
     // Broad changes in pencil pressure give depth while retaining paper grain.
     const bodyTop = top + lip;
     for (let i = 0; i < 22; i++) {

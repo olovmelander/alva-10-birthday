@@ -514,12 +514,14 @@ function matEarth() {
         for (let j = 0; j < 8; j++) if (y >= edges[j] + wav(x, j) && y < edges[j + 1] + wav(x, j + 1)) k = j;
         band[y * M + x] = layerTone[k];
     }
-    // slanting strokes across the layers (long level ones read as planks), the
-    // layers themselves carried by their tone and their wavy lines
-    hatchT(S, mix(P.earth, P.sand, 0.45), { angle: -0.6, angleJitter: 0.12, gap: 2.2, len: [14, 40], width: 3, pressure: .72, grain: .3 });
-    hatchT(S, P.earth, { angle: -0.52, angleJitter: 0.12, gap: 2.2, len: [14, 44], width: 2.8, grain: .3, pmap: fmap(band, (v, i) => v * (.45 + .2 * patch[i])) });
-    hatchT(S, P.earth, { angle: 0.62, gap: 3.6, len: [10, 28], width: 1.4, pmap: fmap(patch, (v) => .12 + .18 * v) });
-    burnishT(S, null, 2, .6);
+    // Short strokes crossing in two directions (long level ones read as planks,
+    // long parallel slants as rain over a big field of ground); the layers are
+    // carried by their tone and their wavy lines.
+    hatchT(S, mix(P.earth, P.sand, 0.45), { angle: -0.55, angleJitter: 0.25, gap: 2.1, len: [10, 28], width: 3, pressure: .66, grain: .28 });
+    hatchT(S, mix(P.earth, P.sand, 0.3), { angle: 0.5, angleJitter: 0.25, gap: 2.6, len: [9, 24], width: 2.8, pressure: .42, grain: .3 });
+    hatchT(S, P.earth, { angle: -0.4, angleJitter: 0.3, gap: 2.2, len: [10, 30], width: 2.8, grain: .3, pmap: fmap(band, (v, i) => v * (.42 + .2 * patch[i])) });
+    hatchT(S, P.earth, { angle: 0.75, angleJitter: 0.3, gap: 3.2, len: [8, 22], width: 1.8, pmap: fmap(band, (v, i) => v * (.16 + .2 * patch[i])) });
+    burnishT(S, null, 2, .7);
     const r = rng(43);
     const lines = [];
     for (let j = 0; j < 8; j++) {
@@ -559,42 +561,109 @@ export function voronoiT(w, h, seed, n, { sx = 0.75, sy = 1 } = {}) {
     return { id, edge, seeds };
 }
 
+/**
+ * Layered bedrock seen in section: wavy strata broken into irregular blocks by
+ * joints that never line up from one layer to the next (no repeating facets,
+ * which read as paving). Each block is lit from the upper left like the rest
+ * of the world, shaded along its lower edge and its right-hand joint, and the
+ * cracks are broken pencil lines. A few lichen flecks tie it to the steppe.
+ */
 function matRock() {
     const S = tileSheet(M, M, hashSeed('mat-rock'), { tooth: .6, grain: .85 });
-    const patch = fbm(M, M, 51, [[4, 4, 0.5], [8, 8, 0.3], [16, 16, 0.2]], 1.2);
-    const brk = fbm(M, M, 54, [[6, 6, 0.6], [13, 13, 0.4]], 1.6);
-    const { id, edge, seeds } = voronoiT(M, M, 52, 9, { sx: 0.72 });
+    const patch = fbm(M, M, 51, [[3, 3, 0.5], [7, 7, 0.3], [15, 15, 0.2]], 1.2);
+    const brk = fbm(M, M, 54, [[5, 5, 0.6], [11, 11, 0.4]], 1.6);
     const r = rng(53);
-    hatchT(S, mix(P.rock, P.paper, 0.3), { angle: -0.4, gap: 2.2, len: [16, 44], width: 3.2, pressure: .82, grain: .25 });
-    const angles = [-0.8, -0.35, 0.3, 0.75, 1.2];
-    seeds.forEach(([sx, sy], k) => {
-        const m = fmap(id, (v, i) => (v === k ? smoothstep(0.3, 2.2, edge[i]) : 0));
-        const a = angles[Math.floor(r() * angles.length)] + (r() - 0.5) * 0.25;
-        const tone = .3 + r() * .44;
-        // each facet: one dominant hatch direction, lit at the top, shaded toward its lower border
-        const pm = pressureMap(M, M, (x, y) => {
-            let dy = y - sy; if (dy > M / 2) dy -= M; if (dy < -M / 2) dy += M;
-            return tone * (0.8 + 0.5 * smoothstep(-40, 50, dy)) * (0.8 + 0.35 * patch[y * M + x]);
-        });
-        hatchT(S, P.rock, { angle: a, gap: 2.2, len: [14, 46], width: 2.8, clip: m, pmap: pm, grain: .3 });
-        if (tone > 0.7) hatchT(S, P.rockDark, { angle: a + 0.6, gap: 3, len: [10, 30], width: 1.4, clip: m, pressure: 0.35 + (tone - 0.7), grain: 0.9 });
+    const TAU = Math.PI * 2;
+    const tops = [0, 96, 152, 268, 330, 438];
+    const NB = tops.length;
+    const wav = (x, k) => {
+        const q = ((k % NB) + NB) % NB;
+        return 11 * Math.sin((x / M) * TAU + q * 1.7) + 5 * Math.sin((x / M) * TAU * 2 + q * 2.9) + 1.6 * Math.sin((x / M) * TAU * 6 + q);
+    };
+    const topAt = (k, x) => (k >= NB ? M : 0) + tops[k % NB] + wav(x, k);
+    // joints per stratum: cyclic positions with a slight lean, spaced like real bedding
+    const joints = tops.map(() => {
+        const list = [];
+        let x = r() * 70;
+        while (x < M - 60) { list.push({ x, lean: (r() - 0.5) * 0.9 }); x += 105 + r() * 170; }
+        return list;
     });
-    // shadow just inside every border
-    const rim = fmap(edge, (v) => Math.pow(1 - smoothstep(1, 11, v), 1.4));
-    hatchT(S, P.rockDark, { angle: 0.9, gap: 2.2, len: [8, 20], width: 1.4, pmap: rim, pressure: .6, grain: .35 });
-    burnishT(S, null, 2, .52);
-    // cracks along the facet borders (broken here and there), plus a few hairlines
-    const crack = fmap(edge, (v, i) => (1 - smoothstep(0.4, 2.1, v)) * smoothstep(0.25, 0.5, brk[i]));
-    S.deposit(P.graphite, crack, { pressure: .55, grain: .4 });
-    const hair = [];
-    for (let k = 0; k < 6; k++) {
-        let x = r() * M, y = r() * M, a = r() * Math.PI * 2;
-        const pts = [[x, y]];
-        const n = 4 + Math.floor(r() * 5);
-        for (let s = 0; s < n; s++) { a += (r() - 0.5) * 1.1; x += Math.cos(a) * (6 + r() * 9); y += Math.sin(a) * (6 + r() * 9); pts.push([x, y]); }
-        hair.push({ pts, width: 1.1, alpha: 0.8 });
+    // one tone and hatch direction per stratum, varied a little block by block
+    const tone = tops.map(() => { const layer = 0.38 + r() * 0.3; return Array.from({ length: 12 }, () => layer * (0.85 + r() * 0.3)); });
+    const dirs = tops.map(() => { const d = Math.floor(r() * 3); return Array.from({ length: 12 }, () => (r() < 0.75 ? d : Math.floor(r() * 3))); });
+    const cyc = (d) => { d %= M; if (d > M / 2) d -= M; if (d < -M / 2) d += M; return d; };
+    const blockOf = new Int16Array(M * M), toneOf = new Float32Array(M * M);
+    const dTop = new Float32Array(M * M), dBot = new Float32Array(M * M), dJoint = new Float32Array(M * M), jointSide = new Float32Array(M * M);
+    for (let y = 0; y < M; y++) for (let x = 0; x < M; x++) {
+        const base = topAt(0, x);
+        const yy = base + (((y - base) % M) + M) % M;
+        let k = 0;
+        while (k < NB && yy >= topAt(k + 1, x)) k++;
+        const t0 = topAt(k, x), t1 = topAt(k + 1, x), mid = (t0 + t1) / 2;
+        // the nearest joint (negative: it is to the right, the block's shaded side)
+        // and the block itself, which begins at the last joint to the left
+        const js = joints[k];
+        let best = 1e9, left = js.length - 1, ld = 1e9;
+        for (let q = 0; q < js.length; q++) {
+            const d = cyc(x - (js[q].x + js[q].lean * (yy - mid)));
+            if (Math.abs(d) < Math.abs(best)) best = d;
+            if (d >= 0 && d < ld) { ld = d; left = q; }
+        }
+        const i = y * M + x;
+        blockOf[i] = k * 16 + left;
+        toneOf[i] = tone[k][left % 12];
+        dTop[i] = yy - t0; dBot[i] = t1 - yy; dJoint[i] = Math.abs(best); jointSide[i] = best;
     }
-    linesT(S, P.graphite, hair, { pressure: 0.5, grain: 0.7 });
+    // pale cool ground for the whole tile, then each block in one of three hatch families
+    hatchT(S, mix(P.rock, P.paper, 0.36), { angle: -0.45, gap: 1.9, len: [16, 44], width: 3.3, pressure: .85, grain: .2 });
+    const fam = [-0.62, -0.25, 0.55];
+    for (let f = 0; f < 3; f++) {
+        const clip = fmap(blockOf, (b, i) => {
+            const k = b >> 4, q = b & 15;
+            if (dirs[k][q % 12] !== f) return 0;
+            return smoothstep(0.5, 3, Math.min(dTop[i], dBot[i], dJoint[i]));
+        });
+        const pm = fmap(toneOf, (v, i) => {
+            const lit = 1 - 0.35 * (1 - smoothstep(0, 16, dTop[i]));      // light catches the top
+            const shade = 1 + 0.55 * (1 - smoothstep(0, 22, dBot[i]))     // the lower edge in shade
+                + (jointSide[i] < 0 ? 0.4 * (1 - smoothstep(0, 18, dJoint[i])) : 0);
+            return v * lit * shade * (0.82 + 0.36 * patch[i]);
+        });
+        hatchT(S, P.rock, { angle: fam[f], angleJitter: 0.14, gap: 2.0, len: [12, 36], width: 2.9, clip, pmap: pm, grain: .18 });
+    }
+    // darker undersides: a second, crossing pass where blocks meet the stratum below
+    const under = fmap(dBot, (v, i) => Math.pow(1 - smoothstep(0, 13, v), 1.3) * (0.7 + 0.3 * patch[i]));
+    hatchT(S, P.rockDark, { angle: 0.85, gap: 2.4, len: [8, 20], width: 1.5, pmap: under, pressure: .5, grain: .35 });
+    // a light crossing pass, so a big face of stone never shows one long slant of white slivers
+    hatchT(S, mix(P.rock, P.paper, 0.45), { angle: 0.9, angleJitter: 0.2, gap: 2.4, len: [10, 28], width: 2.8, pressure: .38, grain: .25 });
+    burnishT(S, null, 2, .66);
+    // the bedding planes and joints as broken graphite cracks
+    const crack = fmap(dBot, (v, i) => {
+        const bed = 1 - smoothstep(0.3, 1.8, v);
+        const jt = 1 - smoothstep(0.3, 1.6, dJoint[i]);
+        return Math.max(bed * smoothstep(0.3, 0.5, brk[i]), jt * smoothstep(0.38, 0.58, brk[i]) * 0.85);
+    });
+    S.deposit(P.graphite, crack, { pressure: .5, grain: .45 });
+    // a few hairline fractures inside the bigger blocks
+    const hair = [];
+    for (let k = 0; k < 9; k++) {
+        let x = r() * M, y = r() * M, a = Math.PI / 2 + (r() - 0.5) * 0.9;
+        const pts = [[x, y]];
+        const n = 3 + Math.floor(r() * 4);
+        for (let s = 0; s < n; s++) { a += (r() - 0.5) * 0.7; x += Math.cos(a) * (5 + r() * 8); y += Math.sin(a) * (5 + r() * 8); pts.push([x, y]); }
+        hair.push({ pts, width: 1, alpha: 0.7 });
+    }
+    linesT(S, P.graphite, hair, { pressure: 0.42, grain: 0.7 });
+    // lichen: small sage and ochre flecks gathered on the lit tops of a few blocks
+    const lichenAt = [];
+    for (let k = 0; k < 140; k++) {
+        const x = r() * M, y = r() * M, i = Math.floor(y) * M + Math.floor(x);
+        if (dTop[i] > 14 || patch[i] < 0.5) continue;
+        lichenAt.push([x, y, 0.7 + r() * 0.9]);
+    }
+    dotsT(S, mix(P.grassSilver, P.grassGreen, 0.3), lichenAt, { rx: 1.8, ry: 1.2, alpha: 0.75, grain: 0.5 });
+    dotsT(S, mix(P.grassOchre, P.sand, 0.3), lichenAt.filter((_, k) => k % 3 === 0).map(([x, y, s]) => [x + 3, y + 1, s * 0.8]), { rx: 1.4, ry: 1, alpha: 0.7, grain: 0.5 });
+    dotsT(S, P.rockDark, scatterPts(55, 70, 0.5, 1.2), { rx: 0.9, ry: 0.7, alpha: 0.45, grain: 0.5 });
     burnishT(S, null, 1, 0.3);
     return S;
 }
@@ -811,6 +880,45 @@ function deskWood() {
 }
 
 // ---------------------------------------------------------------------------
+// Tintable pencil (256 × 256, white with alpha): the engine's own shapes
+// ---------------------------------------------------------------------------
+/*
+ * Shapes the engine draws while playing (paper strips that unfold, kelp that
+ * is pulled, a crease that opens) used flat vector colour and could never sit
+ * on the same sheet as the drawn art. These two tiles are white pencil whose
+ * alpha is the pressure, so a tint gives any colour: `pencil-grain` breaks a
+ * line on the paper's tooth, `pencil-hatch` lays a colour in with strokes.
+ */
+const PT = 256;
+function alphaCanvas(S, gain = 1) {
+    const cv = createCanvas(S.w, S.h);
+    const ctx = cv.getContext('2d');
+    const img = ctx.createImageData(S.w, S.h);
+    const d = img.data, pr = rgb(P.paper);
+    for (let i = 0, j = 0; i < S.w * S.h; i++, j += 4) {
+        const dark = clamp01(1 - (S.r[i] + S.g[i] + S.b[i]) / (pr[0] + pr[1] + pr[2]));
+        d[j] = d[j + 1] = d[j + 2] = 255; d[j + 3] = c255(clamp01(dark * gain) * 255);
+    }
+    ctx.putImageData(img, 0, 0);
+    return cv;
+}
+function pencilGrain() {
+    const S = tileSheet(PT, PT, hashSeed('pencil-grain'), { tooth: .7, grain: 1 });
+    // hard pressure everywhere, so only the deepest valleys of the tooth stay paper
+    S.deposit('#000000', new Float32Array(PT * PT).fill(1), { pressure: 0.6, grain: 0.92 });
+    hatchT(S, '#000000', { angle: 0.3, angleJitter: 0.6, gap: 1.8, len: [6, 16], width: 1.5, pressure: 0.32, grain: 0.85 });
+    return alphaCanvas(S, 1.05);
+}
+function pencilHatch() {
+    const S = tileSheet(PT, PT, hashSeed('pencil-hatch'), { tooth: .62, grain: .9 });
+    // one hand's direction for every engine-drawn fill, crossed lightly once
+    hatchT(S, '#000000', { angle: -0.62, angleJitter: 0.08, gap: 2.3, len: [16, 44], width: 2.8, pressure: 0.72, alpha: [0.6, 1], grain: .35 });
+    hatchT(S, '#000000', { angle: 0.5, angleJitter: 0.1, gap: 3.4, len: [12, 30], width: 2, pressure: 0.26, grain: .45 });
+    burnishT(S, null, 1, 0.3);
+    return alphaCanvas(S, 1.25);
+}
+
+// ---------------------------------------------------------------------------
 // Stroke textures (256 × 24, seamless horizontally; transparent)
 // ---------------------------------------------------------------------------
 const SW = 256, SH = 24, MID = 12;
@@ -945,7 +1053,9 @@ export const MATERIALS = [
     { name: 'mat-paper', bundle: 'boot', draw: matPaper },
     { name: 'mat-cream', bundle: 'bay', draw: matCream },
     { name: 'paper-tooth', bundle: 'boot', draw: paperTooth, canvas: true },
-    { name: 'desk-wood', bundle: 'boot', draw: deskWood }
+    { name: 'desk-wood', bundle: 'boot', draw: deskWood },
+    { name: 'pencil-grain', bundle: 'boot', draw: pencilGrain, canvas: true, mip: true, quality: 80 },
+    { name: 'pencil-hatch', bundle: 'boot', draw: pencilHatch, canvas: true, mip: true, quality: 80 }
 ];
 
 export const STROKES = [
@@ -972,6 +1082,6 @@ export function renderMaterial(name) {
 }
 
 export async function build(api) {
-    for (const m of MATERIALS) api.image(m.name, renderMaterial(m.name), { bundle: m.bundle, repeat: true, quality: m.quality || 72 });
+    for (const m of MATERIALS) api.image(m.name, renderMaterial(m.name), { bundle: m.bundle, repeat: true, quality: m.quality || 72, mip: !!m.mip });
     for (const s of STROKES) api.image(s.name, renderMaterial(s.name), { bundle: 'boot', repeat: true, quality: 90 });
 }

@@ -2,10 +2,12 @@
  * The ceiling stays above the swimming route; this is rear scenery, never a
  * new collision surface or an obstacle placed across the way back to land. */
 import { HL, heightOn } from './sim.mjs';
+import { pencilStyle } from './pencil-style.mjs';
 
 export function createCoastalCave(PIXI, { def, texture = () => null }) {
     const container = new PIXI.Container(); container.label = 'coastal-cave';
     if (def.id !== 'kelp') return { container };
+    const pen = pencilStyle(texture);
     const h = n => n * HL;
     const roof = new PIXI.Graphics(); roof.label = 'cave-distant-roof';
     function roofPath(g) {
@@ -15,21 +17,31 @@ export function createCoastalCave(PIXI, { def, texture = () => null }) {
             .bezierCurveTo(h(-.5), h(-1.45), h(-1.6), h(-.05), h(-1.9), h(2.1))
             .lineTo(h(-12), h(3)).closePath();
     }
-    roofPath(roof).fill({ color: 0x8baaa6 });
-    const rock = texture('mat-rock');
-    if (rock) roofPath(roof).fill({ texture: rock, textureSpace: 'global', alpha: .24 });
+    // the same layered stone as the shore, cooled by the dim water light
+    roofPath(roof).fill(pen.material('mat-rock', 1, 0x8baaa6));
+    roofPath(roof).fill({ color: 0x5f8783, alpha: .34 });
+    roofPath(roof).fill(pen.hatch(0x2c5254, .3));
+    // darker toward its underside, where no daylight reaches
     roof.moveTo(h(-1.9), h(2.1))
         .bezierCurveTo(h(-1.6), h(-.05), h(-.5), h(-1.45), h(1.1), h(-1.25))
         .bezierCurveTo(h(2.9), h(-.9), h(4.8), h(-1.25), h(6.6), h(-1.7))
         .bezierCurveTo(h(7.6), h(-1.9), h(8.8), h(-3.3), h(9), h(-5.5))
-        .stroke({ color: 0x5b7977, width: 5, alpha: .7, cap: 'round' });
+        .lineTo(h(9), h(-6.2)).bezierCurveTo(h(8.6), h(-3.6), h(7.4), h(-2.4), h(6.5), h(-2.3))
+        .bezierCurveTo(h(4.6), h(-1.9), h(2.8), h(-1.6), h(1), h(-1.9))
+        .bezierCurveTo(h(-.7), h(-2.1), h(-1.9), h(-.7), h(-2.4), h(2.2)).closePath()
+        .fill(pen.hatch(0x1d3a3c, .42));
+    roof.moveTo(h(-1.9), h(2.1))
+        .bezierCurveTo(h(-1.6), h(-.05), h(-.5), h(-1.45), h(1.1), h(-1.25))
+        .bezierCurveTo(h(2.9), h(-.9), h(4.8), h(-1.25), h(6.6), h(-1.7))
+        .bezierCurveTo(h(7.6), h(-1.9), h(8.8), h(-3.3), h(9), h(-5.5))
+        .stroke(pen.line(0x34504d, 5, .85));
     // Long pressure-varied strata describe curved stone instead of repeating
     // bright scratches over the entire cave and its empty swimming space.
     for (let i = 0; i < 8; i++) {
         const y = -1.65 - i * .3;
         roof.moveTo(h(-2.4), h(y + .2)).bezierCurveTo(h(.3), h(y - .35), h(2.6), h(y + .22), h(4.2), h(y - .15))
             .bezierCurveTo(h(5.6), h(y - .46), h(6.9), h(y - .3), h(7.9), h(y - 1.1))
-            .stroke({ color: i % 3 ? 0xbacac1 : 0x678881, width: i % 3 ? 3 : 4.5, alpha: .27, cap: 'round' });
+            .stroke(pen.line(i % 3 ? 0xbacac1 : 0x48655f, i % 3 ? 3 : 4, i % 3 ? .22 : .35));
     }
     container.addChild(roof);
     const floor = def.surfaces.find(s => s.id === 'cave-floor');
@@ -38,9 +50,12 @@ export function createCoastalCave(PIXI, { def, texture = () => null }) {
         const x = h(xHL), y = heightOn(floor.pts, x);
         details.moveTo(x - 42 * scale, y).quadraticCurveTo(x - 20 * scale, y - 43 * scale, x + 18 * scale, y - 22 * scale)
             .quadraticCurveTo(x + 36 * scale, y - 11 * scale, x + 42 * scale, y)
-            .fill({ color: 0x93afa7 }).stroke({ color: 0x617f79, width: 2.1, alpha: .65 });
+            .fill(pen.material('mat-rock', 1, 0x93afa7));
+        details.moveTo(x - 42 * scale, y).quadraticCurveTo(x - 20 * scale, y - 43 * scale, x + 18 * scale, y - 22 * scale)
+            .quadraticCurveTo(x + 36 * scale, y - 11 * scale, x + 42 * scale, y)
+            .fill({ color: 0x6f9690, alpha: .3 }).stroke(pen.line(0x4b6a64, 2.2, .8));
         details.moveTo(x - 23 * scale, y - 15 * scale).lineTo(x + 12 * scale, y - 19 * scale)
-            .stroke({ color: 0xd0d8c4, width: 3, alpha: .55 });
+            .stroke(pen.line(0xd0d8c4, 3, .5));
     }
     container.addChild(details);
     return { container };

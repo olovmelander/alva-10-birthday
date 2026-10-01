@@ -101,7 +101,7 @@ be screenshotted with `node scripts/skoldhast-shot.mjs`.
 | `mat-wetsand` | boot | wet sand: darker ochre-brown, smoother, a few horizontal streaks |
 | `mat-grass` | land | the steppe ground: silver-green and pale-ochre strokes, mostly vertical-ish short strokes |
 | `mat-earth` | land | escarpment soil: warm earth with faint horizontal layers and wave marks |
-| `mat-rock` | boot | grey stone: blocky hatching, cracks |
+| `mat-rock` | boot | layered bedrock in section: wavy strata broken into irregular blocks by joints that never line up, lit from the upper left, broken graphite cracks, a few lichen flecks (never repeating facets, which read as paving) |
 | `mat-wood` | boot | planks (horizontal boards with seams every 64 px, wood grain) |
 | `mat-seabed` | sea | sea-floor sand seen under water: seabed ochre with blue-green tint |
 | `mat-water` | boot | sea water from the side: horizontal blue strokes like her sea, dense (used with alpha) |
@@ -111,6 +111,15 @@ be screenshotted with `node scripts/skoldhast-shot.mjs`.
 | `mat-cream` | bay | cream folded paper (Pappersfyren) with faint fold creases |
 | `paper-tooth` | boot | 256×256 greyscale tooth for the screen-fixed multiply overlay (white with light-grey tooth) |
 | `desk-wood` | boot | the table top for the prologue: warm wood, soft |
+| `pencil-grain` | boot | 256×256 **white with alpha**, mipmapped: hard pencil pressure broken by the paper's tooth. Tinted, it is the engine's pencil line (`src/pencil-style.mjs`) |
+| `pencil-hatch` | boot | 256×256 **white with alpha**, mipmapped: colour laid in with strokes in one hand's direction, crossed lightly once. Tinted, it is the engine's hatched fill |
+
+**Shapes the engine draws** (paper strips that unfold, pulled kelp, a crease that opens, shade, rocks
+fitted to the ground) use these, never flat vector colour: `pencilStyle(texture)` gives `line`, `fill`,
+`hatch` and `material` styles, and the world renderer's `PIXI.Graphics` breaks every stroke on the
+tooth (`pencilPixi`). Alva's own beach (her frozen wave, the shell play, the fold demo) keeps plain Pixi.
+Turf over earth or rock ends in a ragged edge (`raggedBand`, depth `TURF`), shared by the ground and the
+hill strips so their edges meet.
 
 ### Strokes — `api.image`, 256×24, seamless horizontally, the line runs through the middle (for ropes)
 
@@ -129,7 +138,9 @@ A world backdrop entry (`world.mjs` `backdrop`) may list:
   sideways at `par` × the camera (farther = smaller). With `ref` (a ground height in wu) on the entry,
   a layer's top row sits `y` frame heights above the ground line on screen, and climbing lowers
   every layer by its own `par` (the steppe). Without `ref` it keeps the sky's frame (the bay).
-  `repeat` tiles it sideways; `fill` paints its own colour below it where no ground covers the screen.
+  `repeat` tiles it sideways (the manifest marks it `repeat: 'x'`: the loader wraps it horizontally and
+  clamps it vertically, or its opaque foot bleeds into its clear top edge at small mip levels as a line
+  across the sky); `fill` paints its own colour below it where no ground covers the screen.
 - `under: { image, water, span, par, fill }`: a tile hung from the named water's real surface, `span` wu
   wide (the bay's depths, so a swimmer never sees the sky under the pier).
 - `horizon` (0–1 of the sky's height): clouds and gulls stay above it.
@@ -142,12 +153,12 @@ evening art is its own background bundle (only the finale needs it).
 | --- | --- | --- |
 | `bg-beach` | boot | Her picture's sky and sea: soft blended blue sky (pale near the horizon), sea as dense horizontal blue strokes getting darker toward the bottom, **no horizon line**. No sun, clouds or gulls (those are props). The lower 30% is sea. |
 | `bg-beach-evening` | evening | The same in golden evening light (warm yellow sky, orange-pink near the horizon, sea with warm highlights). |
-| `bg-steppe` | land | The steppe's sky only: short slanting strokes in two directions (never long level ones, which read as sea), bluest high up, palest and a little warm just above the far hills. |
+| `bg-steppe` | land | The steppe's sky only, a blended pencil sky (`blendedSky`): grainy colour laid in first, then short strokes crossing in three directions at low pressure. Never long level strokes (they read as sea) and never one long parallel slant (it reads as rain). Bluest high up, a warm pale haze just above the far hills. |
 | `bg-steppe-far` / `-mid` / `-near` | land | Layers, 2048×512 (the far one stored at half size), tiling sideways: the two farthest hill bands (lightest, most sky-coloured, thinnest outline), the middle band, the nearest band with grass strokes. Each band is clearest at its crest and hazes toward its foot. |
 | `bg-steppe-evening`, `bg-steppe-*-evening` | evening | The same, golden evening. |
 | `bg-under` | sea | Under water: light teal at the top with hatched daylight shafts slanting down, deepening to blue-green. |
-| `bg-bay` | bay | Spegelviken's sky only: cool blue-grey, bluest high, palest in a haze just above the water. |
-| `bg-bay-front` | bay | Layer: pale grey cliffs at both sides and the calm sea with their reflections, horizon at 60%. |
+| `bg-bay` | bay | Spegelviken's sky only, the same blended pencil sky: cool blue-grey, bluest high, palest in a haze just above the water. |
+| `bg-bay-front` | bay | Layer: pale grey cliffs at both sides (lit from the upper left, shaded toward the bay and their feet, sloping bedding lines, sage turf on their tops, the bay's air over them) and the still sea with their reflections and only a few soft slivers of light, horizon at 60%. |
 | `bg-bay-evening`, `bg-bay-front-evening` | bay | The same at golden evening (half size); the still water holds the warm sky. |
 | `bg-bay-under` | bay | Layer, 1024×1024, tiling sideways: the bay's water below its surface (clear above a ragged top), light shafts, pale far stones, darkening with depth. |
 | `bg-fold` | sea | Beyond Veckmuren: a pale, flattened grey-blue (the folded-under sea), for the white side of the crease. |

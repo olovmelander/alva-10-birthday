@@ -71,13 +71,14 @@ SCENES.land = {
         { id: 'ramp3', pts: L([36, -4.0], [38.15, -2.95]), mat: 'grass', when: 'p3_t3', ramp: true },
         { id: 'ramp2', pts: L([38.5, -2.95], [40.65, -1.9122857142857144]), mat: 'grass', when: 'p3_t2', ramp: true },
         { id: 'ramp1', pts: L([46, -1.9], [48.2, -0.811]), mat: 'grass', when: 'p3_t1', ramp: true },
-        // Galoppbanan (the steppe floor), hurdles as gentle bumps, the little ditch
+        // Galoppbanan (the steppe floor), hurdles as gentle bumps, the little ditch.
+        // Turf over earth, as on the hill: the ground in section is soil, not a wall of grass.
         {
             id: 'floor', pts: L([46, -0.8], [50, -0.82], [53, -0.78], [56.6, -0.8], [57, -1.0], [57.4, -0.8], [60, -0.84],
-                [61.6, -0.8], [62, -1.0], [62.4, -0.8], [65.98, -0.8]), mat: 'grass'
+                [61.6, -0.8], [62, -1.0], [62.4, -0.8], [65.98, -0.8]), mat: 'grass', edgeMat: 'earth'
         },
         { id: 'ditch', pts: L([65.98, -0.15], [67.52, -0.15]), mat: 'earth', hidden: true },
-        { id: 'floor2', pts: L([67.52, -0.8], [70, -0.78], [72, -0.76], [74, -0.77], [75.98, -0.75]), mat: 'grass' },
+        { id: 'floor2', pts: L([67.52, -0.8], [70, -0.78], [72, -0.76], [74, -0.77], [75.98, -0.75]), mat: 'grass', edgeMat: 'earth' },
         { id: 'rock-61', thin: true, pts: L([60.75, -1.22], [61.25, -1.24]), mat: 'rock', prop: 'rock-flat', mound: 'grass' },
         // Streckbron: the gully and the arch (solid once inked)
         { id: 'gully', pts: L([75.98, 0.25], [80.02, 0.25]), mat: 'earth', hidden: true }, // the dry tide gully's floor (visible under the arch)

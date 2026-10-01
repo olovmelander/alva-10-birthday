@@ -50,6 +50,10 @@ export function createAssets(PIXI, base) {
                 if (closed) return;
                 if (im.repeat) {
                     t.source.style.addressMode = 'repeat';
+                    // Parallax layers tile sideways only. Wrapping them vertically
+                    // bleeds their opaque foot into their clear top edge at small
+                    // mip levels: a thin line drawn across the sky.
+                    if (im.repeat === 'x') t.source.style.addressModeV = 'clamp-to-edge';
                     t.source.style.update?.();
                 }
                 // Parallax layers are drawn smaller than stored while they scroll;

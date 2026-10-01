@@ -6,8 +6,8 @@
  * dense horizontal strokes darker toward the bottom, and never a drawn
  * horizon line. Sun, clouds, gulls and every solid object are props.
  */
-import { Sheet, PENCILS as P, hashSeed, mix, rng, smooth, pressureMap } from './pencil.mjs';
-import { PX, fbm, fmap, smoothstep, clamp01, lighten, toCanvasOpaque, qstroke, voronoiT, withTooth, tileSheet, hatchT, burnishT, addSolid, finish } from './materials.mjs';
+import { Sheet, PENCILS as P, hashSeed, mix, rng, rgb, smooth, pressureMap } from './pencil.mjs';
+import { PX, fbm, fmap, smoothstep, clamp01, lighten, toCanvasOpaque, qstroke, withTooth, tileSheet, hatchT, burnishT, addSolid, finish } from './materials.mjs';
 import { createCanvas } from '@napi-rs/canvas';
 
 const W = 2048, H = 1024;
@@ -204,20 +204,45 @@ function steppeSky(evening) {
     const S = sheet(evening ? 'bg-steppe-evening' : 'bg-steppe');
     const seed = hashSeed(evening ? 'bg-steppe-evening' : 'bg-steppe') % 997;
     if (evening) { eveningSky(S, seed + 7, 0.64); return S; }
-    const vary = fbm(W, H, seed, [[3, 2, 0.6], [7, 4, 0.4]], 1.2);
-    // A sky that reads as sky, not as more sea: short slanting strokes in two
-    // directions, blended well (long parallel ones read as rain), bluest high
-    // up and palest where the far hills meet it (no drawn line there).
-    const sk = { gap: 2, len: [65, 180], angleJitter: .055, grain: .17, width: 3.2 };
-    wash(S, P.skyPale, { ...sk, angle: -0.55, pmap: vmap(prof([[0, 0.75], [0.5, 0.62], [0.66, 0.45]])) });
-    wash(S, P.skyBlue, { ...sk, angle: -0.6, pmap: vmap(prof([[0, 0.64], [0.18, 0.56], [0.38, 0.38], [0.52, 0.2], [0.62, 0.08]]), fmap(vary, (v) => 0.8 + 0.4 * v)) });
-    wash(S, P.skyBlue, { ...sk, angle: 0.5, gap: 2.8, pmap: vmap(prof([[0, 0.42], [0.25, 0.3], [0.5, 0.08]])) });
-    wash(S, mix(P.skyBlue, P.seaBlue, 0.35), { ...sk, angle: -0.2, gap: 3.6, pmap: vmap(prof([[0, 0.3], [0.14, 0.12], [0.3, 0]])) });
-    S.burnish(null, 4, 0.74);
-    // the lightest band, just above the far hills, warmed a little by the sun
-    wash(S, P.sunGlow, { ...sk, angle: -0.3, gap: 3.2, pmap: vmap(prof([[0.42, 0], [0.56, 0.18], [0.64, 0.12], [0.76, 0]])) });
-    S.burnish(null, 1, 0.45);
+    blendedSky(S, seed, {
+        high: mix(P.skyBlue, P.seaBlue, 0.22), mid: P.skyBlue, pale: P.skyPale,
+        blue: prof([[0, 0.78], [0.16, 0.7], [0.34, 0.5], [0.5, 0.28], [0.6, 0.12], [0.68, 0.04]]),
+        deep: prof([[0, 0.42], [0.14, 0.26], [0.3, 0.06], [0.4, 0]]),
+        haze: prof([[0.38, 0], [0.52, 0.3], [0.62, 0.36], [0.72, 0.2], [0.84, 0]])
+    });
     return S;
+}
+
+/**
+ * A sky that reads as open air, not as sea or as rain: colour laid in as a
+ * grainy blended layer first (her burnished sky), then short strokes crossing
+ * in three directions at low pressure, so no single slant can line up into
+ * streaks. Soft, wide variations in pressure give the air some depth; the
+ * warm haze sits low, where the far land meets it, with no drawn line there.
+ */
+function blendedSky(S, seed, { high, mid, pale, blue, deep, haze, warm = mix(P.sunGlow, PX.rose, 0.3), clip = null }) {
+    const air = fbm(W, H, seed + 3, [[2, 2, 0.5], [4, 3, 0.32], [9, 5, 0.18]], 1.25);
+    const tone = (f, k = 1, lo = 0.84, span = 0.32) => vmap(f, fmap(air, (v) => lo + span * v), k);
+    const area = clip || new Float32Array(W * H).fill(1);
+    // the paper stays nearly bare where the warm haze will go
+    const paleP = (t) => (1 - 0.75 * haze(t)) * (0.75 + 0.25 * (1 - t));
+    withTooth(S, 211, 389, () => S.fill(pale, area, { pressure: 0.75, grain: 0.35, pmap: tone(paleP) }));
+    withTooth(S, 433, 61, () => S.fill(mid, area, { pressure: 0.5, grain: 0.35, pmap: tone(blue) }));
+    withTooth(S, 97, 503, () => S.fill(high, area, { pressure: 0.42, grain: 0.35, pmap: tone(deep) }));
+    S.burnish(clip, 3, 0.7);
+    // visible pencil: short strokes crossing in three directions, never one slant alone
+    const sk = { gap: 2.2, len: [20, 56], angleJitter: 0.2, grain: 0.3, width: 3.1, clip, bow: 2.2 };
+    for (const [angle, k] of [[-0.42, 0.5], [0.4, 0.44], [1.25, 0.34]]) {
+        wash(S, mid, { ...sk, angle, pmap: tone(blue, k, 0.65, 0.7) });
+    }
+    for (const [angle, k] of [[-0.15, 0.4], [0.75, 0.3]]) wash(S, high, { ...sk, angle, gap: 2.6, pmap: tone(deep, k, 0.65, 0.7) });
+    wash(S, pale, { ...sk, angle: -0.8, gap: 2.6, pmap: tone(paleP, 0.4, 0.65, 0.7) });
+    S.burnish(clip, 2, 0.42);
+    // the warm, pale air low down: reserved paper with a little sun and rose in it
+    withTooth(S, 271, 17, () => S.fill(warm, area, { pressure: 0.42, grain: 0.35, pmap: tone(haze) }));
+    wash(S, warm, { ...sk, angle: 0.15, gap: 2.8, pmap: tone(haze, 0.45) });
+    wash(S, warm, { ...sk, angle: -0.55, gap: 3.2, pmap: tone(haze, 0.3) });
+    S.burnish(clip, 1, 0.35);
 }
 
 /** The four bands of hills (frame px): each clearest at its crest, fading into haze at its foot. */
@@ -255,6 +280,10 @@ function steppeLayer(which, evening) {
         withTooth(S, 149 + k * 61, 223, () => hatchT(S, mix(L.col, P.paper, .3), {
             angle: .85, gap: 1.35, len: [35, 90], width: 3.4, clip: m, pressure: .92, grain: .12
         }));
+        // crossed once, so the gaps of that steep pass never line up into pale slashes
+        withTooth(S, 61 + k * 37, 401, () => hatchT(S, mix(L.col, P.paper, .32), {
+            angle: -.55, gap: 1.7, len: [28, 70], width: 3.2, clip: m, pressure: .62, grain: .14
+        }));
         // the air between us and the hill: the sky's own low colour, strongest on the farthest band
         withTooth(S, 97 * k, 31 * k, () => hatchT(S, evening ? mix(P.sunGlow, PX.rose, 0.3) : P.skyPale, { angle: -0.5, gap: 2.4, len: [50, 150], width: 2.6, grain: 0.3, clip: m, pressure: L.haze }));
         if (!evening) withTooth(S, 53 * k, 71 * k, () => hatchT(S, P.skyBlue, { angle: -0.52, gap: 2.8, len: [40, 120], width: 2.4, grain: 0.3, clip: m, pressure: L.haze * 0.3 }));
@@ -264,16 +293,18 @@ function steppeLayer(which, evening) {
             pmap: fmap(vary, (v, i) => L.ochre * (0.5 + v) * haze[i]) });
         if (L.green) hatchT(S, P.grassGreen, { angle: tilt - 0.06, gap: 3, len: [30, 110], width: 2.6, clip: m, grain: 0.4,
             pmap: pm((x, y) => L.green * smoothstep(fy(x) + 25, fy(x) + 140, y) * (0.6 + 0.6 * vary[y * W + x])) });
-        // wind-combed stripes (lighter, slanting) on the nearer bands
+        // wind-combed stripes (lighter) on the nearer bands, lying along the
+        // slopes: steep, parallel pale slants read as rain over the hills
         if (k >= 2) {
             const r = rng(seed + 20 + k);
             const list = [];
-            for (let i = 0; i < 48; i++) {
-                const x = r() * W, y = fy(x) + 14 + r() * (LH - fy(x)), l = 70 + r() * 150;
-                list.push([x, y, x + l * 0.5, y - l * 0.14, x + l, y - l * 0.26, 3 + r() * 3, 0.9]);
+            for (let i = 0; i < 20; i++) {
+                const x = r() * W, y = fy(x) + 18 + r() * (LH - fy(x)) * 0.8, l = 90 + r() * 160;
+                const slope = (fy(x + l) - fy(x)) / l * 0.6;
+                list.push([x, y, x + l * 0.5, y + l * slope * 0.5 - 3, x + l, y + l * slope, 2.5 + r() * 2.5, 0.85]);
             }
             const cov = S.coverage((c) => { for (const q of list) qstroke(c, ...q, true); });
-            lighten(S, cov, { amount: .18, grain: .25, clip: m, color: evening ? mix(P.paper, P.sunGlow, 0.5) : P.paper });
+            lighten(S, cov, { amount: .1, grain: .25, clip: m, color: evening ? mix(P.paper, P.sunGlow, 0.5) : P.paper });
         }
         if (evening) hatchT(S, PX.eveningGold, { angle: tilt, gap: 3, len: [30, 100], width: 2.6, grain: 0.3,
             clip: m, pmap: pm((x, y) => 0.55 * (1 - smoothstep(fy(x), fy(x) + 50, y))) });
@@ -295,6 +326,15 @@ function steppeLayer(which, evening) {
             const cov = S.coverage((c) => { for (const q of list) qstroke(c, ...q, true); });
             S.deposit(evening ? mix(P.grassGreen, PX.eveningGold, 0.3) : mix(P.grassGreen, P.grassSilver, 0.35), cov, { pressure: 0.55, grain: 0.5 });
         }
+    }
+    // The sheet tiles both ways while it is drawn, so blending and strokes at
+    // its foot wrap round to its top row: a faint line and stray blades high in
+    // the sky. Above every crest it must be clear paper.
+    const crest = new Float32Array(W).fill(LH);
+    for (const k of STEPPE_LAYERS[which]) for (let x = 0; x < W; x++) crest[x] = Math.min(crest[x], bands[k].fy(x) - LAYER_TOP);
+    const [pr, pg, pb] = rgb(P.paper);
+    for (let x = 0; x < W; x++) for (let y = 0; y < crest[x] - 24; y++) {
+        const i = y * W + x; S.r[i] = pr; S.g[i] = pg; S.b[i] = pb; S.solid[i] = 0;
     }
     return S;
 }
@@ -394,15 +434,13 @@ const bayCliffs = () => {
 
 /** The bay's own sky: cool, bluest high up, palest in a haze just above the water. */
 function baySky(S, clip = null) {
-    const vary = fbm(W, H, 51, [[3, 2, 0.6], [7, 4, 0.4]], 1.2);
-    const sk = { gap: 2, len: [65, 170], angleJitter: .055, grain: .17, width: 3.2, clip };
-    wash(S, P.skyPale, { ...sk, angle: -0.5, pressure: 0.85 });
-    wash(S, PX.bayGrey, { ...sk, angle: -0.56, pmap: vmap(prof([[0, 0.7], [0.25, 0.55], [0.45, 0.32], [0.58, 0.14]]), fmap(vary, (v) => 0.8 + 0.4 * v)) });
-    wash(S, P.skyBlue, { ...sk, angle: 0.5, gap: 2.8, pmap: vmap(prof([[0, 0.36], [0.35, 0.26], [0.6, 0.06]])) });
-    wash(S, mix(PX.bayDeep, P.skyBlue, 0.5), { ...sk, angle: -0.2, gap: 3.6, pmap: vmap(prof([[0, 0.3], [0.14, 0.1], [0.28, 0]])) });
-    S.burnish(clip, 4, .78);
-    wash(S, P.skyPale, { angle: 0, angleJitter: 0.01, gap: 3, len: [120, 380], grain: 0.2, clip, pmap: vmap(prof([[0.38, 0], [0.54, 0.4], [0.6, 0.34], [0.66, 0]])) });
-    S.burnish(clip, 1, 0.4);
+    blendedSky(S, 51, {
+        high: mix(PX.bayDeep, P.skyBlue, 0.55), mid: mix(PX.bayGrey, P.skyBlue, 0.35), pale: P.skyPale, clip,
+        blue: prof([[0, 0.8], [0.2, 0.68], [0.38, 0.46], [0.5, 0.26], [0.58, 0.12], [0.64, 0.05]]),
+        deep: prof([[0, 0.5], [0.16, 0.3], [0.32, 0.08], [0.42, 0]]),
+        haze: prof([[0.34, 0], [0.48, 0.24], [0.58, 0.3], [0.66, 0.12], [0.76, 0]]),
+        warm: mix(P.skyPale, P.sunGlow, 0.35)
+    });
 }
 
 function bgBaySky(evening) {
@@ -428,8 +466,9 @@ function bgBayFront(evening = false) {
         eveningSky(sky, 57, HOR);
         for (let i = 0; i < W * H; i++) { const k = S.solid[i]; S.r[i] += (sky.r[i] - S.r[i]) * k; S.g[i] += (sky.g[i] - S.g[i]) * k; S.b[i] += (sky.b[i] - S.b[i]) * k; }
     } else baySky(S, S.solid);
-    const sl = fmap(bands(53, 2, 80, 2.3), (v) => 1 - 0.6 * smoothstep(0.8, 0.96, v));
-    wash(S, mix(PX.bayGrey, P.skyPale, 0.45), { angle: 0, angleJitter: 0.008, gap: 2, len: [80, 240], clip: water, pressure: 0.9 });
+    // still water: few, soft slivers of light (a busy sea would not mirror anything)
+    const sl = fmap(bands(53, 2, 80, 2.3), (v) => 1 - 0.32 * smoothstep(0.82, 0.97, v));
+    wash(S, mix(PX.bayGrey, P.skyPale, 0.45), { angle: 0, angleJitter: 0.008, gap: 1.8, len: [80, 240], clip: water, pressure: 0.95 });
     wash(S, PX.bayDeep, { angle: 0.003, angleJitter: 0.01, gap: 2, len: [60, 220], clip: water, grain: .2, pmap: vmap(prof([[HOR, 0.2], [0.75, 0.45], [1, 0.8]]), sl) });
     if (evening) wash(S, PX.rose, { angle: 0, gap: 2.8, len: [50, 180], clip: water, grain: .2,
         pmap: vmap(prof([[HOR, 0.65], [0.73, 0.36], [1, 0.05]]), sl) });
@@ -440,32 +479,52 @@ function bgBayFront(evening = false) {
         const rm = S.mask(flip(cl), { feather: 2 });
         wash(S, mix(P.rock, PX.bayDeep, 0.3), { angle: 0, angleJitter: 0.01, gap: 2, len: [40, 160], clip: rm, grain: .25, pmap: fmap(sl, (v, i) => v * 0.6 * (1 - 0.5 * smoothstep(hy, H, Math.floor(i / W)))) });
     }
-    S.burnish(water, 2, 0.45);
-    paleStreaks(S, 54, { n: 55, y0: hy + 6, y1: H, len: [60, 360], width: [1.3, 3], amount: .35, weight: prof([[HOR, 1], [0.8, 0.6], [1, 0.3]]) });
+    S.burnish(water, 3, 0.6);
+    paleStreaks(S, 54, { n: 26, y0: hy + 6, y1: H, len: [80, 380], width: [1.2, 2.6], amount: .24, weight: prof([[HOR, 1], [0.8, 0.6], [1, 0.3]]) });
     // shade over the water near the cliffs
     wash(S, PX.bayDeep, { angle: 0, gap: 2.8, len: [60, 200], clip: water, grain: .2,
         pmap: pressureMap(W, H, (x, y) => 0.35 * (1 - smoothstep(0.18, 0.4, Math.min(x, W - x) / W)) * smoothstep(hy, hy + 60, y)) });
 
     for (const [k, cl] of [[0, left], [1, right]]) {
         const m = S.mask(cl);
-        const { id, edge, seeds } = voronoiT(W, H, 55 + k, 14, { sx: 0.8 });
-        wash(S, mix(P.rock, P.paper, 0.45), { angle: -0.5, gap: 2.3, len: [30, 80], clip: m, pressure: 0.85, grain: .2 });
         const rr = rng(56 + k);
-        const angs = [-0.8, -0.3, 0.3, 0.8, 1.2];
-        seeds.forEach(([sx, sy], j) => {
-            const fm = fmap(id, (v, i) => (v === j ? m[i] * smoothstep(0.5, 3, edge[i]) : 0));
-            if (!fm.some((v) => v > 0.5)) return;
-            const tone = 0.22 + rr() * 0.45;
-            S.hatch(P.rock, { angle: angs[Math.floor(rr() * angs.length)], gap: 2.4, len: [20, 60], width: 2, clip: fm, grain: 0.5,
-                pmap: pressureMap(W, H, (x, y) => tone * (0.75 + 0.5 * smoothstep(sy - 60, sy + 80, y))) });
-        });
-        const rim = fmap(edge, (v, i) => m[i] * Math.pow(1 - smoothstep(1, 14, v), 1.3));
-        S.hatch(P.rockDark, { angle: 0.9, gap: 2.5, len: [10, 26], width: 1.7, pmap: rim, pressure: .35, grain: .3 });
-        S.deposit(P.graphite, fmap(edge, (v, i) => m[i] * (1 - smoothstep(0.5, 2.4, v)) * 0.7), { pressure: .3, grain: .3 });
-        // the side facing the bay is in shade
-        wash(S, mix(P.rockDark, PX.bayDeep, 0.35), { angle: 1.1, gap: 2.6, len: [20, 60], clip: m, grain: .25,
-            pmap: pressureMap(W, H, (x) => 0.5 * (k === 0 ? smoothstep(250, 700, x) : 1 - smoothstep(W - 700, W - 250, x))) });
-        S.burnish(m, 2, .6);
+        const form = fbm(W, H, 61 + k, [[5, 3, 0.55], [11, 7, 0.3], [23, 13, 0.15]], 1.3);
+        // distance below the cliff's own skyline, so light falls on its upper faces
+        const sky = new Float32Array(W);
+        for (let x = 0; x < W; x++) { let y = 0; while (y < H && m[y * W + x] < 0.5) y++; sky[x] = y; }
+        const below = (x, y) => y - sky[x];
+        const bay = (x) => (k === 0 ? smoothstep(200, 700, x) : 1 - smoothstep(W - 700, W - 200, x));
+        // pale stone laid in with crossing strokes, so the cliff is a mass, not slanted rain
+        wash(S, mix(P.rock, P.paper, 0.5), { angle: -0.35, gap: 2.1, len: [24, 64], clip: m, pressure: 0.8, grain: .22 });
+        wash(S, mix(P.rock, P.paper, 0.4), { angle: 0.55, gap: 2.6, len: [20, 56], clip: m, pressure: 0.5, grain: .25 });
+        // its form: lit from the upper left, darker toward the foot and on the bay side
+        const shade = pressureMap(W, H, (x, y) => m[y * W + x] * (0.18 + 0.5 * smoothstep(20, 300, below(x, y)) * (0.55 + 0.45 * bay(x)) + 0.32 * form[y * W + x] * bay(x)));
+        wash(S, mix(P.rock, PX.bayDeep, 0.22), { angle: 1.15, angleJitter: 0.12, gap: 2.3, len: [18, 54], clip: m, pmap: shade, grain: .25 });
+        wash(S, mix(P.rockDark, PX.bayDeep, 0.3), { angle: 0.85, gap: 2.8, len: [14, 40], clip: m, grain: .3,
+            pmap: fmap(shade, (v) => Math.max(0, v - 0.4) * 1.1) });
+        // sloping bedding lines and a few gullies running down the face
+        const lines = [];
+        for (let j = 0; j < 9; j++) {
+            const y0 = H * (0.2 + rr() * 0.38), x0 = rr() * W, l = 120 + rr() * 260, tilt = (k === 0 ? 0.12 : -0.12) + (rr() - 0.5) * 0.08;
+            const pts = [];
+            for (let s = 0; s <= l; s += 8) pts.push([x0 + s, y0 + s * tilt + Math.sin(s * 0.03 + j) * 4]);
+            lines.push({ pts, width: 1.6, alpha: 0.7 });
+        }
+        for (let j = 0; j < 7; j++) {
+            let x = (k === 0 ? 120 : W - 560) + rr() * 440, y = H * (0.22 + rr() * 0.12);
+            const pts = [[x, y]];
+            for (let s = 0; s < 9; s++) { x += (rr() - 0.5) * 18 + (k === 0 ? 6 : -6); y += 18 + rr() * 16; pts.push([x, y]); }
+            lines.push({ pts, width: 1.8, alpha: 0.6 });
+        }
+        const lc = S.coverage((c) => { c.lineCap = 'round'; for (const l of lines) { c.lineWidth = l.width; c.globalAlpha = l.alpha; c.beginPath(); l.pts.forEach(([x, y], i) => (i ? c.lineTo(x, y) : c.moveTo(x, y))); c.stroke(); } });
+        S.deposit(mix(P.graphiteSoft, PX.bayDeep, 0.25), lc, { clip: m, pressure: 0.42, grain: 0.5 });
+        // sage turf and heather on the tops, thinning down the slopes
+        const turf = pressureMap(W, H, (x, y) => m[y * W + x] * (1 - smoothstep(4, 46 + 30 * form[y * W + x], below(x, y))));
+        wash(S, mix(P.grassSilver, P.grassGreen, 0.35), { angle: -1.3, angleJitter: 0.3, gap: 2.2, len: [6, 16], clip: m, pmap: turf, pressure: 0.85, grain: .3 });
+        wash(S, mix(P.grassGreen, PX.bayDeep, 0.2), { angle: -1.6, angleJitter: 0.3, gap: 3.2, len: [5, 12], clip: m, pmap: fmap(turf, (v, i) => v * form[i]), pressure: 0.6, grain: .35 });
+        // far away: the bay's own air lies over it all
+        wash(S, mix(P.skyPale, PX.bayGrey, 0.3), { angle: -0.1, gap: 2.6, len: [30, 90], clip: m, pressure: 0.3, grain: 0.2 });
+        S.burnish(m, 2, .55);
         S.outline(P.graphite, cl.filter(([x, y]) => y < hy - 1 && x > -10 && x < W + 10), { closed: false, width: 2.2, wobble: 1, alpha: .7, pressure: .48, passes: 2, opaque: false, grain: 0.5 });
         if (evening) wash(S, P.sunGlow, { angle: -0.4, gap: 3, len: [22, 70], clip: m, grain: .25,
             pmap: pressureMap(W, H, (x, y) => 0.32 * (1 - smoothstep(hy * 0.3, hy, y))) });
@@ -528,7 +587,11 @@ function bgBayUnder() {
         pmap: vmapU(prof([[0, 0.12], [0.3, 0.42], [0.7, 0.72], [1, 0.85]]), fmap(lightK, (v, i) => v * (0.8 + 0.4 * vary[i]))) }));
     withTooth(S, 613, 211, () => hatchT(S, mix(P.seaDeep, PX.bayDeep, 0.4), { angle: 0.04, gap: 2.8, len: [30, 120], width: 2.2, grain: .2, clip: solid,
         pmap: vmapU(prof([[0.35, 0], [0.75, 0.38], [1, 0.6]]), lightK) }));
-    burnishT(S, solid, 2, 0.5);
+    // A gentle crossing pass: the gaps between the long strokes read as light
+    // in still water, not as rows of bright scratches.
+    withTooth(S, 157, 433, () => hatchT(S, mix(PX.bayGrey, P.skyBlue, 0.5), { angle: 0.68, gap: 1.6, len: [26, 70], width: 3.4, grain: .14, clip: solid,
+        pmap: vmapU(prof([[0, 0.28], [0.5, 0.36], [1, 0.42]])) }));
+    burnishT(S, solid, 3, 0.66);
     // far, pale stones and weed low down: the bay goes on beyond the playable bed
     const far = rng(74);
     const blobs = [];
@@ -594,7 +657,7 @@ function bgFold() {
 // ---------------------------------------------------------------------------
 // Bundles: the day land art is in the first download; the evening art (only
 // the finale needs it) arrives in the background with the other bundles.
-// layer: transparent (clear above its silhouette); repeat: tiles sideways;
+// layer: transparent (clear above its silhouette); repeat: tiles sideways only ('x');
 // half: stored at half size (soft skies, far layers); mip: mipmapped, because
 // the engine draws it smaller than stored while it scrolls.
 export const BACKDROPS = [
@@ -635,5 +698,5 @@ export function renderBackdrop(name) {
 }
 
 export async function build(api) {
-    for (const b of BACKDROPS) api.image(b.name, renderBackdrop(b.name), { bundle: b.bundle, quality: b.quality, repeat: !!b.repeat, mip: !!b.mip });
+    for (const b of BACKDROPS) api.image(b.name, renderBackdrop(b.name), { bundle: b.bundle, quality: b.quality, repeat: b.repeat ? 'x' : false, mip: !!b.mip });
 }

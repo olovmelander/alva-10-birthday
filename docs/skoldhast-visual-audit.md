@@ -144,3 +144,21 @@ motion as well as still captures, and keep the game plan's thumbnail/greyscale
 review. Check material joins, camera boundaries, underwater depth, first/final
 tableau fidelity, white clouds, frozen-world timing, reduced motion and effects
 disabled. Keep first-playable download and scene texture budgets.
+
+## Second pass: one art style (1 October)
+
+The review behind this pass compared every staged view and the hill puzzle in
+each phase. What still broke the single drawing, and the rule each fix adds:
+
+| Finding | Rule now |
+| --- | --- |
+| Shapes drawn by the engine (hill strips, tide rock, headland outcrop, P6 kelp, cave roof, gully and vault walls) used flat vector fills and smooth lines beside baked pencil art. | Engine shapes use `src/pencil-style.mjs`: the world's own materials in world space, `pencil-hatch` for colour and shade, `pencil-grain` for lines. The world renderer's Graphics break every stroke on the tooth. Alva's beach keeps plain Pixi. |
+| A risen hill ramp was a cream paper wedge on the hillside. | A strip is earth and turf like the ground under it; paper shows only while it is folded or lifting. |
+| Long parallel slanted strokes with paper gaps read as rain: the steppe and bay skies, the near hills, the earth, light shafts. | Large quiet areas cross short strokes in two or three directions and blend them; no single long slant may dominate a field. |
+| `mat-rock`'s Voronoi facets read as paving. | Stone is strata broken by joints that never line up. |
+| A ruled seam where turf meets earth, and where two soils meet at a gully wall. | Turf ends in a ragged band; soft grounds blend under a wall's floor. |
+| Square glows; a line across the sky. | Particles fade to zero inside their frame; parallax layers wrap sideways only (`repeat: 'x'`). |
+
+Matched captures stay local in the session scratchpad (they are review
+material, not committed). Reproduce with `tests/browser/skoldhast-world-art.mjs`
+at the three viewports.
