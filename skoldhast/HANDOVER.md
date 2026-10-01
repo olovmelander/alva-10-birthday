@@ -36,9 +36,9 @@ on-screen controls tied to the kind of computer rather than the device in use, a
   and swimming up, the `E Knuffa` note, and a touch bringing the buttons back; the new
   [gamepad check](../tests/browser/skoldhast-gamepad.mjs) plays with a scripted controller
   (jump, push, hide, come out, half-stick walk) and moves through the pause menu.
-- **Frågor till Pappa:** the note above the horse is a deliberate exception to "no key reminders in
-  keyboard play" (it appears only while an action is possible) — keep it? Should ↑/W also jump
-  (as in many children's games), or only Space?
+- **Decided by Pappa (1 October):** keep the note above the horse. It is the one deliberate
+  exception to "no key reminders in keyboard play" and appears only while an action is possible.
+  ↑/W keeps jumping on land (and coming out of the shell), alongside Space. No open question.
 
 ## One art style: the engine's own shapes drawn in pencil (1 October)
 
@@ -95,10 +95,9 @@ shapes the engine draws while playing used flat vector colour and smooth lines.
   lifecycle check pass. First playable is **2,327,678 bytes** (was 2,222,323), below 3 MB.
   Before/after contact sheets are committed under `docs/skoldhast/shots/k3/one-art-style/`;
   the "before" views were rendered from `main` at `88845de` with the same staged matrix.
-- **Frågor till Pappa:** the steppe's ground is now soil under its turf (as on the hill) instead
-  of grass all the way down, and there is a soft page vignette. Both are easy to undo if he
-  preferred the old look. Real-phone performance has not been measured (the engine draws more
-  textured fills; renderer counts were not re-sampled).
+- **Decided by Pappa (1 October):** keep the steppe's soil under its turf and the soft page
+  vignette. Still unmeasured: frame rate on a real phone (the engine draws more textured fills;
+  renderer counts were not re-sampled).
 
 ## One sea around the headland, and a visible lighthouse clue (1 October)
 
