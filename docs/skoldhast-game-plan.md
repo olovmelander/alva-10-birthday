@@ -567,22 +567,32 @@ same line, and then Alva's own stroke.
 
 ### 4.1 Controls
 
-| Action | Touch (phone/tablet) | Keyboard |
-| --- | --- | --- |
-| Move | Floating stick: appears where the left thumb lands; horizontal on land, two-axis in water | Left/Right or A/D; in water Up/W swims up and X dives |
-| Hoppa / Kom fram | Large lower-right button, always available during play | Space: emerge if hidden or cancel a queued hide; otherwise jump |
-| Context verb | Separate upper-right button: Färglägg, Knuffa, Dra, Prata, Läs, etc.; disabled without a nearby action | E (Enter also interacts when no button has focus) |
-| Göm dig / Kom fram | Shell button beside Hoppa, toggle (`aria-pressed`) | Down/S hides, never toggles out; Space emerges. G retains the toggle shortcut. |
-| Gnägg | Tap the sköldhäst (throttled) | N |
-| Forskningsdagbok / paus | Top corners, 48 px, spaced | J / Esc |
+| Action | Touch (phone/tablet) | Keyboard | Gamepad (standard mapping) |
+| --- | --- | --- | --- |
+| Move | Floating stick: appears where the left thumb lands; horizontal on land, two-axis in water | ← → / A D (hold to gallop; Shift walks calmly). In water ← → ↑ ↓ / W A S D swim | Left stick (a half push walks, a full push gallops) or D-pad; two-axis in water |
+| Hoppa / Kom fram | Large lower-right button, always available during play | Space, or ↑ / W on land: emerge if hidden or cancel a queued hide; otherwise jump. In water Space swims up and leaps out at the surface | A |
+| Context verb | Separate upper-right button: Färglägg, Knuffa, Dra, Prata, Läs, etc.; disabled without a nearby action | E or Enter (Enter activates a focused button first) | X |
+| Göm dig / Kom fram | Shell button beside Hoppa, toggle (`aria-pressed`) | G anywhere (toggle). On land ↓ / S also hides and never toggles out. ↑ / W or Space emerges | B |
+| Gnägg | Tap the sköldhäst (throttled) | N | LB / RB |
+| Ropa på Klo | The button or a tap on Klo | K | Y |
+| Forskningsdagbok / paus | Top corners, 48 px, spaced | J / Esc or P | View / Start |
 
-Updated 30 September at Pappa's request: jumping and nearby-object actions have independent buttons.
-Holding Space never repeatedly jumps; pressing shortly before landing still uses the jump buffer.
-Down/S has the same hiding meaning on land and in water, so it cannot also drop through a pier.
-Use the pier's Hoppa i action (E) to enter the water. Space, E and Enter can advance dialogue;
-that press is consumed by the dialogue. Keyboard play shows no control buttons or key reminders.
-The on-screen movement and action controls appear only on touch devices.
-The key reference is available on demand under Inställningar → Tangenter.
+Revised 1 October at Pappa's request ("press down under water and it hides instead of diving"):
+the keyboard now means what the touch stick means. Under water ↓/S dives and ↑/W swims up; on
+land ↑/W jumps and ↓/S tucks in. G hides everywhere, so hiding never depends on being on land.
+Up while hidden comes out, on land and in water. Opposite directions follow the newest press
+instead of cancelling; movement keys work by position (KeyW etc.), the verbs by letter. X no longer
+dives. Holding Space or ↑/W never repeatedly jumps; pressing shortly before landing still uses the
+jump buffer. On land ↓/S cannot drop through a pier (it must hide there for the mirror); the pier's
+Hoppa i action (E) enters the water. Space, E and Enter (and the gamepad's A) advance dialogue;
+that press is consumed by the dialogue, and ↑ never advances it.
+
+The on-screen controls follow the device in use, not the kind of computer: a touch shows them
+(also on a touchscreen laptop), the keyboard or a gamepad puts them away. Without them, a small
+paper note above the horse shows the key and the verb whenever an action is possible
+(`E Knuffa`, `X Prata`), and nothing otherwise. In menus, choices, the title page and Klo's
+conversation a gamepad's D-pad or stick moves the focus, A presses it and B goes back; Start pauses
+even from a menu. The key reference is under Inställningar → Tangenter och handkontroll.
 
 - **Portrait:** the play view uses the top ~70% of the screen and the controls sit in a band below. Speech
   bubbles are anchored at the top. Landscape uses corner overlays. The ground line sits high enough that thumbs

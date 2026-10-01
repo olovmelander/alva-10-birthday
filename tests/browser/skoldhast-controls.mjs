@@ -35,6 +35,10 @@ try {
     });
     await page.waitForFunction(() => window.__skoldhast.debug.G.context?.id === 'knuffa');
     assert.equal(await page.locator('.sk-act').textContent(), 'Knuffa');
+    // Without on-screen buttons, the note by the horse names the key for the action here.
+    await page.waitForFunction(() => document.querySelector('.sk-keynote')?.classList.contains('on'));
+    assert.equal(await page.locator('.sk-keynote .sk-keycap').textContent(), 'E');
+    assert.equal(await page.locator('.sk-keynote .sk-keynote-label').textContent(), 'Knuffa');
     assert.equal(await page.locator('.sk-hop').textContent(), 'Hoppa');
     // Focus on a HUD button must not steal Space from gameplay.
     await page.locator('.sk-pause-btn').focus();
@@ -83,7 +87,9 @@ try {
     const keyList = page.locator('.sk-settings .sk-key-list');
     assert.equal(await keyList.isVisible(), true);
     const keyText = await keyList.textContent();
-    for (const key of ['Mellanslag', '↓ / S', 'E:', '↑ / W', 'X dyk', 'J:', 'K:']) assert.ok(keyText.includes(key), `${key} appears in Settings`);
+    for (const key of ['Mellanslag', '↓ / S', 'E eller Enter', '↑ / W', 'G:', 'Shift', 'W A S D', 'J:', 'K:']) assert.ok(keyText.includes(key), `${key} appears in Settings`);
+    assert.ok(!keyText.includes('X dyk'), 'X is no longer a dive key');
+    assert.ok((await page.locator('.sk-settings .sk-pad-list').textContent()).includes('Handkontroll'));
     await page.getByText('Håll inne för att gömma dig', { exact: true }).click();
     assert.equal(await page.getByLabel('Håll inne för att gömma dig', { exact: true }).isChecked(), true);
     await page.locator('.sk-settings .sk-pbtn', { hasText: /^Stäng$/ }).click();
@@ -109,6 +115,40 @@ try {
     await page.keyboard.press('Space');
     await page.waitForFunction(() => window.__dialogueDone);
     assert.equal((await read()).hops, 3);
+
+    // ↑ jumps on land; under water ↓ dives (never hides), G hides, ↑ comes out and swims up.
+    await page.keyboard.press('ArrowUp');
+    await page.waitForFunction(() => window.__hops === 4);
+    await page.waitForFunction(() => !window.__skoldhast.debug.G.player.jump);
+    await page.evaluate(() => {
+        const { G, view } = window.__skoldhast.debug;
+        G.goto('kelp', { x: 14 * 200, y: 3.4 * 200, mode: 'swim', facing: 1 });
+        view.setScene('kelp');
+    });
+    await page.waitForFunction(() => window.__skoldhast.debug.G.player.mode === 'swim');
+    const y0 = (await page.evaluate(() => window.__skoldhast.debug.G.player.y));
+    await page.keyboard.down('ArrowDown');
+    await page.waitForFunction(y0 => window.__skoldhast.debug.G.player.y > y0 + 60, y0);
+    await page.keyboard.up('ArrowDown');
+    assert.equal((await read()).hidden, false, 'Down under water dives instead of hiding');
+    // (hold-to-hide is on here: G is held, and ↑ still brings the horse out)
+    await page.keyboard.down('g');
+    await page.waitForFunction(() => window.__skoldhast.debug.G.player.hidden);
+    await page.keyboard.press('ArrowUp');
+    await page.waitForFunction(() => !window.__skoldhast.debug.G.player.hidden);
+    await page.keyboard.up('g');
+    const y1 = (await page.evaluate(() => window.__skoldhast.debug.G.player.y));
+    await page.keyboard.down('w');
+    await page.waitForFunction(y1 => window.__skoldhast.debug.G.player.y < y1 - 60, y1);
+    await page.keyboard.up('w');
+    assert.equal((await read()).hops, 4, 'Up under water swims; it never jumps');
+
+    // A touch shows the on-screen controls; a key puts them away again.
+    await page.evaluate(() => window.dispatchEvent(new PointerEvent('pointerdown', { pointerType: 'touch', bubbles: true })));
+    await page.waitForFunction(() => getComputedStyle(document.querySelector('.sk-controls')).display !== 'none');
+    assert.equal(await page.locator('.sk-hop').isVisible(), true, 'touching the screen brings the buttons');
+    await page.keyboard.press('ArrowRight');
+    await page.waitForFunction(() => getComputedStyle(document.querySelector('.sk-controls')).display === 'none');
 
     // Keyboard play stays free of control overlays at every viewport size.
     await fs.mkdir('docs/skoldhast/shots/controls', { recursive: true });

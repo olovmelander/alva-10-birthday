@@ -16,7 +16,7 @@ import { STEP, snapshot, HL, C } from './sim.mjs';
 import { createView } from './view.mjs';
 import { createUI } from './ui.mjs';
 import { createGuide } from './guide.mjs';
-import { createInput } from './input.mjs';
+import { createInput, upMeansHop } from './input.mjs';
 import { createPressQueue } from './presses.mjs';
 import { createSave, codeToChapter, CODE_RESTORE } from './save.mjs';
 import { createStory } from './story.mjs';
@@ -44,6 +44,7 @@ export function createGame({ host = document.body, assetBase = './skoldhast/', r
     let audioTheme = null;
     let slot = { id: 'alva', label: UI.slotAlva };
     let settings = { ...DEFAULT_SETTINGS, lessMotion: !!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches };
+    let inputDevice = 'keys';
     let note = '';
     const saver = createSave();
     const hostState = {};
@@ -154,9 +155,19 @@ export function createGame({ host = document.body, assetBase = './skoldhast/', r
         guide.show(false);
         const heroFactory = await loadHeroFactory();
         view = createView(PIXI, app, { assets, G, heroFactory, onFx: (name, data) => (name === 'epilogue' ? runEpilogue(data) : name === 'sfx' ? audio?.sfx(data) : null) });
+        // The on-screen controls belong to whichever device is actually in use:
+        // a touch shows them, the keyboard or a gamepad puts them away.
+        setDevice(window.matchMedia?.('(pointer: coarse)').matches ? 'touch' : 'keys');
         input = createInput(el, ui, {
             canvas: app.canvas,
             settings: () => settings,
+            mode: () => G?.player?.mode,
+            onDevice: d => setDevice(d),
+            focusScope: () => menuScope(),
+            onBack: () => {
+                if (companion?.suspended()) companion.close();
+                else if (ui.panelOpen()) ui.closePanel();
+            },
             isGalloping: () => G && Math.abs(G.player.vx) >= 1000,
             isStopped: () => G && Math.abs(G.player.vx) < 20,
             gallopDefl: C.gallopDefl,
@@ -175,7 +186,9 @@ export function createGame({ host = document.body, assetBase = './skoldhast/', r
         });
         await loadAudio();
         story = createStory(G, {
-            ui, audio, guide, settings: () => settings, touch: !!window.matchMedia?.('(pointer: coarse)').matches,
+            ui, audio, guide, settings: () => settings,
+            get touch() { return inputDevice === 'touch'; },
+            get device() { return inputDevice; },
             fx: async (n, d) => {
                 const effectView = view;
                 const scene = G.sceneId, effectPlayer = G.player;
@@ -471,7 +484,12 @@ export function createGame({ host = document.body, assetBase = './skoldhast/', r
             else if (now - glLostAt > 2000 && !glPrompt) contextGone();
             return;
         }
-        if (paused || state !== 'open') { presses.clear(); input?.release(); ui?.updateSpeaker(null); if (app) app.render(); return; }
+        if (paused || state !== 'open') {
+            presses.clear(); input?.release();
+            // a gamepad still moves through the pause menu, the journal and settings
+            if (state === 'open') input?.poll();
+            ui?.updateSpeaker(null); if (app) app.render(); return;
+        }
         const t0 = performance.now();
         const who = ui.panelOpen() ? null : companion?.suspended() ? 'klo' : ui.speaker() || (mode === 'play' && !G.busy && !G.vista ? guide.speaker() : null);
         G.speaker = who;
@@ -485,6 +503,8 @@ export function createGame({ host = document.body, assetBase = './skoldhast/', r
             const e = input.consume();
             if (ui.dialogueOpen() && (e.act || e.hop)) ui.advance();
             if (e.tapKlo && !ui.panelOpen() && !ui.dialogueOpen()) companion.call();
+            // ↑/W is Hoppa on land and Kom fram when hidden; in the water it only swims.
+            if (e.up && upMeansHop(G.player)) e.hop = true;
             if (blocked || companion.suspended()) presses.clear(); else presses.push(e);
             let first = true;
             if (companion.suspended()) acc = 0; else acc += dt;
@@ -520,6 +540,12 @@ export function createGame({ host = document.body, assetBase = './skoldhast/', r
             const snap = snapshot(G.player, companion.suspended() ? 1 : acc / STEP, G.terrain, G.time);
             view.render(snap, dt);
             ui.setContext(G.context?.label, G.player.hidden, settings.holdToHide);
+            // Without on-screen buttons, a small note by the horse names the key
+            // for the action that is possible right now (and nothing otherwise).
+            const promptable = inputDevice !== 'touch' && G.context?.label && !G.player.hidden && !G.busy && !G.vista
+                && !ui.dialogueOpen() && !ui.panelOpen() && !companion.suspended() && !story.running();
+            const hs = promptable ? heroScreen() : null;
+            ui.keyPrompt(hs ? { key: inputDevice === 'pad' ? 'X' : 'E', label: G.context.label, at: { x: hs.x, y: hs.y - HL * 0.8 * hs.scale } } : null);
             const free = !ui.dialogueOpen() && !ui.panelOpen() && !G.busy && !G.vista && !companion.suspended();
             guide.show(free);
             const detailedHelp = settings.help === 'guided' || companion.markerActive();
@@ -683,6 +709,21 @@ export function createGame({ host = document.body, assetBase = './skoldhast/', r
         ui?.root.classList.toggle('less-motion', !!settings.lessMotion);
     }
 
+    /** keys, touch or pad: what the player is using right now */
+    function setDevice(d) {
+        inputDevice = d;
+        ui?.root.classList.toggle('sk-touch', d === 'touch');
+        ui?.root.classList.toggle('sk-pad', d === 'pad');
+    }
+    /** Where a gamepad's D-pad moves the focus: the open menu, choice or title page. */
+    function menuScope() {
+        if (!ui) return null;
+        for (const sel of ['.sk-panel.on', '.sk-klo-layer:not([hidden])', '.sk-choice.on', '.sk-draw.on', '.sk-title']) {
+            const node = ui.root.querySelector(sel) || el.querySelector(sel);
+            if (node && node.getClientRects().length) return node;
+        }
+        return null;
+    }
     // hero hit-testing for Gnägg
     function heroScreen() {
         if (!view || !G) return null;
