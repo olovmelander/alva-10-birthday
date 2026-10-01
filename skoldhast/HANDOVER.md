@@ -1,5 +1,31 @@
 # Sköldhästen – handover
 
+## Three browser checks fixed: opening, underwater story, exploration order (1 October)
+
+Branch `claude/skoldhast-checks` (test files only; no game bugs found). All three failed on `main` too.
+
+- **`skoldhast-opening.mjs` (flaky):** the choice tap after the fold reached its button but never
+  clicked. The portrait drawings were CDP touch strokes lifted at full speed; Chrome turns that into a
+  fling and swallows the click of the next tap (6 of 12 taps lost on a bare page, 0 of 12 with a resting
+  finger). Strokes now carry their own event times: 60 Hz moves, then the finger rests 0.1 s before it
+  lifts. Three more races in the same check are gone: the "vågen har fastnat" dialogue box covering the
+  sampled sand after the fold (the old "surviving beach" pixel flake), waiting for `folded` to be current
+  instead of seen, and the mid-fold screenshot stalling the page inside the splash measurement (it is now
+  taken once the wave has rested while the paper still turns). Remaining: below about 10 fps (heavy
+  parallel load) "the splash stops while the paper is still folding" can genuinely fail; run it alone.
+- **`skoldhast-underwater-story.mjs` (stale):** it expected one hide to free the map at P6. It now plays
+  the current P6 with real keys (take the kelp's loose end, swim it free, hide in the current, pressed onto
+  the fold, come out, collect), imports every line from `sv.mjs`, replays the hook (the Kapitel 1 code
+  marks it seen), waits on real conditions instead of fixed delays, and takes `--out`. 27 assertions
+  (was 19), all the old ones kept.
+- **`skoldhast-exploration-order.mjs` (stale):** on desktop the robot dived with the old `x` key; since
+  the controls were aligned only ↓/S swim down, so it floated above the kelp. It uses ArrowDown now.
+  Passes cave-first at 390×844, 844×390 and 1440×900 and land-first at 1440×900.
+- **Run them with `--out <dir outside the repo>`:** by default the exploration and underwater checks
+  write screenshots into `docs/skoldhast/shots/`.
+- **Not fixed yet:** six other checks send the same fast-lifting touch strokes (awakening, cloud-color,
+  companion, drawing, journey, touch); those that tap afterwards may show the same lost-click flake.
+
 ## The finale unfolds the page at Alva's table (1 October)
 
 Branch `claude/skoldhast-finale-unfold`. Step 2 after the fold work: the ending now plays the opening's
@@ -98,11 +124,7 @@ between the beach and the watchtower, since in the intro scene the watchtower is
   390×844, 844×390, 320×568 and 1440×900 with keyboard and touch, and now also checks the marker on
   the map page and the thumbnail. Real-game capture: pressing J under water shows the marker in
   Kelpskogen. The crossing capture goes in under Vecket and ends under Bryggan.
-- **Known stale check (also on `main`):** `tests/browser/skoldhast-exploration-order.mjs` times out with
-  its robot stuck swimming at kelp 15.1 HL (identical on clean `main`). The geography check passes.
-- **Known flaky check (also on `main`):** `tests/browser/skoldhast-opening.mjs` sometimes times out at
-  line 249, waiting for Klo's answer after the fold question (one run in two on clean `main`, on
-  varying viewports). Re-running passes; it needs a sturdier wait, not a game change.
+- The exploration-order and opening checks that failed here are fixed (see "Three browser checks fixed").
 - **Frågor till Pappa:** should the finale show the corner and its lighthouse folding back into the
   beach's view when Kartväktaren unfolds the page? The bay's far wall still says "Havet är vikt här!";
   it is now the folded corner's edge, which still fits.
@@ -159,7 +181,7 @@ What changed:
   the first-refusal thought, the bridge colouring in, the payoff thought, gallop marks on grass,
   the journey both ways (landscape and portrait), the bay arrival with momentum kept, and the goal
   note fitting on a portrait phone. First playable is 2.339 MB.
-- **Known stale check (not caused by this work):** `tests/browser/skoldhast-underwater-story.mjs`
+- **Known stale check (not caused by this work; fixed 1 October, see the top):** `tests/browser/skoldhast-underwater-story.mjs`
   times out at P6 on clean `main` too. It waits for a line containing "Havsbottnen" and expects one
   hide to free the map; P6 has needed the kelp pulled first since 30 September. The newer kelp and
   geography checks cover P6; this one needs rewriting to the current mechanism.
@@ -956,7 +978,7 @@ recommended visual improvements, in order. Details, causes and before/after pair
   opening-notes work: first playable **2,569,283 bytes** (evening art is its own background
   bundle), pure suite **161/161**, browser matrix passing (launch needs to run alone: under heavy
   parallel load its 30 s loader wait times out).
-- **Known flaky check:** `skoldhast-opening.mjs` "the surviving beach stays in place" samples one
+- **Known flaky check (fixed 1 October: a dialogue box covered the sample):** `skoldhast-opening.mjs` "the surviving beach stays in place" samples one
   pixel whose value depends on timing (217,190,147 vs 244,176,101). It failed and passed on both
   clean `main` and this branch with the same two values.
 - After changing hill or bay art: `node scripts/build-skoldhast-assets.mjs --only backdrops`
