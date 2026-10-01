@@ -144,6 +144,9 @@ async function traceShore(page) {
 }
 
 const phase = (page, value) => page.waitForFunction(wanted => window.__skoldhast.debug.app?.stage.children.find(c => c.label === 'story-table')?.storyPhase === wanted, value);
+/** A passing phase (the opening moves on by itself) may be over before a slow screenshot
+ * returns: wait until the watcher has seen it, rather than for it to be current. */
+const reached = (page, value) => page.waitForFunction(wanted => window.__opening.phases.includes(wanted), value);
 const shot = (page, stem, name) => page.screenshot({ path: path.join(out, `${stem}-${name}.png`) });
 const settleQuestion = page => page.evaluate(async () => {
     const elements = [...document.querySelectorAll('.sk-dialogue, .sk-choice')];
@@ -151,14 +154,22 @@ const settleQuestion = page => page.evaluate(async () => {
 });
 
 async function sampleRetainedPaper(page) {
+    // At the table the dialogue box sits at the bottom, over the sampled sand on
+    // a landscape phone: the invitation before the lean, and "the wave is stuck"
+    // soon after the fold. Hide it for this one picture, which samples the paper.
     const point = await page.evaluate(() => {
+        document.querySelector('.sk-dialogue').style.visibility = 'hidden';
         const table = window.__skoldhast.debug.app.stage.children.find(c => c.label === 'story-table');
         const paper = table.children.find(c => c.label === 'story-paper');
         return { x: paper.x + 80 * paper.scale.x, y: paper.y + 585 * paper.scale.y };
     });
-    const crop = await sharp(await page.screenshot()).extract({ left: Math.round(point.x) - 2, top: Math.round(point.y) - 2, width: 5, height: 5 }).removeAlpha().png().toBuffer();
-    const pixel = await sharp(crop).stats();
-    return pixel.channels.map(c => c.mean);
+    try {
+        const crop = await sharp(await page.screenshot()).extract({ left: Math.round(point.x) - 2, top: Math.round(point.y) - 2, width: 5, height: 5 }).removeAlpha().png().toBuffer();
+        const pixel = await sharp(crop).stats();
+        return pixel.channels.map(c => c.mean);
+    } finally {
+        await page.evaluate(() => document.querySelector('.sk-dialogue').style.visibility = '');
+    }
 }
 
 async function verifyFold(page, lessMotion) {
@@ -219,22 +230,26 @@ try {
         const stem = `${width}x${height}${less ? '-less' : ''}`;
         try {
             let retainedBefore = null;
-            await open(page, less); await reachShore(page, async () => {
-                // the invitation's dialogue box lies over the sampled sand: hide it for this one picture
-                await page.evaluate(() => document.querySelector('.sk-dialogue').style.visibility = 'hidden');
-                retainedBefore = await sampleRetainedPaper(page);
-                await page.evaluate(() => document.querySelector('.sk-dialogue').style.visibility = '');
-            });
+            await open(page, less); await reachShore(page, async () => { retainedBefore = await sampleRetainedPaper(page); });
             assert.ok(retainedBefore, 'the beach was sampled before the view leaned towards the lighthouse');
             await shot(page, stem, 'shore'); await traceShore(page);
             if (!less) {
+                // Photograph the moving paper once the fold's cause and effect have been
+                // watched: the wave at rest for four frames while the corner still turns.
+                // A screenshot stalls the page (for seconds under load); the wave's own clock
+                // advances at most 0.1 s a frame while the fold runs on the wall clock, so a
+                // picture taken earlier held the wave back mid-measurement (verifyFold below).
                 await page.waitForFunction(() => {
-                    const tip = window.__opening.samples.at(-1)?.vertices[2];
-                    return tip <= 850 && tip >= 600;
+                    const r = window.__opening, s = r.samples, last = s.at(-1);
+                    if (r.phases.includes('folded')) return true;
+                    if (!last) return false;
+                    let still = 1;
+                    while (still < s.length && s[s.length - 1 - still].splash === last.splash) still++;
+                    return still >= 4 && s[s.length - still].vertices[2] - last.vertices[2] > 2;
                 });
                 await shot(page, stem, 'midfold');
             }
-            await phase(page, 'folded'); await shot(page, stem, 'folded');
+            await reached(page, 'folded'); await shot(page, stem, 'folded');
             const retainedAfter = await sampleRetainedPaper(page);
             assert.ok(retainedBefore.every((v, i) => Math.abs(v - retainedAfter[i]) < 8),
                 `the surviving beach stays in place: ${retainedBefore} -> ${retainedAfter}`);
