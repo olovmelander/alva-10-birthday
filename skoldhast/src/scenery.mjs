@@ -69,21 +69,28 @@ export function createAtmosphere(PIXI, { scene = 'land' } = {}) {
         const ray = new PIXI.Graphics();
         // Sparse broken hatching over a little reserved paper. The shafts have
         // real world depth; moving the camera cannot stretch them to the floor.
-        ray.poly([-18, 0, 18, 0, 180, 1000, 104, 1000]).fill({ color: 0xe9f0d5, alpha: .017 });
-        for (let j = 0; j < 5; j++) {
-            const x = -16 + j * 8;
-            for (let part = 0; part < 4; part++) {
-                const y = 36 + part * 242 + j % 3 * 19, end = y + 134 - part * 12;
+        // A soft wedge of light with only a few short, faint strokes inside it:
+        // long thin parallel lines read as rain falling through the water.
+        ray.poly([-18, 0, 18, 0, 180, 1000, 104, 1000]).fill({ color: 0xe9f0d5, alpha: .034 });
+        ray.poly([-8, 0, 8, 0, 150, 1000, 128, 1000]).fill({ color: 0xf4f4d9, alpha: .028 });
+        for (let j = 0; j < 3; j++) {
+            const x = -10 + j * 10;
+            for (let part = 0; part < 3; part++) {
+                const y = 60 + part * 300 + j % 3 * 41, end = y + 70 - part * 10;
                 ray.moveTo(x + y * .14, y).lineTo(x + end * .14 + j * 2, end)
-                    .stroke({ width: 2 + j % 2, color: 0xf4f4d9, alpha: (.095 - part * .019) });
+                    .stroke({ width: 3 + j % 2, color: 0xf4f4d9, alpha: (.06 - part * .015) });
             }
         }
         view.addChild(ray); rays.push(ray);
     }
     for (let i = 0; i < 24; i++) {
+        // A speck of sunlit pollen (or drifting plankton): reserved paper with
+        // a faint halo and one short pencil mark, never a star or a glint,
+        // which belong to the colouring pencils that can be picked up.
         const mark = new PIXI.Graphics();
-        mark.moveTo(-2.5, 1.5).lineTo(1, -1.5).moveTo(-1, 3).lineTo(3, -.3)
-            .stroke({ width: 1.4, color: 0xffffff, alpha: .6 });
+        mark.circle(0, 0, 4.2).fill({ color: 0xffffff, alpha: .16 });
+        mark.circle(0, 0, 1.7).fill({ color: 0xffffff, alpha: .85 });
+        mark.moveTo(-2.5, 1.5).lineTo(1, -1.5).stroke({ width: 1.1, color: 0xffffff, alpha: .45 });
         view.addChild(mark); marks.push(mark);
     }
     const state = { count: marks.length, rays: rays.length, region: scene, reducedMotion: false };
@@ -125,9 +132,11 @@ export function createAtmosphere(PIXI, { scene = 'land' } = {}) {
                 mark.x = (col + .1 + hash(seed) * .8) * cellW + driftX;
                 mark.y = (row + .14 + hash(seed + 1) * .7) * cellH - driftY;
                 mark.visible = mark.x > left - 20 && mark.x < right + 20 && mark.y > top - 20 && mark.y < bottom + 20 && (!underwater || mark.y > waterTop + 14);
-                mark.tint = evening ? 0xffeabd : underwater ? 0xe1f0df : 0xe1ddbf;
-                mark.alpha = underwater ? .23 : .5;
-                mark.scale.set(underwater ? .7 + hash(seed + 2) * .6 : 1.2, underwater ? 1 : .6);
+                mark.tint = evening ? 0xffeabd : underwater ? 0xe6f4e2 : 0xfff3cf;
+                // a slow twinkle as each speck turns in the light (still with reduced motion)
+                const twinkle = .62 + .38 * Math.sin(t * (.7 + hash(seed + 3) * .8) + seed);
+                mark.alpha = (underwater ? .3 : .62) * twinkle;
+                mark.scale.set(underwater ? .7 + hash(seed + 2) * .6 : .8 + hash(seed + 2) * .5);
             }
         }
     };

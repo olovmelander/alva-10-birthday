@@ -27,7 +27,8 @@ import { createMapFragmentProp, createGuardianMapPaper } from './map-props.mjs';
 import { createFoldedSeabed } from './folded-seabed.mjs';
 import { createKelpPuzzleScene } from './kelp-scene.mjs';
 import { p6Pose } from './kelp-puzzle.mjs';
-import { createHillPuzzleScene } from './hill-scene.mjs';
+import { createHillPuzzleScene, TURF } from './hill-scene.mjs';
+import { pencilStyle, pencilPixi, raggedBand } from './pencil-style.mjs';
 import { createLandScenery } from './land-scenery.mjs';
 import { createCoastalCave } from './coastal-cave.mjs';
 import { createWaterPassage } from './water-passage.mjs';
@@ -61,6 +62,12 @@ const MAT_IMAGE = {
 
 export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
     const T = (name) => assets.tex(name);
+    const pen = pencilStyle(T);
+    // Every shape this renderer draws strokes in pencil, as the drawn art does.
+    // Alva's own beach (her frozen wave, the shell play, the fold demo that
+    // lifts her sand) keeps the plain renderer: her picture stays as drawn.
+    const RAW = PIXI;
+    PIXI = pencilPixi(PIXI, T);
     let destroyed = false;
     const pendingFrames = new Set();
     const comparisonObservers = new Set();
@@ -101,12 +108,29 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
     // screen-fixed paper tooth (multiply), so everything sits on one sheet
     let tooth = null;
     function makeTooth() {
+        makeVignette();
         const t = T('paper-tooth');
         if (!t || tooth) return;
         tooth = new PIXI.TilingSprite({ texture: t, width: app.screen.width, height: app.screen.height });
         tooth.blendMode = 'multiply';
         tooth.alpha = 0.55;
         overlay.addChildAt(tooth, 0);
+    }
+    // The sheet lies under a lamp: its middle a little brighter than its
+    // edges, which gather the eye toward the play without any new light.
+    let vignette = null, vignetteTex = null;
+    function makeVignette() {
+        if (vignette) return;
+        const cv = document.createElement('canvas'); cv.width = cv.height = 256;
+        const c = cv.getContext('2d');
+        const gr = c.createRadialGradient(128, 116, 46, 128, 128, 184);
+        gr.addColorStop(0, 'rgb(255,255,255)'); gr.addColorStop(0.5, 'rgb(252,249,243)'); gr.addColorStop(1, 'rgb(212,200,182)');
+        c.fillStyle = gr; c.fillRect(0, 0, 256, 256);
+        vignetteTex = PIXI.Texture.from(cv);
+        vignette = new PIXI.Sprite(vignetteTex);
+        vignette.label = 'page-vignette'; vignette.blendMode = 'multiply'; vignette.alpha = 0.5;
+        vignette.width = app.screen.width; vignette.height = app.screen.height;
+        overlay.addChildAt(vignette, 0);
     }
     const fade = new PIXI.Graphics();
     overlay.addChild(fade);
@@ -345,8 +369,15 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
                 if (s.boardwalk) { boardwalk(s, pts, ground, groundTop, groundLines, bottom); continue; }
                 const baseMat = s.edgeMat || (s.ramp ? 'earth' : s.mat);
                 fillPoly(ground, [...pts, [x1, bottom], [x0, bottom]], baseMat);
+                if (def.underwater && baseMat === 'rock') {
+                    ground.poly([...pts, [x1, bottom], [x0, bottom]].flat()).fill({ color: 0x4f7c79, alpha: .3 });
+                    ground.poly([...pts, [x1, bottom], [x0, bottom]].flat()).fill(pen.hatch(0x2c5254, .22));
+                }
                 if (baseMat !== s.mat) {
-                    fillPoly(groundTop, [...pts, ...pts.slice().reverse().map(([x,y]) => [x,y+46])], s.mat);
+                    // turf over earth or rock ends in tufts and roots, never a ruled seam,
+                    // with a little shade where it overhangs (the hill strips share both)
+                    fillPoly(groundTop, raggedBand(pts, TURF, 0), s.mat);
+                    groundTop.poly(raggedBand(pts.map(([x, y]) => [x, y + TURF * .72]), 22, 7).flat()).fill(pen.hatch(0x5b4128, .16));
                 }
             }
             // Where two sandy materials meet on one continuous surface, blend them
@@ -357,7 +388,22 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
             for (let i = 1; i < shape.runs.length; i++) {
                 const a = shape.runs[i - 1], b = shape.runs[i], ma = matOf(a.s), mb = matOf(b.s);
                 const [ax, ay] = a.pts.at(-1), [bx, by] = b.pts[0];
-                if (ma === mb || !SOFT.has(ma) || !SOFT.has(mb) || Math.abs(ax - bx) > 1e-6 || Math.abs(ay - by) > 1e-6) continue;
+                if (ma === mb || !SOFT.has(ma) || !SOFT.has(mb) || Math.abs(ax - bx) > 1e-6) continue;
+                if (Math.abs(ay - by) > 1e-6) {
+                    // A face between two soft grounds (a gully's wall): below the lower
+                    // floor the two columns are one soil, so they blend there as well,
+                    // fading in from under that floor, instead of a ruled seam to the foot.
+                    const under = Math.max(ay, by) + 24, N = 8, span = 140;
+                    for (const [mat, dir] of [[ma, 1], [mb, -1]]) {
+                        for (let k = 0; k < N; k++) {
+                            const l = Math.min(bx + dir * span * k / N, bx + dir * span * (k + 1) / N), r = l + span / N;
+                            const fadeTo = .5 * (1 - (k + .5) / N);
+                            for (let j = 0; j < 4; j++) fillPoly(ground, [[l, under + j * 22], [r, under + j * 22], [r, under + (j + 1) * 22], [l, under + (j + 1) * 22]], mat, fadeTo * (j + 1) / 5);
+                            fillPoly(ground, [[l, under + 88], [r, under + 88], [r, bottom], [l, bottom]], mat, fadeTo);
+                        }
+                    }
+                    continue;
+                }
                 const N = 8, span = 110;
                 for (const [run, mat, dir] of [[b, ma, 1], [a, mb, -1]]) {
                     const lo = run.pts[0][0], hi = run.pts.at(-1)[0];
@@ -468,7 +514,12 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
                 const x1 = i === bodies.length - 1 ? def.bounds.x1 + h(20) : w.x1;
                 sky.rect(x0, airTop, x1 - x0, w.top - airTop);
             }
-            sky.fill({ color: 0xd6e8f2 }); sky.label = 'water-air';
+            sky.fill({ color: 0xd6e8f2 });
+            for (const [i, w] of bodies.entries()) {
+                const x0 = i === 0 ? def.bounds.x0 - h(20) : w.x0, x1 = i === bodies.length - 1 ? def.bounds.x1 + h(20) : w.x1;
+                sky.rect(x0, airTop, x1 - x0, w.top - airTop).fill(pen.hatch(0x8fb3c4, .16));
+            }
+            sky.label = 'water-air';
             d.waterTop = bodies[0]?.top ?? 0;
             L.far.addChild(sky);
             d.skyBand = sky;
@@ -510,7 +561,7 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
                 // The wave the opening stopped: its run-up meets the sea's own
                 // waterline, and its drops hang exactly where the fold caught them.
                 const sea = (def.waters || []).find(w => w.kind === 'sea');
-                const wave = createStuckWave(PIXI, { texture: T, ground: drawnGround(def), x: it.x, y: it.y, seaTop: sea?.top ?? 0 });
+                const wave = createStuckWave(RAW, { texture: T, ground: drawnGround(def), x: it.x, y: it.y, seaTop: sea?.top ?? 0 });
                 wave.settle(G.stuckWaveClock ?? STILL_CLOCK);
                 (it.layer === 'fore' ? L.fore : L.mid).addChild(wave.view);
                 d.items.push({ s: wave.view, it, wave });
@@ -752,28 +803,31 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
             // behind: the arch's back wall and its two legs, in shade
             // behind: the cave's far wall, in shade, fading out toward both mouths
             const back = new PIXI.Graphics(); back.label = 'vault-back';
-            const fadeIn = h(0.9);
-            for (let x = x0; x < x1; x += 20) {
-                const b = Math.min(x + 20, x1), mid = (x + b) / 2, e = clamp(Math.min(mid - x0, x1 - mid) / fadeIn, 0, 1);
-                const a = e * e * (3 - 2 * e);
-                if (a < 0.02) continue;
+            // A wide, uneven fade at both mouths and shade laid in with strokes,
+            // so the hollow opens into the sea instead of ending at a box edge.
+            const fadeIn = h(1.6);
+            for (let x = x0; x < x1; x += 12) {
+                const b = Math.min(x + 12, x1), mid = (x + b) / 2, e = clamp(Math.min(mid - x0, x1 - mid) / fadeIn, 0, 1);
+                const a = e * e * (3 - 2 * e) * (0.9 + 0.1 * Math.sin(mid * 0.017));
+                if (a < 0.015) continue;
                 const quad = [[x, under(x) - 6], [b, under(b) - 6], [b, (groundAt(b) ?? def.bounds.y1) + 50], [x, (groundAt(x) ?? def.bounds.y1) + 50]];
-                fillPoly(back, quad, 'rock', a * 0.9);
-                back.poly(quad.flat()).fill({ color: 0x1d3640, alpha: a * 0.42 });
+                fillPoly(back, quad, 'rock', a * 0.7);
+                back.poly(quad.flat()).fill(pen.hatch(0x1d3640, a * 0.55));
+                back.poly(quad.flat()).fill({ color: 0x1d3640, alpha: a * 0.16 });
                 // darkest just under the roof
-                back.poly([quad[0], quad[1], [b, under(b) + 70], [x, under(x) + 70]].flat()).fill({ color: 0x14262e, alpha: a * 0.25 });
+                back.poly([quad[0], quad[1], [b, under(b) + 90], [x, under(x) + 90]].flat()).fill(pen.hatch(0x14262e, a * 0.38));
             }
             L.far.addChild(back);
             // the roof: rock, outlined, shaded underneath, with weed hanging from it
             const roof = new PIXI.Graphics(); roof.label = 'vault-roof';
             const poly = [...sl.top, ...sl.bottom.slice().reverse()];
             fillPoly(roof, poly, 'rock');
-            roof.poly([...sl.bottom, ...sl.bottom.slice().reverse().map(([x, y]) => [x, y - 44])].flat()).fill({ color: 0x1d3640, alpha: .3 });
+            roof.poly([...sl.bottom, ...sl.bottom.slice().reverse().map(([x, y]) => [x, y - 56])].flat()).fill(pen.hatch(0x1d3640, .42));
             for (let x = x0 + 70; x < x1 - 40; x += 95) {
                 const y = heightOn(sl.bottom, x), len = 30 + ((x * 7) % 5) * 12;
                 roof.moveTo(x, y - 4).quadraticCurveTo(x + 10, y + len * 0.5, x + 4, y + len);
             }
-            roof.stroke({ width: 3, color: 0x2f6a3a, alpha: .8, cap: 'round' });
+            roof.stroke(pen.line(0x2f6a3a, 3, .8));
             const lines = new PIXI.Container();
             lines.addChild(rope('stroke-graphite', resamplePts(sl.top, 40), { width: 5 }), rope('stroke-graphite', resamplePts(sl.bottom, 40), { width: 5 }));
             L.terrainBack.addChild(roof, lines);
@@ -967,7 +1021,10 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
             const flush = () => {
                 if (run.length > 1) {
                     const upper = run.map(i => [xs[i], line[i] + d0]), lower = run.map(i => [xs[i], k === steps ? bottom : line[i] + d1]);
-                    fillPoly(g, [...upper, ...lower.reverse()], 'paper', a);
+                    const band = [...upper, ...lower.reverse()];
+                    // she stops colouring stroke by stroke: paper strokes first, bare paper last
+                    fillPoly(g, band, 'paper', a * a * 0.9);
+                    g.poly(band.flat()).fill(pen.hatch(0xfbf8f1, Math.min(1, a * 1.25)));
                 }
                 run = [];
             };
@@ -1214,12 +1271,31 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
             }
             const wall = [...rim, [bk.x1 + 6, bk.floor + 60], [bk.x0 - 6, bk.floor + 60]];
             fillPoly(g, wall, bk.mat);
-            // farther than the near edges: paler (a little air between), then in shade
-            // under its far rim and at its foot
-            g.poly(wall.flat()).fill({ color: 0xe4e6dc, alpha: .34 });
-            g.poly(wall.flat()).fill({ color: 0x3b2a1a, alpha: .08 });
-            g.poly([...rim, ...rim.slice().reverse().map(([x, y]) => [x, y + 60])].flat()).fill({ color: 0x2b1d12, alpha: .14 });
-            g.poly([bk.x0 - 6, bk.floor - 50, bk.x1 + 6, bk.floor - 50, bk.x1 + 6, bk.floor + 60, bk.x0 - 6, bk.floor + 60]).fill({ color: 0x2b1d12, alpha: .12 });
+            // Farther than the near edges: a little air between, then shade that
+            // deepens toward the foot, laid in with strokes rather than in flat
+            // bands, so the hollow reads as a hollow and not as a striped box.
+            g.poly(wall.flat()).fill({ color: 0xe4e6dc, alpha: .26 });
+            const depth = Math.max(60, bk.floor - Math.min(tl, tr));
+            for (let k = 0; k < 4; k++) {
+                const y0 = Math.min(tl, tr) + depth * (.25 + k * .2);
+                const band = [...rim.map(([x, y]) => [x, Math.max(y, y0 + Math.sin(x * .013 + k) * 10)]), [bk.x1 + 6, bk.floor + 60], [bk.x0 - 6, bk.floor + 60]];
+                g.poly(band.flat()).fill(pen.hatch(0x3b2a1a, .1));
+            }
+            // the far turf: its own ragged lip of grass along the rim, in shade
+            if (bk.mat !== 'rock' || bk.turf !== false) {
+                const lip = raggedBand(rim.map(([x, y]) => [x, y - 1]), 30, 3);
+                fillPoly(g, lip, 'grass', .85);
+                g.poly(lip.flat()).fill(pen.hatch(0x3f4a30, .22));
+            }
+            g.poly([...rim, ...rim.slice().reverse().map(([x, y]) => [x, y + 70])].flat()).fill(pen.hatch(0x2b1d12, .18));
+            // the near walls shade the hollow beside them, so it has depth at its sides too
+            for (const [edge, dir] of [[bk.x0 - 6, 1], [bk.x1 + 6, -1]]) {
+                for (const reach of [26, 60, 110]) {
+                    const far = edge + dir * reach, top = rim.filter(([x]) => (x - edge) * dir >= 0 && (x - far) * dir <= 0);
+                    const side = [[edge, heightOn(rim, edge) ?? rim[0][1]], ...(dir > 0 ? top : top.slice().reverse()), [far, heightOn(rim, far) ?? rim[0][1]]];
+                    g.poly([...side, [far, bk.floor + 60], [edge, bk.floor + 60]].flat()).fill(pen.hatch(0x2b1d12, .09));
+                }
+            }
             c.addChild(g);
             // its far rim: a lighter pencil line than the near edges
             c.addChild(rope('stroke-graphite', resamplePts(rim, 40), { width: 4, alpha: .34 }));
@@ -1250,7 +1326,7 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
             O.pushArrow.moveTo(-30, 0).lineTo(22, 0).stroke({ width: 7, color: 0xe0782a, cap: 'round' });
             O.pushArrow.moveTo(8, -15).lineTo(26, 0).lineTo(8, 15).stroke({ width: 7, color: 0xe0782a, cap: 'round', join: 'round' });
             O.pushArrow.alpha = 0; L.hints.addChild(O.pushArrow);
-            O.hillPuzzle = createHillPuzzleScene(PIXI, { sprite: spr, def });
+            O.hillPuzzle = createHillPuzzleScene(PIXI, { sprite: spr, def, texture: T });
             L.objects.addChild(O.hillPuzzle.container);
             // backsippa clumps and tussocks
             O.clumps = (def.clumps || []).map((c) => { const s = spr('backsippa'); s.label = `p3-flower-${c.id}`; s.x = c.x; s.y = c.y; L.mid.addChild(s); const b = spr('backsippa-bare'); b.label = `p3-flower-bare-${c.id}`; b.x = c.x; b.y = c.y; b.visible = false; L.mid.addChild(b); return { c, s, b }; });
@@ -1302,7 +1378,9 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
                 const xl = cross(y1, -1), xr = cross(y1, 1);
                 const contour = [[xl, y1], ...ridge.filter(([x]) => x > xl && x < xr), [xr, y1]];
                 const upper = below(contour, y0);
-                ridgeFill.poly(upper.flat()).fill({ color: 0xb8c9bb, alpha: a });
+                // laid in with strokes like the painted bands behind it, not as a flat tint
+                ridgeFill.poly(upper.flat()).fill({ color: 0xc3d1c2, alpha: a * 0.78 });
+                ridgeFill.poly(upper.flat()).fill(pen.hatch(0x93a993, a * 0.5));
                 fillPoly(ridgeFill, upper, 'grass', a * 0.16);
             }
             // its outline fades down the slopes with the fill
@@ -1392,7 +1470,7 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
         O.figure = O.figureRig.container; O.figure.label = 'guardian-figure'; O.figure.visible = false; L.actors.addChild(O.figure);
         O.guardianOptions = { scene: def.id, hero: G.player, time: 0, dt: 0, reducedMotion: false, figure: false };
         O.signe = spr('turtle-signe'); O.signe.visible = false; L.actors.addChild(O.signe);
-        if (def.race) { O.beachPlay = createBeachPlay(PIXI, def); L.mid.addChild(O.beachPlay.container); }
+        if (def.race) { O.beachPlay = createBeachPlay(RAW, def); L.mid.addChild(O.beachPlay.container); }
         // Sandpapperet: hoofprints on sand (walk prints fade, gallop prints stay as graphite)
         if (def.printMats) { O.prints = new PIXI.Container(); L.mid.addChild(O.prints); O.printSprites = []; }
         // the hint mark and Alva's own gull
@@ -1443,7 +1521,9 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
             c._lamp = lamp;
             const beam = createPencilBeam(PIXI); beam.position.set(lamp.x, lamp.y); beam.scale.y = -1;
             inner.addChildAt(beam, 0); c._beam = beam;
-            mask.clear().rect(w.x0, w.top, w.x1 - w.x0, h(9)).fill({ color: 0xffffff });
+            // only where there is water: never across the islet's stone below the tower
+            mask.clear();
+            for (const span of seaSpans(def, w, w.top + h(9))) mask.poly(span.poly.map(([x, y]) => [x, Math.min(y, w.top + h(9))]).flat()).fill({ color: 0xffffff });
         }
         c._inner = inner;
         L.waterFront.addChildAt(c, 0);
@@ -1980,6 +2060,7 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
         stepTurns(dt);
         // tooth overlay follows the screen
         if (tooth) { tooth.width = W; tooth.height = H; }
+        if (vignette) { vignette.width = W; vignette.height = H; }
         fade.clear();
         if (fadeAlpha > 0.001) fade.rect(0, 0, W, H).fill({ color: fadeColor, alpha: fadeAlpha });
         // Evening belongs to the environment's light and painted backdrop.
@@ -2722,7 +2803,7 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
                 const x = shell?.s.x ?? data.x, y = shell?.s.y ?? G.terrain.groundNear(x, data.y, 120) ?? data.y;
                 const k = G.actors.klo;
                 const kx = k?.visible && Math.abs(k.x - x) < h(5) ? k.x : x + h(1.6), ky = k?.y ?? y;
-                const effect = createFoldDemo(PIXI, {
+                const effect = createFoldDemo(RAW, {
                     texture: T, x, y, clawX: kx + 29, clawY: ky - 65, lessMotion: G.lessMotion
                 });
                 L.fx.addChild(effect.container);
@@ -2910,6 +2991,7 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
         root.destroy({ children: true });
         fadeTex?.destroy(true); fadeTex = null;
         shadeTex?.destroy(true); shadeTex = null;
+        vignetteTex?.destroy(true); vignetteTex = null;
         for (const t of gradients.splice(0)) t.destroy(true);
     }
 
