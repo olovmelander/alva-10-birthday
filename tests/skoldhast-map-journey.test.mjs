@@ -2,14 +2,15 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import * as PIXI from '../skoldhast/vendor/pixi-8.21.0.min.mjs';
 import { createMapJourney, journeyRoute, pointAlong, sampleJourney, JOURNEY_TIMES } from '../skoldhast/src/map-journey.mjs';
-import { MAP_ROUTES, MAP_HEART, MAP_TOWER } from '../skoldhast/src/map-layout.mjs';
+import { MAP_ROUTES, MAP_HEART, MAP_PIER } from '../skoldhast/src/map-layout.mjs';
 import { describeThread } from '../skoldhast/src/story-thread.mjs';
 import { THREAD } from '../skoldhast/src/content/sv.mjs';
 
-test('the crossing follows the mended map from Kelphjärtat round to the tower, and back', () => {
+test('the crossing follows the mended map from Kelphjärtat round under Bryggan, and back', () => {
     const toBay = journeyRoute('toBay'), toKelp = journeyRoute('toKelp');
-    assert.deepEqual(toBay.at(-1), MAP_ROUTES.sea.at(-1), 'it ends at the route\'s own end by the tower');
-    assert.ok(Math.hypot(toBay.at(-1)[0] - MAP_TOWER.x, toBay.at(-1)[1] - MAP_TOWER.y) < 20);
+    assert.deepEqual(toBay.at(-1), MAP_ROUTES.sea.at(-1), 'it ends at the route\'s own end, under Bryggan');
+    const [[ax, ay], [bx, by]] = MAP_PIER, [ex, ey] = toBay.at(-1);
+    assert.ok(ex > ax && ex < bx && ey > ay + (by - ay) * (ex - ax) / (bx - ax), 'where a swimmer comes up, under the bridge');
     assert.ok(Math.hypot(toBay[0][0] - MAP_HEART.x, toBay[0][1] - MAP_HEART.y) < 20, 'it starts at Kelphjärtat');
     assert.deepEqual(toKelp, toBay.slice().reverse(), 'the way back is the same leg reversed');
     const half = pointAlong(toBay, .5);

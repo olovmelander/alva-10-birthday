@@ -306,21 +306,36 @@ and why.
 4. **Still water shows the page as it should be, unfolded.** That is why the pool in P2 shows an open arch, and
    why the lighthouse is lit only in its reflection: on the folded page its shutters are shut. Klo says it once,
    at P2: "Spegelbilden visar hur sidan ska se ut!"
-5. **The fold** is a ruler-straight line out at sea, parallel to the shore.
-   - From the beach it is the crease along the horizon. The open sea beyond it is folded under: that is
-     "havet mellan sidorna".
-   - Under water the fold is **Veckmuren**, and it stays shut until Kartväktaren unfolds the page.
-   - Mörka valvet, Kelphjärtat, the outflow and Spegelviken all lie on this side of it. Pappersfyren stands on
-     the fold itself.
-   - Kelpskogen and Spegelviken are the same sea around a headland, with the same waterline. The outflow
-     follows a rising seabed sideways into the shallower bay beneath Trumbryggan. It never surfaces before
-     the crossing or passes through Veckmuren. The underwater passage also allows a swimmer to return.
+5. **The fold** is the ruler-straight crease from the opening, between the beach and Pappersfyren and
+   parallel to the beach's shore. Kartväktaren folded the sea corner under the page so the splash could not
+   reach his paper lighthouse, and the lighthouse went under with it, exactly as the opening shows.
+   - From the beach it crosses Bryggan just past the gate, where the beach ends. The gate is bolted from the
+     other side, the folded side ("Grinden är reglad från andra sidan"). There the page is creased: the jetty
+     ends at a ruled graphite hinge, and beyond it the folded corner is turned up as paper, its back to us,
+     with her sea's line and the lighthouse showing faintly through. Standing on the jetty facing the sea, the
+     view frames the gate and the crease together (zooming out a little on a narrow screen). The crease is
+     gone once the page is unfolded.
+   - Under water the fold is **Veckmuren**, and the figure with the ruler hurries away beyond it.
+   - Mörka valvet, Kelphjärtat and the outflow lie on this side of it. Beyond it, folded under the page, lie
+     Spegelviken, the far part of Bryggan (Trumbryggan) and Pappersfyren: "havet mellan sidorna", the
+     adventure's own name. Its far end in the bay is the folded corner's edge.
+   - Kelpskogen and Spegelviken are the same sea. Once the map is mended, the outflow follows a rising seabed
+     in under Veckmuren, into the shallower folded-away bay beneath Trumbryggan. The underwater passage also
+     allows a swimmer to return. Arriving there, the sköldhäst is on the gate's folded side, so it opens.
+   - When Kartväktaren unfolds the page at the end, the corner and its lighthouse come back into Alva's picture.
    - **The crossing is drawn on the mended map** (`src/map-journey.mjs`), not as a page turn: the sea left
      behind stays on screen while Kartväktaren's repaired map arrives over it, a small sköldhäst rides the
-     route the collected pieces made whole from Kelphjärtat round the headland to Spegelviken, and the bay
-     appears under the pier with depth, momentum and a hidden shell kept. The outflow current itself is
-     drawn in the map's blue ink, so the line Klo traced on paper is the current in the sea. The crossing
-     takes the whole water column below the surface swim, down to the floor.
+     route the collected pieces made whole from Kelphjärtat in under the fold into Spegelviken, up under
+     Bryggan where the swimmer comes out, and the bay appears under the pier with depth, momentum and a
+     hidden shell kept. The outflow current itself is drawn in the map's blue ink, so the line Klo traced
+     on paper is the current in the sea. The crossing takes the whole water column below the surface swim,
+     down to the floor.
+   - **The map shows where we are, and the fold from the opening.** The journal's map, and its small copy
+     on "Vad vet vi?", puts a little sköldhäst ("Här är vi") where the player is in the world, also over
+     pieces not yet found. Alva's blue line runs out from the beach and stops at Vecket, the ruled crease.
+     Beyond the crease the folded-away corner is still drawn but veiled ("Mellan sidorna"): Spegelviken,
+     the far part of Bryggan and Pappersfyren. Bryggan, with the bolted gate seen from the beach, runs from
+     the sand across the crease to the lighthouse islet.
 6. **Her outline clouds and m-gulls are her style, not damage.** A joke teaches this early:
    - Klo: "Varför är molnen inte färglagda?"
    - Sköldhästen: "Moln är vita, Klo."
@@ -350,10 +365,13 @@ and why.
      reuses this line. The waterline starts to run off the picture, and the world starts to grow.
 4. Halfway through that third stroke, at a fixed authored point so it cannot fail:
    - Far off in her margin stands Pappersfyren (the game's own drawing, lamp alight), and on its gallery a small
-     paper man (Kartväktaren, not yet named) lifts his ruler and measures her line. The view leans towards him.
+     paper man (Kartväktaren, not yet named) lifts his ruler and measures her line. Bryggan, the game's jetty,
+     runs from her beach out to the lighthouse's islet. The view leans towards him.
      As a thin sheet of her sea runs along the line towards him, he shrinks back, hands to his face, and his
      ruler leaves his hand for the fold.
    - *Prassel.* A dead-straight crease flicks across the horizon from outside the page and cuts her line short.
+     It cuts Bryggan too: the jetty's far end and the lighthouse fold under with the sea corner, and the beach
+     keeps the near end, where the game's beach later finds the bolted gate.
    - Three torn scraps of his ruled map tear loose at the far tower and flutter into her picture: one over the
      land, one into the sea, and one to the sand right beside Klo.
    - The splash stops in mid-air, the sun stops, and one drop rolls *upward* over the paper. This works even with
@@ -475,8 +493,8 @@ the map-piece search begins, any unfinished land puzzles gain matching search go
     visible while Klo explains it. Then trace the continuous blue route to the lighthouse and hold it
     through the explanation. Only the completed reveal opens the world current.
   - The outflow from Kelphjärtat opens. When discovered under water, hold a view of the actual current and
-    rising shelf while Klo explains that it rounds the headland on this side of Veckmuren. The route stays
-    submerged into Spegelviken. Hold a second view of the real lighthouse and its reflection; this time the
+    rising shelf while Klo explains that it runs on to Veckmuren and in under the fold. The route stays
+    submerged into the folded-away Spegelviken. Hold a second view of the real lighthouse and its reflection; this time the
     paper figure peeks out through a shutter and snaps it shut. The comparison stays visible for the line.
   - Klo: "Där är figuren med linjalen! Han smällde igen luckan. Vad är han så rädd för?"
   - Forskningsrapport nr 2, then control returns with the current route toward the bay. The "Nästa sida
@@ -979,10 +997,12 @@ Stranden (hub: her composition, shell row, Spegelpölen) ── Trumbryggan (pie
 Kelpskogen (kelp entry, Mörka valvet, Kelphjärtat; Veckmuren along its seaward edge) ── outflow ── Spegelviken
 ```
 
-- **Shortcuts open from the far side.** Arriving in Spegelviken unbolts the pier gate back to Stranden.
-- **One continuous sea.** The kelp outflow follows the bed up to the headland, then crosses laterally at
-  4.1 HL below the shared waterline into the bay beneath the pier. Matching rock, bed and current markings
-  connect both sides. Swimming back uses the same passage; neither direction crosses the sealed fold.
+- **Shortcuts open from the far side.** Arriving in Spegelviken, on the folded side of the gate, unbolts
+  the pier gate back to Stranden.
+- **One continuous sea.** The kelp outflow follows the bed up to Veckmuren and, once the map is mended,
+  carries the swimmer in under the fold at 4.1 HL below the shared waterline, into the folded-away bay
+  beneath the pier. Matching rock, bed and current markings connect both sides. Swimming back uses the
+  same passage; the fold itself stays sealed until Kartväktaren unfolds the page.
 - **Revisits** show consequences (inked bridges, coloured props, restored water) rather than repeated
   challenges.
 - **Release boundaries.**

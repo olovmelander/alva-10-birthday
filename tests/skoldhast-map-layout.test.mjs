@@ -26,7 +26,8 @@ test('the journal and the game cut the same pieces', () => {
 test('every place name sits wholly on one piece, never across a tear', () => {
     for (const l of MAP_LABELS) {
         const half = (l.minor ? 16 : 22) * 0.3 * 5; // about half the width of a short name
-        const ends = l.vertical ? [[l.x, l.y - half], [l.x, l.y + half]] : [[l.x - half, l.y - 4], [l.x + half, l.y - 4]];
+        const a = (l.angle || 0) * Math.PI / 180, dx = Math.cos(a) * half, dy = Math.sin(a) * half;
+        const ends = l.angle ? [[l.x - dx, l.y - dy], [l.x + dx, l.y + dy]] : [[l.x - half, l.y - 4], [l.x + half, l.y - 4]];
         const on = new Set([...pieceAt([l.x, l.y - 4]), ...ends.flatMap(pieceAt)]);
         assert.equal(on.size, 1, `${l.key} lies on ${[...on]}`);
     }

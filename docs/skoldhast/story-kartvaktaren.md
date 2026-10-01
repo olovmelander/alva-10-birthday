@@ -46,6 +46,9 @@ and the pieces flew across the page. The pieces the player collects are the evid
 - **Prolog:** as the page folds, three paper scraps tear loose at the far tower and flutter into her picture.
 - **Kapitel 1:** Klo finds one of them: a map corner ruled with a ruler and signed Kartväktaren.
 - **Kapitel 2:** the land and sea halves join the corner. The torn edges follow the fold.
+- **Where the corner went:** the fold runs between the beach and the lighthouse. Spegelviken, the far part of
+  the pier and Pappersfyren are the corner folded under the page, "havet mellan sidorna". The mended map's
+  current carries the sköldhäst in under Veckmuren to him; the jetty gate on the beach is bolted from his side.
 - **Kapitel 3:** Klo hands the whole map back. "Den gick sönder när du vek sidan – inte av vattnet."
 
 ## 4. The clue chain, chapter by chapter
@@ -70,7 +73,7 @@ before the game says, and the meeting pays that off ("det är han!").
    alight: the page as it should be), and a small paper man stands on its gallery (the game's own paper rig).
    As she draws the shore the view leans towards him: he measures her line with his ruler, shrinks back with
    his hands to his face as the sea comes, and his ruler leaves his hand for the fold. He folds away with the
-   corner, lighthouse and all. No words, no name, no close face.
+   corner, lighthouse and all, and the crease cuts the jetty that led out to it. No words, no name, no close face.
 2. **Kapitel 1:** the same figure hurries away from the water beyond Veckmuren.
 3. **Kapitel 2:** he peeks through a lighthouse shutter and slams it shut.
 4. **Kapitel 3:** he comes out. Now we see his face, connect him to the name on the notes and learn why.

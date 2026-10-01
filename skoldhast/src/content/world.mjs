@@ -3,7 +3,8 @@
  * and converted to world units (1 HL = 200 wu, y down, sea level y = 0).
  *
  *   land   Klippudden · the cleft · Galoppbacken · Vågmärkesbranten · Galoppbanan ·
- *          Streckbron · Spången · the dunes · Spegelpölen · her beach · the jetty gate
+ *          Streckbron · Spången · the dunes · Spegelpölen · her beach · the jetty gate ·
+ *          the crease where the page is folded
  *   kelp   the cave from Vattenporten · the kelp entry · the trench (Mörka valvet,
  *          Kelphjärtat) · Veckmuren
  *   viken  the shore · Trumbryggan (the pier) · Pappersfyren · Strömröret
@@ -36,7 +37,10 @@ export const SCENES = {};
 // ===========================================================================
 SCENES.land = {
     id: 'land', title: SCENE_TITLES.land,
-    bounds: { x0: h(-2), x1: h(119), y0: h(-12), y1: h(3) },
+    // the view reaches a little past the jetty's end, so the crease there is seen from the gate
+    bounds: { x0: h(-2), x1: h(120.6), y0: h(-12), y1: h(3) },
+    // on the jetty, looking out to sea: the gate, the rest of the jetty and the crease it ends in
+    camViews: [{ x0: h(112.6), x1: h(118.5), facing: 1, show: [h(114.2), h(119.3)], when: '!unfolded' }],
     backdrop: [
         // The steppe: a sky, then three bands of hills at their own depth (the
         // farthest moves least). Standing on the ground at `ref`, each band's top
@@ -50,7 +54,7 @@ SCENES.land = {
         },
         // Her sea sits behind her beach, as in her picture: the painting's first
         // full sea row (73 % down) is pinned to this world height.
-        { image: 'bg-beach', x0: h(80), x1: h(119), seaRow: 0.73, seaY: h(-0.42) }
+        { image: 'bg-beach', x0: h(80), x1: h(120.6), seaRow: 0.73, seaY: h(-0.42) }
     ],
     // Her dark-blue waterline where the sea meets the sand, behind the legs
     // (plan §2.3); it runs on into the sea's own surface line at the shore.
@@ -286,6 +290,9 @@ SCENES.land = {
         { sprite: 'jetty-post', x: h(113.4), y: h(0.3), layer: 'mid' },
         { sprite: 'jetty-post', x: h(115.8), y: h(0.3), layer: 'mid' },
         { sprite: 'jetty-post', x: h(118.2), y: h(0.3), layer: 'mid' },
+        // Vecket from the beach: the jetty ends at the crease, the corner beyond is folded under
+        // with the lighthouse (gone once Kartväktaren unfolds the page)
+        { sprite: 'page-crease', x: h(118.5), layer: 'mid', when: '!unfolded' },
         // the pool and its cliff (Vattenporten)
         { sprite: 'cliff-sealed', x: h(101.7), y: h(-0.28), layer: 'mid', when: '!p2_open', cliff: true },
         { sprite: 'cliff-open', x: h(101.7), y: h(-0.28), layer: 'mid', when: 'p2_open', cliff: true },
