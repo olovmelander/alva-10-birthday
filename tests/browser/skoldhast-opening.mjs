@@ -111,16 +111,25 @@ async function reachShore(page, beforeLean) {
     throw new Error('shoreline drawing was not reached');
 }
 
+let touchClock = 0; // when the last synthetic finger lifted (seconds since the epoch)
 async function stroke(page, points) {
     const { width, height } = page.viewportSize();
     if (width < height) {
+        // A drawing finger with its own event times: it moves at 60 Hz and rests on its
+        // last point before it lifts (Chrome counts a pointer as still 40 ms after its
+        // last move). A finger lifted mid-motion starts a fling, and Chrome then swallows
+        // the click of the next tap, the one that would stop the fling: the touch reaches
+        // the choice after the fold, but the choice never hears it. The times end now
+        // and never run backwards.
+        const step = 1 / 60, rest = .1, length = (points.length - 1) * step + rest;
+        let time = Math.max(Date.now() / 1000 - length, touchClock + step);
         const cdp = await page.context().newCDPSession(page);
-        const point = ([x, y]) => [{ x, y, id: 1 }];
+        const send = (type, touchPoints) => cdp.send('Input.dispatchTouchEvent', { type, touchPoints, timestamp: time });
         try {
-            await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: point(points[0]) });
-            for (const p of points.slice(1)) await cdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: point(p) });
-            await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
-        } finally { await cdp.detach(); }
+            await send('touchStart', [{ x: points[0][0], y: points[0][1], id: 1 }]);
+            for (const [x, y] of points.slice(1)) { time += step; await send('touchMove', [{ x, y, id: 1 }]); }
+            time += rest; await send('touchEnd', []);
+        } finally { touchClock = time; await cdp.detach(); }
     } else {
         await page.mouse.move(...points[0]); await page.mouse.down();
         for (const p of points.slice(1)) await page.mouse.move(...p, { steps: 5 });
