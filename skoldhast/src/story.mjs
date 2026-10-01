@@ -1287,7 +1287,7 @@ export function createStory(G, io) {
     /** The goal note, help ladder and world cue share this one current task. */
     function guidance() {
         const key = objective();
-        return describeGuidance(G, { objective: key, touch: io.touch, ...io.settings?.(), p8: key === 'p8' ? p8Progress(G) : undefined });
+        return describeGuidance(G, { objective: key, touch: io.touch, device: io.device, ...io.settings?.(), p8: key === 'p8' ? p8Progress(G) : undefined });
     }
     function goal() { return guidance().goal; }
     const PROGRESS = new Set(['inked', 'grow', 'seedLanded', 'hillUnpinned', 'opened', 'latch', 'lit', 'mark', 'flattened', 'kelpFreed', 'push', 'reflectionSeen', 'scene', 'bigLanding', 'streckDone', 'ratchet', 'taste', 'pickup', 'colorin']);
@@ -1326,7 +1326,7 @@ export function createStory(G, io) {
     // which control a tip points at on a touch screen (with keys only the journal has a place to point)
     const TIP_AT = { gallop: 'stick', swim: 'stick', dashed: 'stick', act: 'act', hide: 'hide', journal: 'journal' };
     function tipOnce(id) {
-        const text = controlTip(id, { touch: io.touch, ...io.settings?.() });
+        const text = controlTip(id, { touch: io.touch, device: io.device, ...io.settings?.() });
         if (F.has('tip_' + id) || !text) return;
         F.add('tip_' + id);
         if (!io.touch && ['gallop', 'act', 'hide', 'swim', 'journal'].includes(id)) return;

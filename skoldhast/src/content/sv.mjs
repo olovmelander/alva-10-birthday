@@ -62,13 +62,14 @@ export const UI = {
     tapToGo: 'Tryck för att fortsätta', rotate: 'Rotera telefonen för bästa upplevelse',
     hop: 'Hoppa', hide: 'Göm dig', show: 'Kom fram',
     interact: 'Använd', spaceKey: 'Mellanslag',
-    jumpHelp: 'Mellanslag: hoppa. Är du gömd kommer du fram först; tryck igen för att hoppa.',
-    hideHelp: '↓ eller S: göm dig. Mellanslag: kom fram. G eller skal-knappen växlar mellan gömd och framme.',
-    hideHoldHelp: 'Håll ↓, S, G eller skal-knappen för att gömma dig. Släpp eller tryck mellanslag för att komma fram.',
-    interactHelp: 'E: använd det som finns nära – färglägg, knuffa, dra eller prata.',
-    moveHelp: '← → / A D: gå\nI vatten: ↑ / W upp · X ner',
-    keybindings: 'Tangenter',
-    keyboardHelp: '← → / A D: gå och galoppera\nMellanslag: hoppa / kom fram ur skalet\n↓ / S: göm dig · G: göm dig / kom fram\nE: färglägg, knuffa, dra, prata eller läs\nI vatten: ↑ / W simma upp · X dyk ner\nJ: dagbok · Esc / P: paus\nN: gnägg · K: ropa på Klo\nI berättelsens samtal: mellanslag, E eller Enter fortsätter.',
+    jumpHelp: 'Mellanslag eller ↑ / W: hoppa. Är du gömd kommer du fram först; tryck igen för att hoppa.',
+    hideHelp: 'På land: ↓ eller S gömmer dig. G gömmer dig överallt, även i vattnet. Mellanslag eller ↑ tar fram dig. G och skal-knappen växlar mellan gömd och framme.',
+    hideHoldHelp: 'Håll G eller skal-knappen (på land även ↓ eller S) för att gömma dig. Släpp eller tryck mellanslag för att komma fram.',
+    interactHelp: 'E eller Enter: använd det som finns nära – färglägg, knuffa, dra, prata eller läs.',
+    moveHelp: '← → / A D: gå och galoppera · håll Shift för att gå lugnt\nI vatten: ← → ↑ ↓ / W A S D: simma åt alla håll',
+    keybindings: 'Tangenter och handkontroll',
+    keyboardHelp: '← → / A D: gå och galoppera · håll Shift för att gå lugnt\nMellanslag eller ↑ / W: hoppa · kom fram ur skalet\n↓ / S: göm dig (på land) · G: göm dig / kom fram (överallt)\nE eller Enter: färglägg, knuffa, dra, prata eller läs\nI vatten: ← → ↑ ↓ / W A S D: simma · mellanslag: upp, och vid ytan ett språng ur vattnet · G: göm dig och sjunk\nK: ropa på Klo · N: gnägg · J: dagbok · Esc / P: paus\nI samtal: mellanslag, E eller Enter fortsätter.',
+    padHelp: 'Handkontroll: spaken eller korset går, galopperar och simmar · A: hoppa / kom fram · B: göm dig · X: använd · Y: ropa på Klo · axelknapp: gnägg · Start: paus · Tillbaka: dagbok. I menyer flyttar korset, A väljer och B går tillbaka.',
     help: 'Hjälp', helpEasy: 'Utforska i lugn och ro', helpNormal: 'Lagom', helpHard: 'Lite mer klurigt',
     helpAsk: 'Bara när jag frågar', helpRemind: 'Påminn mig om Klo', helpGuided: 'Guida mig',
     holdGallop: 'Håll kvar galoppen', holdGallopHelp: 'När du släpper fortsätter sköldhästen att galoppera – tills du styr åt andra hållet.',
@@ -524,31 +525,31 @@ export const THREAD = {
 // One-off tips about the controls (touch and keyboard versions)
 // ---------------------------------------------------------------------------
 export const TIPS = {
-    gallop: { touch: 'Dra spaken ända ut – då galopperar du!', keys: 'Håll in pilen – efter en stund galopperar du!' },
-    act: { touch: 'Knappen ovanför Hoppa byter namn: Färglägg, Knuffa, Läs … Hoppa har alltid en egen knapp.', keys: 'E gör det som står på Använd-knappen: Färglägg, Knuffa, Läs … Mellanslag hoppar.' },
-    hide: { touch: 'Göm dig: du kryper in under skalet. Tryck Kom fram för att resa dig, sedan Hoppa för att hoppa.', keys: '↓ eller S gömmer dig under skalet. Mellanslag tar fram dig. Tryck mellanslag igen för att hoppa.' },
-    swim: { touch: 'I vattnet styr du åt alla håll. Gömd sjunker du – men i en ström driver du med.', keys: '← → eller A/D simmar åt sidorna, ↑ eller W upp och X ner. ↓ eller S gömmer dig så att du sjunker. Mellanslag tar fram dig.' },
-    journal: { touch: 'Undrar du något? Tryck Ropa på Klo. Dina upptäckter finns i boken.', keys: 'Undrar du något? Tryck K för Klo. J öppnar Forskningsdagboken.' },
+    gallop: { touch: 'Dra spaken ända ut – då galopperar du!', keys: 'Håll in pilen – efter en stund galopperar du!', pad: 'Tryck spaken ända ut – då galopperar du!' },
+    act: { touch: 'Knappen ovanför Hoppa byter namn: Färglägg, Knuffa, Läs … Hoppa har alltid en egen knapp.', keys: 'E gör det som lappen vid sköldhästen säger: Färglägg, Knuffa, Läs … Mellanslag hoppar.', pad: 'X gör det som lappen vid sköldhästen säger: Färglägg, Knuffa, Läs … A hoppar.' },
+    hide: { touch: 'Göm dig: du kryper in under skalet. Tryck Kom fram för att resa dig, sedan Hoppa för att hoppa.', keys: '↓ eller S gömmer dig under skalet (G gör det även i vattnet). Mellanslag eller ↑ tar fram dig. Tryck igen för att hoppa.', pad: 'B gömmer dig under skalet. A tar fram dig – tryck A igen för att hoppa.' },
+    swim: { touch: 'I vattnet styr du åt alla håll. Gömd sjunker du – men i en ström driver du med.', keys: 'I vattnet simmar du åt alla håll med piltangenterna eller W A S D. G gömmer dig så att du sjunker – men i en ström driver du med. Mellanslag tar fram dig.', pad: 'I vattnet styr spaken åt alla håll. B gömmer dig så att du sjunker – men i en ström driver du med.' },
+    journal: { touch: 'Undrar du något? Tryck Ropa på Klo. Dina upptäckter finns i boken.', keys: 'Undrar du något? Tryck K för Klo. J öppnar Forskningsdagboken.', pad: 'Undrar du något? Tryck Y för Klo. Tillbaka-knappen öppnar Forskningsdagboken.' },
     dashed: { touch: 'Streckade linjer är ofärdiga. Galoppera över dem, så ritas de klart!', keys: 'Streckade linjer är ofärdiga. Galoppera över dem, så ritas de klart!' },
     fullGallop: { touch: 'Full galopp! Nu ritar hovarna och du kan ta stora språng.', keys: 'Full galopp! Nu ritar hovarna och du kan ta stora språng.' },
-    runup: { touch: 'Ta sats högst uppe på Galoppbacken. Håll spaken åt vänster hela vägen ner till kanten.', keys: 'Ta sats högst uppe på Galoppbacken. Håll ← eller A hela vägen ner till kanten.' }
+    runup: { touch: 'Ta sats högst uppe på Galoppbacken. Håll spaken åt vänster hela vägen ner till kanten.', keys: 'Ta sats högst uppe på Galoppbacken. Håll ← eller A hela vägen ner till kanten.', pad: 'Ta sats högst uppe på Galoppbacken. Håll spaken åt vänster hela vägen ner till kanten.' }
 };
 
 // Persistent, state-derived help. The renderer and controls share these words;
 // no timer or remembered one-off tip decides whether they are needed.
 export const GUIDANCE = {
     controls: {
-        hide: { touch: 'Tryck Göm dig.', keys: 'Tryck ↓ eller S.' },
-        hideHold: { touch: 'Håll Göm dig intryckt.', keys: 'Håll ↓ eller S intryckt.' },
-        emerge: { touch: 'Tryck Kom fram.', keys: 'Tryck mellanslag.' },
-        emergeHold: { touch: 'Släpp Göm dig eller tryck Kom fram.', keys: 'Släpp göm-tangenten eller tryck mellanslag.' },
-        stay: { touch: 'Stanna gömd.', keys: 'Stanna gömd.' },
-        move: { touch: 'Styr med spaken.', keys: 'Styr med ← → eller A/D. Simma upp med ↑/W, ner med X.' },
+        hide: { touch: 'Tryck Göm dig.', keys: 'Tryck ↓, S eller G.', keysWater: 'Tryck G.', pad: 'Tryck B.' },
+        hideHold: { touch: 'Håll Göm dig intryckt.', keys: 'Håll ↓, S eller G intryckt.', keysWater: 'Håll G intryckt.', pad: 'Håll B intryckt.' },
+        emerge: { touch: 'Tryck Kom fram.', keys: 'Tryck mellanslag eller ↑.', pad: 'Tryck A.' },
+        emergeHold: { touch: 'Släpp Göm dig eller tryck Kom fram.', keys: 'Släpp göm-tangenten eller tryck mellanslag.', pad: 'Släpp B eller tryck A.' },
+        stay: { touch: 'Stanna gömd.', keys: 'Stanna gömd.', pad: 'Stanna gömd.' },
+        move: { touch: 'Styr med spaken.', keys: 'Styr med ← → eller A/D.', keysWater: 'Simma med piltangenterna eller W A S D.', pad: 'Styr med spaken.' },
         follow: 'Håll fingret dit du vill gå.',
-        gallop: { touch: 'Dra spaken ända ut.', keys: 'Håll pilen inne för full galopp.' },
+        gallop: { touch: 'Dra spaken ända ut.', keys: 'Håll pilen inne för full galopp.', pad: 'Tryck spaken ända ut.' },
         followGallop: 'Håll fingret långt framför sköldhästen.',
-        act: { touch: 'Tryck på knappen ovanför Hoppa.', keys: 'Tryck E.' },
-        hideTipHold: { touch: 'Håll Göm dig intryckt för att krypa under skalet. Släpp för att komma fram.', keys: 'Håll ↓ eller S intryckt för att krypa under skalet. Släpp eller tryck mellanslag för att komma fram.' },
+        act: { touch: 'Tryck på knappen ovanför Hoppa.', keys: 'Tryck E.', pad: 'Tryck X.' },
+        hideTipHold: { touch: 'Håll Göm dig intryckt för att krypa under skalet. Släpp för att komma fram.', keys: 'Håll ↓, S eller G intryckt för att krypa under skalet (i vattnet G). Släpp eller tryck mellanslag för att komma fram.', pad: 'Håll B intryckt för att krypa under skalet. Släpp för att komma fram.' },
         gallopTipFollow: 'Håll fingret långt framför sköldhästen – då galopperar du!'
     },
     progress: {

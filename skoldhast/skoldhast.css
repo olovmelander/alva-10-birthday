@@ -131,10 +131,24 @@ html.skoldhast-lock, html.skoldhast-lock body { overflow: hidden !important; ove
 .sk-caption.on { opacity: 0.95; }
 
 /* --- controls --------------------------------------------------------------------- */
+/* The touch controls follow the device in use (main.mjs sets .sk-touch): a
+   touchscreen shows them, the keyboard or a gamepad puts them away. */
 .sk-controls { display: none; position: absolute; left: 0; right: 0; bottom: 0; height: 38%; pointer-events: none; transition: opacity .3s; }
-@media (pointer: coarse) {
-    .sk-controls { display: block; }
-}
+.sk-ui.sk-touch .sk-controls { display: block; }
+
+/* Keyboard and gamepad play: a small paper note by the horse names the key for
+   the action that is possible right now (E Knuffa, X Prata …). */
+.sk-keynote { position: absolute; left: 0; top: 0; display: flex; align-items: center; gap: 7px; padding: 3px 10px 4px 4px;
+    background: var(--sk-paper) #fbf8f1; background-size: 256px; border-radius: 4px 6px 5px 7px;
+    box-shadow: 0 1px 2px rgba(40, 30, 20, 0.3), 0 4px 10px -4px rgba(40, 30, 20, 0.3);
+    font: calc(17px * var(--fz))/1 var(--sk-hand); color: var(--sk-ink); white-space: nowrap;
+    pointer-events: none; opacity: 0; transition: opacity .18s; will-change: transform; }
+.sk-keynote.on { opacity: 0.96; }
+.sk-keynote.off { opacity: 0 !important; }
+.sk-keycap { display: inline-grid; place-items: center; min-width: 22px; height: 22px; padding: 0 4px; box-sizing: border-box;
+    border: 1.5px solid var(--sk-ink); border-radius: 5px; box-shadow: 0 2px 0 var(--sk-ink); background: #fffdf6;
+    font-size: 0.92em; transform: translateY(-1px); }
+.sk-ui.sk-pad .sk-keycap { border-radius: 50%; min-width: 24px; height: 24px; background: #e7f0dc; }
 .sk-stick-zone { position: absolute; left: 0; bottom: 0; top: 0; width: 58%; pointer-events: auto; touch-action: none; }
 .sk-stick-base { position: absolute; width: 132px; height: 132px; margin: -66px 0 0 -66px; background-size: contain; background-repeat: no-repeat;
     opacity: 0; transition: opacity .15s; left: 90px; top: 60%; pointer-events: none; }
@@ -305,7 +319,7 @@ html.skoldhast-lock, html.skoldhast-lock body { overflow: hidden !important; ove
 .sk-key-reference { margin: 12px 0; padding-top: 10px; border-top: 1px dashed var(--sk-soft); text-align: left; }
 .sk-key-reference summary { min-height: 44px; align-content: center; cursor: pointer; font-size: calc(22px * var(--fz)); }
 .sk-key-reference summary:focus-visible { outline: 2px dashed var(--sk-orange); outline-offset: 3px; }
-.sk-key-reference .sk-key-list { white-space: pre-line; font-size: calc(19px * var(--fz)); line-height: 1.55; }
+.sk-key-reference .sk-key-list, .sk-key-reference .sk-pad-list { white-space: pre-line; font-size: calc(19px * var(--fz)); line-height: 1.55; }
 .sk-key-reference .sk-key-note { font-size: calc(17px * var(--fz)); line-height: 1.35; color: var(--sk-soft); }
 .sk-sheet-settings { width: min(460px, 100%); }
 .sk-sheet-pause { width: min(360px, 100%); }

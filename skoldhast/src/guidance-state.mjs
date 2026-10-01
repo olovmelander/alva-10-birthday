@@ -10,12 +10,17 @@ const at = (scene, x, y) => ({ scene, x: x * HL, y: y * HL });
 const point = (scene, p) => p ? { scene, x: p.x, y: p.y } : null;
 const count = (F, ...flags) => flags.filter(f => F.has(f)).length;
 
+/** touch, keys or pad: the device whose words a tip or instruction uses. */
+const deviceOf = settings => settings.device || (settings.touch ? 'touch' : 'keys');
+/** The words for this device, in the water when the keys mean something else there. */
+const wordsFor = (words, device, water = false) => words?.[device === 'keys' && water && words.keysWater ? 'keysWater' : device] ?? words?.keys ?? '';
+
 /** One-off tips use the same control settings as the persistent instruction. */
 export function controlTip(kind, settings = {}) {
-    const device = settings.touch ? 'touch' : 'keys';
-    if (kind === 'hide' && settings.holdToHide) return W.controls.hideTipHold[device];
-    if (kind === 'gallop' && settings.touch && settings.followFinger) return W.controls.gallopTipFollow;
-    return TIPS[kind]?.[device] || '';
+    const device = deviceOf(settings);
+    if (kind === 'hide' && settings.holdToHide) return wordsFor(W.controls.hideTipHold, device);
+    if (kind === 'gallop' && device === 'touch' && settings.followFinger) return W.controls.gallopTipFollow;
+    return wordsFor(TIPS[kind], device);
 }
 
 /**
@@ -24,10 +29,10 @@ export function controlTip(kind, settings = {}) {
  * All target coordinates are world coordinates and carry their scene ID.
  */
 export function describeGuidance(G, settings = {}) {
-    const { objective = 'explore', touch = false, holdToHide = false, followFinger = false, p8 } = settings;
+    const { objective = 'explore', holdToHide = false, followFinger = false, p8 } = settings;
     const F = G.flags, p = G.player, S = G.puz, scenes = G.scenes;
     const scene = G.sceneId || G.sceneDef.id, hidden = !!p.hidden;
-    const device = touch ? 'touch' : 'keys';
+    const device = deviceOf(settings), touch = device === 'touch';
     const n = objective === 'p7' ? count(F, 'shutter1', 'shutter2', 'shutter3')
         : ['p3', 'p3b'].includes(objective) ? count(F, 'p3_t1', 'p3_t2', 'p3_t3')
         : objective === 'p2' ? Number(S.stone === scenes.land.rail.target) + Number(F.has('p2_plank'))
@@ -208,7 +213,7 @@ export function describeGuidance(G, settings = {}) {
     if (control === 'hide') control = hidden && !holdToHide ? 'stay' : holdToHide ? 'hideHold' : 'hide';
     if (control === 'emerge' && holdToHide) control = 'emergeHold';
     cue.controlText = touch && followFinger && control === 'move' ? W.controls.follow
-        : touch && followFinger && control === 'gallop' ? W.controls.followGallop : W.controls[control]?.[device] || '';
+        : touch && followFinger && control === 'gallop' ? W.controls.followGallop : wordsFor(W.controls[control], device, p.mode === 'swim');
     if (cue.instruction) cue.hint = { q: cue.hint?.q || cue.goal, note: cue.instruction, sketch: [cue.instruction, cue.controlText].filter(Boolean).join(' ') };
     return cue;
 }

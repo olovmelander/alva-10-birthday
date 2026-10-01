@@ -1,5 +1,45 @@
 # Sköldhästen – handover
 
+## Controls that mean the same everywhere: keyboard, touch and gamepad (1 October)
+
+Branch `claude/skoldhast-key-bindings`. Pappa found that ↓ under water hid the horse instead of
+diving, missed the action buttons on desktop, and asked for best-in-class, aligned key bindings.
+The audit found the keyboard disagreeing with the touch stick (↓ hid everywhere, only X dived),
+no way to walk on a keyboard, opposite keys cancelling each other, WASD tied to the printed
+letters, no hint on desktop that E does anything (the one-off tip pointed at a hidden button),
+on-screen controls tied to the kind of computer rather than the device in use, and no gamepad.
+
+- **One meaning per direction, like the stick** (`src/input.mjs`). On land ↑/W jumps and ↓/S tucks
+  in; in the water all four directions swim (↓ dives, ↑ swims up). G hides everywhere, so every
+  water puzzle that needs a hidden shell has a key. ↑ while hidden comes out, on land and in water.
+  Space keeps all its old meanings; holding it under water swims up, and at the surface it leaps out.
+  X no longer dives. On land ↓ still cannot drop through a pier (the mirror puzzle hides there).
+- **Better keyboard feel.** The newest of two opposite keys wins; movement keys work by position
+  (`KeyW` is W on Swedish QWERTY and Z on AZERTY); held Shift walks and swims calmly.
+- **Gamepad** (standard mapping, new): left stick (analog: a half push walks, a full push gallops)
+  or D-pad, A jump/come out/continue, B hide, X use, Y Klo, LB/RB neigh, Start pause, View journal.
+  In menus, choices, the title page and Klo's conversation the D-pad moves the focus, A presses
+  and B goes back. The game polls the pad while paused so the pause menu and settings work.
+- **The device in use decides what is shown.** A touch anywhere brings the on-screen controls (also
+  on a touchscreen laptop or a tablet with a keyboard); the keyboard or a gamepad puts them away.
+  Without buttons, a small paper note above the horse shows the key and verb whenever an action is
+  possible (`E Knuffa`, round `X Prata` for a pad) and nothing otherwise. Klo's help and the control
+  tips name the device's keys and, for the keyboard, the right key in the water (`Tryck G.`).
+- **Words.** Inställningar → **Tangenter och handkontroll** lists the new keys and the gamepad.
+  The buttons' `aria-keyshortcuts` match. Plan §4.1 has the full table and the reasoning.
+- No change to the simulation, saves, story, art or release; `RELEASED_CHAPTER` remains 3 and the
+  ticket gate remains hidden. The robot's route is unchanged (it drives the simulation directly).
+- Verification: **347/347 pure tests pass** (seven new controls tests: Down tucks in on land and
+  dives in water, Up jumps/emerges/swims, Up and Space through the real game step, newest key wins
+  and Shift walks, positional keys, gamepad play and menu focus, device switching). Real browser:
+  the keyboard check now also covers ↑ jumping, ↓ diving and G hiding under water, ↑ coming out
+  and swimming up, the `E Knuffa` note, and a touch bringing the buttons back; the new
+  [gamepad check](../tests/browser/skoldhast-gamepad.mjs) plays with a scripted controller
+  (jump, push, hide, come out, half-stick walk) and moves through the pause menu.
+- **Frågor till Pappa:** the note above the horse is a deliberate exception to "no key reminders in
+  keyboard play" (it appears only while an action is possible) — keep it? Should ↑/W also jump
+  (as in many children's games), or only Space?
+
 ## One sea around the headland, and a visible lighthouse clue (1 October)
 
 Pappa noticed that the kelp-to-bay crossing felt like surfacing into another sea,

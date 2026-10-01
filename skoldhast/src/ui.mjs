@@ -147,7 +147,7 @@ export function createUI(host, { assetBase, handlers }) {
     const btnWrap = el('div', 'sk-btns');
     const hopBtn = el('button', 'sk-btn sk-hop', UI.hop);
     hopBtn.type = 'button';
-    hopBtn.setAttribute('aria-keyshortcuts', 'Space');
+    hopBtn.setAttribute('aria-keyshortcuts', 'Space ArrowUp W');
     hopBtn.title = UI.jumpHelp;
     const actBtn = el('button', 'sk-btn sk-act', UI.interact);
     actBtn.type = 'button';
@@ -156,13 +156,21 @@ export function createUI(host, { assetBase, handlers }) {
     actBtn.disabled = true;
     const hideBtn = el('button', 'sk-btn sk-hide', UI.hide);
     hideBtn.type = 'button';
-    hideBtn.setAttribute('aria-keyshortcuts', 'ArrowDown S G');
+    hideBtn.setAttribute('aria-keyshortcuts', 'G ArrowDown S');
     hideBtn.title = UI.hideHelp;
     hideBtn.setAttribute('aria-pressed', 'false');
     for (const b of [hopBtn, actBtn, hideBtn]) b.style.backgroundImage = `url("${img('ui-btn')}")`;
     btnWrap.append(hideBtn, actBtn, hopBtn);
     controls.append(stickZone, btnWrap);
     root.appendChild(controls);
+    // Keyboard and gamepad play: the key and the action it does here, by the horse.
+    // (Screen readers already have the action button's name and shortcuts.)
+    const keyNote = el('div', 'sk-keynote');
+    const keyCap = el('span', 'sk-keycap');
+    const keyLabel = el('span', 'sk-keynote-label');
+    keyNote.setAttribute('aria-hidden', 'true');
+    keyNote.append(keyCap, keyLabel);
+    root.appendChild(keyNote);
 
     // ---------------------------------------------------------------------------
     // Dialogue: a strip of paper with the speaker's name on a tab
@@ -689,7 +697,7 @@ export function createUI(host, { assetBase, handlers }) {
             const cols = el('div', 'sk-set-cols');
             cols.append(colA, colB);
             const keys = el('details', 'sk-key-reference');
-            keys.append(el('summary', '', UI.keybindings), el('p', 'sk-key-list', UI.keyboardHelp),
+            keys.append(el('summary', '', UI.keybindings), el('p', 'sk-key-list', UI.keyboardHelp), el('p', 'sk-pad-list', UI.padHelp),
                 el('p', 'sk-key-note', UI.jumpHelp), el('p', 'sk-key-note', `${UI.holdToHide}: ${UI.hideHoldHelp}`));
             c.append(cols, keys, btn(UI.close, closePanel, 'primary'));
         }, { onClose: handlers.resume, kind: 'settings' });
@@ -845,7 +853,17 @@ export function createUI(host, { assetBase, handlers }) {
             hideBtn.setAttribute('aria-pressed', hidden ? 'true' : 'false');
             hideBtn.title = holdToHide ? UI.hideHoldHelp : UI.hideHelp;
         },
-        showControls(on) { controls.classList.toggle('off', !on); hud.classList.toggle('off', !on); },
+        /** { key, label, at: { x, y } } shows the note above that screen point; null hides it. */
+        keyPrompt(prompt) {
+            if (!prompt?.at || !prompt.label) { keyNote.classList.remove('on'); return; }
+            if (keyCap.textContent !== prompt.key) keyCap.textContent = prompt.key;
+            if (keyLabel.textContent !== prompt.label) keyLabel.textContent = prompt.label;
+            const w = root.clientWidth || window.innerWidth;
+            const x = Math.max(70, Math.min(w - 70, prompt.at.x)), y = Math.max(64, prompt.at.y);
+            keyNote.style.transform = `translate(${Math.round(x)}px, ${Math.round(y)}px) translate(-50%, -100%)`;
+            keyNote.classList.add('on');
+        },
+        showControls(on) { controls.classList.toggle('off', !on); hud.classList.toggle('off', !on); keyNote.classList.toggle('off', !on); },
         setBigText(on) { root.classList.toggle('big-text', !!on); },
         destroy() { drawing.destroy(); root.remove(); }
     };
