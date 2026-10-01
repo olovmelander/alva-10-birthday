@@ -30,6 +30,15 @@ between the beach and the watchtower, since in the intro scene the watchtower is
   line cuts it, so its far end folds under with the lighthouse and the beach keeps a stub at the cut
   edge, exactly where the game's beach has the bolted gate. `tests/skoldhast-opening-jetty.test.mjs`
   checks that the crease cuts it wherever her stroke ends at the third dot.
+- **The beach shows the crease** (`createPageCrease` in `sea-fold-wall.mjs`, `page-crease` decor at
+  118.5 HL where the jetty ends, `when: '!unfolded'`): a ruled graphite hinge with a soft shadow on our
+  side, a narrow turned paper edge, and beyond it the folded corner's back, paper with her sea's line
+  and the lighthouse faintly showing through. It sits above the water's surface layer so the sea does
+  not run on across the paper; the walls keep the sköldhäst on this side. The beach's view bound moved
+  from 119 to 120.6 HL (bg-beach stretched to match) so the camera can show it, and a new scene
+  setting `camViews` frames the gate and the crease together when the sköldhäst stands on the jetty
+  facing the sea: it stays in view first, and narrow screens zoom out up to 28 %. Desktop sees the
+  lighthouse through the paper from the gate; phones see the crease as they reach the gate.
 - **Words:** "runt udden" (round a headland the map never had) became "in under vecket" in Klo's
   lines, the goal, hints, the thread, report 2, Klo's notes and the journey titles. The arrival line
   is now "Vi kom in under vecket! Det här är havet mellan sidorna – Spegelviken. Här under bryggan
@@ -57,7 +66,7 @@ between the beach and the watchtower, since in the intro scene the watchtower is
 - Dev page: `menus.html?m=journal&page=4&map=all&where=land:116` places the marker.
 - No save-format, puzzle, world-geometry or release change; `RELEASED_CHAPTER` remains 3 and the
   ticket gate stays hidden. Plan §3.3 rule 5 describes the fold and the map.
-- Verification: **380/380 pure tests pass**. New `tests/skoldhast-map-here.test.mjs` ties the world
+- Verification: **381/381 pure tests pass**. New `tests/skoldhast-map-here.test.mjs` ties the world
   to the map: the jetty, its gate wall and the viken pier lie on the drawn bridge; walking through the
   gate does not jump; the beach ends and Veckmuren stands on the crease, the lighthouse and the whole
   bay lie beyond it, Alva's line runs from the waterline to the crease, and the current goes in
@@ -66,6 +75,8 @@ between the beach and the watchtower, since in the intro scene the watchtower is
   390×844, 844×390, 320×568 and 1440×900 with keyboard and touch, and now also checks the marker on
   the map page and the thumbnail. Real-game capture: pressing J under water shows the marker in
   Kelpskogen. The crossing capture goes in under Vecket and ends under Bryggan.
+- **Known stale check (also on `main`):** `tests/browser/skoldhast-exploration-order.mjs` times out with
+  its robot stuck swimming at kelp 15.1 HL (identical on clean `main`). The geography check passes.
 - **Known flaky check (also on `main`):** `tests/browser/skoldhast-opening.mjs` sometimes times out at
   line 249, waiting for Klo's answer after the fold question (one run in two on clean `main`, on
   varying viewports). Re-running passes; it needs a sturdier wait, not a game change.

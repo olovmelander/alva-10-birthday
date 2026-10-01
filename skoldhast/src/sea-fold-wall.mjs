@@ -166,3 +166,75 @@ export function createSeaFoldCoverEdge(PIXI, { texture, x, top, bottom, width = 
     pencilLine(g, [[x + width * .16, top], [x + width * .16, bottom]], 0x897c63, 1.4, .6);
     return g;
 }
+
+/**
+ * Above water the same fold is a crease in the page. From the beach it crosses Bryggan
+ * where the jetty ends: beyond the graphite hinge the corner Kartväktaren folded under
+ * shows its back, turned up towards us, and through the paper, faint, the drawing on its
+ * front: her sea's line and his lighthouse (plan §3.3 rule 5).
+ */
+export function pageCreaseLayout({ x, top, bottom, waterY, width = 600 }) {
+    if (![x, top, bottom, waterY, width].every(Number.isFinite) || bottom <= top || width <= 0)
+        throw new RangeError('A page crease needs finite bounds and a positive size.');
+    const reverse = 26, shade = 34;
+    return {
+        x, top, bottom, waterY, width, reverse,
+        // the graphite hinge stands exactly at the crease; everything painted lies beyond it
+        hinge: [[x, top], [x, bottom]],
+        edge: [[x, top], [x + reverse, top], [x + reverse, bottom], [x, bottom]],
+        back: [[x + reverse, top], [x + width, top], [x + width, bottom], [x + reverse, bottom]],
+        shadow: [[x - shade, top], [x, top], [x, bottom], [x - shade, bottom]],
+        // his lighthouse showing through, small with distance, a little way past the hinge
+        tower: { x: x + Math.min(200, width * .45), base: waterY - 24, height: 500 }
+    };
+}
+
+/** The crease the beach sees. No scene state or collision; the scene's walls stop the player. */
+export function createPageCrease(PIXI, { texture, ...options } = {}) {
+    const layout = pageCreaseLayout(options);
+    const { x, top, bottom, waterY, width, reverse, tower } = layout;
+    const container = new PIXI.Container(); container.label = 'page-crease';
+    const paper = new PIXI.Graphics(), ghost = new PIXI.Graphics(), marks = new PIXI.Graphics();
+    container.addChild(paper, ghost, marks);
+    const pen = pencilStyle(texture), paperTexture = texture?.('mat-paper');
+    // the shadow it casts on our side of the page, deepening into the crease
+    for (let i = 0; i < 6; i++) paper.rect(x - 34 + i * 34 / 6, top, 34 / 6 + .5, bottom - top).fill({ color: 0x384b48, alpha: .02 + i * .024 });
+    // the back of the folded-under corner, turned up towards us
+    paper.poly(layout.back.flat()).fill(0xf1e7cc);
+    if (paperTexture) paper.poly(layout.back.flat()).fill({ texture: paperTexture, textureSpace: 'global', alpha: .7 });
+    paper.poly(layout.back.flat()).fill(pen.hatch(0xc9b892, .3));
+    // the turned edge, a little darker where the paper bends
+    paper.poly(layout.edge.flat()).fill(0xe2d5b3);
+    if (paperTexture) paper.poly(layout.edge.flat()).fill({ texture: paperTexture, textureSpace: 'global', alpha: .55 });
+    for (let y = top + 30; y < bottom - 12; y += 19) pencilLine(paper, [[x + 4, y + 5], [x + reverse - 4, y - 5]], 0x988666, 1.5, .22);
+    // Through the paper, faint: her sea under its blue line, and his lighthouse on its islet.
+    for (let y = waterY + 10, row = 0; y < Math.min(bottom, waterY + 260); y += 15, row++) {
+        pencilLine(ghost, [[x + reverse + 12 + (row % 3) * 16, y], [x + width - 16, y + (row % 2 ? 1 : -1)]], 0x6f97c4, 2.4, .12 - row * .006);
+    }
+    pencilLine(ghost, [[x + reverse + 2, waterY], [x + width, waterY]], 0x244f8f, 2.6, .26);
+    const { x: tx, base, height: th } = tower, foot = 36, neck = 25, lamp = base - th * .8;
+    pencilLine(ghost, [[tx - 70, base + 6], [tx - 46, base - 6], [tx + 44, base - 7], [tx + 72, base + 6]], 0x6d6a60, 2.2, .3);
+    const body = [[tx - foot, base - 4], [tx - neck, lamp], [tx + neck, lamp], [tx + foot, base - 4]];
+    ghost.poly(body.flat()).fill({ color: 0xe6dcc1, alpha: .45 });
+    pencilLine(ghost, [...body, body[0]], 0x6d6a60, 2.2, .3);
+    for (const k of [.24, .48, .7]) {
+        const y = base - 4 - (base - 4 - lamp) * k, half = foot - (foot - neck) * k;
+        pencilLine(ghost, [[tx - half, y], [tx + half, y]], 0x2b4a78, 2.4, .24);
+    }
+    pencilLine(ghost, [[tx - neck - 10, lamp], [tx + neck + 10, lamp]], 0x6d6a60, 2.4, .3);
+    ghost.rect(tx - neck + 6, lamp - 48, (neck - 6) * 2, 46).fill({ color: 0x2b4a78, alpha: .16 });
+    pencilLine(ghost, [[tx - neck + 6, lamp - 2], [tx - neck + 6, lamp - 48], [tx + neck - 6, lamp - 48], [tx + neck - 6, lamp - 2]], 0x6d6a60, 2, .28);
+    pencilLine(ghost, [[tx - neck - 2, lamp - 48], [tx, lamp - 82], [tx + neck + 2, lamp - 48]], 0x6d6a60, 2.2, .3);
+    // the crease: his ruled hinge, and the edge's far fold where the back begins
+    pencilLine(marks, layout.hinge, 0x535b53, 4, .92);
+    pencilLine(marks, [[x + reverse, top], [x + reverse, bottom]], 0x897c63, 1.6, .55);
+    let destroyed = false;
+    return {
+        container, layout,
+        destroy() {
+            if (destroyed) return; destroyed = true;
+            container.parent?.removeChild(container);
+            if (!container.destroyed) container.destroy({ children: true });
+        }
+    };
+}

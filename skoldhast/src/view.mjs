@@ -37,7 +37,7 @@ import { p3Pose } from './hill-puzzle.mjs';
 import { createVaultDiscovery } from './vault-discovery.mjs';
 import { createKvMemory } from './kv-memory.mjs';
 import { createWorldCoastFold, createShoreTrial, sampleShoreTrial } from './shore-trial.mjs';
-import { createSeaFoldWall, createSeaFoldCoverEdge } from './sea-fold-wall.mjs';
+import { createSeaFoldWall, createSeaFoldCoverEdge, createPageCrease } from './sea-fold-wall.mjs';
 import { createLighthouseMechanisms } from './lighthouse-mechanisms.mjs';
 import { createBeachPlay } from './beach-play.mjs';
 import { landPuzzleFrame, fitLandPuzzleFrame } from './land-puzzle-focus.mjs';
@@ -632,6 +632,17 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
                 L.mid.addChild(fold.container);
                 d.seaFold = fold;
                 d.items.push({ s: fold.container, it });
+                continue;
+            }
+            if (it.sprite === 'page-crease') {
+                // the fold seen from the beach: the page creased where the jetty ends. In front of
+                // the water's surface, which would otherwise run on across the paper; the walls
+                // keep the sköldhäst on this side of it.
+                const sea = (def.waters || []).find(water => water.kind === 'sea');
+                const crease = createPageCrease(PIXI, { texture: T, x: it.x, top: def.bounds.y0 - h(2), bottom: def.bounds.y1 + h(4),
+                    waterY: sea?.top ?? 0, width: Math.max(h(3), def.bounds.x1 + h(2) - it.x) });
+                L.fore.addChild(crease.container);
+                d.items.push({ s: crease.container, it });
                 continue;
             }
             if (it.sprite === 'wave-marks') {
@@ -2475,6 +2486,17 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
         // the big leap: pan to the landing
         const L0 = G.player.leap;
         if (L0 && L0.pan) { tx = lerp(L0.from.x, L0.to.x, 0.75); ty = Math.min(L0.from.y, L0.to.y) - h(1.2); zoom *= 0.85; }
+        // A view the scene asks for: standing in [x0, x1] facing that way, frame the span
+        // `show` with the sköldhäst, zooming out a little on a narrow screen (the crease seen
+        // from the jetty gate). The sköldhäst stays in view first, then as much as fits.
+        for (const v of S.def.camViews || []) {
+            if (snap.mode === 'swim' || snap.x < v.x0 || snap.x > v.x1 || (snap.facing || 1) !== v.facing || !cond(v.when, G.flags)) continue;
+            const a = Math.min(v.show[0], snap.x - h(.7)), b = v.show[1];
+            if (b - a > W / zoom) zoom = Math.max(zoom * (v.minZoom ?? .72), W / (b - a));
+            const half = W / zoom / 2;
+            tx = Math.max(tx, Math.min(b - half, a + half));
+            break;
+        }
         const hint = G.camHint;
         if (hint) { if (hint.x !== undefined) tx = hint.x; if (hint.y !== undefined) ty = hint.y; if (hint.zoom) zoom = (hint.zoom * restPx) / HL; }
         if (hint?.companion) {

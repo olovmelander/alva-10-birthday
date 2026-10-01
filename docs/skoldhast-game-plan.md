@@ -310,7 +310,11 @@ and why.
    parallel to the beach's shore. Kartväktaren folded the sea corner under the page so the splash could not
    reach his paper lighthouse, and the lighthouse went under with it, exactly as the opening shows.
    - From the beach it crosses Bryggan just past the gate, where the beach ends. The gate is bolted from the
-     other side, the folded side ("Grinden är reglad från andra sidan"); the lighthouse cannot be seen.
+     other side, the folded side ("Grinden är reglad från andra sidan"). There the page is creased: the jetty
+     ends at a ruled graphite hinge, and beyond it the folded corner is turned up as paper, its back to us,
+     with her sea's line and the lighthouse showing faintly through. Standing on the jetty facing the sea, the
+     view frames the gate and the crease together (zooming out a little on a narrow screen). The crease is
+     gone once the page is unfolded.
    - Under water the fold is **Veckmuren**, and the figure with the ruler hurries away beyond it.
    - Mörka valvet, Kelphjärtat and the outflow lie on this side of it. Beyond it, folded under the page, lie
      Spegelviken, the far part of Bryggan (Trumbryggan) and Pappersfyren: "havet mellan sidorna", the
