@@ -1,5 +1,65 @@
 # Sköldhästen – handover
 
+## Why we do things: drawing with the hooves, the story on the goal note, the map journey (1 October)
+
+Branch `claude/skoldhast-story-clarity`. Pappa asked for clearer puzzles, a clearer meaning of
+"drawing while galloping", a better understanding of why we do things, a much better passage
+between the kelp sea and the lighthouse, and a stronger link between the folded page and the game.
+The audit (a full robot transcript of every line plus real-input browser captures) found:
+
+- In the default help level nothing ever said that galloping draws: the only lesson was a small
+  dashed step on the dune, and only if the player happened to gallop over it. Refusing at
+  Streckbron said "Strecket är inte klart ännu." The unfinished bridge was a thin dotted line.
+- The goal note showed only "Få havet att plaska igen" all game long; each step's reason lived in
+  the journal. The chapter-2 explanation never called back to the tower and the ruler from the
+  prologue, nor said "mend the map, mend the current".
+- The kelp → bay crossing was an invisible rectangle above the floor: a swimmer holding → along the
+  seabed stopped at Veckmuren forever (and pressing against the wall zeroed the velocity the exit
+  required). When it did work it was a page turn, which contradicts "one sea round the headland".
+
+What changed:
+
+- **The hooves are Alva's pencil.** At full gallop every hoof leaves a graphite mark on any ground
+  (kept on sand, fading elsewhere) with a puff of graphite. Unfinished lines are bold pencil
+  dashes; Streckbron and the pool plank show their dashed sketch (deck, underside, plank ticks)
+  and colour in behind the galloping hooves before the real bridge takes over. The first refusal,
+  in every help level, is a horse thought recalling the prologue's tickle ("Det kittlar i hovarna,
+  precis som när Alva ritade mig …"); later refusals say "För långsamt! Ofärdiga streck ritas klart
+  i full galopp." The first line drawn pays it off: "Det var därför det kittlade! Alvas penna
+  sitter kvar i mina hovar – i full galopp ritar jag." Klo's note at the bridge now says it is
+  only dashed, "som om någon slutade rita mitt i".
+- **The goal note says why.** Under the mission it shows the story's next purpose per stage
+  (`THREAD.now`): follow the fold → mend the map, whose route leads to the one who folded the page →
+  find him in Pappersfyren → show him that wet paper holds. Never how. Guided help keeps the step goal.
+- **The chain is told where it matters.** After the map experiment: only the one who folded the page
+  can unfold it, so follow the fold. At the map search: the map's route leads to the tower where Klo
+  saw the man with the ruler; the map tore where the page was folded; what happens to the map happens
+  to the world, so the current there is broken too; mend the map and the current mends. At assembly:
+  "Kartan är hel – och då är strömmen hel!"
+- **The crossing is a journey on the mended map** (`src/map-journey.mjs`). The kelp frame stays on
+  screen while Kartväktaren's repaired map arrives; a small sköldhäst rides the route from
+  Kelphjärtat round the headland to Spegelviken (reversed on the way back); the bay appears with
+  depth, momentum and a hidden shell untouched (the world is held, story beats wait, the HUD hides).
+  About 3.8 s, no input or reading; reduced motion shows the whole route at once. The outflow
+  current is drawn in the map's blue ink. The crossing now takes the whole column below the surface
+  swim down to the floor, and a held direction counts against the wall.
+- No save-format, puzzle-solution, art-asset or release change; `RELEASED_CHAPTER` remains 3 and the
+  ticket gate stays hidden. Plan §3.3 (rules 2 and 5) and §4.4 describe the new behaviour.
+- Verification: **351/351 pure tests pass** (new: map-journey route/timeline/cleanup, the purpose
+  line for every stage and that it never says how, the floor and wall crossings). Browser: the
+  geography check passes all its default cases (early, sea, portal) at 390×844, 844×390 and
+  1440×900; keyboard controls and all five ticket-launcher checks pass. Real-input captures confirm
+  the first-refusal thought, the bridge colouring in, the payoff thought, gallop marks on grass,
+  the journey both ways (landscape and portrait), the bay arrival with momentum kept, and the goal
+  note fitting on a portrait phone. First playable is 2.339 MB.
+- **Known stale check (not caused by this work):** `tests/browser/skoldhast-underwater-story.mjs`
+  times out at P6 on clean `main` too. It waits for a line containing "Havsbottnen" and expects one
+  hide to free the map; P6 has needed the kelp pulled first since 30 September. The newer kelp and
+  geography checks cover P6; this one needs rewriting to the current mechanism.
+- **Frågor till Pappa:** is ~3.8 s right for the map journey, or should it be shorter after the
+  first time? Should the other puzzles get the same "unfinished drawing" treatment (e.g. a
+  dashed sketch for P8's pier segments)?
+
 ## Controls that mean the same everywhere: keyboard, touch and gamepad (1 October)
 
 Branch `claude/skoldhast-key-bindings`. Pappa found that ↓ under water hid the horse instead of

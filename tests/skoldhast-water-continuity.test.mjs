@@ -94,10 +94,16 @@ test('the outflow needs the revealed map route and only transfers swimmers cross
         for (let i = 0; i < 240; i++) G.step({ x: 1 });
         assert.equal(G.sceneId, 'kelp', 'inventory alone does not open the unrevealed route');
     }
-    for (const depth of [SEA_BAY_LINK.y0 - .3 * HL, SEA_BAY_LINK.y1 + .15 * HL]) {
-        const G = game(); G.goto('kelp', { x: 46.95 * HL, y: depth, mode: 'swim' });
+    {
+        const G = game(); G.goto('kelp', { x: 46.95 * HL, y: SEA_BAY_LINK.y0 - .3 * HL, mode: 'swim' });
         for (let i = 0; i < 12; i++) G.step({ x: 1 });
-        assert.equal(G.sceneId, 'kelp', 'swimming above or below the opening stays on the current page');
+        assert.equal(G.sceneId, 'kelp', 'swimming along the surface stays on the current page');
+    }
+    for (const [x, why] of [[46.2, 'swimming along the seabed'], [47.55, 'pressing against Veckmuren on the floor']]) {
+        const G = game(); G.goto('kelp', { x: x * HL, y: SEA_BAY_LINK.bed - 10, mode: 'swim' });
+        for (let i = 0; i < 240 && G.sceneId === 'kelp'; i++) G.step({ x: 1 });
+        assert.equal(G.sceneId, 'viken', `${why} still crosses into the bay`);
+        assert.equal(G.player.mode, 'swim');
     }
     const G = game(); G.goto('kelp', { x: 46.95 * HL, y: SEA_BAY_LINK.depth, mode: 'swim' });
     G.player.vx = -200;

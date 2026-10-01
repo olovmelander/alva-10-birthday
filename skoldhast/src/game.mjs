@@ -33,6 +33,7 @@ export function createGame({ released = RELEASED_CHAPTER } = {}) {
         evening: false,
         camHint: null,     // { x, y, zoom, t } a camera target set by the story
         worldInspection: null, // transient read-held world view; never serialized
+        journey: false,        // transient: the crossing round the headland is being drawn on the map
         lastEvents: [],
         stats: { gallopTime: 0, maxSpeed: 0, leaps: 0 },
 
@@ -155,7 +156,9 @@ export function createGame({ released = RELEASED_CHAPTER } = {}) {
                 for (const ex of G.sceneDef.exits || []) {
                     if (!ex.auto || !cond(ex.when, G.flags)) continue;
                     if (p.x < ex.x0 || p.x > ex.x1 || ex.y0 !== undefined && p.y < ex.y0
-                        || ex.y1 !== undefined && p.y > ex.y1 || ex.dir && p.vx * ex.dir <= 0) continue;
+                        || ex.y1 !== undefined && p.y > ex.y1
+                        // pressing toward a wall stops the swimmer, so the held direction counts too
+                        || ex.dir && p.vx * ex.dir <= 0 && (inp.x || 0) * ex.dir <= 0) continue;
                     let spawn = ex.spawn, swimState = null;
                     if (ex.waterLink) {
                         if (p.mode !== 'swim') continue;

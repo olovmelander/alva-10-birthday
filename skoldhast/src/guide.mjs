@@ -273,10 +273,12 @@ export function createGuide(root, { img, portrait, heroScreen, onGoalTap, onDism
 
     return {
         context,
-        goal(text) {
-            const t = text || '';
-            if (t === goalNow) return;
+        /** `label` replaces the small "Mål" heading (the mission above the story's next purpose). */
+        goal(text, label = null) {
+            const t = text || '', head = label || UI.goalLabel;
+            if (t === goalNow && goalLabel.textContent === head) return;
             goalNow = t;
+            goalLabel.textContent = head;
             goalText.textContent = t;
             goalEl.classList.toggle('empty', !t);
             if (t) { goalEl.classList.remove('new'); void goalEl.offsetWidth; goalEl.classList.add('new'); }

@@ -23,7 +23,7 @@ import { createStory } from './story.mjs';
 import { createAssets } from './assets.mjs';
 import { createTable } from './prologue.mjs';
 import { countPencils, totalPencils, pencilProgress, createPuzzleState } from './puzzles.mjs';
-import { UI, BALK, CAPTIONS, FAMILY, JOURNAL, KLO_COMPANION } from './content/sv.mjs';
+import { UI, BALK, CAPTIONS, FAMILY, JOURNAL, KLO_COMPANION, STORY } from './content/sv.mjs';
 import { CHECKPOINTS } from './content/world.mjs';
 import { createUserCloud, cloudColor, cloudPoints } from './user-cloud.mjs';
 import { createKloCompanion, normalizeKloHelpMode } from './klo-companion.mjs';
@@ -45,6 +45,8 @@ export function createGame({ host = document.body, assetBase = './skoldhast/', r
     let slot = { id: 'alva', label: UI.slotAlva };
     let settings = { ...DEFAULT_SETTINGS, lessMotion: !!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches };
     let inputDevice = 'keys';
+    let thinRuleUntil = 0;      // the first unfinished-line thought is not cut short by the next refusal
+    let waterCrossing = null; // { from, to } between the exit and the scene change it causes
     let note = '';
     const saver = createSave();
     const hostState = {};
@@ -525,8 +527,20 @@ export function createGame({ host = document.body, assetBase = './skoldhast/', r
             companion.tick(dt);
             if (G.sceneId !== view.sceneId && !G.vista) {
                 const id = G.sceneId, from = view.sceneId;
-                const turn = from && !view.holding ? ((PAGE[id] || 0) >= (PAGE[from] || 0) ? 'left' : 'right') : null;
-                view.setScene(id, { turn });
+                // Swimming round the headland is one sea, not a new page: the mended
+                // map shows the current carrying the swimmer, then the bay appears.
+                const crossing = waterCrossing && waterCrossing.from === from && waterCrossing.to === id && !view.holding;
+                waterCrossing = null;
+                const turn = !crossing && from && !view.holding ? ((PAGE[id] || 0) >= (PAGE[from] || 0) ? 'left' : 'right') : null;
+                if (crossing) {
+                    // Momentum, depth and a hidden shell wait, untouched, while the map is shown.
+                    const hold = { player: G.player };
+                    G.worldInspection = hold; G.journey = true;
+                    Promise.resolve(view.setScene(id, { journey: id === 'viken' ? 'toBay' : 'toKelp' })).then(() => {
+                        if (G && G.worldInspection === hold) G.worldInspection = null;
+                        if (G) G.journey = false;
+                    });
+                } else view.setScene(id, { turn });
                 audio?.setArea(G.finalRun ? 'final' : areaFor(id));
                 // art still arriving (slow network): redraw the scene when it is here
                 const missing = (SCENE_BUNDLES[id] || []).filter((b) => assets.bundles().includes(b) && !assets.loaded(b));
@@ -546,11 +560,15 @@ export function createGame({ host = document.body, assetBase = './skoldhast/', r
                 && !ui.dialogueOpen() && !ui.panelOpen() && !companion.suspended() && !story.running();
             const hs = promptable ? heroScreen() : null;
             ui.keyPrompt(hs ? { key: inputDevice === 'pad' ? 'X' : 'E', label: G.context.label, at: { x: hs.x, y: hs.y - HL * 0.8 * hs.scale } } : null);
-            const free = !ui.dialogueOpen() && !ui.panelOpen() && !G.busy && !G.vista && !companion.suspended();
+            const free = !ui.dialogueOpen() && !ui.panelOpen() && !G.busy && !G.vista && !G.journey && !companion.suspended();
             guide.show(free);
             const detailedHelp = settings.help === 'guided' || companion.markerActive();
             G.showGuidance = detailedHelp && free;
-            guide.goal(detailedHelp ? G.guidance.goal : G.guidance.thread?.mission || '');
+            // With help on request, the note still shows why we do what we do next:
+            // the story's next purpose, with the mission as its heading.
+            const thread = G.guidance.thread;
+            if (detailedHelp) guide.goal(G.guidance.goal);
+            else guide.goal(thread?.now || thread?.mission || '', thread?.now ? thread.mission : null);
             guide.context(detailedHelp ? { ...G.guidance, requested: settings.help !== 'guided' } : null);
             guide.update();
             kloUI.availability({ visible: mode === 'play' && !ui.panelOpen() && !G.vista && !G.hideHero,
@@ -643,8 +661,20 @@ export function createGame({ host = document.body, assetBase = './skoldhast/', r
                 case 'skid': audio.sfx('hoof', { surface: 'sand', speed01: 1 }); break;
             }
         });
+        // the swim round the headland (a water link between two scenes) is drawn on the map
+        G.on('exit', (ex) => { waterCrossing = ex.waterLink ? { from: G.sceneId, to: ex.to } : null; });
         // why the sköldhäst refused: a thought bubble over its head, not a toast far away
-        G.on('balk', (e) => { const t = BALK[e.reason]; if (t) guide.think(t); });
+        G.on('balk', (e) => {
+            // The first unfinished line teaches the world rule in every help level
+            // (it is how Alva's page works, not the answer to a puzzle).
+            if (e.reason === 'thin' && !G.flags.has('hint_thinRule')) {
+                G.flags.add('hint_thinRule'); guide.think(STORY.k1.thinRule, 7000);
+                thinRuleUntil = performance.now() + 7000; return;
+            }
+            // a held key refuses again at once: let the first, longer thought be read
+            if (e.reason === 'thin' && performance.now() < thinRuleUntil) return;
+            const t = BALK[e.reason]; if (t) guide.think(t, e.reason === 'thin' ? 3600 : 2600);
+        });
         G.on('pickup', () => updatePencils());
         G.on('colorin', () => updatePencils());
         G.on('checkpoint', () => saveNow());

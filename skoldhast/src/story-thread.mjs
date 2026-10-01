@@ -21,6 +21,7 @@ export function describeThread(flags, objective, textKey) {
     const why = textKey || (has('ch2_open') && ['p1', 'p3', 'p3b'].includes(objective) ? objective + 'Map' : objective);
     return {
         stage, mission: has('ended') ? THREAD.complete : THREAD.mission,
+        now: THREAD.now[stage === 'land' && !has('ch2_open') ? 'landEarly' : stage] || '',
         recap: stage === 'land' && !has('ch2_open') ? THREAD.recap.landEarly : THREAD.recap[stage],
         why: conversation?.why || THREAD.why[why] || THREAD.why.explore,
         conversation

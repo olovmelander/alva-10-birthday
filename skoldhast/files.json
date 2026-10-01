@@ -36,6 +36,7 @@
   "src/lighthouse-mechanisms.mjs",
   "src/main.mjs",
   "src/map-assemble.mjs",
+  "src/map-journey.mjs",
   "src/map-layout.mjs",
   "src/map-props.mjs",
   "src/mapbook.mjs",
