@@ -340,6 +340,8 @@ export const STORY = {
         home: ['horse', 'Hem till stranden där vi började, Klo! Vårt plask väntar på oss.']
     },
     final: {
+        // at Alva's table, as Kartväktaren unfolds the page (the opening said 'Havet viks in under papperet.')
+        unfoldCaption: 'Havet vecklas ut igen.',
         arrival: ['horse', 'Vår strand! Och samma våg som fastnade när Alva ritade.'],
         splash: ['horse', 'Äntligen! Mitt plask på hovarna!'],
         home: ['klo', 'Havet är hemma igen. Nu tittar vi på Alvas teckning – på hennes bord.'],

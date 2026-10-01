@@ -172,7 +172,7 @@ test('the guardian first shows his restrictive diagram, then holds the proposed 
 test('returning the map shows the repaired evidence without assembling it again, through the apology', async () => {
     const R = createRobot();
     R.G.restore({ flags: [...guardian, 'talk2', 'talk_done', 'b:k3_line', 'p8_land', 'p8_s1', 'p8_s2', 'p8_s3', 'p8_sea'], checkpoint: 'lineWindow' });
-    await R.until(() => R.log.some(event => event.kind === 'fx' && event.name === 'unfold'), {}, 30, 'the final unfolding');
+    await R.until(() => R.log.some(event => event.kind === 'fx' && event.name === 'unfoldPage'), {}, 30, 'the final unfolding');
     const start = R.log.findIndex(event => event.kind === 'fx' && event.name === 'mapAssemble');
     assert.ok(start >= 0);
     assert.equal(R.log[start].variant, 'inspect');

@@ -2996,19 +2996,6 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
                 emit('drop', data.x, data.y, 14, { speed: 380 });
                 await G.wait(0.2);
                 break;
-            case 'unfold': {
-                // the page is lifted: the picture lies over the screen until cutToPicture turns it away
-                endTurns();
-                held = startTurn(capture(), { hinge: 'right', duration: 1.6, hold: true });
-                if (!held) await fadeTo(0.9, 0.8, 0xfbf8f1);
-                await G.wait(0.5);
-                break;
-            }
-            case 'cutToPicture':
-                cam.snap = true;
-                if (held) { const tr = held; held = null; tr.hold = false; await tr.done; }
-                else await fadeTo(0, 0.9);
-                break;
             case 'plask': {
                 const sp = def.spots.splash;
                 emit('drop', sp.x, sp.y - h(0.4), 40, { speed: 620 });
@@ -3090,7 +3077,8 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
                 break;
             }
             case 'epilogue':
-                await onFx?.('epilogue', data);
+            case 'unfoldPage':
+                await onFx?.(name, data);
                 break;
             default:
                 await G.wait(0.3);
