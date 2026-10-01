@@ -14,5 +14,7 @@ test('the drawn ocean folds at the real boundary and meets the existing seabed',
     assert.ok(fold.face.every(point => point[0] >= wall.x), 'painted folded face stays beyond the barrier');
     assert.ok(fold.reverse < fold.width * .1, 'paper reverse is an edge, not a blank wall');
     assert.ok(fold.face.every(point => point[0] < scene.bounds.x1), 'no slab extending outside the page');
-    assert.ok(fold.height > 1500, 'the fold connects the water surface and seabed');
+    const sea = scene.waters.find(water => water.id === 'sea');
+    assert.ok(fold.hinge[0][1] <= sea.top && fold.hinge.at(-1)[1] >= bottom,
+        'the fold spans from above the actual water surface to the actual seabed');
 });

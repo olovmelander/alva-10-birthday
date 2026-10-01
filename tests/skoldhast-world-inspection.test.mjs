@@ -52,3 +52,48 @@ test('inspection is transient and cannot hold a restored player or another scene
     G.goto('land', 'start');
     assert.equal(G.worldInspection, null);
 });
+
+for (const hidden of [false, true]) test(`the bay arrival holds the incoming swimmer through both observations, hidden ${hidden}`, async () => {
+    const G = createGame();
+    let active, dismiss, line, controls = true, arrival;
+    const pose = () => ({ x: G.player.x, y: G.player.y, vx: G.player.vx, vy: G.player.vy,
+        hidden: G.player.hidden, hide: G.player.hide });
+    G.story = createStory(G, {
+        ui: {
+            controls: { classList: { contains: name => name === 'off' && !controls } },
+            showControls: visible => { controls = visible; },
+            say: async lines => {
+                for (const spoken of lines) { line = spoken; await new Promise(resolve => { dismiss = resolve; }); }
+            }, toast() {}, pulse() {}
+        },
+        guide: { hint() {}, think() {} },
+        fx: async (name, data) => {
+            active = data;
+            try { await data.whileVisible?.(); } finally { active = null; }
+        }, save() {}
+    });
+    G.restore({ ...CODE_RESTORE[2], checkpoint: 'trench' });
+    G.goto('kelp', { x: 46.1 * HL, y: 4.1 * HL, mode: 'swim', hidden });
+    G.on('scene', event => { if (event.id === 'viken') arrival = pose(); });
+    for (let i = 0; i < 1200 && !dismiss; i++) { G.step(hidden ? {} : { x: 1 }); await tick(); }
+    assert.deepEqual(line, STORY.k3.arriveSea);
+    assert.equal(active.id, 'bay-inlet');
+    const { frame } = active, player = G.player;
+    assert.ok(frame.x0 < player.x && frame.x1 > player.x);
+    assert.ok(frame.y0 < player.water.top && frame.y1 > G.sceneDef.waterPassage.bed,
+        'the first observation frames swimmer, waterline and shallow floor together');
+    assert.deepEqual(pose(), arrival, 'the arrival inspection must not brake or drift the transferred swimmer');
+    for (const expected of [STORY.k3.arriveSea, STORY.k3.arrive]) {
+        assert.deepEqual(line, expected);
+        assert.equal(controls, false); assert.equal(G.worldInspection?.player, player);
+        for (let i = 0; i < 15 / STEP; i++) { G.step({ x: -1, hide: true }); await tick(); }
+        assert.deepEqual(pose(), arrival, 'reading time never moves or changes the shell');
+        const finish = dismiss; dismiss = null; finish(); await tick();
+    }
+    for (let i = 0; i < 120 && !G.has('b:k3_arrive'); i++) { G.step({}); await tick(); }
+    assert.equal(G.has('b:k3_arrive'), true);
+    assert.equal(G.worldInspection, null); assert.equal(active, null); assert.equal(controls, true);
+    const x = player.x;
+    for (let i = 0; i < 60; i++) G.step(hidden ? {} : { x: 1 });
+    assert.ok(player.x > x, 'the swimmer resumes their preserved motion after reading');
+});

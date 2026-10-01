@@ -30,6 +30,7 @@ import { p6Pose } from './kelp-puzzle.mjs';
 import { createHillPuzzleScene } from './hill-scene.mjs';
 import { createLandScenery } from './land-scenery.mjs';
 import { createCoastalCave } from './coastal-cave.mjs';
+import { createWaterPassage } from './water-passage.mjs';
 import { p3Pose } from './hill-puzzle.mjs';
 import { createVaultDiscovery } from './vault-discovery.mjs';
 import { createKvMemory } from './kv-memory.mjs';
@@ -667,6 +668,11 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
         if (def.id === 'kelp') {
             d.cave = createCoastalCave(PIXI, { def, texture: T });
             L.far.addChild(d.cave.container);
+        }
+        if (def.waterPassage) {
+            d.waterPassage = createWaterPassage(PIXI, { def, texture: T });
+            L.mid.addChild(d.waterPassage.container);
+            d.items.push({ s: d.waterPassage.container, it: { chapter: def.waterPassage.chapter } });
         }
         if (def.id === 'land') {
             d.habitats = createLandScenery(PIXI, { def, flags: G.flags,
@@ -2808,6 +2814,8 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
                 const figureBefore = { ...G.actors.figure };
                 G.vista = true;
                 const t1 = setScene(data.scene, { turn: 'left' });
+                const vistaHost = app.canvas.parentElement;
+                vistaHost?.classList.add('sk-vista');
                 G.hideHero = true;
                 const frame = data.lighthouse ? lighthouseVista() : null;
                 G.camHint = frame ? { frame } : { x: data.x, y: data.y, zoom: data.zoom || 1 };
@@ -2853,6 +2861,7 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
                     if (destroyed) return;
                     await G.wait(data.hold ?? Math.max(0.5, (data.t || 2) - 1.6));
                 } finally {
+                    vistaHost?.classList.remove('sk-vista');
                     comparisonObserver?.disconnect();
                     comparisonObservers.delete(comparisonObserver);
                     if (!destroyed) {
@@ -2889,6 +2898,7 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
     function destroy() {
         if (destroyed) return;
         destroyed = true;
+        app.canvas.parentElement?.classList.remove('sk-vista');
         for (const id of pendingFrames) cancelAnimationFrame(id);
         pendingFrames.clear();
         for (const observer of comparisonObservers) observer.disconnect();

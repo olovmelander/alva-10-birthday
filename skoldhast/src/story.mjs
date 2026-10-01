@@ -83,9 +83,15 @@ export function createStory(G, io) {
         async fx(name, data) {
             if (!['vista', 'foldDemo', 'mapAssemble', 'landFocus'].includes(name)) return io.fx(name, data || {});
             const controlsOn = !io.ui.controls?.classList.contains('off');
+            const inspectionBefore = G.worldInspection;
+            const vistaHold = name === 'vista' ? { player: G.player } : null;
+            if (vistaHold) G.worldInspection = vistaHold;
             io.ui.showControls?.(false);
             try { return await io.fx(name, data || {}); }
-            finally { io.ui.showControls?.(controlsOn); }
+            finally {
+                if (vistaHold && G.worldInspection === vistaHold) G.worldInspection = inspectionBefore;
+                io.ui.showControls?.(controlsOn);
+            }
         },
         async map(data, explain) {
             let shown = false;
@@ -564,7 +570,7 @@ export function createStory(G, io) {
                 await s.walk('figure', vk.x + h(1.5), 320);
                 fig.visible = false;
                 await s.say(STORY.k1.hook.slice(2));
-            }, { x0: h(44.7), y0: h(-.9), x1: h(50.4), y1: h(9.6) });
+            }, { x0: h(44.7), y0: h(-.9), x1: h(50.4), y1: vk.y + h(.6) });
             s.clue('fold'); s.clue('figure');
             G.flag('ch1_end');
             G.chapterFlags();
@@ -672,6 +678,9 @@ export function createStory(G, io) {
 
     beat('k2_mark_land', {
         on: 'mark', filter: (e) => e.id === 'mark_land',
+        // Inventory may save before its queued discovery has been read. The
+        // real lighthouse view also works when that save resumes under water.
+        when: () => F.has('mark_land') && !F.has('ch2_end') && !done('k2_mark_land'),
         async run(s) {
             s.stinger('discovery');
             s.clue('mark_land');
@@ -679,8 +688,14 @@ export function createStory(G, io) {
                 await s.say(STORY.k2.landFound);
                 if (!F.has('mark_sea')) await s.say(F.has('ch2_open') ? STORY.k2.halfSea : STORY.k2.halfSeaEarly);
             });
-            await s.cam({ x: G.sceneDef.spots.cleftView.x + h(2.5), y: h(-5), zoom: 0.75, t: 1.2, hold: 1.2, lookSea: true });
-            await s.say(STORY.k2.lighthouse);
+            let lighthouseExplained = false;
+            const explainLighthouse = () => {
+                lighthouseExplained = true;
+                return s.say([STORY.k2.lighthouseIntro, STORY.k2.lighthouse]);
+            };
+            await s.fx('vista', { scene: 'viken', lighthouse: true, comparison: true,
+                whileVisible: explainLighthouse, hold: 0.6 });
+            if (!lighthouseExplained) await explainLighthouse();
             s.clue('lighthouse');
             s.camFree();
         }
@@ -716,11 +731,21 @@ export function createStory(G, io) {
                 await s.say(STORY.k2.bothHalves);
             });
             s.clue('torn_map', { quiet: true });
-            if (inScene('kelp')) await s.cam({ x: h(43), y: h(3.5), zoom: 0.8, t: 1.6, hold: 1.2 });
+            if (inScene('kelp')) {
+                const passage = G.sceneDef.waterPassage;
+                const lane = G.sceneDef.lanes.find(l => l.id === 'lane-out').pts.slice(2);
+                const floor = G.sceneDef.surfaces.find(f => f.id === passage.floor).pts
+                    .filter(([x]) => x >= lane[0][0]);
+                await landLook(s, 'bay-outflow', () => s.say(STORY.k2.outflow), {
+                    x0: lane[0][0] - h(.8), x1: lane.at(-1)[0] + h(.7),
+                    y0: Math.min(...lane.map(([, y]) => y)) - h(.8),
+                    y1: Math.max(passage.bed, ...floor.map(([, y]) => y)) + h(.5)
+                });
+            }
             // a glimpse of the lighthouse: the paper figure peeks and snaps a shutter shut
             let figureExplained = false;
             const explainFigure = () => { figureExplained = true; return s.say(STORY.k2.end); };
-            await s.fx('vista', { scene: 'viken', lighthouse: true, t: 3.2, peek: true,
+            await s.fx('vista', { scene: 'viken', lighthouse: true, comparison: true, t: 3.2, peek: true,
                 whileVisible: explainFigure });
             if (!figureExplained) await explainFigure();
             s.camFree();
@@ -738,11 +763,31 @@ export function createStory(G, io) {
     // =========================================================================
     beat('k3_arrive', {
         when: () => inScene('viken') && !done('k3_arrive'),
+        lock: false, // read-held inspections preserve the incoming swimmer's momentum
         async run(s) {
             G.flag('viken_arrived'); G.flag('gate_open');
-            await s.appear('klo', { scene: 'viken', x: G.sceneDef.spots.kloShore.x, y: G.sceneDef.spots.kloShore.y, pose: 'point', facing: 1 });
-            await s.cam({ x: h(24), y: h(-4), zoom: 0.62, t: 1.4, hold: 1.4 });
-            await s.say(STORY.k3.arrive);
+            const showKlo = () => s.appear('klo', { scene: 'viken', x: G.sceneDef.spots.kloShore.x,
+                y: G.sceneDef.spots.kloShore.y, pose: 'point', facing: 1 });
+            const swimmer = P().mode === 'swim';
+            if (swimmer) {
+                const p = P(), passage = G.sceneDef.waterPassage;
+                const water = G.sceneDef.waters.find(w => w.id === passage.water);
+                const lane = G.sceneDef.lanes.find(l => l.id === 'lane-bay-entry').pts;
+                await landLook(s, 'bay-inlet', async () => {
+                    await showKlo();
+                    await s.say(STORY.k3.arriveSea);
+                }, {
+                    x0: Math.min(p.x - h(1.6), passage.x - h(.8)),
+                    x1: Math.max(p.x + h(2.4), lane.at(-1)[0] + h(.6)),
+                    y0: Math.min(water.top - h(1.4), p.y - h(1.5)),
+                    y1: Math.max(passage.bed + h(.5), p.y + h(.8))
+                });
+            }
+            const tower = G.sceneDef.spots.lighthouse, gallery = G.sceneDef.spots.kvGallery;
+            await landLook(s, 'bay-lighthouse', async () => {
+                if (!swimmer) await showKlo();
+                await s.say(STORY.k3.arrive);
+            }, { x0: tower.x - h(6.2), x1: tower.x + h(4), y0: gallery.y - h(3.5), y1: tower.y + h(1.5) });
             s.camFree();
             s.checkpoint('viken');
             hintOnce('chains', STORY.k3.chains);

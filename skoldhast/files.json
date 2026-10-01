@@ -65,6 +65,7 @@
   "src/user-cloud.mjs",
   "src/vault-discovery.mjs",
   "src/view.mjs",
+  "src/water-passage.mjs",
   "src/wave-evidence.mjs",
   "skoldhast.css",
   "fonts/patrick-hand-latin.woff2",

@@ -9,6 +9,8 @@ import { createPlayer, stepPlayer, Terrain, STEP, HL, cond } from './sim.mjs';
 import { createPuzzleState, stepPuzzles, contextAction, shakeShells, resetUncommitted } from './puzzles.mjs';
 import { SCENES, CHECKPOINTS, RELEASED_CHAPTER } from './content/world.mjs';
 
+const SWIM_PASSAGE_KEYS = ['vx', 'vy', 'hidden', 'hide', 'facing', 'submerge', 'speed', 'wetTimer'];
+
 export function createGame({ released = RELEASED_CHAPTER } = {}) {
     const listeners = new Map();
     const timers = [];
@@ -48,7 +50,7 @@ export function createGame({ released = RELEASED_CHAPTER } = {}) {
         cond(c) { return cond(c, G.flags); },
 
         /** Load a scene and place the player at a spot name or {x, y, facing, mode}. */
-        goto(sceneId, spawn, { silent = false } = {}) {
+        goto(sceneId, spawn, { silent = false, swimState = null } = {}) {
             const prev = G.sceneId;
             G.sceneId = sceneId;
             G.sceneDef = SCENES[sceneId];
@@ -62,7 +64,13 @@ export function createGame({ released = RELEASED_CHAPTER } = {}) {
             // settle on the ground or in the water
             const sup = G.terrain.support(G.player.x, G.player.y, 120, 400);
             if (G.player.mode === 'ground' && sup) { G.player.y = sup.y; G.player.surface = sup.s; }
-            if (s?.mode === 'swim') { G.player.water = G.terrain.waterAt(G.player.x, G.player.y); G.player.submerge = 1; }
+            if (s?.mode === 'swim') {
+                G.player.water = G.terrain.waterAt(G.player.x, G.player.y); G.player.submerge = 1;
+                // A connected inlet changes the drawing's horizontal origin,
+                // not the swimmer's motion or the shell they are drifting in.
+                if (swimState) for (const key of SWIM_PASSAGE_KEYS)
+                    G.player[key] = swimState[key];
+            }
             G.sceneTime = 0;
             G.areas = new Set();
             resetUncommitted(G);
@@ -146,7 +154,19 @@ export function createGame({ released = RELEASED_CHAPTER } = {}) {
             if (!locked) {
                 for (const ex of G.sceneDef.exits || []) {
                     if (!ex.auto || !cond(ex.when, G.flags)) continue;
-                    if (p.x >= ex.x0 && p.x <= ex.x1 && (ex.y1 === undefined || p.y <= ex.y1)) { G.emit('exit', ex); G.goto(ex.to, ex.spawn); break; }
+                    if (p.x < ex.x0 || p.x > ex.x1 || ex.y0 !== undefined && p.y < ex.y0
+                        || ex.y1 !== undefined && p.y > ex.y1 || ex.dir && p.vx * ex.dir <= 0) continue;
+                    let spawn = ex.spawn, swimState = null;
+                    if (ex.waterLink) {
+                        if (p.mode !== 'swim') continue;
+                        const source = G.sceneDef.waters.find(w => w.id === ex.waterLink.from);
+                        const destination = SCENES[ex.to].waters.find(w => w.id === ex.waterLink.to);
+                        const spot = typeof spawn === 'string' ? SCENES[ex.to].spots[spawn] : spawn;
+                        if (!source || !destination || !spot) continue;
+                        spawn = { ...spot, y: destination.top + p.y - source.top, mode: 'swim' };
+                        swimState = Object.fromEntries(SWIM_PASSAGE_KEYS.map(key => [key, p[key]]));
+                    }
+                    G.emit('exit', ex); G.goto(ex.to, spawn, { swimState }); break;
                 }
             }
             if (G.story) G.story.step(dt);

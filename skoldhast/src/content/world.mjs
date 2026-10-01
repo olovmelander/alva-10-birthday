@@ -20,6 +20,13 @@ const L = (...pts) => pts.map(([x, y]) => [h(x), h(y)]);
 // Released chapters: raise this to release the next chapter (plan §7.2).
 export const RELEASED_CHAPTER = 3;
 
+// The two drawings look along opposite sides of the same underwater headland.
+// Keep the sea level and swimming corridor identical when changing pages.
+export const SEA_BAY_LINK = Object.freeze({
+    depth: h(4.1), bed: h(5.92), y0: h(3.15), y1: h(5.05),
+    kelpExit: h(46.9), kelpSpawn: h(46.35), bayExit: h(8.2), baySpawn: h(8.6)
+});
+
 export const SCENES = {};
 
 // ===========================================================================
@@ -335,7 +342,7 @@ SCENES.kelp = {
     surfaces: [
         { id: 'cave-floor', pts: L([-1, 3.6], [2, 3.8], [4.5, 4.1], [7, 4.6]), mat: 'rock' },
         { id: 'seabed', pts: L([7, 4.6], [9, 5.3], [11, 5.8], [14, 6.05], [17, 6.1], [19, 6.0], [21.2, 6.2], [22, 6.35]), mat: 'seabed' },
-        { id: 'trench', pts: L([22, 6.35], [22.5, 8.8], [23.3, 11.6], [25, 12.2], [27, 12.5], [30, 12.6], [31.5, 12.0], [33, 11.2], [36, 11.4], [39, 11.1], [42, 10.2], [45, 9.2], [48.5, 9.0]), mat: 'seabed', chapter: 2 },
+        { id: 'trench', pts: L([22, 6.35], [22.5, 8.8], [23.3, 11.6], [25, 12.2], [27, 12.5], [30, 12.6], [31.5, 12.0], [33, 11.2], [36, 11.4], [39, 11.1], [42, 10.2], [44.5, 9.366666666666667], [45.2, 8.25], [46.2, 6.42], [46.9, 5.92], [48.5, 5.92]), mat: 'seabed', chapter: 2 },
     ],
     walls: [
         { id: 'fold', x: h(47.6), y0: h(-3), y1: h(14), balk: 'fold' },
@@ -365,7 +372,7 @@ SCENES.kelp = {
         { id: 'lane-vault', pts: L([22.7, 7.8], [23.3, 9.4], [24.3, 10.4], [25.5, 11.35]), width: h(1.5), speed: 300, when: 'ch2_open' },
         { id: 'lane-vault-in', pts: L([25.5, 11.35], [27.5, 11.9], [30, 11.8], [31.4, 11.2]), width: h(1.3), speed: 320, when: 'p5_lit' },
         { id: 'lane-kelp-release', pts: L([41, 9.25], [39.2, 8.1]), width: h(1.8), suck: h(2.3), speed: 330, when: ['p6_kelp_freed', '!p6_flat'] },
-        { id: 'lane-out', pts: L([36, 8.5], [39, 6.5], [42, 4.5], [45, 2.8], [47.2, 1.6]), width: h(1.4), speed: 520, when: 'marks_both' }
+        { id: 'lane-out', pts: L([36, 8.5], [39, 7.1], [42, 6.65], [44.6, 5.75], [46, 4.2], [47.2, 4.1]), width: h(1.4), speed: 520, when: 'marks_both' }
     ],
     vortices: [
         { id: 'kelphjartat', x: h(36), y: h(8.4), r: h(3), eye: h(0.45), speed: 620, pull: 160, spin: 1, when: ['ch2_open', 'p6_kelp_freed', '!p6_flat'] }
@@ -387,18 +394,18 @@ SCENES.kelp = {
     spots: {
         // Keep the entrance's 1.4 HL immersion below the shared waterline.
         fromLand: { x: h(1.6), y: h(1.4), facing: 1, mode: 'swim' },
-        fromViken: { x: h(46.2), y: h(2.2), facing: -1, mode: 'swim' },
+        fromViken: { x: SEA_BAY_LINK.kelpSpawn, y: SEA_BAY_LINK.depth, facing: -1, mode: 'swim' },
         klo: { x: h(12.5), y: h(5.92) },
         kloTrench: { x: h(21.2), y: h(6.2) },
         flap: { x: h(17.6), y: h(6.1) },
         overlook: { x: h(21.3), y: h(3.4) },
-        veckmuren: { x: h(47.6), y: h(9.0) },
+        veckmuren: { x: h(47.6), y: SEA_BAY_LINK.bed },
         corner: { x: h(36), y: h(8.4) },
         vault: { x: h(25.8), y: h(11.4) },
         lyktbed: { x: h(23.9), y: h(11.4) },
         // his second note, sealed in a bottle at the trench's lip (Kapitel 2)
         note2: { x: h(21.65), y: h(6.1) },
-        figure: { x: h(47.1), y: h(1.6) }
+        figure: { x: h(47.1), y: SEA_BAY_LINK.depth }
     },
     areas: [
         { id: 'cave', x0: h(-1), x1: h(7) },
@@ -435,12 +442,15 @@ SCENES.kelp = {
         { sprite: 'seabed-rock-3', x: h(33.6), y: h(11.25), layer: 'mid', chapter: 2 },
         { sprite: 'shell-under', x: h(16.4), y: h(6.1), layer: 'mid' },
         { sprite: 'note-bottle', x: h(21.65), y: h(6.29), layer: 'mid', chapter: 2 },
-        { sprite: 'veckmuren', x: h(47.9), y: h(9.1), layer: 'mid' }
+        { sprite: 'veckmuren', x: h(47.9), y: SEA_BAY_LINK.bed, layer: 'mid' }
     ],
     paper: [{ id: 'trench-paper', x0: h(22.2), x1: h(46.5), until: 'ch2_open', note: { x: h(26), y: h(4) }, under: true }],
+    waterPassage: { side: 'kelp', water: 'sea', x: SEA_BAY_LINK.kelpExit, y: SEA_BAY_LINK.depth,
+        bed: SEA_BAY_LINK.bed, dir: 1, floor: 'trench', chapter: 2 },
     exits: [
         { id: 'to-land', x0: h(-1), x1: h(0.1), to: 'land', spawn: 'fromKelp', auto: true },
-        { id: 'to-viken', x0: h(46.9), x1: h(48), y1: h(3), when: 'marks_both', to: 'viken', spawn: 'fromKelp', auto: true }
+        { id: 'to-viken', x0: SEA_BAY_LINK.kelpExit, x1: h(48), y0: SEA_BAY_LINK.y0, y1: SEA_BAY_LINK.y1,
+            dir: 1, waterLink: { from: 'sea', to: 'bay' }, when: 'marks_both', to: 'viken', spawn: 'fromKelp', auto: true }
     ]
 };
 
@@ -493,13 +503,15 @@ SCENES.viken = {
         { id: 'bay', x0: h(-1), x1: h(36), top: h(0), kind: 'sea', mirror: true }
     ],
     lanes: [
+        // The outflow rounds the headland below the pier, in the same sea.
+        { id: 'lane-bay-entry', pts: L([8.1, 4.1], [9.1, 4.1], [10.3, 4.3], [11.2, 4.5]), width: h(1.4), speed: 300, when: 'marks_both' },
         { id: 'pipe', pts: L([26.5, 5.2], [26.5, 0.6], [26.5, -7.1]), width: h(0.9), speed: 520, eject: true, suck: h(2.2) },
         // the sea half of P8 starts where the pier leap lands and ends in a calm pool at the lower window
         { id: 'p8-lane', pts: L([25.6, 0.85], [25.95, 1.7], [26.2, 2.3], [26.35, 2.6]), width: h(1.4), speed: 260, dashed: true, endHold: true, priority: 1, when: ['p8_land', '!unfolded', '!ended'] }
     ],
     spots: {
         fromLand: { x: h(0.6), y: h(-0.16), facing: 1 },
-        fromKelp: { x: h(8.6), y: h(3.0), facing: 1, mode: 'swim' },
+        fromKelp: { x: SEA_BAY_LINK.baySpawn, y: SEA_BAY_LINK.depth, facing: 1, mode: 'swim' },
         stairTop: { x: h(26.5), y: h(-7.3), facing: 1 },
         stairFoot: { x: h(22.6), y: h(-0.62), facing: -1 },
         galleryPop: { x: h(26.9), y: h(-7.3), facing: 1 },
@@ -568,7 +580,11 @@ SCENES.viken = {
     lamp: { x: h(29.8), y: h(-7.985) },
     lighthouseScale: 1.37,
     mirrorZone: { x0: h(14), x1: h(24.2), needHiddenOn: 'pier' },
+    waterPassage: { side: 'bay', water: 'bay', x: SEA_BAY_LINK.bayExit, y: SEA_BAY_LINK.depth,
+        bed: SEA_BAY_LINK.bed, dir: -1, floor: 'bay-bed' },
     exits: [
+        { id: 'to-kelp', x0: h(7.9), x1: SEA_BAY_LINK.bayExit, y0: SEA_BAY_LINK.y0, y1: SEA_BAY_LINK.y1,
+            dir: -1, waterLink: { from: 'bay', to: 'sea' }, when: 'marks_both', to: 'kelp', spawn: 'fromViken', auto: true },
         { id: 'to-land', x0: h(-1), x1: h(0.2), to: 'land', spawn: 'fromViken', auto: true, when: 'gate_open' }
     ]
 };

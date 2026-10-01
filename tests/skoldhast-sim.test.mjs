@@ -128,7 +128,7 @@ test('a swimmer touching a wall can always swim away from it', () => {
         const G = createGame();
         for (const f of ['intro_done', 'ch1_end', 'ch2_open']) G.flags.add(f);
         const wall = G.scenes.kelp.walls.find((w) => w.id === 'fold').x;
-        G.goto('kelp', { x: wall - gap, y: 9 * HL, facing: 1, mode: 'swim' });
+        G.goto('kelp', { x: wall - gap, y: G.scenes.kelp.waterPassage.y, facing: 1, mode: 'swim' });
         G.player.x = G.player.px = wall - gap;
         for (let i = 0; i < 240; i++) G.step({ x: -1 });
         assert.ok(G.player.x < wall - h1(0.5), `from ${gap} units left of the fold it swims left (x ${(G.player.x / HL).toFixed(2)} HL)`);

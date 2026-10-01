@@ -229,6 +229,7 @@ export const STORY = {
         landmarkPurposeEarly: ['klo', 'Där ute på Klippudden ligger en kartbit! Den ser ut att passa ihop med vårt hörn.'],
         runupPurpose: ['klo', 'Börja här uppe. Galoppen utför backen ger extra fart till språnget över klyftan.'],
         landFound: ['klo', 'Där var kartbiten! Hovarna tog oss över klyftan som jag inte kunde ta mig förbi.'],
+        lighthouseIntro: ['klo', 'Där borta står Pappersfyren! Se hur den speglar sig i vattnet.'],
         lighthouse: ['horse', 'Fyren lyser – men bara i spegelbilden.'],
         note2: ['note', 'Snälla, rör inte strecken. Det är för teckningens skull. /Kartväktaren'],
         // the note lies sealed in a bottle: the first clue to his fear of water
@@ -250,7 +251,8 @@ export const STORY = {
         halfSea: ['klo', 'Nu saknas bara kartbiten i djupet. Med den kan vi laga vägen till fyren.'],
         halfSeaEarly: ['klo', 'En bit till vår karta! Vi behöver också undersöka vecket under den frusna vågen.'],
         fitPieces: ['klo', 'Vår första kartbit och de två vi hittade. Titta – rivkanterna passar ihop!'],
-        bothHalves: ['klo', 'Vi lagade kartans streck – och strömmen fortsätter till fyren! Kartan ändrar världen igen!'],
+        bothHalves: ['klo', 'Vi lagade kartans streck – och strömmen fortsätter runt udden till Spegelviken!'],
+        outflow: ['klo', 'Bottnen stiger här. Strömmen följer den runt udden, på vår sida om Veckmuren.'],
         // the irony, planted before the meeting: his own fold tore his map
         torn: ['klo', 'Titta på rivkanterna! Kartan gick sönder precis där sidan veks.'],
         mapAssemble: 'Kartbitarna passar ihop',
@@ -259,12 +261,13 @@ export const STORY = {
         whirlHint: 'Kelpen sitter över kanten. Ta tag i den lösa änden och simma bort från vecket.',
         seaFound: ['klo', 'Skalet pressade vecket platt. Nu har vi kartbiten från havet!'],
         leapHint: 'Utförsbacken ger extra fart! Börja högst uppe på Galoppbacken och galoppera ner till kanten.',
-        afterEnd: 'Den nya strömmen fortsätter åt höger, mot nästa sida!',
+        afterEnd: 'Följ strömmen åt höger, runt udden och in under bryggan!',
         laneHide: 'Fiskarna följer dig! Men här ligger du still. Göm dig i strömmen ovanför, så driver ni in i valvet tillsammans.',
         lyktWait: 'Lyktfiskarna blev blyga och stannade. De väntar! Göm dig nära dem igen, så följer de med.',
         ropeHint: 'Ett rep! Ställ dig vid det och tryck Dra, så fälls plankan ner över klyftan.'
     },
     k3: {
+        arriveSea: ['klo', 'Samma hav, men grundare! Nu är vi i Spegelviken, under bryggan. Här kan vi simma upp.'],
         arrive: ['klo', 'Han med linjalen gömmer sig i fyren. Öppnar vi luckorna kan vi få prata med honom.'],
         mirror: ['klo', 'Som i pölen! Tre öppna luckor i spegeln. Följ kedjorna, så får vi fram ljuset.'],
         // Why he folded (docs/skoldhast/story-kartvaktaren.md). His first words, as the lamp
@@ -390,7 +393,7 @@ export const HINTS = {
     p6Reach: { q: 'Hur kommer skalet upp på vecket?', note: 'Kelpen är loss och strömmen når ända upp. Ett gömt skal följer med vattnet.', sketch: 'Simma in i strömmen vid vecket och göm dig. Låt den bära skalet upp på papperskanten.' },
     p6Press: { q: 'Hur blir papperet platt?', note: 'Skalet ligger ovanpå vecket. Tyngden pressar ner papperet medan du stannar gömd.', sketch: 'Stanna gömd på vecket i tre sekunder, tills papperet ligger platt.' },
     p6Collect: { q: 'Var tog kartbiten vägen?', note: 'Det platta vecket släppte fram biten. Den har flutit upp i det lugna vattnet intill.', sketch: 'Kom fram ur skalet och simma fram till den flytande kartbiten för att plocka upp den.' },
-    toViken: { q: 'Vart leder strömmen?', note: 'Den lagade kartan har öppnat en ny ström mot fyren.', sketch: 'Simma till strömmen ovanför det platta vecket i Kelphjärtat och låt den föra dig åt höger.' },
+    toViken: { q: 'Vart leder strömmen?', note: 'Strömmen följer bottnen runt udden till Spegelviken.', sketch: 'Göm dig i strömmen ovanför Kelphjärtat. Följ den åt höger och in under vikens brygga. Där kan du komma fram och simma upp.' },
     p7: { q: 'Hur tänds fyren?', note: 'Tre luckor, tre kedjor. Följ varje kedja till sin maskin.', sketch: 'Göm dig över bottenplattan. Göm dig vid röret, åk upp och dra i repet. Galoppera på bryggan för den sista luckan.' },
     talk: { q: 'Varför vek Kartväktaren undan havet?', note: 'Kartväktaren väntar längst ut på bryggan. Prata med honom vid kartan.', sketch: 'Gå fram till honom och tryck Prata.' },
     p8: { q: 'Hur släpper vi fram en liten våg?', note: 'Laga vägen till fyren med hovarna. Platta ut strandhörnet med skalet. Alvas penna lagar glappet i kusten.', sketch: 'Galoppera över strecken på bryggan. Hoppa i, göm dig och följ strömmen till strandhörnet.' },
@@ -434,7 +437,7 @@ export const GOALS = {
     p6Reach: 'Följ strömmen med skalet upp på vecket.',
     p6Press: 'Stanna under skalet – pressa papperet platt.',
     p6Collect: 'Simma till den fria kartbiten och hämta den.',
-    toViken: 'Följ strömmen till han med linjalen i fyren.',
+    toViken: 'Följ strömmen runt udden till Spegelviken.',
     p7: (n) => `Öppna luckorna – locka fram fyrens väktare. (${n}/3)`,
     talk: 'Fråga Kartväktaren varför han vek undan havet.',
     p8: 'Laga strandhörnet – prova med en liten våg!',
@@ -460,7 +463,7 @@ export const THREAD = {
         land: 'Språnget tog oss till kartbiten på Klippudden. En bit i havet saknas ännu innan kartans väg kan bli hel.',
         sea: 'Skalet pressade havsbottnens veck platt och vi hämtade den fria kartbiten. Nu saknas biten som flög över Stäppen.',
         pieces: 'Båda kartbitarna är hittade. Klo kan sätta ihop dem med sitt karthörn och laga vägen runt vecket.',
-        tower: 'Den lagade kartan öppnade strömmen till fyren. Där gömmer sig figuren med linjalen.',
+        tower: 'Den lagade kartan öppnade strömmen runt udden till Spegelviken. Där gömmer sig figuren med linjalen i fyren.',
         fear: 'Kartväktaren vek undan havet för att skydda papperet från vatten. Vi behöver hjälpa honom att våga veckla ut det.',
         proof: 'Kartväktaren vill prova med en liten våg först. Vi behöver laga den vikta kustbiten vid fyren. Håller papperet släpper han fram hela havet.',
         end: 'Strandkanten höll! Kartväktaren vecklade ut havet och Alva fick tillbaka sitt plask. Nu är det fritt att upptäcka mer.'
@@ -497,7 +500,7 @@ export const THREAD = {
         p6Reach: 'Kelpen är loss. Strömmen kan nu bära det gömda skalet upp på vecket som håller kartbiten fast.',
         p6Press: 'Skalet ligger på vecket. Dess tyngd pressar papperet nedåt, så att kartbiten kan komma loss.',
         p6Collect: 'Vecket ligger platt och kartbiten flyter fritt. Vi behöver komma fram ur skalet och simma fram till den.',
-        toViken: 'Kartan är lagad. Strömmen leder till figuren med linjalen – han kan veta hur vi får tillbaka havet.',
+        toViken: 'Kartan är lagad. Strömmen går runt udden till fyren. Figuren med linjalen där kan veta hur vi får tillbaka havet.',
         p7: 'Figuren gömmer sig bakom fyrens luckor. Kedjorna visar hur vi kan öppna dem och få kontakt.',
         talk: 'Kartväktaren använde linjalen. Vi behöver förstå varför han vek sidan innan vi kan hjälpa honom att öppna den.',
         p8: 'En liten våg ska få passera den lagade kusten medan Kartväktaren ser på. Då kan han våga släppa fram den stora vågen hemma på vår strand.',
@@ -566,7 +569,7 @@ export const GUIDANCE = {
     route: {
         land: 'Simma tillbaka genom grottan till stranden.',
         kelp: 'Gå till Vattenporten vid pölen och välj Simma in.',
-        viken: 'Följ strömmen åt höger, till nästa sida.',
+        viken: 'Följ strömmen åt höger, runt udden och in under bryggan.',
         bayExit: 'Följ stranden åt vänster för att komma tillbaka.',
         bay: 'Följ stranden åt höger genom den öppna grinden till Spegelviken.'
     },
@@ -671,7 +674,7 @@ export const JOURNAL = {
         fold: 'Ett veck genom havet – rakt som en linjal.',
         figure: 'Någon smal, av papper, med en linjal. Han skyndade sig bort från vattnet.',
         glimpse: 'Det finns fler sköldhästar!',
-        lighthouse: 'Pappersfyren lyser bara i spegelbilden. Någon har stängt dess luckor.',
+        lighthouse: 'Vi såg Pappersfyren och dess spegelbild. Bara spegelbilden lyste; den riktiga fyrens luckor var stängda.',
         note2: 'En lapp i en flaska i djupet: ”Snälla, rör inte strecken. Det är för teckningens skull. /Kartväktaren” Han skyddar lappen från vattnet.',
         mark_land: 'Kartbiten från land låg på Klippudden. Ett långt språng tog oss över klyftan. Strecket på biten fortsätter fram till en riven kant.',
         mark_sea: 'Kartbiten satt under havsbottnens veck i Kelphjärtat. Skalet pressade papperet platt och biten flöt upp i det lugna vattnet. Nu har vi hämtat den och kan laga kartans väg till Pappersfyren.',
@@ -681,7 +684,7 @@ export const JOURNAL = {
     },
     reports: {
         1: ['Vi vill få havet att plaska igen. Genom Vattenporten hittade vi vecket under vågen.', 'En pappersfigur med linjal skyndade bort från vattnet.', 'Skalet gjorde pölen blank. Spegelbilden visade hur stenen och plankan kunde öppna Vattenporten.', 'Nästa: undersöka kartans rivna kant och hitta vägen förbi vecket.'],
-        2: ['Språnget nådde kartbiten på land. Skalet pressade vecket platt och vi hämtade den fria biten i havet.', 'Vi satte ihop kartan. Då öppnades strömmen till Pappersfyren!', 'Kartan rev sig där sidan veks. Figuren med linjalen gömmer sig i fyren.', 'Nästa: få kontakt med honom och ta reda på hur havet kan vecklas ut.']
+        2: ['Språnget nådde kartbiten på land. Skalet pressade vecket platt och vi hämtade den fria biten i havet.', 'Vi satte ihop kartan. Då fortsatte strömmen runt udden till Spegelviken!', 'Kartan rev sig där sidan veks. Figuren med linjalen gömmer sig i fyren.', 'Nästa: få kontakt med honom och ta reda på hur havet kan vecklas ut.']
     }
 };
 
@@ -884,11 +887,11 @@ export const KLO_COMPANION = {
         hook: ['Vecket försvinner inte vid vattenytan. Det fortsätter längre in.', 'Följ det längre åt höger i Kelpskogen och undersök utsikten där.'],
         kelp: ['Vattenporten är öppen. Bakom den rör sig havet fortfarande.', 'Vid valvet finns vägen in under den frusna vågen.'],
         toSea: ['Vi har kartbiten från land. Den som föll ner i havet saknas fortfarande.', 'Vattenporten för oss tillbaka till Kelpskogen.'],
-        toViken: ['Kartans väg är hel igen. Strömmen fortsätter till en annan sida.', 'Följ den öppna vägen mot Spegelviken och fyren.'],
+        toViken: ['Kartan är hel igen. Samma hav fortsätter runt udden in i Spegelviken.', 'Göm dig i strömmen och följ den under bryggan. Där kan du komma fram och simma upp.'],
         routeLand: ['Det vi letar efter just nu hör till spåren på land.', 'Vägen tillbaka till stranden finns åt vänster, genom grottan.'],
         routeKelp: ['Vi behöver undersöka den andra sidan av vattenytan.', 'Vattenporten vid pölen är förbindelsen till Kelpskogen.'],
-        routeViken: ['Vårt nästa spår finns vid fyren i Spegelviken.', 'Följ den öppna vägen till Spegelviken på den här sidan.'],
-        routeBayExit: ['Härifrån behöver vi återvända till strandens spår.', 'Stranden fortsätter åt vänster och tillbaka till sidan vi kom från.'],
+        routeViken: ['Vårt nästa spår finns vid fyren i Spegelviken.', 'Följ den öppna vägen längs kusten till viken och fyren.'],
+        routeBayExit: ['Härifrån behöver vi återvända till strandens spår.', 'Följ stranden åt vänster genom grinden, tillbaka till Stranden.'],
         signe: ['Signe väntar vid snäckorna. Hon ser ovanligt målmedveten ut.', 'Hälsa på henne. Jag tror att hon har ett förslag.'],
         free: ['Havet är tillbaka, men min anteckningsbok har många tomma sidor.', 'Det finns färgpennor att upptäcka på de olika sidorna. Välj en plats du vill undersöka.'],
         freeComplete: ['Alla färgpennor är hittade. Vilken färgglad forskningsresa!', 'Du kan besöka Signe eller välja din favoritplats igen.'],
@@ -904,7 +907,7 @@ export const KLO_COMPANION = {
         land: 'Vi hittade en kartbit på Klippudden. Språnget tog oss hela vägen dit.',
         sea: 'Skalet pressade havsbottnens veck platt. Vi hämtade kartbiten som flöt upp därifrån.',
         pieces: 'Båda kartbitarna är hittade. Deras rivna kanter passar ihop.',
-        tower: 'Vi satte ihop kartan. Då fortsatte strömmen till fyren, där figuren gömde sig.',
+        tower: 'Vi satte ihop kartan. Då fortsatte strömmen runt udden till Spegelviken. Figuren gömde sig i fyren där.',
         fear: 'Kartväktaren berättade att han vek undan havet för att skydda papperet mot vattnet.',
         mapTalk: 'Hans karta delar upp allt i LAND och HAV. Sköldhästen och stranden saknar plats där.',
         proof: 'Vi ska laga den vikta kustbiten och prova med en liten våg. Håller papperet släpper Kartväktaren fram hela havet.',

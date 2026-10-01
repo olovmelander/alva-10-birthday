@@ -176,7 +176,27 @@ export function createGame({ host = document.body, assetBase = './skoldhast/', r
         await loadAudio();
         story = createStory(G, {
             ui, audio, guide, settings: () => settings, touch: !!window.matchMedia?.('(pointer: coarse)').matches,
-            fx: (n, d) => view.fx(n, d), save: () => saveNow(),
+            fx: async (n, d) => {
+                const effectView = view;
+                const scene = G.sceneId, effectPlayer = G.player;
+                // The hill clue can reveal the bay before its background art
+                // finishes loading. Build the vista only once that art exists.
+                if (n === 'vista' && d?.scene) await sceneArt(d.scene);
+                // An arrival inspection must own the completed destination
+                // drawing, so a late art rebuild cannot erase its live frame.
+                if (n === 'landFocus') await sceneArt(scene);
+                // Match a destroyed view effect: abandon this story continuation
+                // rather than running its dialogue on the closed session's UI.
+                if (view !== effectView || state === 'closing' || state === 'closed') return new Promise(() => {});
+                if (n === 'landFocus' && (G.sceneId !== scene || G.player !== effectPlayer)) return new Promise(() => {});
+                if (n === 'landFocus' && !G.vista && (view.sceneId !== scene || !view.built(scene))) {
+                    const from = view.sceneId;
+                    const turn = from && from !== scene && !view.holding ? ((PAGE[scene] || 0) >= (PAGE[from] || 0) ? 'left' : 'right') : null;
+                    view.setScene(scene, { turn, keepCam: from === scene });
+                    audio?.setArea(G.finalRun ? 'final' : areaFor(scene));
+                }
+                return effectView.fx(n, d);
+            }, save: () => saveNow(),
             toScreen: (x, y) => ({ x: view.world.position.x + x * view.world.scale.x, y: view.world.position.y + y * view.world.scale.y })
         });
         G.story = story;
@@ -339,7 +359,7 @@ export function createGame({ host = document.body, assetBase = './skoldhast/', r
     async function sceneArt(id) {
         const wanted = (SCENE_BUNDLES[id] || []).filter((b) => assets.bundles().includes(b) && !assets.loaded(b));
         if (!wanted.length) return;
-        let slow = setTimeout(() => { slow = null; ui.toast(UI.loading, 2500); }, 350);
+        let slow = setTimeout(() => { slow = null; ui?.toast(UI.loading, 2500); }, 350);
         try { await Promise.all(wanted.map((b) => assets.load(b))); } finally { if (slow) clearTimeout(slow); }
     }
 

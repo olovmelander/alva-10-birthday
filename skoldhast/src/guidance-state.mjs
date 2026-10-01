@@ -76,6 +76,8 @@ export function describeGuidance(G, settings = {}) {
     function calm(id) { return clamp((1 - (S.pools[id]?.ripple ?? 1)) / .94); }
 
     const returnRope = scenes.land.ropes[0];
+    const outlet = scenes.kelp.lanes.find(lane => lane.id === 'lane-out').pts.at(-1);
+    const outflowTarget = () => point('kelp', { x: outlet[0], y: outlet[1] });
     const cliffEdge = scenes.land.edges.find(e => e.id === 'klipp-edge');
     const needsCliffExit = ['toSea', 'toViken', 'pool', 'p2', 'kelp'].includes(objective) && scene === 'land'
         && F.has('p4_leap') && !F.has('p4_plank') && p.x <= cliffEdge.x && p.y < cliffEdge.y + HL;
@@ -147,7 +149,7 @@ export function describeGuidance(G, settings = {}) {
         if (p6.phase === 'pull-kelp') progress(p6.fraction, 1, W.progress.kelpLoose);
         if (p6.phase === 'press-fold') progress(p6.fraction, 1, W.progress.flattening);
     } else if (objective === 'toViken' && hidden && scene === 'kelp' && p.inLane?.id === 'lane-out') {
-        step('toViken', at('kelp', 46.8, 1.8), 'hide', 'working', HINTS.toViken.sketch);
+        step('toViken', outflowTarget(), 'hide', 'working', HINTS.toViken.sketch);
     } else if (objective === 'p7') {
         const bay = scenes.viken, plate = bay.plates[0], pipe = bay.lanes.find(l => l.id === 'pipe');
         const gallery = scene === 'viken' && p.y < -6.4 * HL && p.x > 26 * HL;
@@ -181,7 +183,7 @@ export function describeGuidance(G, settings = {}) {
         const targets = {
             explore: point('land', G.actors.klo), kelp: point('land', scenes.land.spots.arch),
             hook: at('kelp', 20.8, 3.4), toSea: point('land', scenes.land.spots.arch),
-            toViken: at('kelp', 46.8, 1.8), talk: point('viken', G.actors.kv), signe: point('land', G.actors.signe)
+            toViken: outflowTarget(), talk: point('viken', G.actors.kv), signe: point('land', G.actors.signe)
         };
         if (targets[objective]) step(objective, targets[objective], ['kelp', 'toSea', 'talk', 'signe'].includes(objective) ? 'act' : 'move', 'approach', W.steps[objective] || HINTS[objective]?.sketch);
         if (objective === 'explore') control = 'gallop';
@@ -197,7 +199,7 @@ export function describeGuidance(G, settings = {}) {
         } else if (scene === 'land') {
             target = point('land', scenes.land.spots.arch); instruction = W.route.kelp;
             if (F.has('p2_open')) action = 'act';
-        } else if (scene === 'kelp' && cue.target.scene === 'viken' && F.has('marks_both')) { target = at('kelp', 46.8, 1.8); instruction = W.route.viken; }
+        } else if (scene === 'kelp' && cue.target.scene === 'viken' && F.has('marks_both')) { target = outflowTarget(); instruction = W.route.viken; }
         else if (scene === 'kelp') { target = at('kelp', 0, 2.3); instruction = W.route.land; }
         else { target = point('viken', scenes.viken.spots.fromLand); instruction = W.route.bayExit; }
         step('route-' + cue.target.scene, target, action, 'approach', instruction); cue.progress = null;

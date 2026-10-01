@@ -212,10 +212,12 @@ export async function chapter3(R) {
     await R.context('exit');
     await R.settle();
     // over Mörka valvet's roof on the way to the outflow
-    for (const [x, y] of [[8, 3.2], [20, 4.6], [23.0, 6.0], [30, 8.0], [36, 8.8]]) await R.swimTo(x, y, { max: 60 });
-    await R.until(() => G.sceneId === 'viken', { x: 1, y: -0.3 }, 30, 'the outflow to Spegelviken');
+    for (const [x, y] of [[8, 3.2], [20, 4.6], [23.0, 6.0], [30, 8.0], [36, 8.5]]) await R.swimTo(x, y, { max: 60 });
+    await R.hide();
+    await R.until(() => G.sceneId === 'viken', {}, 30, 'ride the connected outflow to Spegelviken');
     await R.flag('b:k3_arrive', {}, 30);
     await R.settle();
+    if (R.p().hidden) await R.hide();
 
     // P7 shutter 2: a sunk, hidden shell presses the seabed plate
     await R.swimTo(14.2, 6.2);

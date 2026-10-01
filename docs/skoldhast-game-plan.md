@@ -304,6 +304,9 @@ and why.
    - Under water the fold is **Veckmuren**, and it stays shut until Kartväktaren unfolds the page.
    - Mörka valvet, Kelphjärtat, the outflow and Spegelviken all lie on this side of it. Pappersfyren stands on
      the fold itself.
+   - Kelpskogen and Spegelviken are the same sea around a headland, with the same waterline. The outflow
+     follows a rising seabed sideways into the shallower bay beneath Trumbryggan. It never surfaces before
+     the crossing or passes through Veckmuren. The underwater passage also allows a swimmer to return.
 6. **Her outline clouds and m-gulls are her style, not damage.** A joke teaches this early:
    - Klo: "Varför är molnen inte färglagda?"
    - Sköldhästen: "Moln är vita, Klo."
@@ -441,7 +444,10 @@ the map-piece search begins, any unfinished land puzzles gain matching search go
   - A separate held view of the real crest shows where to start the downhill run. The jump needs actual
     speed gained on the descent, and its progress display reads that speed. The edge safely stops an
     under-speed attempt and directs the player back to the top.
-  - From Klippudden: "Fyren lyser – men bara i spegelbilden."
+  - After the land-piece close-up, hold the real Pappersfyren and its reflection in view. Klo introduces
+    the visible tower: "Där borta står Pappersfyren! Se hur den speglar sig i vattnet." The horse observes:
+    "Fyren lyser – men bara i spegelbilden." Both remain visible until both lines are read, then the view
+    returns to Klippudden. The figure does not peek yet. Record the clue only after the observation.
 - **P5 Lyktfiskarnas väg** lights the route through the vault toward **P6 Strömkarusellen** in Kelphjärtat.
   The fish do not switch on a distant whirlpool: the player can also swim over the vault and approach P6.
   P6 shows one local chain of causes: pull the snagged kelp loose, ride the released current onto the folded
@@ -454,13 +460,20 @@ the map-piece search begins, any unfinished land puzzles gain matching search go
   - Hold all three separated pieces for inspection. They join after the player advances; keep the tear
     visible while Klo explains it. Then trace the continuous blue route to the lighthouse and hold it
     through the explanation. Only the completed reveal opens the world current.
-  - The outflow from Kelphjärtat opens, and the view follows it to the mouth of Spegelviken. The lamp shines in
-    the reflection. On the real lighthouse, the paper figure peeks out through a shutter and snaps it shut.
+  - The outflow from Kelphjärtat opens. When discovered under water, hold a view of the actual current and
+    rising shelf while Klo explains that it rounds the headland on this side of Veckmuren. The route stays
+    submerged into Spegelviken. Hold a second view of the real lighthouse and its reflection; this time the
+    paper figure peeks out through a shutter and snaps it shut. The comparison stays visible for the line.
   - Klo: "Där är figuren med linjalen! Han smällde igen luckan. Vad är han så rädd för?"
-  - Forskningsrapport nr 2, then "Nästa sida kommer snart."
+  - Forskningsrapport nr 2, then control returns with the current route toward the bay. The "Nästa sida
+    kommer snart" notice belongs only to genuinely unreleased content.
 
 **Kapitel 3: Pappersfyren (about 15–25 min, including the final)**
 
+- On the first underwater arrival, hold the incoming swimmer, seabed, waterline and pier together. Klo
+  identifies the shallower water as Spegelviken: the same sea has brought them under the pier, and they can
+  surface here. Then hold the real tower while explaining the shutter goal. Reading preserves the swimmer's
+  position, hidden-shell state and momentum; it does not turn the crossing into a second ascent.
 - **P7 Pappersfyrens tre luckor** lights the real lamp and brings out Kartväktaren. His first words, on the gallery
   as the shutters stand open: "Mina luckor! Nu kan ju havet stänka in!" He hurries down to the pier with his map.
 - **The talk** has two points where control returns, so it is never more than three boxes at a time.
@@ -803,8 +816,8 @@ The original audit remains local in the ignored `docs/skoldhast/klo-companion-au
   with “Jag behöver backens fart för det här språnget!” and makes the top the next useful goal. A successful
   leap retains the scripted landing pan, brief apex slow-down and music sting.
 - **Taught:** the small språngkant on Galoppbanan, which has a flat runway.
-- **Reward:** Landmärket, Klo's measurement, and the view of the reflection-only lighthouse. A rope plank lowered
-  with *Dra* makes the way back a walk.
+- **Reward:** Landmärket, Klo's measurement, and a read-held comparison of the real tower with its lit reflection.
+  The figure reveal remains the completed-map payoff. A rope plank lowered with *Dra* makes the way back a walk.
 - **Margin note:** "Kan du få mer fart någon annanstans?"
 
 **P5 Lyktfiskarnas väg**
@@ -938,6 +951,9 @@ Kelpskogen (kelp entry, Mörka valvet, Kelphjärtat; Veckmuren along its seaward
 ```
 
 - **Shortcuts open from the far side.** Arriving in Spegelviken unbolts the pier gate back to Stranden.
+- **One continuous sea.** The kelp outflow follows the bed up to the headland, then crosses laterally at
+  4.1 HL below the shared waterline into the bay beneath the pier. Matching rock, bed and current markings
+  connect both sides. Swimming back uses the same passage; neither direction crosses the sealed fold.
 - **Revisits** show consequences (inked bridges, coloured props, restored water) rather than repeated
   challenges.
 - **Release boundaries.**

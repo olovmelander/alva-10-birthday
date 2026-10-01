@@ -1,5 +1,51 @@
 # Sköldhästen – handover
 
+## One sea around the headland, and a visible lighthouse clue (1 October)
+
+Pappa noticed that the kelp-to-bay crossing felt like surfacing into another sea,
+and the land-piece dialogue described a lighthouse that its camera did not show.
+
+- Land-piece discovery now holds the actual Pappersfyren and its reflection while
+  Klo introduces the tower and the horse notices that only its reflection shines.
+  The view returns to the original scene after reading; the clue commits afterward.
+  The bay's artwork loads before an early land-first vista. Interrupted discovery
+  resumes from saved inventory, including an underwater checkpoint. The figure
+  peek remains the later assembled-map payoff, also held clear of the dialogue.
+  Lighthouse readings freeze the underlying player's physical state, including
+  while scene art loads. The previous inspection state restores on departure.
+  Transient clue notifications stay hidden during the comparison and return
+  with ordinary play, so quick reading cannot cover the reflected tower.
+- The repaired current follows a shoaling seabed around the headland into
+  Spegelviken beneath Trumbryggan. Both ends share waterline 0 and passage depth
+  4.1 HL, with matching bed and rock details. Veckmuren stays closed. The passage
+  supports swimming back and preserves depth, velocity and hidden-shell state.
+- Read-held views show the real outflow slope and, upon first sea arrival, the
+  incoming swimmer beneath the pier with the bay's bed and waterline. Only then
+  does the camera introduce the shutter task at the tower. Swedish route text,
+  requested help, journal and recap explain the same coast and surfacing in the
+  bay. The earlier fold reveal fits the raised shelf instead of the old deep bed.
+  Local focus waits for its scene and artwork before construction, so arriving
+  at the bay cannot erase the inlet frame or its dialogue-aware fitting.
+- **340/340 pure tests pass**, including either map-piece order, interrupted
+  readings, underwater restoration and exact swimmer state held through both
+  arrival observations. First playable is **2,222,323 bytes**, below the 3 MB
+  budget; the build check passes. The focused browser matrix passes all nine
+  cases at 390×844, 844×390 and 1440×900: 39 actual dialogue cards and 70 captures
+  with no page errors. It stages nearby prerequisites, then uses real movement
+  to collect the land piece in either order and cross the underwater passage.
+  Long readings, phone rotation, visible UI clearance and restored controls
+  pass. A further portrait case follows actual saved-inventory recovery through
+  map assembly and the held underwater outflow view, bringing the total to 44
+  dialogue cards and 77 captures. Three contact sheets and the raw evidence are
+  under `docs/skoldhast/shots/geography/`; reproduce them with
+  `tests/browser/skoldhast-geography.mjs`. Both real delayed-HTTP cases pass:
+  the vista waits for complete bay artwork, and closing during that wait cannot
+  resume the abandoned scene or dialogue; reopening works. Reproduce with
+  `tests/browser/skoldhast-vista-loading.mjs`. Clue notifications are confirmed
+  hidden during the vista and restored afterward. All five ticket-launcher
+  checks pass, including cancellation, close/reopen and competing launches.
+  No save-format, release or ticket-gate change.
+
 ## A coherent pencil world from the table to the sea (30 September)
 
 Pappa asked for a whole-game visual review with internet research and a more
