@@ -1,5 +1,42 @@
 # Sköldhästen – handover
 
+## Three adventures, with permanent sequential unlocks (1 October)
+
+Pappa asked to treat the complete existing game as the first of three adventures.
+The current story is **Äventyr 1: Havet mellan sidorna**; its Kapitel 1–3 keep their
+meaning. Äventyr 2 and 3 have reserved identities but no story content or release.
+
+- **Välj äventyr** appears on the title, pause menu and ending. Three paper cards
+  distinguish unfinished stories from unmet prerequisites. Completed Adventure 1
+  remains explorable, including Signe's race. The ending saves completion before
+  the epilogue and waits for the table to finish before opening the selector.
+- Version 2 player profiles hold separate adventure saves and shared settings.
+  Existing v1 progress, drawings, clues and checkpoints migrate into Adventure 1;
+  original storage is retained. Completion remains earned when replaying a story.
+  Browser storage is still local; failed writes retain an in-memory session.
+- `src/adventures.mjs` requires completion of 1 for 2 and 2 for 3. Both successors
+  have `released: false` and `module: null`. Release availability comes from code,
+  independently of saved completion. No new chapter/world content was added.
+- The ticket and dev page use `src/launcher.mjs`, which guards selection, shares
+  saves, closes the previous runtime before loading another, and cancels pending
+  navigation on close. Adventure 1 stays in `src/main.mjs`. Retry/context recovery
+  goes through the launcher. Save restoration suppresses partial-state autosaves.
+- Next: design Adventure 2, implement its runtime using the contract in plan §8.6,
+  then assign its entry module and publish its catalogue release flag. Players who
+  finished Adventure 1 already qualify. Inventory/story carryover remains undecided.
+- Verification: **362/362 pure tests pass**, including migration, isolated progress,
+  permanent completion, future release fixtures and launcher lifecycle. The new
+  browser suite passes all three viewport sizes, legacy continuation, researcher
+  isolation, actual replay, the staged real finale and return to free exploration.
+  All five ticket-launcher checks, save/continue with Klo's remembered hints,
+  WebGL context recovery, and cloud drawing/color restoration at both phone sizes
+  pass. Browser save assertions now read v2; the save test's outdated journal tab
+  index was corrected so it checks the actual remembered-help page.
+  Both ending actions fit without scrolling at 844×390; a future released-next UI
+  fixture also fits its three actions and returns the correct adventure selection.
+  Screenshots and results are under `docs/skoldhast/shots/adventures/`.
+  First playable is about **2.232 MB**, below the 3 MB budget.
+
 ## One sea around the headland, and a visible lighthouse clue (1 October)
 
 Pappa noticed that the kelp-to-bay crossing felt like surfacing into another sea,

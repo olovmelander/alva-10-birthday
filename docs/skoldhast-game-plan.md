@@ -1384,9 +1384,14 @@ docs/skoldhast-game-plan.md          this plan
   - With no save on the device, **Börja** creates the "Alva" slot and goes straight to the prologue.
   - "Byt forskare" appears in the title menu once a save exists.
   - A "Mira" slot is offered only if Pappa answers yes to §0 Q8. "Ny forskare" is always available.
-  - Each slot is a key `skoldhast.v1.<slot>`. **[Börja om]** always asks first.
-- **Contents:** `{ v, contentVersion, chapter, checkpoint, flags[], clues[], pencils[], strokes, note, settings,
-  ended }`. It stores stable authored IDs only.
+  - Each player profile is a key `skoldhast.v2.slot.<slot>`, indexed by `skoldhast.v2.index`.
+    Original `skoldhast.v1.slot.<slot>` saves migrate into Adventure 1 without deleting the originals.
+    **[Börja om]** asks first and resets only the current adventure's playthrough.
+- **Contents:** `{ v: 2, contentVersion, label, updated, settings, activeAdventure,
+  completedAdventures[], adventures: { [id]: { contentVersion, checkpoint, flags[], puz,
+  strokes, note, companionHints[], ended } } }`. It stores stable authored IDs only.
+  Settings are shared within a player profile. Completion is permanent across replays;
+  drawings, puzzle progress, checkpoints and notebook entries belong to their adventure.
 - **Tolerant loading:** unknown IDs are dropped, and an unknown checkpoint maps to its chapter start.
 - **When to write:** on checkpoints, close, `visibilitychange` → hidden, and `pagehide`.
 - **Backups.**
@@ -1402,6 +1407,50 @@ docs/skoldhast-game-plan.md          this plan
 - **Failure messages:**
   - "Spelet kan inte sparas i den här webbläsaren – men du kan spela ändå."
   - "Det sparade spelet gick inte att läsa." **[Börja om från början]**
+
+#### Adventure series (implemented 1 October 2026)
+
+The entire existing game is **Äventyr 1: Havet mellan sidorna**, containing its existing
+Kapitel 1–3. Two further adventures have reserved IDs `adventure-2` and `adventure-3`;
+their stories, titles and gameplay remain undecided. `RELEASED_CHAPTER = 3` still refers
+only to the parts within the first adventure.
+
+- `src/adventures.mjs` owns stable IDs, ordering, prerequisites, release flags and entry
+  module paths. A story is playable only when its predecessor is permanently completed,
+  its release flag is true, and its entry module exists in the catalogue. Adventures 2
+  and 3 currently have `released: false` and `module: null`.
+- `src/launcher.mjs` is the ticket/dev entry point. It guards all switches, shares the
+  save service, and closes the old runtime before loading the next one. Current
+  `src/main.mjs` remains the first adventure's runtime. Keep each future story's world,
+  puzzles and story state separate; reuse engine components as its design requires.
+- **Välj äventyr** is available from the title, pause menu and ending. Unfinished content
+  is shown as being drawn, alongside any unmet prerequisite. **Fortsätt** retains a
+  direct route back into play. Completing Adventure 1 saves `ended` at `beachEnd` before
+  the epilogue, permanently qualifying that player for Adventure 2. The ending still
+  offers free exploration; selector navigation waits until the epilogue has finished.
+- A future runtime exports `createGame(options)` and returns `open`, `close`, `pause`,
+  `resume`, `state` (and optional `debug`). It receives `host`, `assetBase`, `saver`,
+  `adventureId`, `slotId`, `onSlotChange`, `onChooseAdventure`, `onRestart`, `onClose`.
+  Save with `saver.store(slotId, label, state, adventureId)`; `ended: true` records the
+  permanent completion. `close` saves and disposes all pending work. Route retries through
+  `onRestart` and cross-adventure selection through `onChooseAdventure`. Before changing
+  researcher, resolve that profile's eligible active adventure, falling back to the first;
+  never assign the new slot before saving/closing the previous player's world.
+  New researchers always start in Adventure 1, regardless of which story's menu they use.
+- To add Adventure 2 or 3: implement its runtime and content, connect its module path,
+  title and assets, and verify its completion/save/return flow. Publish by changing its
+  catalogue release flag only when it is ready. Existing qualified saves then unlock it
+  automatically. Word codes still restore only chapters inside Adventure 1; they do not
+  represent full adventure completion or restore a series profile on another device.
+  Put future story-specific modules/assets outside the shared `src/` prefetch tree (for
+  example `adventures/adventure-2/`) and load them through that runtime, so they do not
+  enlarge Adventure 1's initial download.
+- Browser storage remains local to this browser/device. Failed writes retain progress for
+  the current session; corrupt or newer profile formats are not silently overwritten.
+
+Verification: `npm test`, `node tests/browser/skoldhast-adventures.mjs`, and the existing
+launch/save/context/cloud-colour browser checks. The adventure browser check covers three
+viewport sizes, old saves, researcher isolation, replay, the real ending and free exploration.
 
 ### 8.7 Five gates (replacing v1's long budget table)
 

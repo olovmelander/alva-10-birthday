@@ -90,8 +90,8 @@ try {
         if (width > height) {
             await page.evaluate(async () => {
                 await window.__skoldhast.close();
-                const key = 'skoldhast.v1.slot.alva', saved = JSON.parse(localStorage.getItem(key));
-                delete saved.strokes.cloudColor; localStorage.setItem(key, JSON.stringify(saved));
+                const key = 'skoldhast.v2.slot.alva', saved = JSON.parse(localStorage.getItem(key));
+                delete saved.adventures['havet-mellan-sidorna'].strokes.cloudColor; localStorage.setItem(key, JSON.stringify(saved));
                 await window.__skoldhast.open();
             });
             await page.waitForSelector('.sk-title');

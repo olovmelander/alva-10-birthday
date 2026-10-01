@@ -1,5 +1,6 @@
 /*
- * Sköldhästen och havet mellan sidorna – the game's entry point.
+ * Sköldhästen och havet mellan sidorna – Adventure 1's runtime.
+ * The ticket and development page enter through launcher.mjs.
  *
  *   const game = createGame({ host: document.body, assetBase: './skoldhast/' });
  *   await game.open();      // takes over the screen (the ticket page is hidden and paused)
@@ -19,11 +20,12 @@ import { createGuide } from './guide.mjs';
 import { createInput } from './input.mjs';
 import { createPressQueue } from './presses.mjs';
 import { createSave, codeToChapter, CODE_RESTORE } from './save.mjs';
+import { ADVENTURES, FIRST_ADVENTURE, adventureStatus } from './adventures.mjs';
 import { createStory } from './story.mjs';
 import { createAssets } from './assets.mjs';
 import { createTable } from './prologue.mjs';
 import { countPencils, totalPencils, pencilProgress, createPuzzleState } from './puzzles.mjs';
-import { UI, BALK, CAPTIONS, FAMILY, JOURNAL, KLO_COMPANION } from './content/sv.mjs';
+import { UI, BALK, CAPTIONS, FAMILY, JOURNAL, KLO_COMPANION, ADVENTURE_UI } from './content/sv.mjs';
 import { CHECKPOINTS } from './content/world.mjs';
 import { createUserCloud, cloudColor, cloudPoints } from './user-cloud.mjs';
 import { createKloCompanion, normalizeKloHelpMode } from './klo-companion.mjs';
@@ -36,7 +38,8 @@ const PAGE = { land: 1, kelp: 2, viken: 3 };
 
 const DEFAULT_SETTINGS = { help: 'ask', holdGallop: false, followFinger: false, holdToHide: false, bigText: false, lessMotion: false, music: 0.8, sfx: 0.9, voice: 1 };
 
-export function createGame({ host = document.body, assetBase = './skoldhast/', released, onClose } = {}) {
+export function createGame({ host = document.body, assetBase = './skoldhast/', released, onClose,
+    saver: sharedSaver, adventureId = FIRST_ADVENTURE, slotId, onChooseAdventure, onSlotChange, onRestart } = {}) {
     let state = 'closed';
     let el = null, app = null, assets = null, G = null, view = null, ui = null, input = null, audio = null, story = null, table = null, guide = null;
     let raf = 0, last = 0, acc = 0, paused = false, mode = 'title';
@@ -45,7 +48,9 @@ export function createGame({ host = document.body, assetBase = './skoldhast/', r
     let slot = { id: 'alva', label: UI.slotAlva };
     let settings = { ...DEFAULT_SETTINGS, lessMotion: !!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches };
     let note = '';
-    const saver = createSave();
+    const saver = sharedSaver || createSave();
+    let selectedSlotId = slotId, removeTitle = null, hydrating = false;
+    let endingNavigation = null;
     const hostState = {};
     let listeners = null;
     const debug = /[?&#]debug/.test(location.search + location.hash);
@@ -281,7 +286,7 @@ export function createGame({ host = document.body, assetBase = './skoldhast/', r
         glPrompt.type = 'button';
         glPrompt.textContent = UI.tapToGo;
         el.appendChild(glPrompt);
-        glPrompt.onclick = async () => { await close(); glPrompt = null; glLostAt = 0; open(); };
+        glPrompt.onclick = () => restart();
     }
 
     function showFatal(text) {
@@ -292,9 +297,15 @@ export function createGame({ host = document.body, assetBase = './skoldhast/', r
         const back = document.createElement('button'); back.className = 'sk-pbtn'; back.textContent = UI.back;
         box.append(p, again, back);
         el.appendChild(box);
-        again.onclick = async () => { await close(); open(); };
+        again.onclick = () => restart();
         back.onclick = () => close();
         state = 'failed';
+    }
+
+    async function restart() {
+        if (onRestart) return onRestart();
+        await close();
+        return open();
     }
 
     // --------------------------------------------------------------------------------
@@ -305,17 +316,20 @@ export function createGame({ host = document.body, assetBase = './skoldhast/', r
         ui.showControls(false);
         guide?.show(false);
         if (!saver.available) ui.toast(UI.noSave, 4200);
-        const lastId = saver.last();
+        const lastId = selectedSlotId || saver.last();
         const slots = saver.slots();
-        if (lastId) slot = { id: lastId, label: slots.find((s) => s.id === lastId)?.label || lastId };
-        const loaded = saver.load(slot.id);
+        if (lastId) slot = { id: lastId, label: slotList().find((s) => s.id === lastId)?.label || lastId };
+        const loaded = saver.load(slot.id, adventureId);
         const hasSave = !!loaded?.data;
-        if (loaded?.data?.settings) settings = { ...DEFAULT_SETTINGS, ...loaded.data.settings };
+        const profile = saver.loadProfile(slot.id)?.data;
+        if (profile?.settings) settings = { ...DEFAULT_SETTINGS, ...profile.settings };
         applySettings();
         // Both phone orientations are playable. A timed rotation note would
         // spill over the title and cover the opening's first drawing prompt.
-        ui.title({
+        removeTitle?.();
+        removeTitle = ui.title({
             hasSave, slots,
+            onAdventures: () => chooseAdventure(),
             onBegin: () => { resumeAudio(); newGame(); },
             onContinue: () => { resumeAudio(); continueGame(loaded.data); },
             onSwitch: (done) => ui.slotPicker(slotList(), (id) => { done(); pickSlot(id); }, (name) => { done(); newSlot(name); }),
@@ -332,17 +346,70 @@ export function createGame({ host = document.body, assetBase = './skoldhast/', r
         return list;
     }
     function pickSlot(id) {
+        const profile = saver.loadProfile(id)?.data;
+        const preferred = adventureStatus(profile?.activeAdventure, profile).playable ? profile.activeAdventure : FIRST_ADVENTURE;
+        if (preferred !== adventureId && onChooseAdventure) {
+            // Keep the old player selected until the launcher has saved and
+            // closed this runtime; its progress must never be written to id.
+            onChooseAdventure(preferred, id);
+            return;
+        }
         const s = slotList().find((q) => q.id === id);
         slot = { id, label: s?.label || id };
-        const loaded = saver.load(id);
+        selectedSlotId = id;
+        onSlotChange?.(id);
+        const loaded = saver.load(id, adventureId);
+        settings = { ...DEFAULT_SETTINGS, ...(profile?.settings || {}) };
+        applySettings();
         resumeAudio();
         if (loaded?.data) continueGame(loaded.data); else newGame();
     }
     function newSlot(name) {
         const id = 'r-' + name.toLowerCase().replace(/[^a-zåäö0-9]+/g, '-').slice(0, 16);
         slot = { id, label: name };
+        selectedSlotId = id;
+        onSlotChange?.(id);
+        settings = { ...DEFAULT_SETTINGS };
+        applySettings();
         resumeAudio();
         newGame();
+    }
+
+    function adventureChoices() {
+        const profile = saver.loadProfile(slot.id)?.data;
+        return ADVENTURES.map(adventure => {
+            const saved = profile?.adventures?.[adventure.id];
+            return { ...adventure, ...adventureStatus(adventure.id, profile),
+                title: ADVENTURE_UI.titles[adventure.id],
+                requiresNumber: ADVENTURES.find(a => a.id === adventure.requires)?.number,
+                active: adventure.id === adventureId,
+                hasSave: !!saved, ended: !!saved?.ended || saved?.flags?.includes('ended') };
+        });
+    }
+
+    function chooseAdventure() {
+        if (state !== 'open') return;
+        saveNow();
+        const fromTitle = mode === 'title';
+        pause();
+        ui.adventurePicker({ adventures: adventureChoices(), playerLabel: slot.label,
+            onClose: () => resume(),
+            onPick: id => {
+                // Re-check eligibility at the action boundary, independently of disabled UI.
+                const choice = adventureChoices().find(a => a.id === id);
+                if (!choice?.playable) { chooseAdventure(); return; }
+                if (id === adventureId) {
+                    resume();
+                    if (fromTitle) {
+                        removeTitle?.(); removeTitle = null;
+                        const loaded = saver.load(slot.id, adventureId);
+                        if (loaded?.data) continueGame(loaded.data); else newGame();
+                    }
+                } else if (onChooseAdventure) {
+                    onChooseAdventure(id, slot.id);
+                } else resume();
+            }
+        });
     }
 
     function resetLogic() {
@@ -378,6 +445,7 @@ export function createGame({ host = document.body, assetBase = './skoldhast/', r
     }
 
     async function continueGame(data) {
+        hydrating = true;
         resetLogic();
         note = data.note || '';
         if (data.settings) settings = { ...DEFAULT_SETTINGS, ...data.settings };
@@ -385,6 +453,7 @@ export function createGame({ host = document.body, assetBase = './skoldhast/', r
         G.restore(data);
         companion?.restore(data.companionHints);
         if (data.strokes) restoreStrokes(data.strokes);
+        hydrating = false;
         if (!G.flags.has('intro_done')) { newGame(); return; }
         mode = 'loading';
         await sceneArt(G.sceneId);
@@ -393,9 +462,11 @@ export function createGame({ host = document.body, assetBase = './skoldhast/', r
     }
 
     async function restoreCode(n) {
+        hydrating = true;
         resetLogic();
         const r = CODE_RESTORE[n];
         G.restore({ flags: r.flags, checkpoint: r.checkpoint, puz: {} });
+        hydrating = false;
         mode = 'loading';
         await sceneArt(G.sceneId);
         if (state !== 'open') return;
@@ -438,12 +509,27 @@ export function createGame({ host = document.body, assetBase = './skoldhast/', r
         ui.showControls(false);
         guide?.show(false);
         guide?.clear();
-        await table.epilogue(opts);
+        const nextAdventure = adventureChoices().find(a => a.requires === adventureId);
+        const action = await table.epilogue({ ...opts, nextAdventure });
+        if (state !== 'open') return;
         view.setScene(G.sceneId);
         view.root.visible = true;
         mode = 'play';
         ui.showControls(true);
         audio?.setArea('land');
+        // Let the story finish its ending beat before opening a selector or
+        // disposing this runtime. Its completion was already saved before the table.
+        if (action?.type && action.type !== 'explore') {
+            endingNavigation = setTimeout(() => {
+                endingNavigation = null;
+                if (state !== 'open') return;
+                if (action.type === 'next' && onChooseAdventure) {
+                    const next = adventureChoices().find(a => a.id === action.adventureId);
+                    if (next?.playable) { onChooseAdventure(next.id, slot.id); return; }
+                }
+                chooseAdventure();
+            }, 0);
+        }
     }
 
     // --------------------------------------------------------------------------------
@@ -451,11 +537,11 @@ export function createGame({ host = document.body, assetBase = './skoldhast/', r
     // --------------------------------------------------------------------------------
     let persistAsked = false;
     function saveNow() {
-        if (!G || !G.flags.has('intro_done')) return;
+        if (hydrating || !G || !G.flags.has('intro_done')) return;
         // ask once for storage the browser won't evict (a bonus, not a safeguard: plan §8.6)
         if (!persistAsked) { persistAsked = true; saver.persist(); }
         const data = G.serialize();
-        saver.store(slot.id, slot.label, { ...data, settings, note, companionHints: companion?.serialize() || [], strokes: G.userStrokes || null, ended: G.flags.has('ended') });
+        saver.store(slot.id, slot.label, { ...data, settings, note, companionHints: companion?.serialize() || [], strokes: G.userStrokes || null, ended: G.flags.has('ended') }, adventureId);
     }
 
     // --------------------------------------------------------------------------------
@@ -667,6 +753,7 @@ export function createGame({ host = document.body, assetBase = './skoldhast/', r
                 resume();
             },
             quit: () => close(),
+            chooseAdventure: () => chooseAdventure(),
             getSettings: () => settings,
             setSetting: (k, v) => { settings[k] = v; applySettings(); saveNow(); },
             setNote: (v) => { note = v.slice(0, 200); saveNow(); },
@@ -765,6 +852,8 @@ export function createGame({ host = document.body, assetBase = './skoldhast/', r
         closing = (async () => {
             try { saveNow(); } catch (err) { console.warn(err); }
             state = 'closing';
+            clearTimeout(endingNavigation); endingNavigation = null;
+            removeTitle = null;
             cancelAnimationFrame(raf);
             listeners?.abort();
             companion?.destroy(); kloUI?.destroy(); companion = null; kloUI = null;

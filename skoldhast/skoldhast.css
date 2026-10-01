@@ -576,6 +576,8 @@ html.skoldhast-lock, html.skoldhast-lock body { overflow: hidden !important; ove
 .sk-title-logo { display: block; width: min(560px, 100%); height: auto; max-height: 34vh; object-fit: contain; }
 .sk-title-text { font-size: 52px; font-weight: 400; margin: 0; color: var(--sk-green); }
 .sk-title-sub { font-size: 24px; margin: 0 0 8px; color: var(--sk-navy); }
+.sk-title-adventure { margin: 6px 0 0; padding: 0 12px 3px; font-size: calc(22px * var(--fz)); color: var(--sk-navy);
+    background: linear-gradient(transparent 55%, rgba(143, 191, 224, 0.35) 55% 92%, transparent 92%); }
 .sk-title-btns { grid-area: btns; position: relative; display: flex; flex-direction: column; gap: 12px; width: min(330px, 100%); }
 .sk-title-btns .sk-pbtn { width: 100%; }
 .sk-title-btns .sk-pbtn:nth-child(odd) { transform: rotate(-0.6deg); }
@@ -800,6 +802,64 @@ html.skoldhast-lock, html.skoldhast-lock body { overflow: hidden !important; ove
 .sk-ending-print { position: relative; width: 90px; height: 90px; flex: none; transform: rotate(-9deg); }
 .sk-ending p { max-width: 34em; line-height: 1.45; }
 .sk-ending .primary { margin-top: 10px; }
+.sk-sheet-ending { width: min(590px, 100%); }
+.sk-ending .sk-ending-next { padding: 10px 14px; border-top: 1px dashed var(--sk-sea); border-bottom: 1px dashed var(--sk-sea); color: var(--sk-navy); }
+@media (orientation: landscape) and (max-height: 560px) {
+    .sk-sheet-ending { width: min(760px, 100%); }
+    .sk-card.sk-ending { align-items: stretch; gap: 8px; padding: 16px 24px 18px; }
+    .sk-ending-print { position: absolute; top: 12px; left: 20px; width: 50px; height: 50px; }
+    .sk-ending > h2 { display: flex; align-items: center; justify-content: center; min-height: 44px; margin: 2px 0 6px; padding: 0 48px 0 64px; }
+    .sk-ending p { max-width: none; line-height: 1.3; }
+    .sk-ending .sk-ending-next { padding: 7px 12px; }
+    .sk-ending .primary { margin-top: 0; }
+}
+
+/* Complete adventures are separate paper covers on the same drawing table. */
+.sk-sheet-adventures { width: min(1050px, 100%); }
+.sk-card.sk-adventures { transform: none; gap: 10px; }
+.sk-adventures > h2 { margin-bottom: 4px; }
+.sk-adventures .sk-adventures-intro { color: var(--sk-soft); }
+.sk-adventures .sk-adventures-player { font-size: calc(18px * var(--fz)); color: var(--sk-navy); }
+.sk-adventure-list { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; margin-top: 10px; padding: 4px; }
+.sk-adventure-card { --adventure-color: var(--sk-sea); position: relative; box-sizing: border-box; min-width: 0; display: flex; flex-direction: column; gap: 8px;
+    padding: 18px; border: 1px solid rgba(59, 53, 48, 0.25); border-left: 5px solid var(--adventure-color); border-radius: 3px 6px 5px 2px;
+    background: var(--sk-paper) #fdfaf3; background-size: 256px; box-shadow: 2px 3px 0 #e1d8c6, 4px 6px 10px -5px rgba(40, 30, 20, 0.28);
+    overflow-wrap: anywhere; }
+.sk-adventure-card:nth-child(2) { --adventure-color: var(--sk-green); }
+.sk-adventure-card:nth-child(3) { --adventure-color: var(--sk-rust); }
+.sk-adventure-cover { position: relative; display: grid; place-items: center; min-height: 96px; margin-bottom: 4px;
+    background: repeating-linear-gradient(transparent 0 23px, var(--sk-grid) 23px 24px); border-bottom: 1px dashed var(--adventure-color); }
+.sk-adventure-cover > .sk-ic { width: 76px; height: 76px; }
+.sk-adventure-card.is-locked .sk-adventure-cover > .sk-ic { opacity: 0.65; }
+.sk-adventure-cover > .sk-adventure-check { position: absolute; width: 34px; height: 34px; right: 2px; bottom: 8px; }
+.sk-adventure-card .sk-adventure-number { font-size: calc(19px * var(--fz)); color: var(--adventure-color); }
+.sk-adventure-card .sk-adventure-name { margin: 0; font-size: calc(28px * var(--fz)); line-height: 1.1; min-height: 2.2em; }
+.sk-adventure-card .sk-adventure-status { align-self: flex-start; margin-top: 2px; padding: 1px 7px 3px; font-size: calc(18px * var(--fz));
+    background: rgba(230, 194, 122, 0.25); border-radius: 3px; }
+.sk-adventure-card.is-complete .sk-adventure-status { color: var(--sk-green-dark); background: rgba(156, 194, 90, 0.25); }
+.sk-adventure-card .sk-adventure-note { font-size: calc(18px * var(--fz)); line-height: 1.25; }
+.sk-adventure-play { width: 100%; margin-top: auto; font-size: calc(21px * var(--fz)); }
+.sk-adventures > .sk-adventures-close { width: auto; align-self: center; min-width: 150px; }
+@media (max-width: 679px) {
+    .sk-card.sk-adventures { padding: 20px 16px 16px; }
+    .sk-adventure-list { grid-template-columns: minmax(0, 1fr); gap: 14px; margin-top: 4px; }
+    .sk-adventure-card { padding: 12px 14px; gap: 6px; }
+    .sk-adventure-cover { position: absolute; top: 10px; left: 12px; width: 52px; min-height: 60px; margin: 0; border: 0; }
+    .sk-adventure-cover > .sk-ic { width: 48px; height: 48px; }
+    .sk-adventure-cover > .sk-adventure-check { width: 25px; height: 25px; right: -2px; bottom: -2px; }
+    .sk-adventure-card .sk-adventure-number, .sk-adventure-card .sk-adventure-name { padding-left: 64px; }
+    .sk-adventure-card .sk-adventure-name { min-height: 1.1em; font-size: calc(25px * var(--fz)); }
+    .sk-adventure-play { margin-top: 4px; }
+}
+@media (min-width: 680px) and (max-height: 560px) {
+    .sk-card.sk-adventures { padding: 16px 20px; }
+    .sk-adventure-list { gap: 12px; margin-top: 0; }
+    .sk-adventure-card { padding: 12px; gap: 5px; }
+    .sk-adventure-cover { min-height: 42px; margin: 0; }
+    .sk-adventure-cover > .sk-ic { width: 40px; height: 40px; }
+    .sk-adventure-cover > .sk-adventure-check { width: 25px; height: 25px; bottom: 4px; }
+    .sk-adventure-card .sk-adventure-name { font-size: calc(24px * var(--fz)); }
+}
 .sk-goal-label { flex: none; font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: #9c4318; }
 .sk-goal-label { font-size: 13px; letter-spacing: 0.03em; text-transform: none; }
 .sk-goal.new { animation: sk-goal-in 0.7s cubic-bezier(0.2, 1.3, 0.4, 1); }
