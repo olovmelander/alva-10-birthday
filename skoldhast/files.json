@@ -2,6 +2,7 @@
  "files": [
   "vendor/pixi-8.21.0.min.mjs",
   "src/action-cue.mjs",
+  "src/adventures.mjs",
   "src/assets.mjs",
   "src/audio.mjs",
   "src/backdrop-layout.mjs",
@@ -33,6 +34,7 @@
   "src/land-puzzle-focus.mjs",
   "src/land-scenery.mjs",
   "src/landscape-edges.mjs",
+  "src/launcher.mjs",
   "src/lighthouse-mechanisms.mjs",
   "src/main.mjs",
   "src/map-assemble.mjs",

@@ -51,7 +51,7 @@ export const UI = {
     noWebgl: 'Den här webbläsaren kan tyvärr inte visa spelet.',
     noSave: 'Spelet kan inte sparas i den här webbläsaren – men du kan spela ändå.',
     badSave: 'Det sparade spelet gick inte att läsa.', startOver: 'Börja om från början',
-    confirmRestart: 'Vill du börja om? Allt du har gjort hittills försvinner.',
+    confirmRestart: 'Vill du börja om det här äventyret? Du börjar från början här. Andra äventyr och det du har låst upp finns kvar.',
     yes: 'Ja', no: 'Nej',
     switchResearcher: 'Byt forskare', newResearcher: 'Ny forskare', haveCode: 'Jag har en kod',
     codePrompt: 'Skriv koden från Forskningsrapporten:', codeBad: 'Den koden känner jag inte igen.',
@@ -92,6 +92,28 @@ export const UI = {
     endingBody: 'Du lagade kusten och hjälpte Kartväktaren att våga släppa fram havet. Nu plaskar vågen på stranden där allt började.',
     endingExplore: 'Tillbaka till stranden – utforska fritt',
     choiceWhat: 'Vad hände?', choiceWho: 'Vem gjorde det?'
+};
+
+// A complete story is an äventyr; the chapters remain the parts inside it.
+export const ADVENTURE_UI = {
+    heading: 'Sköldhästens äventyr', choose: 'Välj äventyr',
+    intro: 'Välj vilken berättelse du vill spela.',
+    number: n => `Äventyr ${n}`,
+    player: name => `Forskare: ${name}`,
+    titles: {
+        'havet-mellan-sidorna': 'Havet mellan sidorna',
+        'adventure-2': 'Ett nytt äventyr',
+        'adventure-3': 'Ett nytt äventyr'
+    },
+    completed: 'Avklarat', playing: 'Pågår', ready: 'Redo att spelas',
+    locked: 'Låst', developing: 'Under arbete',
+    developingNote: 'Ett nytt äventyr håller på att ritas.',
+    requires: n => `Klara Äventyr ${n} först.`,
+    earned: 'Du kan spela här när berättelsen är färdig.',
+    begin: 'Börja äventyret', continue: 'Fortsätt äventyret', explore: 'Utforska vidare',
+    back: 'Tillbaka', next: 'Nästa äventyr',
+    nextReady: n => `Äventyr ${n} är upplåst!`,
+    nextEarned: n => `Du har klarat det som behövs för Äventyr ${n}. Du kan spela när berättelsen är färdig.`
 };
 
 // ---------------------------------------------------------------------------

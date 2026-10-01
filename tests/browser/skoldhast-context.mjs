@@ -117,7 +117,7 @@ try {
     await page.waitForSelector('.sk-message.sk-tap', { timeout: 5000 });
     const recoveryDelay = await page.evaluate(() => performance.now() - window.__visibleAt);
     assert.ok(recoveryDelay >= 1950, `prompt waited for two visible seconds (${recoveryDelay.toFixed(0)} ms)`);
-    assert.equal(await page.evaluate(() => JSON.parse(localStorage.getItem('skoldhast.v1.slot.alva')).flags.includes('p1_inked')), true, 'the recovery prompt saves committed progress');
+    assert.equal(await page.evaluate(() => JSON.parse(localStorage.getItem('skoldhast.v2.slot.alva')).adventures['havet-mellan-sidorna'].flags.includes('p1_inked')), true, 'the recovery prompt saves committed progress');
 
     // Even a late successful restoration should clear the obsolete restart button.
     await page.evaluate(() => window.__loss.restoreContext());

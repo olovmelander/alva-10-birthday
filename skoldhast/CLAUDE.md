@@ -16,6 +16,13 @@ what is done, what is next and what Pappa still has to answer. Read both first.
 Do not start the next chapter's content in the same PR. Keep `RELEASED_CHAPTER`
 (`src/content/world.mjs`) at the last released chapter; raising it *is* the release.
 
+The full existing story is **Äventyr 1**, containing Kapitel 1–3. The series catalogue
+(`src/adventures.mjs`) reserves three adventures; 2 and 3 remain unreleased with no
+entry module until their content is built. Their release flags are independent of
+`RELEASED_CHAPTER`. Use `src/launcher.mjs` for host integration and the adventure-aware
+save API; never reset other stories or permanent completion when replaying one.
+The runtime contract and release steps are in plan §8.6, "Adventure series".
+
 ## End of a session
 
 - The game still plays from the ticket page (`index.html?skoldhast`) and from `dev/play.html`.
@@ -37,7 +44,8 @@ Do not start the next chapter's content in the same PR. Keep `RELEASED_CHAPTER`
 | Game state, events, save/restore | `src/game.mjs`, `src/save.mjs` |
 | Rendering (PixiJS 8, WebGL) | `src/view.mjs`, `src/hero.mjs`, `src/rig.mjs` |
 | DOM UI, input, the table prologue/epilogue | `src/ui.mjs`, `src/input.mjs`, `src/prologue.mjs` |
-| Entry point, loop, host glue | `src/main.mjs` |
+| Series entry, release/unlock catalogue | `src/launcher.mjs`, `src/adventures.mjs` |
+| Adventure 1 runtime, loop, host glue | `src/main.mjs` |
 | Synthesized audio | `src/audio.mjs` |
 | All art | drawn in code in `scripts/skoldhast-art/`, built by `npm run build:skoldhast` |
 

@@ -1,14 +1,17 @@
 /*
  * Sköldhästen – saving (plan §8.6).
  *
- * Named slots (`skoldhast.v1.<slot>`), stable authored IDs only, tolerant
- * loading (unknown flags are dropped, unknown checkpoints map to a safe one),
- * and short Swedish word codes that restore the end of a finished chapter.
+ * Named player profiles, independent adventure saves and permanent completion.
+ * Version 1 originals remain untouched while version 2 profiles take precedence.
+ * Short Swedish word codes restore chapters inside the first adventure.
  */
 import { WORD_CODES } from './content/sv.mjs';
+import { FIRST_ADVENTURE, getAdventure, adventureStatus } from './adventures.mjs';
 
-const PREFIX = 'skoldhast.v1.';
+const LEGACY_PREFIX = 'skoldhast.v1.';
+const PREFIX = 'skoldhast.v2.';
 const INDEX = PREFIX + 'index';
+export const SAVE_VERSION = 2;
 export const CONTENT_VERSION = 1;
 
 // Chapter 1 now ends at the sea-fold discovery. A word code must not award
@@ -30,69 +33,186 @@ export const CODE_RESTORE = {
 };
 
 function storage() {
+    let ls;
     try {
+        ls = window.localStorage;
         const k = PREFIX + 'probe';
-        window.localStorage.setItem(k, '1');
-        window.localStorage.removeItem(k);
-        return window.localStorage;
-    } catch { return null; }
+        ls.setItem(k, '1');
+        ls.removeItem(k);
+        return { ls, available: true };
+    } catch {
+        // Full storage can still contain readable saves. A completely blocked
+        // storage implementation instead uses an in-memory session.
+        try { ls?.getItem(INDEX); } catch { ls = null; }
+        return { ls: ls || null, available: false };
+    }
 }
 
 export function createSave() {
-    const ls = storage();
-    const available = !!ls;
-    const read = (k) => { try { return ls ? JSON.parse(ls.getItem(k) || 'null') : null; } catch { return undefined; } };
-    const write = (k, v) => { if (!ls) return false; try { ls.setItem(k, JSON.stringify(v)); return true; } catch { return false; } };
+    const { ls, available } = storage();
+    const memory = new Map();
+    const read = (k) => {
+        try {
+            const raw = memory.has(k) ? memory.get(k) : ls?.getItem(k);
+            if (raw === null || raw === undefined) return null;
+            return JSON.parse(raw) ?? undefined;
+        }
+        catch { return undefined; }
+    };
+    const write = (k, v, persist = true) => {
+        try {
+            const json = JSON.stringify(v);
+            memory.set(k, json);
+            if (!ls || !persist) return false;
+            ls.setItem(k, json);
+            memory.delete(k);
+            return true;
+        } catch { return false; }
+    };
 
     function index() {
-        const ix = read(INDEX);
-        return ix && Array.isArray(ix.slots) ? ix : { slots: [], last: null };
+        const current = read(INDEX);
+        const legacy = read(LEGACY_PREFIX + 'index');
+        const ids = (value) => Array.isArray(value) ? value.filter((id) => typeof id === 'string' && id.length > 0) : [];
+        const deleted = ids(current?.deleted);
+        const slots = [...new Set([...ids(legacy?.slots), ...ids(current?.slots)])].filter((id) => !deleted.includes(id));
+        const last = [current?.last, legacy?.last, slots[0]].find((id) => slots.includes(id)) || null;
+        return { slots, last, deleted };
+    }
+
+    /** Returns a normalized profile without writing or changing legacy data. */
+    function loadProfile(id) {
+        if (index().deleted.includes(id)) return null;
+        const current = read(PREFIX + 'slot.' + id);
+        if (current !== null) {
+            if (!record(current) || current.v !== SAVE_VERSION || !record(current.adventures)) return { corrupt: true };
+            const adventures = {};
+            for (const [adventureId, data] of Object.entries(current.adventures)) {
+                if (!record(data) || !Array.isArray(data.flags)) return { corrupt: true };
+                Object.defineProperty(adventures, adventureId, { value: migrate(data), enumerable: true, writable: true, configurable: true });
+            }
+            const completed = Array.isArray(current.completedAdventures)
+                ? current.completedAdventures.filter((adventureId) => !!getAdventure(adventureId)) : [];
+            for (const [adventureId, data] of Object.entries(adventures)) {
+                if (data.ended && getAdventure(adventureId)) completed.push(adventureId);
+            }
+            return { data: {
+                v: SAVE_VERSION,
+                contentVersion: contentVersion(current.contentVersion),
+                label: typeof current.label === 'string' ? current.label : id,
+                updated: Number.isFinite(current.updated) ? current.updated : 0,
+                settings: record(current.settings) ? current.settings : {},
+                activeAdventure: getAdventure(current.activeAdventure) ? current.activeAdventure : FIRST_ADVENTURE,
+                completedAdventures: [...new Set(completed)],
+                adventures
+            } };
+        }
+        const legacy = read(LEGACY_PREFIX + 'slot.' + id);
+        if (legacy === null) return null;
+        if (!record(legacy) || (legacy.v !== undefined && legacy.v !== 1) || !Array.isArray(legacy.flags)) return { corrupt: true };
+        const data = migrate(legacy);
+        return { data: {
+            v: SAVE_VERSION,
+            contentVersion: CONTENT_VERSION,
+            label: typeof legacy.label === 'string' ? legacy.label : id,
+            updated: Number.isFinite(legacy.updated) ? legacy.updated : 0,
+            settings: record(legacy.settings) ? legacy.settings : {},
+            activeAdventure: FIRST_ADVENTURE,
+            completedAdventures: data.ended ? [FIRST_ADVENTURE] : [],
+            adventures: { [FIRST_ADVENTURE]: data }
+        } };
+    }
+
+    function saveProfile(id, profile) {
+        const ix = index();
+        if (!ix.slots.includes(id)) ix.slots.push(id);
+        ix.deleted = ix.deleted.filter((entry) => entry !== id);
+        ix.last = id;
+        const ok = write(PREFIX + 'slot.' + id, profile);
+        // If the save failed, keep the index in memory as well; do not persist
+        // an index entry pointing to a profile that could not be written.
+        write(INDEX, ix, ok);
+        return ok;
     }
 
     return {
         available,
         slots() {
-            return index().slots.map((id) => {
-                const d = read(PREFIX + 'slot.' + id);
-                return { id, label: d?.label || id, note: d?.note || '', updated: d?.updated || 0, ended: !!d?.ended };
+            return index().slots.flatMap((id) => {
+                const result = loadProfile(id);
+                if (!result) return [];
+                const profile = result.data;
+                const data = profile?.adventures[profile.activeAdventure];
+                return [{ id, label: profile?.label || id, note: data?.note || '', updated: profile?.updated || 0,
+                    ended: profile?.completedAdventures.includes(FIRST_ADVENTURE) || false,
+                    activeAdventure: profile?.activeAdventure || FIRST_ADVENTURE }];
             });
         },
         last() { return index().last; },
-        /** Load a slot. Returns { data } or { corrupt: true } or null. */
-        load(id) {
-            const d = read(PREFIX + 'slot.' + id);
-            if (d === undefined) return { corrupt: true };
-            if (!d) return null;
-            if (typeof d !== 'object' || !Array.isArray(d.flags)) return { corrupt: true };
-            return { data: migrate(d) };
+        loadProfile,
+        /** Load one adventure, with the player's shared settings and name. */
+        load(id, adventureId = FIRST_ADVENTURE) {
+            const result = loadProfile(id);
+            if (!result || result.corrupt) return result;
+            const profile = result.data;
+            if (!Object.hasOwn(profile.adventures, adventureId)) return null;
+            return { data: { ...profile.adventures[adventureId], settings: profile.settings, label: profile.label } };
         },
-        store(id, label, state) {
-            const ix = index();
-            if (!ix.slots.includes(id)) ix.slots.push(id);
-            ix.last = id;
-            const ok = write(PREFIX + 'slot.' + id, { v: 1, contentVersion: CONTENT_VERSION, label, updated: Date.now(), ...state });
-            write(INDEX, ix);
-            return ok;
+        store(id, label, state, adventureId = FIRST_ADVENTURE) {
+            if (!getAdventure(adventureId) || !record(state) || !Array.isArray(state.flags)) return false;
+            const existing = loadProfile(id);
+            if (existing?.corrupt) return false;
+            const profile = existing?.data || { v: SAVE_VERSION, contentVersion: CONTENT_VERSION,
+                settings: {}, completedAdventures: [], adventures: {} };
+            const data = migrate(state);
+            profile.label = typeof label === 'string' ? label : (profile.label || id);
+            profile.updated = Date.now();
+            if (record(state.settings)) profile.settings = { ...profile.settings, ...state.settings };
+            profile.activeAdventure = adventureId;
+            profile.adventures[adventureId] = data;
+            if (data.ended && !profile.completedAdventures.includes(adventureId)) profile.completedAdventures.push(adventureId);
+            return saveProfile(id, profile);
+        },
+        selectAdventure(id, adventureId) {
+            const existing = loadProfile(id);
+            if (!existing?.data || !adventureStatus(adventureId, existing.data).playable) return false;
+            existing.data.activeAdventure = adventureId;
+            existing.data.updated = Date.now();
+            return saveProfile(id, existing.data);
         },
         remove(id) {
+            // A tombstone also hides a legacy original without modifying it.
+            memory.set(PREFIX + 'slot.' + id, 'null');
             try { ls?.removeItem(PREFIX + 'slot.' + id); } catch { /* ignore */ }
-            const ix = index(); ix.slots = ix.slots.filter((s) => s !== id); if (ix.last === id) ix.last = ix.slots[0] || null; write(INDEX, ix);
+            const ix = index();
+            ix.slots = ix.slots.filter((s) => s !== id);
+            if (!ix.deleted.includes(id)) ix.deleted.push(id);
+            if (ix.last === id) ix.last = ix.slots[0] || null;
+            write(INDEX, ix);
         },
         persist() { try { navigator.storage?.persist?.(); } catch { /* a bonus, not a safeguard */ } }
     };
 }
 
+function record(value) {
+    return !!value && typeof value === 'object' && !Array.isArray(value);
+}
+
+function contentVersion(value) {
+    return Number.isInteger(value) && value > 0 ? value : CONTENT_VERSION;
+}
+
 function migrate(d) {
     // contentVersion 1 is the first; future versions map old IDs here.
     return {
+        contentVersion: contentVersion(d.contentVersion),
         flags: d.flags.filter((f) => typeof f === 'string' && f.length < 40),
         checkpoint: typeof d.checkpoint === 'string' ? d.checkpoint : 'start',
-        puz: d.puz && typeof d.puz === 'object' ? d.puz : {},
-        settings: d.settings && typeof d.settings === 'object' ? d.settings : {},
+        puz: record(d.puz) ? d.puz : {},
         companionHints: Array.isArray(d.companionHints) ? d.companionHints.slice(0, 128) : [],
         note: typeof d.note === 'string' ? d.note.slice(0, 200) : '',
-        strokes: d.strokes && typeof d.strokes === 'object' ? d.strokes : null,
-        label: d.label, ended: !!d.ended
+        strokes: record(d.strokes) ? d.strokes : null,
+        ended: d.ended === true || d.flags.includes('ended')
     };
 }
 

@@ -88,7 +88,7 @@ await pg.waitForFunction(time => window.__skoldhast.debug.G.time > time + .05, a
 // The rendered journal uses the same restored depth, without replaying a visit
 // or spending another clue merely because its page was opened.
 await pg.locator('.sk-journal-btn').click();
-await pg.locator('.sk-j-tab').nth(1).click();
+await pg.locator('.sk-j-tab').nth(2).click(); // the remembered-help page, after cover and field note
 await pg.waitForSelector('.sk-j-known .sk-j-help');
 assert.equal(await pg.locator('.sk-j-known .sk-j-help').textContent(), 'Visa ledtråden igen');
 assert.equal(await pg.locator('.sk-j-known .sk-j-margin').textContent(), after.text);

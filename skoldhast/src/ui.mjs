@@ -11,7 +11,7 @@
  * The UI never changes the game directly; it returns promises and calls the
  * handlers main.mjs gives it.
  */
-import { UI, NAMES, JOURNAL, HINTS, HER_TEXT, WORD_CODES, FAMILY, MENU, MAP, DRAWING, THREAD, KLO_COMPANION } from './content/sv.mjs';
+import { UI, ADVENTURE_UI, NAMES, JOURNAL, HINTS, HER_TEXT, WORD_CODES, FAMILY, MENU, MAP, DRAWING, THREAD, KLO_COMPANION } from './content/sv.mjs';
 import { describeThread } from './story-thread.mjs';
 
 import { createMapBook, createMapThumb } from './mapbook.mjs';
@@ -297,6 +297,7 @@ export function createUI(host, { assetBase, handlers }) {
     // ---------------------------------------------------------------------------
     const panel = el('div', 'sk-panel');
     panel.setAttribute('role', 'dialog');
+    panel.setAttribute('aria-modal', 'true');
     root.appendChild(panel);
     let panelClose = null;
     function openPanel(build, { onClose, kind = 'card' } = {}) {
@@ -306,6 +307,7 @@ export function createUI(host, { assetBase, handlers }) {
         sheet.appendChild(card);
         panel.appendChild(sheet);
         build(card, sheet);
+        panel.setAttribute('aria-label', card.querySelector('h2')?.textContent || UI.journal);
         const x = el('button', 'sk-x');
         x.type = 'button';
         x.setAttribute('aria-label', UI.close);
@@ -330,6 +332,15 @@ export function createUI(host, { assetBase, handlers }) {
         const hit = e.target === panel && downOnBackdrop;
         downOnBackdrop = false;
         if (hit && panel.classList.contains('on')) closePanel();
+    });
+    panel.addEventListener('keydown', e => {
+        if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); closePanel(); return; }
+        if (e.key !== 'Tab') return;
+        const focusable = [...panel.querySelectorAll('button:not(:disabled), input:not(:disabled), textarea:not(:disabled), select:not(:disabled), summary, [tabindex="0"]')]
+            .filter(n => n.getClientRects().length);
+        const first = focusable[0], last = focusable.at(-1);
+        if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last?.focus(); }
+        else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first?.focus(); }
     });
     const btn = (label, fn, cls = '') => { const b = el('button', 'sk-pbtn ' + cls, label); b.type = 'button'; b.addEventListener('click', fn); return b; };
     const list = (items, cls = 'sk-j-list') => { const ul = el('ul', cls); for (const l of items) ul.append(el('li', '', l)); return ul; };
@@ -643,6 +654,9 @@ export function createUI(host, { assetBase, handlers }) {
             }));
             // straight on to the settings: the game stays paused until they close (they resume it)
             c.append(btn(UI.settings, () => { panelClose = null; settings(); }));
+            if (handlers.chooseAdventure) c.append(btn(ADVENTURE_UI.choose, () => {
+                panelClose = null; closePanel(); handlers.chooseAdventure();
+            }, 'sk-choose-adventure'));
             c.append(btn(UI.back, () => { closePanel(); handlers.quit(); }, 'quiet'));
         }, { onClose: handlers.resume, kind: 'pause' });
     }
@@ -704,15 +718,27 @@ export function createUI(host, { assetBase, handlers }) {
     }
 
     // --- chapter report ----------------------------------------------------------------
-    function ending() {
-        return new Promise(resolve => openPanel((c, sheet) => {
-            c.classList.add('sk-ending');
-            sheet.append(tape('sk-tape-top'));
-            c.append(art('table', 'hoofprint-wet', 'sk-ending-print'));
-            c.append(el('h2', '', UI.endingTitle));
-            c.append(el('p', '', UI.endingBody));
-            c.append(btn(UI.endingExplore, closePanel, 'primary'));
-        }, { onClose: resolve, kind: 'ending' }));
+    function ending({ nextAdventure } = {}) {
+        return new Promise(resolve => {
+            let action = { type: 'explore' };
+            openPanel((c, sheet) => {
+                c.classList.add('sk-ending');
+                sheet.append(tape('sk-tape-top'));
+                c.append(art('table', 'hoofprint-wet', 'sk-ending-print'));
+                c.append(el('h2', '', UI.endingTitle));
+                c.append(el('p', '', UI.endingBody));
+                if (nextAdventure?.playable) {
+                    c.append(el('p', 'sk-ending-next', ADVENTURE_UI.nextReady(nextAdventure.number)));
+                    c.append(btn(ADVENTURE_UI.next, () => {
+                        action = { type: 'next', adventureId: nextAdventure.id }; closePanel();
+                    }, 'primary sk-next-adventure'));
+                } else if (nextAdventure?.unlocked && !nextAdventure.released) {
+                    c.append(el('p', 'sk-ending-next', ADVENTURE_UI.nextEarned(nextAdventure.number)));
+                }
+                c.append(btn(UI.endingExplore, closePanel, nextAdventure?.playable ? '' : 'primary'));
+                c.append(btn(ADVENTURE_UI.choose, () => { action = { type: 'adventures' }; closePanel(); }, 'sk-choose-adventure'));
+            }, { onClose: () => resolve(action), kind: 'ending' });
+        });
     }
 
     function report(n) {
@@ -740,7 +766,7 @@ export function createUI(host, { assetBase, handlers }) {
     }
 
     // --- title: the Forskningsdagbok lies open on Alva's desk ---------------------------------
-    function title({ hasSave, slots, onBegin, onContinue, onSwitch, onCode }) {
+    function title({ hasSave, slots, onBegin, onContinue, onSwitch, onCode, onAdventures, adventureNumber = 1 }) {
         const t = el('div', 'sk-title');
         const cover = el('div', 'sk-cover');
         const paper = el('div', 'sk-cover-paper');
@@ -752,6 +778,7 @@ export function createUI(host, { assetBase, handlers }) {
         sub.hidden = true; // the traced lettering already says it
         logo.onerror = () => { logo.replaceWith(el('h1', 'sk-title-text', UI.title)); sub.hidden = false; };
         head.append(logo, sub, doodle('gull', 'd-g1'), doodle('gull2', 'd-g2'));
+        head.append(el('p', 'sk-title-adventure', ADVENTURE_UI.number(adventureNumber)));
         const bb = el('div', 'sk-title-btns');
         if (hasSave) bb.append(btn(UI.cont, () => { t.remove(); onContinue(); }, 'primary big'));
         bb.append(btn(hasSave ? UI.startOver : UI.begin, () => {
@@ -766,6 +793,7 @@ export function createUI(host, { assetBase, handlers }) {
             }, { kind: 'confirm' });
         }, hasSave ? '' : 'primary big'));
         bb.querySelector('.primary')?.append(icon('arrow', 'sk-go'));
+        if (onAdventures) bb.append(btn(ADVENTURE_UI.choose, onAdventures, 'sk-choose-adventure'));
         if (hasSave || slots.length > 1) bb.append(btn(UI.switchResearcher, () => onSwitch((close) => { t.remove(); close?.(); })));
         bb.append(btn(UI.haveCode, () => {
             openPanel((c, sheet) => {
@@ -803,6 +831,61 @@ export function createUI(host, { assetBase, handlers }) {
         return () => t.remove();
     }
 
+    // A story keeps its own bookmark. Finishing one earns the next, while an
+    // unfinished story stays on the desk until it has been built and released.
+    function adventurePicker({ adventures, playerLabel, onPick, onClose }) {
+        const returnFocus = document.activeElement;
+        openPanel((c, sheet) => {
+            c.classList.add('sk-adventures');
+            sheet.append(tape('sk-tape-top'));
+            c.append(el('h2', '', ADVENTURE_UI.heading));
+            c.append(el('p', 'sk-adventures-intro', ADVENTURE_UI.intro));
+            if (playerLabel) c.append(el('p', 'sk-adventures-player', ADVENTURE_UI.player(playerLabel)));
+            const stories = el('div', 'sk-adventure-list');
+            for (const adventure of adventures) {
+                const card = el('article', 'sk-adventure-card');
+                card.dataset.adventureId = adventure.id;
+                card.classList.toggle('is-playable', !!adventure.playable);
+                card.classList.toggle('is-locked', !adventure.playable);
+                card.classList.toggle('is-complete', !!adventure.completed);
+                card.classList.toggle('is-active', !!adventure.active);
+                const name = adventure.title || ADVENTURE_UI.titles[adventure.id];
+                card.setAttribute('aria-label', `${ADVENTURE_UI.number(adventure.number)}: ${name}`);
+                const cover = el('div', 'sk-adventure-cover');
+                cover.setAttribute('aria-hidden', 'true');
+                cover.append(icon(adventure.released ? 'wave' : 'pencil'));
+                if (adventure.completed) cover.append(icon('check', 'sk-adventure-check'));
+                card.append(cover, el('p', 'sk-adventure-number', ADVENTURE_UI.number(adventure.number)), el('h3', 'sk-adventure-name', name));
+                const status = adventure.completed ? ADVENTURE_UI.completed
+                    : !adventure.released ? ADVENTURE_UI.developing
+                    : !adventure.unlocked ? ADVENTURE_UI.locked
+                    : adventure.hasSave ? ADVENTURE_UI.playing : ADVENTURE_UI.ready;
+                card.append(el('p', 'sk-adventure-status', status));
+                if (!adventure.released) card.append(el('p', 'sk-adventure-note', ADVENTURE_UI.developingNote));
+                if (!adventure.unlocked && adventure.requiresNumber) {
+                    card.append(el('p', 'sk-adventure-note', ADVENTURE_UI.requires(adventure.requiresNumber)));
+                } else if (adventure.unlocked && !adventure.released) {
+                    card.append(el('p', 'sk-adventure-note', ADVENTURE_UI.earned));
+                }
+                if (adventure.playable) {
+                    const label = adventure.ended ? ADVENTURE_UI.explore : adventure.hasSave ? ADVENTURE_UI.continue : ADVENTURE_UI.begin;
+                    const play = btn(label, () => {
+                        // Selecting a story must not resume the previous one.
+                        panelClose = null; closePanel(); onPick(adventure.id);
+                    }, 'primary sk-adventure-play');
+                    play.setAttribute('aria-label', `${label}: ${ADVENTURE_UI.number(adventure.number)}`);
+                    if (adventure.active) play.dataset.focus = '';
+                    card.append(play);
+                }
+                stories.append(card);
+            }
+            c.append(stories, btn(ADVENTURE_UI.back, closePanel, 'quiet sk-adventures-close'));
+        }, { kind: 'adventures', onClose: () => {
+            if (returnFocus?.isConnected) returnFocus.focus({ preventScroll: true });
+            onClose?.();
+        } });
+    }
+
     function slotPicker(slots, onPick, onNew) {
         openPanel((c, sheet) => {
             c.classList.add('sk-slots');
@@ -831,7 +914,7 @@ export function createUI(host, { assetBase, handlers }) {
     // ---------------------------------------------------------------------------
     return {
         root, hud, controls, stickZone, stickBase, stickKnob, hopBtn, actBtn, hideBtn, portrait, updateSpeaker,
-        say, choice, toast, caption: captionShow, pulse, report, ending, journal, pauseMenu, settings, title, slotPicker, draw,
+        say, choice, toast, caption: captionShow, pulse, report, ending, journal, pauseMenu, settings, title, adventurePicker, slotPicker, draw,
         closePanel,
         panelOpen: () => panel.classList.contains('on'),
         dialogueOpen: () => !!dlgResolve,

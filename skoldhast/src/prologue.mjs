@@ -879,7 +879,7 @@ export function createTable({ PIXI, app, view, G, ui, audio, assets, makeHero })
     }
 
     // --- the epilogue ----------------------------------------------------------------------
-    async function epilogue({ onCovered } = {}) {
+    async function epilogue({ onCovered, nextAdventure } = {}) {
         view.setScene('land');
         view.render(snapStand(), 0.016);
         start(true);
@@ -905,10 +905,11 @@ export function createTable({ PIXI, app, view, G, ui, audio, assets, makeHero })
         picHero._emote = 'happy';
         await wait(1.2);
         running = false;
-        await ui.ending();
+        const action = await ui.ending({ nextAdventure });
         await tween(0.8, (u) => { table.alpha = 1 - u; });
         stop();
         table.alpha = 1;
+        return action;
     }
     let journalState = () => ({});
 
