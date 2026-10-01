@@ -439,72 +439,72 @@ function matSand() {
     // strokes that turn this way and that, with specks of grain and a few wind
     // ripples, so it reads as loose sand rather than planks. Her wet beach keeps
     // its own long strokes (mat-wetsand).
-    const S = tileSheet(M, M, hashSeed('mat-sand'), { grain: 1.5 });
-    const patch = fbm(M, M, 11, [[4, 4, 0.45], [8, 8, 0.35], [16, 16, 0.2]], 1.3);
-    hatchT(S, mix(P.sand, P.paper, 0.5), { angle: -0.35, angleJitter: 0.3, gap: 2.0, len: [10, 28], width: 2, pressure: 0.85, alpha: [0.55, 0.95], grain: 0.7 });
-    hatchT(S, mix(P.sand, P.sunYellow, 0.45), { angle: 0.42, angleJitter: 0.3, gap: 2.4, len: [10, 26], width: 2, pressure: 0.4, grain: 0.5 });
-    hatchT(S, P.sand, { angle: -0.1, angleJitter: 0.55, gap: 3, len: [8, 22], width: 1.8, pmap: fmap(patch, (v) => 0.24 + 0.42 * v), alpha: [0.6, 1], grain: 0.85 });
-    burnishT(S, null, 1, 0.3);
+    const S = tileSheet(M, M, hashSeed('mat-sand'), { tooth: .58, grain: .85 });
+    const patch = fbm(M, M, 11, [[2, 2, .65], [4, 4, .25], [8, 8, .1]], 1.3);
+    hatchT(S, mix(P.sand, P.paper, .4), { angle: -0.35, angleJitter: 0.3, gap: 2.0, len: [10, 28], width: 3.1, pressure: .78, alpha: [0.55, 0.95], grain: .25 });
+    hatchT(S, mix(P.sand, P.sunYellow, .12), { angle: 0.42, angleJitter: 0.3, gap: 2.4, len: [10, 26], width: 2.6, pressure: .28, grain: 0.5 });
+    hatchT(S, P.sand, { angle: -0.1, angleJitter: 0.55, gap: 3, len: [8, 22], width: 1.8, pmap: fmap(patch, (v) => 0.24 + 0.42 * v), alpha: [0.6, 1], grain: .35 });
+    burnishT(S, null, 2, .52);
     // wind ripples: short shallow arcs in the darker ochre
     const r = rng(13);
     const rip = [];
-    for (let k = 0; k < 24; k++) {
+    for (let k = 0; k < 12; k++) {
         const x0 = r() * M, y0 = r() * M, l = 30 + r() * 60, pts = [];
         for (let x = 0; x <= l; x += 3) pts.push([x0 + x, y0 - Math.sin((x / l) * Math.PI) * 3.2]);
         rip.push({ pts, width: 1.3, alpha: 0.5 + r() * 0.3 });
     }
     linesT(S, P.sandShade, rip, { pressure: 0.5, grain: 0.8 });
-    dotsT(S, P.sandShadow, scatterPts(77, 520, 0.5, 1.2), { rx: 0.9, ry: 0.7, alpha: 0.55, grain: 0.5 });
-    dotsT(S, P.sandShade, scatterPts(78, 260, 0.6, 1.2), { rx: 1.3, ry: 0.9, alpha: 0.5, grain: 0.5 });
+    dotsT(S, P.sandShadow, scatterPts(77, 220, 0.5, 1.2), { rx: 0.9, ry: 0.7, alpha: 0.55, grain: 0.5 });
+    dotsT(S, P.sandShade, scatterPts(78, 120, 0.6, 1.2), { rx: 1.3, ry: 0.9, alpha: 0.5, grain: 0.5 });
     dotsT(S, P.rock, scatterPts(79, 14, 1.4, 2.4), { rx: 1.5, ry: 1.1, alpha: 0.7, grain: 0.6 });
     return S;
 }
 
 function matWetSand() {
-    const S = tileSheet(M, M, hashSeed('mat-wetsand'), { grain: 1.5 });
-    const patch = fbm(M, M, 21, [[4, 4, 0.5], [8, 8, 0.3], [16, 16, 0.2]], 1.2);
-    const streak = fbm(M, M, 22, [[5, 22, 0.55], [9, 40, 0.45]], 1.8);
-    hatchT(S, P.sand, { angle: -0.03, gap: 2.0, len: [50, 130], width: 2.1, pressure: 1, alpha: [0.6, 1], grain: 0.6 });
-    hatchT(S, P.wetSand, { angle: -0.02, gap: 1.9, len: [50, 140], width: 2.1, pmap: fmap(patch, (v) => 0.57 + 0.16 * v), alpha: [0.6, 1], grain: 0.65 });
-    hatchT(S, P.wetSand, { angle: 0.35, gap: 3.2, len: [20, 50], width: 1.5, pressure: 0.3 });
+    const S = tileSheet(M, M, hashSeed('mat-wetsand'), { tooth: .55, grain: .85 });
+    const patch = fbm(M, M, 21, [[2, 2, .65], [4, 4, .25], [8, 8, .1]], 1.2);
+    const streak = fbm(M, M, 22, [[3, 9, .7], [5, 18, .3]], 1.8);
+    hatchT(S, P.sand, { angle: -0.03, gap: 2.0, len: [35, 95], width: 3.1, pressure: .85, alpha: [0.6, 1], grain: .2 });
+    hatchT(S, P.wetSand, { angle: -0.02, gap: 1.9, len: [35, 105], width: 2.8, pmap: fmap(patch, (v) => .38 + .24 * v), alpha: [0.6, 1], grain: .25 });
+    hatchT(S, P.wetSand, { angle: 0.35, gap: 3.2, len: [20, 50], width: 1.5, pressure: .18 });
     burnishT(S, null, 2, 0.7);
     // a few long horizontal streaks: darker ones and paler ones
-    hatchT(S, P.sandShadow, { angle: -0.01, angleJitter: 0.008, gap: 3.6, len: [60, 200], width: 1.5, grain: 0.8,
-        pmap: fmap(streak, (v) => smoothstep(0.66, 0.92, v) * 0.42) });
+    hatchT(S, P.sandShadow, { angle: -0.01, angleJitter: 0.008, gap: 3.6, len: [60, 200], width: 1.5, grain: .35,
+        pmap: fmap(streak, (v) => smoothstep(0.66, 0.92, v) * .22) });
     const r = rng(23);
     const pale = [];
-    for (let k = 0; k < 10; k++) {
+    for (let k = 0; k < 4; k++) {
         const y = r() * M, x = r() * M, l = 80 + r() * 200;
         pale.push([x, y, x + l / 2, y + (r() - 0.5) * 3, x + l, y + (r() - 0.5) * 2, 2 + r() * 2.4, 0.85]);
     }
     const cov = S.coverage((c) => { for (const k of pale) qstroke(c, ...k, true); });
-    lighten(S, cov, { amount: 0.42, grain: 0.3 });
+    lighten(S, cov, { amount: .16, grain: 0.3 });
     burnishT(S, null, 1, 0.25);
     return S;
 }
 
 function matGrass() {
-    const S = tileSheet(M, M, hashSeed('mat-grass'), { grain: 1.4 });
-    const patch = fbm(M, M, 31, [[4, 4, 0.5], [8, 8, 0.3], [16, 16, 0.2]], 1.3);
+    const S = tileSheet(M, M, hashSeed('mat-grass'), { tooth: .6, grain: .85 });
+    const patch = fbm(M, M, 31, [[2, 2, .6], [5, 5, .3], [9, 9, .1]], 1.3);
     // pale ochre and silver ground, strokes mostly upright
-    hatchT(S, P.grassOchre, { angle: -1.35, gap: 2.2, len: [14, 34], width: 1.8, pressure: 0.8, alpha: [0.6, 1], grain: 0.75 });
-    hatchT(S, P.grassSilver, { angle: -1.75, gap: 2.4, len: [12, 30], width: 1.7, grain: 0.8, pmap: fmap(patch, (v) => 0.45 + 0.45 * v) });
-    burnishT(S, null, 1, 0.3);
+    hatchT(S, mix(P.grassSilver, P.grassOchre, .32), { angle: -1.35, gap: 2.2, len: [14, 34], width: 3, pressure: .84, alpha: [0.6, 1], grain: .3 });
+    hatchT(S, P.grassSilver, { angle: -1.75, gap: 2.4, len: [12, 30], width: 2.8, grain: .28, pmap: fmap(patch, (v) => 0.45 + 0.45 * v) });
+    burnishT(S, null, 2, .48);
     // short blades, combed a little to the right
     const blade = (color, count, pressure, len, width, bias = 0) => scatterT(S, color, {
-        count, angle: -Math.PI / 2 + 0.2 + bias, angleJitter: 0.26, len, width, bow: 1.4, pressure, grain: 0.85,
+        count, angle: -Math.PI / 2 + 0.2 + bias, angleJitter: 0.26, len, width, bow: 1.4, pressure, grain: .45,
         alpha: [0.55, 1], pmap: fmap(patch, (v) => 0.65 + 0.5 * v)
     });
-    blade(P.grassSilver, 2600, 0.82, [10, 26], 1.5);
-    blade(P.grassGreen, 1200, 0.7, [9, 22], 1.4, 0.05);
-    blade(P.grassOchre, 1000, 0.85, [8, 20], 1.4, -0.1);
-    blade(mix(P.grassGreen, P.kelpDark, 0.35), 320, 0.6, [7, 15], 1.25);
+    blade(P.grassSilver, 1000, .62, [10, 26], 1.5);
+    blade(P.grassGreen, 620, .65, [9, 22], 1.4, 0.05);
+    blade(P.grassOchre, 520, .55, [8, 20], 1.4, -0.1);
+    blade(mix(P.grassGreen, P.kelpDark, 0.35), 140, .55, [7, 15], 1.25);
     return S;
 }
 
 function matEarth() {
-    const S = tileSheet(M, M, hashSeed('mat-earth'), { grain: 1.45 });
-    const patch = fbm(M, M, 41, [[4, 4, 0.5], [8, 8, 0.3], [16, 16, 0.2]], 1.2);
+    const S = tileSheet(M, M, hashSeed('mat-earth'), { tooth: .58, grain: .85 });
+    const patch = fbm(M, M, 41, [[2, 2, .65], [4, 4, .25], [8, 8, .1]], 1.2);
     const edges = [0, 58, 122, 176, 250, 318, 372, 440, 512];
     const wav = (x, k) => 3.5 * Math.sin((x / M) * Math.PI * 2 * 2 + k) + 2 * Math.sin((x / M) * Math.PI * 2 * 5 + k * 2.3);
     const layerTone = [0.55, 0.8, 0.62, 0.92, 0.5, 0.78, 0.66, 0.86];
@@ -516,10 +516,10 @@ function matEarth() {
     }
     // slanting strokes across the layers (long level ones read as planks), the
     // layers themselves carried by their tone and their wavy lines
-    hatchT(S, mix(P.earth, P.sand, 0.45), { angle: -0.6, angleJitter: 0.12, gap: 2.2, len: [14, 40], width: 1.9, pressure: 0.85, grain: 0.85 });
-    hatchT(S, P.earth, { angle: -0.52, angleJitter: 0.12, gap: 2.2, len: [14, 44], width: 1.8, grain: 0.85, pmap: fmap(band, (v, i) => v * (0.57 + 0.3 * patch[i])) });
-    hatchT(S, P.earth, { angle: 0.62, gap: 3.6, len: [10, 28], width: 1.4, pmap: fmap(patch, (v) => 0.2 + 0.35 * v) });
-    burnishT(S, null, 1, 0.35);
+    hatchT(S, mix(P.earth, P.sand, 0.45), { angle: -0.6, angleJitter: 0.12, gap: 2.2, len: [14, 40], width: 3, pressure: .72, grain: .3 });
+    hatchT(S, P.earth, { angle: -0.52, angleJitter: 0.12, gap: 2.2, len: [14, 44], width: 2.8, grain: .3, pmap: fmap(band, (v, i) => v * (.45 + .2 * patch[i])) });
+    hatchT(S, P.earth, { angle: 0.62, gap: 3.6, len: [10, 28], width: 1.4, pmap: fmap(patch, (v) => .12 + .18 * v) });
+    burnishT(S, null, 2, .6);
     const r = rng(43);
     const lines = [];
     for (let j = 0; j < 8; j++) {
@@ -527,7 +527,7 @@ function matEarth() {
         for (let x = -8; x <= M + 8; x += 4) pts.push([x, edges[j] + wav(x, j) + 1.5]);
         lines.push(...brokenLine(r, pts, { seg: [20, 60], gap: [0, 3], width: [1.5, 2.2], alpha: [0.55, 0.9] }));
     }
-    for (let k = 0; k < 16; k++) {
+    for (let k = 0; k < 7; k++) {
         const j = Math.floor(r() * 8);
         const y0 = edges[j] + 10 + r() * Math.max(6, edges[j + 1] - edges[j] - 20);
         const x0 = r() * M, l = 60 + r() * 110, per = 22 + r() * 12, amp = 2.5 + r() * 2;
@@ -535,8 +535,8 @@ function matEarth() {
         for (let x = 0; x <= l; x += 2) pts.push([x0 + x, y0 + Math.sin((x / per) * Math.PI * 2) * amp + wav(x0 + x, j) * 0.8]);
         lines.push({ pts, width: 1.3, alpha: 0.5 + r() * 0.3 });
     }
-    linesT(S, mix(P.woodDark, P.earth, 0.3), lines, { pressure: 0.78, grain: 0.75 });
-    dotsT(S, P.woodDark, scatterPts(47, 240, 0.5, 1.3), { rx: 1.1, ry: 0.8, alpha: 0.5 });
+    linesT(S, mix(P.woodDark, P.earth, 0.3), lines, { pressure: .42, grain: .5 });
+    dotsT(S, P.woodDark, scatterPts(47, 90, 0.5, 1.3), { rx: 1.1, ry: 0.8, alpha: 0.5 });
     return S;
 }
 
@@ -560,34 +560,34 @@ export function voronoiT(w, h, seed, n, { sx = 0.75, sy = 1 } = {}) {
 }
 
 function matRock() {
-    const S = tileSheet(M, M, hashSeed('mat-rock'), { grain: 1.45 });
+    const S = tileSheet(M, M, hashSeed('mat-rock'), { tooth: .6, grain: .85 });
     const patch = fbm(M, M, 51, [[4, 4, 0.5], [8, 8, 0.3], [16, 16, 0.2]], 1.2);
     const brk = fbm(M, M, 54, [[6, 6, 0.6], [13, 13, 0.4]], 1.6);
-    const { id, edge, seeds } = voronoiT(M, M, 52, 15, { sx: 0.72 });
+    const { id, edge, seeds } = voronoiT(M, M, 52, 9, { sx: 0.72 });
     const r = rng(53);
-    hatchT(S, mix(P.rock, P.paper, 0.3), { angle: -0.4, gap: 2.2, len: [16, 44], width: 1.8, pressure: 0.9, grain: 0.65 });
+    hatchT(S, mix(P.rock, P.paper, 0.3), { angle: -0.4, gap: 2.2, len: [16, 44], width: 3.2, pressure: .82, grain: .25 });
     const angles = [-0.8, -0.35, 0.3, 0.75, 1.2];
     seeds.forEach(([sx, sy], k) => {
         const m = fmap(id, (v, i) => (v === k ? smoothstep(0.3, 2.2, edge[i]) : 0));
         const a = angles[Math.floor(r() * angles.length)] + (r() - 0.5) * 0.25;
-        const tone = 0.42 + r() * 0.62;
+        const tone = .3 + r() * .44;
         // each facet: one dominant hatch direction, lit at the top, shaded toward its lower border
         const pm = pressureMap(M, M, (x, y) => {
             let dy = y - sy; if (dy > M / 2) dy -= M; if (dy < -M / 2) dy += M;
             return tone * (0.8 + 0.5 * smoothstep(-40, 50, dy)) * (0.8 + 0.35 * patch[y * M + x]);
         });
-        hatchT(S, P.rock, { angle: a, gap: 2.2, len: [14, 46], width: 1.7, clip: m, pmap: pm, grain: 0.8 });
+        hatchT(S, P.rock, { angle: a, gap: 2.2, len: [14, 46], width: 2.8, clip: m, pmap: pm, grain: .3 });
         if (tone > 0.7) hatchT(S, P.rockDark, { angle: a + 0.6, gap: 3, len: [10, 30], width: 1.4, clip: m, pressure: 0.35 + (tone - 0.7), grain: 0.9 });
     });
     // shadow just inside every border
     const rim = fmap(edge, (v) => Math.pow(1 - smoothstep(1, 11, v), 1.4));
-    hatchT(S, P.rockDark, { angle: 0.9, gap: 2.2, len: [8, 20], width: 1.4, pmap: rim, pressure: 0.8, grain: 0.85 });
-    burnishT(S, null, 1, 0.2);
+    hatchT(S, P.rockDark, { angle: 0.9, gap: 2.2, len: [8, 20], width: 1.4, pmap: rim, pressure: .6, grain: .35 });
+    burnishT(S, null, 2, .52);
     // cracks along the facet borders (broken here and there), plus a few hairlines
     const crack = fmap(edge, (v, i) => (1 - smoothstep(0.4, 2.1, v)) * smoothstep(0.25, 0.5, brk[i]));
-    S.deposit(P.graphite, crack, { pressure: 0.85, grain: 0.55 });
+    S.deposit(P.graphite, crack, { pressure: .55, grain: .4 });
     const hair = [];
-    for (let k = 0; k < 12; k++) {
+    for (let k = 0; k < 6; k++) {
         let x = r() * M, y = r() * M, a = r() * Math.PI * 2;
         const pts = [[x, y]];
         const n = 4 + Math.floor(r() * 5);
@@ -638,37 +638,37 @@ function matWood() {
 }
 
 function matSeabed() {
-    const S = tileSheet(M, M, hashSeed('mat-seabed'), { grain: 1.45 });
-    const patch = fbm(M, M, 71, [[4, 4, 0.5], [8, 8, 0.3], [16, 16, 0.2]], 1.3);
-    hatchT(S, P.seabed, { angle: -0.1, gap: 1.9, len: [22, 64], width: 2, grain: 0.55, pmap: fmap(patch, (v) => 0.8 + 0.2 * v) });
-    hatchT(S, P.seabed, { angle: 0.55, gap: 2.8, len: [12, 34], width: 1.6, pressure: 0.6, grain: 0.6 });
-    hatchT(S, mix(P.deepTeal, P.skyBlue, 0.45), { angle: -0.05, gap: 2.6, len: [30, 90], width: 1.7, grain: 0.6, pmap: fmap(patch, (v) => 0.35 + 0.3 * (1 - v)) });
-    burnishT(S, null, 1, 0.45);
+    const S = tileSheet(M, M, hashSeed('mat-seabed'), { tooth: .58, grain: .85 });
+    const patch = fbm(M, M, 71, [[2, 2, .65], [4, 4, .25], [8, 8, .1]], 1.3);
+    hatchT(S, P.seabed, { angle: -0.1, gap: 1.9, len: [22, 64], width: 3.1, grain: .22, pmap: fmap(patch, (v) => 0.8 + 0.2 * v) });
+    hatchT(S, P.seabed, { angle: 0.55, gap: 2.8, len: [12, 34], width: 2.4, pressure: .35, grain: .25 });
+    hatchT(S, mix(P.deepTeal, P.skyBlue, 0.45), { angle: -0.05, gap: 2.6, len: [30, 90], width: 2.4, grain: .25, pmap: fmap(patch, (v) => .22 + .22 * (1 - v)) });
+    burnishT(S, null, 2, .62);
     const r = rng(73);
     const rip = [];
-    for (let k = 0; k < 22; k++) {
+    for (let k = 0; k < 10; k++) {
         const x0 = r() * M, y0 = r() * M, l = 40 + r() * 80;
         const pts = [];
         for (let x = 0; x <= l; x += 3) pts.push([x0 + x, y0 + Math.sin(x / l * Math.PI) * -3 + Math.sin(x * 0.2) * 0.6]);
         rip.push({ pts, width: 1.4, alpha: 0.6 });
     }
     linesT(S, mix(P.deepTeal, P.seabed, 0.4), rip, { pressure: 0.55 });
-    dotsT(S, mix(P.rockDark, P.deepTeal, 0.3), scatterPts(74, 60, 0.8, 2.2), { rx: 2, ry: 1.3, alpha: 0.6, grain: 0.7 });
-    dotsT(S, P.sandShadow, scatterPts(75, 380, 0.5, 1.1), { rx: 0.9, ry: 0.7, alpha: 0.5 });
+    dotsT(S, mix(P.rockDark, P.deepTeal, 0.3), scatterPts(74, 28, 0.8, 2.2), { rx: 2, ry: 1.3, alpha: 0.6, grain: 0.7 });
+    dotsT(S, P.sandShadow, scatterPts(75, 100, 0.5, 1.1), { rx: 0.9, ry: 0.7, alpha: 0.5 });
     return S;
 }
 
 function matWater() {
     // drawn on paper like her sea; the alpha is a smooth veil (dense, a little see-through),
     // so the pencil texture lives in the colour and the tile stays light to download
-    const S = tileSheet(M, M, hashSeed('mat-water'), { grain: 1.4 });
-    const sl = fbm(M, M, 81, [[2, 48, 0.5], [3, 96, 0.3], [5, 170, 0.2]], 2.1);
-    const gaps = fmap(sl, (v) => 1 - 0.8 * smoothstep(0.79, 0.95, v));
-    hatchT(S, P.skyBlue, { angle: -0.012, angleJitter: 0.01, gap: 1.8, len: [40, 130], width: 2, pmap: gaps, pressure: 0.95, grain: 0.6 });
-    hatchT(S, P.seaBlue, { angle: 0.008, angleJitter: 0.012, gap: 1.8, len: [30, 120], width: 1.9, grain: 0.6, pmap: fmap(gaps, (v, i) => v * (0.7 + 0.3 * sl[i])) });
-    hatchT(S, P.seaBlue, { angle: -0.025, angleJitter: 0.015, gap: 2.6, len: [20, 70], width: 1.7, pmap: gaps, pressure: 0.5, grain: 0.6 });
-    hatchT(S, P.seaDeep, { angle: 0.004, angleJitter: 0.01, gap: 4.2, len: [30, 100], width: 1.5, grain: 0.6, pmap: fmap(sl, (v) => 0.5 * (1 - v)) });
-    burnishT(S, null, 1, 0.35);
+    const S = tileSheet(M, M, hashSeed('mat-water'), { tooth: .55, grain: .85 });
+    const sl = fbm(M, M, 81, [[2, 15, .6], [3, 32, .3], [5, 65, .1]], 2.1);
+    const gaps = fmap(sl, (v) => 1 - .4 * smoothstep(0.79, 0.95, v));
+    hatchT(S, P.skyBlue, { angle: -0.012, angleJitter: 0.01, gap: 1.8, len: [40, 130], width: 3.1, pmap: gaps, pressure: 0.95, grain: .2 });
+    hatchT(S, P.seaBlue, { angle: 0.008, angleJitter: 0.012, gap: 1.8, len: [30, 120], width: 3, grain: .2, pmap: fmap(gaps, (v, i) => v * (0.7 + 0.3 * sl[i])) });
+    hatchT(S, P.seaBlue, { angle: -0.025, angleJitter: 0.015, gap: 2.6, len: [20, 70], width: 1.7, pmap: gaps, pressure: .3, grain: .2 });
+    hatchT(S, P.seaDeep, { angle: 0.004, angleJitter: 0.01, gap: 4.2, len: [30, 100], width: 1.5, grain: .2, pmap: fmap(sl, (v) => .3 * (1 - v)) });
+    burnishT(S, null, 2, .6);
     const pr = rgb(P.paper);
     const dens = new Float32Array(M * M);
     for (let i = 0; i < M * M; i++) dens[i] = clamp01(1 - (S.r[i] + S.g[i] + S.b[i]) / (pr[0] + pr[1] + pr[2]));
@@ -692,14 +692,14 @@ function waterCanvas(S) {
 
 function matDeep() {
     // deep water volume: blue-teal, darker, soft blended strokes
-    const S = tileSheet(M, M, hashSeed('mat-deep'), { grain: 1.6 });
-    const patch = fbm(M, M, 91, [[2, 4, 0.5], [4, 9, 0.3], [8, 17, 0.2]], 1.2);
-    hatchT(S, P.deepTeal, { angle: -0.05, gap: 1.9, len: [40, 120], width: 2.2, pressure: 0.95, grain: 0.35 });
-    hatchT(S, P.seaDeep, { angle: 0.04, gap: 2.1, len: [40, 120], width: 2.1, pmap: fmap(patch, (v) => 0.45 + 0.4 * v), grain: 0.35 });
-    hatchT(S, mix(P.kelpForest, P.deepTeal, 0.5), { angle: -0.35, gap: 3.2, len: [24, 60], width: 1.8, pressure: 0.35, grain: 0.4 });
-    burnishT(S, null, 3, 0.6);
-    hatchT(S, P.seaDeep, { angle: -0.02, gap: 5, len: [40, 120], width: 1.6, pmap: fmap(patch, (v) => 0.45 * v), grain: 0.45 });
-    hatchT(S, mix(P.deepTeal, P.skyBlue, 0.4), { angle: 0.01, gap: 7, len: [60, 160], width: 2, pmap: fmap(patch, (v) => 0.3 * (1 - v)), grain: 0.4 });
+    const S = tileSheet(M, M, hashSeed('mat-deep'), { tooth: .55, grain: .85 });
+    const patch = fbm(M, M, 91, [[2, 3, .7], [4, 7, .2], [6, 12, .1]], 1.2);
+    hatchT(S, P.deepTeal, { angle: -0.05, gap: 1.9, len: [40, 120], width: 3.2, pressure: 0.95, grain: .16 });
+    hatchT(S, P.seaDeep, { angle: 0.04, gap: 2.1, len: [40, 120], width: 3, pmap: fmap(patch, (v) => 0.45 + 0.4 * v), grain: .16 });
+    hatchT(S, mix(P.kelpForest, P.deepTeal, 0.5), { angle: -0.35, gap: 3.2, len: [24, 60], width: 1.8, pressure: 0.35, grain: .2 });
+    burnishT(S, null, 3, .72);
+    hatchT(S, P.seaDeep, { angle: -0.02, gap: 5, len: [40, 120], width: 1.6, pmap: fmap(patch, (v) => .18 * v), grain: .22 });
+    hatchT(S, mix(P.deepTeal, P.skyBlue, 0.4), { angle: 0.01, gap: 7, len: [60, 160], width: 2, pmap: fmap(patch, (v) => .14 * (1 - v)), grain: .2 });
     burnishT(S, null, 1, 0.35);
     return S;
 }

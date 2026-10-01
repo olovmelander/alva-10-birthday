@@ -1,5 +1,44 @@
 # Sköldhästen – handover
 
+## A coherent pencil world from the table to the sea (30 September)
+
+Pappa asked for a whole-game visual review with internet research and a more
+connected, carefully composed world. The references, baseline findings and
+verified outcomes are in [the visual audit](../docs/skoldhast-visual-audit.md).
+
+- Calmer pencil materials and distinct distant colour masses give the hero,
+  route and puzzle marks more contrast. Stäppen keeps silver-green grass;
+  Kelpskogen keeps blue-green depth and small warm lanternfish. Alva's creature
+  palette, white outline clouds, beach composition and frozen-world rules remain.
+- Deterministic land habitats follow real ground and leave puzzle clearings.
+  Grouped kelp has separate depth values, quieter shafts and thin current marks.
+  The playable P6 leaves use matching pencil grain and veins without changing
+  their physical contours. A rear rock vault connects the cave entrance.
+- Decorative terrain continues beyond camera limits, including the sea fold's
+  painted face. Collision, gaps, puzzle states, save format and release stay
+  unchanged. `RELEASED_CHAPTER` remains 3 and the ticket gate remains hidden.
+- Shared backdrop layout keeps bay water below the high lighthouse gallery and
+  restores every layer after an opening-picture snapshot. Normal and reduced-
+  motion page turns resize without resetting their progress. Evening grading
+  applies to the environment while leaving the hero and cloud palette intact.
+  Table captions now have a small cream paper backing for contrast at dusk.
+- Verification: **328/328 pure tests pass**. The visual matrix contains **77
+  matched before/after views** (30 desktop, 32 short landscape, 15 portrait),
+  plus an actual gallery rotation after-view, with no browser errors. Active
+  P6 pull and collection-pocket frames remain clear of controls at both phone
+  sizes. Expanded lifecycle checks cover snapshot restoration in all scenes,
+  normal/reduced-motion rotation, texture disposal, cancellation and reopen.
+  All five ticket-launcher checks pass. Refreshed table captions fit above the
+  drawing at both phone sizes; the compact landscape caption clears it by 5.5px.
+- First playable is **2,218,538 bytes**, about **17.2% smaller** than the
+  2,678,669-byte baseline; asset dimensions are unchanged. Build budget and
+  whitespace checks pass. Matched renderer counts are in the audit: land gains
+  bounded habitat groups, while kelp and bay use fewer display objects. These
+  software-Chromium diagnostics are not a real-phone performance measurement.
+- Evidence remains local under `docs/skoldhast/shots/world-art/`; reproduce the
+  matrix with `tests/browser/skoldhast-world-art.mjs` and the lifecycle checks
+  with `tests/browser/skoldhast-view-lifecycle.mjs`. No new question for Pappa.
+
 ## The hill opens through seeds, roots and a freed stone (30 September)
 
 Pappa asked what actually unfolds the uphill path and how that puzzle could have

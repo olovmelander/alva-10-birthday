@@ -460,23 +460,36 @@ export function createScreenTurn(PIXI, app, {
     width = app.screen.width, height = app.screen.height,
     curl = 0.35, perspective = 1, lift = 0.08, slant = 0.05
 } = {}) {
-    const page = createPage(PIXI, {
-        front: texture, back, paper, width, height, columns: 32, rows: 8, edges: 'free',
+    const make = (w, h) => createPage(PIXI, {
+        front: texture, back, paper, width: w, height: h, columns: 32, rows: 8, edges: 'free',
         hinge, curl, perspective, lift, slant, px: 1
     });
+    let page = make(width, height), clock = page.timeline(0, width), progress = 0, destroyed = false;
     parent.addChild(page.view);
-    const clock = page.timeline(0, width);
     const frame = { shadow: 1, outline: 0 };
     const turn = {
-        page,
+        get page() { return page; },
+        get progress() { return progress; },
         at(k) {
+            if (destroyed) return turn;
             k = clamp01(k);
+            progress = k;
             frame.outline = smoothstep(0, 0.06, k);
             frame.shadow = 1 - smoothstep(0.85, 1, k);
             page.set(clock(k), frame);
             return turn;
         },
-        destroy() { page.destroy(); }
+        /** Rotation changes sheet geometry, not its clock or captured picture.
+         * Rebuilding frees only the old mesh's own paper/shade textures. */
+        resize(w = app.screen.width, h = app.screen.height) {
+            if (destroyed || w <= 0 || h <= 0 || w === width && h === height) return turn;
+            const index = page.view.parent === parent ? parent.getChildIndex(page.view) : parent.children.length;
+            const previous = page;
+            width = w; height = h; page = make(w, h); clock = page.timeline(0, w);
+            parent.addChildAt(page.view, index); previous.destroy();
+            return turn.at(progress);
+        },
+        destroy() { if (destroyed) return; destroyed = true; page.destroy(); }
     };
     turn.at(0);
     return turn;
@@ -506,7 +519,7 @@ export function turnScreen(PIXI, app, {
             s.width = app.screen.width; s.height = app.screen.height;
             parent.addChild(s);
             if (ms > 0) ms = Math.min(450, Math.max(200, ms * 0.4));
-            show = (k) => { if (!s.destroyed) s.alpha = 1 - easeInOut(k); };
+            show = (k) => { if (!s.destroyed) { s.width = app.screen.width; s.height = app.screen.height; s.alpha = 1 - easeInOut(k); } };
             done = () => { s.parent?.removeChild(s); if (!s.destroyed) s.destroy(); };
             show(0);
         } else {
@@ -520,7 +533,7 @@ export function turnScreen(PIXI, app, {
             done = () => turn.destroy();
             const alive = () => !turn.page.view.destroyed;
             const inner = show;
-            show = (k) => { if (alive()) inner(k); };
+            show = (k) => { if (alive()) { turn.resize(); inner(k); } };
         }
         let t0 = -1;
         const tick = (now) => {

@@ -16,7 +16,7 @@ const hash = (n) => { const v = Math.sin(n * 127.1 + 311.7) * 43758.5453; return
 export function createWaterLight(PIXI, water, { underwater = false } = {}) {
     const view = new PIXI.Container();
     const marks = [];
-    const count = 54, cell = 145;
+    const count = 36, cell = 185;
     for (let i = 0; i < count; i++) {
         const line = new PIXI.Graphics();
         // Broken and slightly offset strokes preserve a pencil edge at phone size.
@@ -45,15 +45,15 @@ export function createWaterLight(PIXI, water, { underwater = false } = {}) {
                 if (col >= columns) { mark.visible = false; continue; }
                 const n = first + col, seed = n * 3 + row * 517;
                 const x = (n + 0.12 + hash(seed) * 0.7) * cell;
-                const depth = 11 + row * 49 + hash(seed + 1) * 29;
-                const length = 26 + hash(seed + 2) * (row ? 59 : 37);
+                const depth = 13 + row * 61 + hash(seed + 1) * 27;
+                const length = 22 + hash(seed + 2) * (row ? 45 : 32);
                 const bob = Math.sin(t * 0.65 + seed) * (frozen ? 0 : 1 + clamp(ripple, 0, 1) * 1.5);
                 const half = Math.min(length / 2, x - water.x0 - 3, water.x1 - x - 3);
                 mark.visible = half > 4;
                 if (!mark.visible) continue;
                 mark.x = x; mark.y = water.top + depth + bob;
                 mark.scale.x = half * 2;
-                mark.alpha = (0.22 + (lessMotion || frozen ? 0 : 0.065 * Math.sin(t * 0.7 + seed * 1.3))) * (1 - row * 0.18) * mirror;
+                mark.alpha = (0.17 + (lessMotion || frozen ? 0 : 0.04 * Math.sin(t * 0.7 + seed * 1.3))) * (1 - row * 0.28) * mirror;
             }
         }
     };
@@ -65,14 +65,18 @@ export function createWaterLight(PIXI, water, { underwater = false } = {}) {
 export function createAtmosphere(PIXI, { scene = 'land' } = {}) {
     const view = new PIXI.Container(); view.label = 'pencil-atmosphere';
     const rays = [], marks = [];
-    for (let i = 0; i < 6; i++) {
+    for (let i = 0; i < 4; i++) {
         const ray = new PIXI.Graphics();
-        ray.poly([-24, 0, 24, 0, 244, 1000, 76, 1000]).fill({ color: 0xfffce5, alpha: .035 });
-        for (let j = 0; j < 7; j++) {
-            const x = -21 + j * 7, y = 80 + (j % 3) * 46;
-            ray.moveTo(x + y * .15, y).lineTo(x + 54 + j * 5, 480)
-                .moveTo(x + 74 + j * 6, 610).lineTo(x + 128 + j * 12, 1000)
-                .stroke({ width: 2 + j % 2, color: 0xfffbea, alpha: .08 + j % 3 * .012 });
+        // Sparse broken hatching over a little reserved paper. The shafts have
+        // real world depth; moving the camera cannot stretch them to the floor.
+        ray.poly([-18, 0, 18, 0, 180, 1000, 104, 1000]).fill({ color: 0xe9f0d5, alpha: .017 });
+        for (let j = 0; j < 5; j++) {
+            const x = -16 + j * 8;
+            for (let part = 0; part < 4; part++) {
+                const y = 36 + part * 242 + j % 3 * 19, end = y + 134 - part * 12;
+                ray.moveTo(x + y * .14, y).lineTo(x + end * .14 + j * 2, end)
+                    .stroke({ width: 2 + j % 2, color: 0xf4f4d9, alpha: (.095 - part * .019) });
+            }
         }
         view.addChild(ray); rays.push(ray);
     }
@@ -95,29 +99,34 @@ export function createAtmosphere(PIXI, { scene = 'land' } = {}) {
             const left = cam.x - width / cam.zoom / 2, top = cam.y - height / cam.zoom / 2;
             const right = cam.x + width / cam.zoom / 2, bottom = cam.y + height / cam.zoom / 2;
             const t = lessMotion ? 0 : time;
-            const firstRay = Math.floor(left / 620) - 1;
+            const rayCell = 850, firstRay = Math.floor((left - 260) / rayCell);
             for (let i = 0; i < rays.length; i++) {
-                const ray = rays[i];
-                ray.visible = underwater && !evening && bottom > waterTop && i < Math.ceil((right - left) / 620) + 2;
+                const ray = rays[i], cell = firstRay + i;
+                const depth = 1450 + hash(cell + 21) * 750;
+                ray.visible = underwater && !evening && bottom > waterTop && top < waterTop + depth
+                    && cell * rayCell < right + 60;
                 if (!ray.visible) continue;
-                const cell = firstRay + i;
-                ray.x = cell * 620 + hash(cell + 83) * 210;
+                ray.x = cell * rayCell + hash(cell + 83) * 145;
+                // The land entrance is a roofed coastal tunnel. Open-water
+                // daylight starts seaward of that ceiling, at seven horse lengths.
+                if (scene === 'kelp' && ray.x < 1400) { ray.visible = false; continue; }
                 ray.y = waterTop;
-                ray.scale.y = Math.max(.2, (bottom - waterTop + 220) / 1000);
-                ray.alpha = (scene === 'kelp' ? 1 : .5) * clamp(1 - Math.max(0, cam.y - waterTop) / 7500, .3, 1);
+                ray.scale.y = depth / 1000;
+                ray.alpha = scene === 'kelp' ? 1 : .45;
             }
-            const columns = Math.min(6, Math.max(2, Math.ceil((right - left) / 300)));
-            const rows = Math.ceil(marks.length / columns), cellH = (bottom - top + 180) / rows;
-            const driftX = steppe ? t * 13 : Math.sin(t * .17) * 11, driftY = underwater ? t * 7 : -t * 1.5;
-            const firstX = Math.floor((left - driftX) / 300), firstY = Math.floor((top + driftY) / cellH);
+            const cellW = underwater ? 620 : 300;
+            const columns = Math.min(6, Math.max(2, Math.ceil((right - left) / cellW)));
+            const cellH = underwater ? 580 : (bottom - top + 180) / Math.ceil(marks.length / columns);
+            const driftX = steppe ? t * 13 : Math.sin(t * .17) * 9, driftY = underwater ? t * 4 : -t * 1.5;
+            const firstX = Math.floor((left - driftX) / cellW), firstY = Math.floor((top + driftY) / cellH);
             for (let i = 0; i < marks.length; i++) {
                 const mark = marks[i], col = firstX + i % columns, row = firstY + Math.floor(i / columns);
                 const seed = col * 157 + row * 31;
-                mark.x = (col + .1 + hash(seed) * .8) * 300 + driftX;
+                mark.x = (col + .1 + hash(seed) * .8) * cellW + driftX;
                 mark.y = (row + .14 + hash(seed + 1) * .7) * cellH - driftY;
                 mark.visible = mark.x > left - 20 && mark.x < right + 20 && mark.y > top - 20 && mark.y < bottom + 20 && (!underwater || mark.y > waterTop + 14);
                 mark.tint = evening ? 0xffeabd : underwater ? 0xe1f0df : 0xe1ddbf;
-                mark.alpha = underwater ? .34 : .5;
+                mark.alpha = underwater ? .23 : .5;
                 mark.scale.set(underwater ? .7 + hash(seed + 2) * .6 : 1.2, underwater ? 1 : .6);
             }
         }

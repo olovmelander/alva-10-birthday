@@ -34,6 +34,28 @@ export function createKelpPuzzleScene(PIXI, { texture, def, groundAt, flat = 0 }
     const detail = new PIXI.Graphics(); detail.label = 'p6-release-detail';
     container.addChild(current, pocket, fragment, fold.container, tether, detail);
 
+    // The playable fronds share the scenery's pencil material. Short veins
+    // follow each leaf's actual curved edges instead of a flat vector sticker.
+    // A direct sea save may arrive before the background land bundle.
+    const leafGrain = texture?.('mat-grass') || texture?.('mat-seabed');
+    const quadratic = (a, c, b, t) => ({ x: (1 - t) ** 2 * a.x + 2 * (1 - t) * t * c.x + t * t * b.x,
+        y: (1 - t) ** 2 * a.y + 2 * (1 - t) * t * c.y + t * t * b.y });
+    function leaf(g, base, upper, tip, lower, tail, color, alpha) {
+        const path = () => g.moveTo(base.x, base.y).quadraticCurveTo(upper.x, upper.y, tip.x, tip.y)
+            .quadraticCurveTo(lower.x, lower.y, tail.x, tail.y).closePath();
+        path().fill({ color, alpha: alpha * .78 });
+        if (leafGrain) path().fill({ texture: leafGrain, textureSpace: 'global', color: 0xdbe6c5, alpha: .42 });
+        path().stroke({ color: 0x3e624d, width: 1.7, alpha: .7 });
+        const middle = mix(base, tail, .5);
+        line(g, [middle, mix(mix(upper, lower, .5), tip, .42), tip], 0x344f40, 1.6, .45);
+        for (let i = 1; i < 7; i++) {
+            const t = i / 8, a = quadratic(base, upper, tip, t), b = quadratic(tail, lower, tip, t);
+            const centre = mix(a, b, .48);
+            line(g, [mix(a, b, .13), { x: centre.x - 2, y: centre.y + 3 }], 0xd6d9a0, 1.4, .48);
+            line(g, [{ x: centre.x + 1, y: centre.y - 2 }, mix(a, b, .83)], 0x3f6550, 1.2, .34);
+        }
+    }
+
     // A quiet, open-centred cradle identifies the safe destination before the
     // paper moves. The fronds sit behind its silhouette instead of covering it.
     const destination = def.fragment.to;
@@ -49,10 +71,8 @@ export function createKelpPuzzleScene(PIXI, { texture, def, groundAt, flat = 0 }
             .stroke({ color: 0x87a465, width: 4, alpha: .82, cap: 'round' });
         for (let i = 0; i < 5; i++) {
             const y = lerp(root.y - 90, tip.y + 75, i / 4), x = root.x + side * Math.sin(i / 5 * Math.PI) * 65;
-            pocket.moveTo(x, y).quadraticCurveTo(x + side * 75, y - 8, x + side * 96, y - 58)
-                .quadraticCurveTo(x + side * 28, y - 50, x, y - 12)
-                .fill({ color: i % 2 ? 0x718c59 : 0x587c55, alpha: .85 })
-                .stroke({ color: 0x3e624d, width: 2, alpha: .75 });
+            leaf(pocket, { x, y }, { x: x + side * 75, y: y - 8 }, { x: x + side * 96, y: y - 58 },
+                { x: x + side * 28, y: y - 50 }, { x, y: y - 12 }, i % 2 ? 0x718c59 : 0x587c55, .85);
         }
         pocket.ellipse(root.x, root.y + 4, 35, 10).fill({ color: 0x2c554b, alpha: .4 });
     }
@@ -89,15 +109,17 @@ export function createKelpPuzzleScene(PIXI, { texture, def, groundAt, flat = 0 }
             p.y += Math.sin(t * Math.PI) * lerp(82, 6, tension) * (1 - released); spine.push(p);
         }
         line(tether, spine, 0x294f44, 17, .95);
-        line(tether, spine, 0x6d925b, 11);
-        line(tether, spine.map(p => ({ x: p.x - 3, y: p.y - 3 })), 0xc0c58c, 2.2, .66);
+        line(tether, spine, 0x6d925b, 11, .85);
+        for (let i = 0; i < spine.length - 2; i += 3) {
+            line(tether, spine.slice(i, i + 3).map(p => ({ x: p.x - 3, y: p.y - 2 })), 0xc0c58c, 2.1, .66);
+            line(tether, spine.slice(i, i + 2).map(p => ({ x: p.x + 2, y: p.y + 1 })), 0x365d47, 1.3, .55);
+        }
         for (const i of [2, 5, 8, 16, 20, 24]) {
             const p = spine[i], next = spine[i + 1], length = Math.hypot(next.x - p.x, next.y - p.y) || 1;
             const side = i % 2 ? 1 : -1, nx = -(next.y - p.y) / length * side, ny = (next.x - p.x) / length * side;
-            tether.moveTo(p.x, p.y).quadraticCurveTo(p.x + nx * 58, p.y + ny * 58, p.x + nx * 68 + 12, p.y + ny * 68 - 25)
-                .quadraticCurveTo(p.x + nx * 21, p.y + ny * 21 - 28, p.x, p.y)
-                .fill({ color: i % 2 ? 0x89a067 : 0x537950, alpha: .96 })
-                .stroke({ color: 0x355c49, width: 2.3, alpha: .88 });
+            leaf(tether, p, { x: p.x + nx * 58, y: p.y + ny * 58 },
+                { x: p.x + nx * 68 + 12, y: p.y + ny * 68 - 25 },
+                { x: p.x + nx * 21, y: p.y + ny * 21 - 28 }, p, i % 2 ? 0x89a067 : 0x537950, .96);
         }
         if (!pose.kelpFreed) {
             // This visible turn is the snag, exactly on the lip it restrains.

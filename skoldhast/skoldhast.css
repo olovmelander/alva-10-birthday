@@ -699,10 +699,16 @@ html.skoldhast-lock, html.skoldhast-lock body { overflow: hidden !important; ove
 .sk-notes-skip { position: absolute; top: max(12px, env(safe-area-inset-top)); left: max(12px, env(safe-area-inset-left));
     z-index: 6; pointer-events: auto; min-height: 44px; padding: 6px 16px; font-size: calc(18px * var(--fz)); }
 .sk-ui.table-mode .sk-caption { top: max(16px, env(safe-area-inset-top)); bottom: auto; width: max-content;
-    max-width: min(620px, calc(100% - 32px)); white-space: normal; text-align: center; line-height: 1.35; }
+    max-width: min(620px, calc(100% - 32px)); box-sizing: border-box; padding: 6px 12px;
+    white-space: normal; text-align: center; line-height: 1.35; color: var(--sk-ink); text-shadow: none;
+    background: var(--sk-paper) var(--sk-page); background-size: 256px;
+    border: 1px solid rgba(59, 53, 48, 0.22); border-radius: 3px 6px 4px 5px;
+    box-shadow: 0 1px 3px rgba(59, 53, 48, 0.1); }
 
 /* short landscape phones: the settings card uses two columns, with Stäng beside the heading */
 @media (orientation: landscape) and (max-height: 560px) {
+    .sk-ui.table-mode .sk-caption { top: max(4px, env(safe-area-inset-top)); max-width: calc(100% - 24px);
+        padding: 3px 10px; font-size: calc(17px * var(--fz)); line-height: 1.15; }
     .sk-card { padding: 16px 22px 18px; gap: 8px; --head: 54px; }
     .sk-card h2 { font-size: calc(28px * var(--fz)); margin-bottom: 6px; }
     .sk-card > .sk-pbtn, .sk-btn-row > .sk-pbtn { min-height: 48px; }

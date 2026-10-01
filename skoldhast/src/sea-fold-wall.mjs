@@ -15,6 +15,15 @@ export function seaFoldWallLayout({ x, top, bottom, width = 430 }) {
     };
 }
 
+/** The near crease stays authored; only its far painted face continues past
+ * the camera. Nothing in this geometry changes the collision hinge. */
+export function seaFoldFaceContinuation(layout, right) {
+    const start = layout.x + layout.width, end = Math.max(start, right);
+    const top = layout.top + layout.lip * .18;
+    return { x0: start, x1: end, top, bottom: layout.bottom,
+        points: [[start, top], [end, top], [end, layout.bottom], [start, layout.bottom]] };
+}
+
 function pencilLine(g, points, color, width, alpha = 1) {
     g.moveTo(...points[0]);
     for (const point of points.slice(1)) g.lineTo(...point);
@@ -27,7 +36,8 @@ export function createSeaFoldWall(PIXI, { texture, ...options } = {}) {
     const { x, top, bottom, width, height, lip, reverse } = layout;
     const container = new PIXI.Container(); container.label = 'drawn-sea-fold';
     const paper = new PIXI.Graphics(), sea = new PIXI.Graphics(), marks = new PIXI.Graphics();
-    container.addChild(paper, sea, marks);
+    const continuation = new PIXI.Graphics(); continuation.label = 'sea-fold-face-continuation';
+    container.addChild(paper, continuation, sea, marks);
     paper.poly(layout.shadow.flat()).fill({ color: 0x384b48, alpha: .16 });
     paper.poly(layout.back.flat()).fill(0xeee2c4).stroke({ color: 0x82775f, width: 2.4, alpha: .9 });
     const paperTexture = texture?.('mat-paper'), seaTexture = texture?.('mat-deep');
@@ -92,8 +102,33 @@ export function createSeaFoldWall(PIXI, { texture, ...options } = {}) {
     pencilLine(marks, [[x + 4, top + lip + 9], [x + 5, bottom - 4]], 0x304956, 1.5, .35);
     pencilLine(marks, layout.face.slice(0, 3), 0x476a76, 2.7, .8);
     let destroyed = false;
+    let coveredRight = x + width;
     return {
         container, layout,
+        extendTo(right) {
+            if (destroyed || !Number.isFinite(right) || right <= coveredRight) return;
+            coveredRight = Math.ceil(right / 200) * 200;
+            const shape = seaFoldFaceContinuation(layout, coveredRight);
+            continuation.clear().poly(shape.points.flat()).fill(0x79a7ae);
+            if (seaTexture) continuation.poly(shape.points.flat()).fill({ texture: seaTexture,
+                textureSpace: 'global', color: 0xbad3c2, alpha: .5 });
+            for (let i = 0; i < 22; i++) {
+                const y0 = bodyTop + (bottom - bodyTop) * i / 22, y1 = bodyTop + (bottom - bodyTop) * (i + 1) / 22;
+                continuation.rect(shape.x0, y0, shape.x1 - shape.x0, y1 - y0 + .5)
+                    .fill({ color: 0x37637c, alpha: .08 + i / 22 * .24 });
+            }
+            for (let y = bodyTop + 14, row = 0; y < bottom - 8; y += 14, row++) {
+                const phase = Math.sin(row * 2.39), start = x + 7 + (row % 3) * 10;
+                for (let k = 4; start + k * width * .25 < coveredRight; k++) {
+                    const xa = start + k * width * .25, xb = Math.min(coveredRight - 4, xa + width * (.15 + .07 * (1 + phase) / 2));
+                    if (xb <= xa) continue;
+                    pencilLine(continuation, [[xa, y], [xb, y - 2 + phase * 2]], row % 4 ? 0x477c8b : 0xb2c3b0,
+                        1.6 + row % 2 * .4, row % 4 ? .28 : .24);
+                }
+            }
+            pencilLine(continuation, shape.points.slice(0, 2), 0x476a76, 2.7, .8);
+            continuation.seaFoldCoverage = shape;
+        },
         destroy() {
             if (destroyed) return; destroyed = true;
             container.parent?.removeChild(container);

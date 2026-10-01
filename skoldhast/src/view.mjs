@@ -11,10 +11,13 @@
  */
 import { HL, cond, heightOn, lineLength, pointAt, p4MomentumProgress } from './sim.mjs';
 import { createPage, createScreenTurn } from './pageturn.mjs';
-import { terrainShape, clipX } from './terrain-shape.mjs';
+import { clipX } from './terrain-shape.mjs';
+import { landscapeCoverage, landscapeShape } from './landscape-edges.mjs';
 import { createKlo } from './klo.mjs';
 import { createGuardian } from './guardian.mjs';
-import { createWaterLight, createAtmosphere, seaAnchorY } from './scenery.mjs';
+import { createWaterLight, createAtmosphere } from './scenery.mjs';
+import { backdropLayout, preserveBackdropState } from './backdrop-layout.mjs';
+import { kelpGardenLayout } from './underwater-garden.mjs';
 import { pencilAvailable } from './puzzles.mjs';
 import { createRouteCue, createPencilBeam } from './route-cue.mjs';
 import { createActionCue } from './action-cue.mjs';
@@ -25,6 +28,8 @@ import { createFoldedSeabed } from './folded-seabed.mjs';
 import { createKelpPuzzleScene } from './kelp-scene.mjs';
 import { p6Pose } from './kelp-puzzle.mjs';
 import { createHillPuzzleScene } from './hill-scene.mjs';
+import { createLandScenery } from './land-scenery.mjs';
+import { createCoastalCave } from './coastal-cave.mjs';
 import { p3Pose } from './hill-puzzle.mjs';
 import { createVaultDiscovery } from './vault-discovery.mjs';
 import { createKvMemory } from './kv-memory.mjs';
@@ -81,12 +86,14 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
     const skyLayer = new PIXI.Container();      // parallax sky props (sun, clouds, gulls)
     const bgFront = new PIXI.Container();       // backdrop layers in front of the sky props: hills, cliffs, far water, the depths
     const world = new PIXI.Container();         // camera transform
+    world.label = 'world'; skyLayer.label = 'sky-props';
     const overlay = new PIXI.Container();       // screen space: tooth, darkness, fades
     const turnLayer = new PIXI.Container();     // screen space: pages turning away (scene changes, the unfold)
     root.addChild(bgLayer, skyLayer, bgFront, world, overlay, turnLayer);
     const L = {};
     for (const name of ['far', 'terrainBack', 'mid', 'objects', 'actors', 'hero', 'waterFront', 'fore', 'fx', 'cover', 'hints']) {
         L[name] = new PIXI.Container();
+        L[name].label = 'world-' + name;
         world.addChild(L[name]);
     }
 
@@ -313,6 +320,8 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
         const groundTop = new PIXI.Graphics();
         const groundLines = new PIXI.Container();
         const bottom = def.bounds.y1 + h(4);
+        d.landscapeCoverage = landscapeCoverage(def.bounds);
+        ground.label = 'landscape-ground';
         for (const s of def.surfaces) {
             const pts = s.pts;
             if (s.thin) {
@@ -328,11 +337,9 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
             ground.clear(); groundTop.clear();
             for (const child of groundLines.removeChildren()) child.destroy({ children: true });
             const active = G.terrain?.scene === def ? G.terrain.surfaces : def.surfaces.filter(s => cond(s.when, G.flags));
-            const shape = terrainShape(active);
-            for (const { s, pts: run } of shape.runs) {
-                // A drawn-only tail carries a seabed past the playable edge, so the
-                // sea never ends in a cut-off wall of backdrop under the jetty.
-                const pts = s.tail && run.at(-1)[0] === s.pts.at(-1)[0] ? [...run, ...s.tail] : run;
+            const shape = landscapeShape(active, d.landscapeCoverage), bottom = d.landscapeCoverage.y1;
+            ground.landscape = { coverage: shape.coverage, extensions: shape.extensions };
+            for (const { s, pts } of shape.runs) {
                 const x0 = pts[0][0], x1 = pts.at(-1)[0];
                 if (s.boardwalk) { boardwalk(s, pts, ground, groundTop, groundLines, bottom); continue; }
                 const baseMat = s.edgeMat || (s.ramp ? 'earth' : s.mat);
@@ -340,7 +347,6 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
                 if (baseMat !== s.mat) {
                     fillPoly(groundTop, [...pts, ...pts.slice().reverse().map(([x,y]) => [x,y+46])], s.mat);
                 }
-                if (pts !== run) groundLines.addChild(rope('stroke-graphite', resamplePts([run.at(-1), ...s.tail], 50), { width: 5 }));
             }
             // Where two sandy materials meet on one continuous surface, blend them
             // over a short stretch instead of a ruler-straight vertical seam down
@@ -480,34 +486,22 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
                 continue;
             }
             if (it.kelp) {
-                for (let i = 0; i < it.kelp; i++) {
-                    const x = lerp(it.x0, it.x1, (i + 0.5) / it.kelp) + (Math.random() - 0.5) * h(0.8);
-                    // Authored puzzle plants own these openings. Random scenery
-                    // must not conceal the fish, the snag or the rising paper.
-                    if (def.id === 'kelp' && (Math.abs(x - def.school.home.x) < h(.9)
-                        || (def.kelpPuzzle && x > def.kelpPuzzle.tether.root.x - h(.45)
-                            && x < def.kelpPuzzle.fragment.to.x + h(1.35)))) continue;
-                    const fy = floorAt(def, x);
-                    if (fy === null) continue;
-                    let H = h(2.2 + Math.random() * 2.6);
-                    // under a cave roof a frond stays below it
-                    const roof = slabBottomAt(def, x);
-                    if (roof !== null && roof < fy) { H = Math.min(H, fy - roof - h(0.25)); if (H < h(0.7)) continue; }
+                for (const plant of kelpGardenLayout(def, it, x => floorAt(def, x), x => slabBottomAt(def, x))) {
+                    const { x, fy, H } = plant;
                     const n = 10;
                     const pts = []; for (let k = 0; k <= n; k++) pts.push([x, fy - H * (1 - k / n)]); // top first
-                    const r = strip('kelp-strip', n, 44 + Math.random() * 48) || rope('kelp-strip', pts, { color: 0x3e7a34, width: 22 });
-                    const fore = it.layer === 'fore';
-                    if (fore) r.alpha = 0.6; // the sköldhäst stays visible through the front fronds
-                    // held to the bed by a dark holdfast, now and then on a stone
+                    const r = strip('kelp-strip', n, plant.width) || rope('kelp-strip', pts, { color: 0x3e7a34, width: 22 });
+                    const fore = plant.depth === 'fore';
+                    r.alpha = plant.alpha; r.tint = plant.tint;
+                    // A small branching holdfast joins the material of the bed.
                     const hold = new PIXI.Graphics();
-                    hold.ellipse(0, -4, 20, 9).fill({ color: 0x24501f, alpha: .85 });
-                    hold.moveTo(-18, -2).lineTo(-26, 6).moveTo(16, -2).lineTo(25, 7).moveTo(-4, 2).lineTo(-6, 10).stroke({ width: 3, color: 0x24501f, alpha: .8, cap: 'round' });
+                    hold.ellipse(0, -2, 17, 6).fill({ color: 0x3c6250, alpha: .35 });
+                    hold.moveTo(-14, -2).lineTo(-24, 6).moveTo(12, -2).lineTo(23, 7).moveTo(-4, 2).lineTo(-8, 10).stroke({ width: 2.5, color: 0x3c6250, alpha: .65, cap: 'round' });
                     hold.x = x; hold.y = fy;
-                    if (!fore && Math.random() < 0.35) { const st = spr('seabed-rock-' + (1 + (i % 3))); if (!st._placeholder) { st.scale.set(0.45); st.position.set(8, 6); hold.addChildAt(st, 0); } else st.destroy(); }
-                    (fore ? L.fore : L.mid).addChild(hold, r);
-                    // the currents run east here: fronds lean with them, some more than others
-                    const lean = h(0.12) + Math.random() * h(0.3);
-                    d.kelp.push({ r, hold, pts, x, fy, H, n, fore, lean, phase: Math.random() * 6, chapter: it.chapter });
+                    hold.alpha = plant.depth === 'far' ? .4 : .85;
+                    if (plant.rock) { const st = spr('seabed-rock-' + plant.rock); if (!st._placeholder) { st.scale.set(0.4); st.position.set(8, 6); hold.addChildAt(st, 0); } else st.destroy(); }
+                    (fore ? L.fore : plant.depth === 'far' ? L.far : L.mid).addChild(hold, r);
+                    d.kelp.push({ r, hold, pts, ...plant, n, fore, chapter: it.chapter });
                 }
                 continue;
             }
@@ -528,6 +522,7 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
                 const fold = createSeaFoldWall(PIXI, { texture: T, x: boundary.x,
                     top: seaTop - 140, bottom: Math.min(boundary.y1, foot + 35), width: h(2.15) });
                 L.mid.addChild(fold.container);
+                d.seaFold = fold;
                 d.items.push({ s: fold.container, it });
                 continue;
             }
@@ -597,11 +592,20 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
             const item = { ln, pts, len: lineLength(pts), motes: [], line: null, band: null };
             if (ln.dashed) { item.line = rope('stroke-dashblue', pts, { color: 0x244f8f, width: 5, scale: 1 }); L.objects.addChild(item.line); }
             else {
-                // the current as a pale band, so you can see where it runs (and where to hide in it)
+                // A current is a group of broken pencil strokes, not an opaque
+                // tube laid over the seabed. Its centre still shows the same path.
                 const band = new PIXI.Graphics();
                 const path = () => { band.moveTo(pts[0][0], pts[0][1]); for (let i = 1; i < pts.length; i++) band.lineTo(pts[i][0], pts[i][1]); };
-                path(); band.stroke({ width: ln.width * 0.6, color: 0xe4f6ff, alpha: 0.26, cap: 'round', join: 'round' });
-                path(); band.stroke({ width: ln.width * 0.24, color: 0xf7fcff, alpha: 0.26, cap: 'round', join: 'round' });
+                path(); band.stroke({ width: ln.width * .36, color: 0xcde4d8, alpha: .045, cap: 'round', join: 'round' });
+                for (let row = -1; row <= 1; row++) {
+                    for (let i = 1; i < pts.length - 2; i += 4) {
+                        const a = pts[i], b = pts[i + 2], dx = b[0] - a[0], dy = b[1] - a[1], len = Math.hypot(dx, dy) || 1;
+                        const offset = row * ln.width * .19;
+                        band.moveTo(a[0] - dy / len * offset, a[1] + dx / len * offset)
+                            .lineTo(b[0] - dy / len * offset, b[1] + dx / len * offset)
+                            .stroke({ width: row ? 2.8 : 4, color: 0xe4efda, alpha: row ? .2 : .28, cap: 'round' });
+                    }
+                }
                 L.mid.addChild(band);
                 item.band = band;
             }
@@ -609,21 +613,21 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
                 item.route = createRouteCue(PIXI, pts, { water: true, label: ln.id });
                 L.hints.addChild(item.route.container);
             }
-            const n = Math.ceil(item.len / (ln.dashed ? 140 : 75));
+            const n = Math.ceil(item.len / (ln.dashed ? 140 : 120));
             for (let i = 0; i < n; i++) {
                 const streak = !ln.dashed && i % 2 === 1;
                 let m;
                 if (streak) {
                     // a short stroke that flows along the current
                     m = new PIXI.Graphics();
-                    m.moveTo(-26, 0).lineTo(26, 0).stroke({ width: 5, color: 0xf2fbff, alpha: 0.9, cap: 'round' });
+                    m.moveTo(-22, 0).lineTo(-5, -.5).moveTo(0, 0).lineTo(21, .8).stroke({ width: 3, color: 0xebf4df, alpha: 0.72, cap: 'round' });
                 } else {
                     m = spr(ln.dashed ? 'p-glow' : 'p-bubble');
-                    m.anchor?.set?.(0.5); m.scale.set(ln.dashed ? 0.4 : 0.9);
+                    m.anchor?.set?.(0.5); m.scale.set(ln.dashed ? 0.4 : 0.7);
                 }
                 m.alpha = 0.6;
                 L.objects.addChild(m);
-                item.motes.push({ m, s: Math.random() * item.len, off: (Math.random() - 0.5) * (ln.width * 0.6), streak });
+                item.motes.push({ m, s: (i + .37) / n * item.len, off: (Math.sin(i * 12.7) * .5) * (ln.width * .5), streak });
             }
             d.lanes.push(item);
         }
@@ -660,6 +664,15 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
         buildVaults(def, d);
         buildSceneObjects(def, d);
         buildContactShadows(def, d);
+        if (def.id === 'kelp') {
+            d.cave = createCoastalCave(PIXI, { def, texture: T });
+            L.far.addChild(d.cave.container);
+        }
+        if (def.id === 'land') {
+            d.habitats = createLandScenery(PIXI, { def, flags: G.flags,
+                surfaces: G.terrain?.scene === def ? G.terrain.surfaces : def.surfaces, texture: T });
+            L.mid.addChild(d.habitats.container);
+        }
         return d;
     }
 
@@ -682,19 +695,21 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
      */
     function buildDepth(def, d) {
         const top = d.waterTop, x0 = def.bounds.x0 - h(20), x1 = def.bounds.x1 + h(20), deep = def.bounds.y1 - top;
-        const body = new PIXI.Sprite(gradientTexture([[0, 'rgba(226,244,232,0.42)'], [0.12, 'rgba(226,244,232,0.12)'], [0.3, 'rgba(40,96,104,0)'], [0.72, 'rgba(24,70,80,0.2)'], [1, 'rgba(16,52,62,0.36)']]));
+        // Broad underpainting sits behind the pencil backdrop and fronds; the
+        // front tint stays light enough to retain the hero's paper and warm hair.
+        const body = new PIXI.Sprite(gradientTexture([[0, 'rgba(222,237,218,0.24)'], [0.12, 'rgba(192,218,201,0.1)'], [0.3, 'rgba(47,103,102,0.02)'], [0.72, 'rgba(28,76,83,0.25)'], [1, 'rgba(21,61,73,0.44)']]));
         body.position.set(x0, top); body.width = x1 - x0; body.height = deep; body.label = 'water-depth';
-        const underside = new PIXI.Sprite(gradientTexture([[0, 'rgba(255,255,250,0.7)'], [0.35, 'rgba(240,250,244,0.25)'], [1, 'rgba(240,250,244,0)']]));
+        const underside = new PIXI.Sprite(gradientTexture([[0, 'rgba(246,247,223,0.34)'], [0.35, 'rgba(233,241,221,0.13)'], [1, 'rgba(233,241,221,0)']]));
         underside.position.set(x0, top); underside.width = x1 - x0; underside.height = 70; underside.label = 'water-underside';
         L.far.addChild(body, underside);
         // the deep shade also falls on the seabed and the swimmer, gently
-        const shade = new PIXI.Sprite(gradientTexture([[0, 'rgba(16,52,62,0)'], [0.45, 'rgba(16,52,62,0)'], [1, 'rgba(16,52,62,0.2)']]));
+        const shade = new PIXI.Sprite(gradientTexture([[0, 'rgba(26,68,73,0)'], [0.45, 'rgba(26,68,73,0)'], [1, 'rgba(26,68,73,0.10)']]));
         shade.position.set(x0, top); shade.width = x1 - x0; shade.height = deep; shade.label = 'water-deep-shade';
         L.waterFront.addChild(shade);
         // dancing light on the seabed, where it is shallow enough for daylight
         d.caustics = [];
         const groundAt = drawnGround(def);
-        for (let x = def.bounds.x0 + 40; x < def.bounds.x1; x += 64) {
+        for (let x = def.bounds.x0 + 40; x < def.bounds.x1; x += 128) {
             const y = groundAt(x);
             if (y === null || y - top > h(7.2)) continue;
             const g = new PIXI.Graphics();
@@ -705,7 +720,7 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
             g.x = x + (r - 0.5) * 30; g.y = y + 10 + r * 26;
             const fade = 1 - (y - top) / h(7.2);
             L.terrainBack.addChild(g);
-            d.caustics.push({ g, base: 0.2 + 0.4 * fade, phase: r * 6.3, x: g.x });
+            d.caustics.push({ g, base: 0.13 + 0.26 * fade, phase: r * 6.3, x: g.x });
         }
     }
 
@@ -756,15 +771,16 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
             const lines = new PIXI.Container();
             lines.addChild(rope('stroke-graphite', resamplePts(sl.top, 40), { width: 5 }), rope('stroke-graphite', resamplePts(sl.bottom, 40), { width: 5 }));
             L.terrainBack.addChild(roof, lines);
-            // the dark: strips from the roof to the floor, fading out past each mouth
+            // Blue-green pencil shade stops at the real bed. Fine, broad mouth
+            // fades avoid a black cut-out curtain or dark ink below the sand.
             const dark = new PIXI.Graphics(); dark.label = 'vault-dark';
             L.fore.addChild(dark);
             const strips = [];
-            const mouth = h(0.55);
-            for (let x = x0; x < x1; x += 20) {
-                const a = x, b = Math.min(x + 20, x1), mid = (a + b) / 2;
+            const mouth = h(0.95);
+            for (let x = x0; x < x1; x += 10) {
+                const a = x, b = Math.min(x + 10, x1), mid = (a + b) / 2;
                 const env = clamp(Math.min(mid - x0, x1 - mid) / mouth, 0, 1);
-                strips.push({ a, b, mid, env: env * env * (3 - 2 * env), top: [under(a) - 4, under(b) - 4], bottom: [(groundAt(a) ?? def.bounds.y1) + 50, (groundAt(b) ?? def.bounds.y1) + 50] });
+                strips.push({ a, b, mid, env: env * env * (3 - 2 * env), top: [under(a) - 4, under(b) - 4], bottom: [groundAt(a) ?? def.bounds.y1, groundAt(b) ?? def.bounds.y1] });
             }
             // the lamps: where the lyktfiskar settle once they have lit it
             const lamps = [];
@@ -772,8 +788,8 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
             // after it is lit: warm light on the back wall at each lamp
             const glow = new PIXI.Container(); glow.label = 'vault-glow';
             for (const [x, y] of lamps) {
-                const gl = new PIXI.Sprite(shadeTexture()); gl.anchor.set(0.5); gl.position.set(x, y + 60);
-                gl.width = h(1.8); gl.height = h(1.5); gl.tint = 0xffe7a6; gl.alpha = 0.8; glow.addChild(gl);
+                const gl = spr('p-glow'); gl.anchor?.set?.(0.5); gl.position.set(x, y + 38);
+                gl.width = h(1.5); gl.height = h(1.25); gl.alpha = .58; glow.addChild(gl);
             }
             glow.alpha = G.flags.has(v.until) ? 1 : 0;
             L.far.addChild(glow);
@@ -808,11 +824,11 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
             for (const st of vt.strips) {
                 const my = (st.top[0] + st.bottom[0]) / 2;
                 const l = clamp(1 - Math.hypot(st.mid - lx, (my - ly) * 0.8) / R, 0, 1);
-                const a = 0.9 * st.env * (1 - 0.82 * l * l * (3 - 2 * l)) * vt.fade;
+                const a = 0.84 * st.env * (1 - 0.82 * l * l * (3 - 2 * l)) * vt.fade;
                 if (a < 0.01) continue;
                 const quad = [st.a, st.top[0], st.b, st.top[1], st.b, st.bottom[1], st.a, st.bottom[0]];
-                vt.dark.poly(quad).fill({ color: 0x0c1d26, alpha: a * 0.8 });
-                if (tex) vt.dark.poly(quad).fill({ texture: tex, textureSpace: 'global', color: 0x2c4654, alpha: a * 0.45 });
+                vt.dark.poly(quad).fill({ color: 0x183e48, alpha: a * 0.68 });
+                if (tex) vt.dark.poly(quad).fill({ texture: tex, textureSpace: 'global', color: 0x335d61, alpha: a * 0.30 });
             }
         }
     }
@@ -1260,29 +1276,36 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
             // nearer than the painted bands and thinning into the valley's haze
             // toward its foot (the ground line is 480 below its top), so the
             // bands behind still show. Slices never overlap, so no alpha doubles.
-            const ridge = [[-1500, 1000], [-1200, 640], [-980, 420], [-800, 290], [-620, 190], [-450, 110], [-300, 55], [-160, 16], [-60, 2], [60, 0],
-                [180, 8], [330, 40], [500, 105], [700, 200], [900, 320], [1150, 520], [1500, 1000]];
+            const ridge = [[-1900, 650], [-1400, 450], [-1000, 160], [-720, 110], [-450, 40], [-200, 25], [0, 0],
+                [160, 8], [380, 70], [620, 150], [940, 195], [1240, 310], [1700, 560], [2250, 950]];
             // the ridge's x where it crosses height y on each side
             const cross = (y, side) => { for (let i = 1; i < ridge.length; i++) { const [ax, ay] = ridge[i - 1], [bx, by] = ridge[i]; if ((ay - y) * (by - y) <= 0 && ay !== by && (side < 0 ? ay >= by : ay <= by)) return ax + (bx - ax) * (y - ay) / (by - ay); } return side * 1500; };
             const ridgeFill = new PIXI.Graphics();
-            const solidTo = 150, hazeTo = 470, steps = 14;
+            const solidTo = 90, hazeTo = 370, steps = 28;
+            // Clip at each slice boundary with real edge intersections. Merely
+            // clamping ridge vertices left triangular white gaps on long slopes.
+            const below = (polygon, top) => polygon.flatMap((b, i) => {
+                const a = polygon[(i + polygon.length - 1) % polygon.length];
+                const insideA = a[1] >= top, insideB = b[1] >= top;
+                const cut = () => [a[0] + (b[0] - a[0]) * (top - a[1]) / (b[1] - a[1]), top];
+                return insideB ? insideA ? [b] : [cut(), b] : insideA ? [cut()] : [];
+            });
             for (let k = -1; k < steps; k++) {
                 const y0 = k < 0 ? -20 : solidTo + (hazeTo - solidTo) * k / steps, y1 = k < 0 ? solidTo : solidTo + (hazeTo - solidTo) * (k + 1) / steps;
-                const a = k < 0 ? 1 : Math.pow(1 - (k + 0.5) / steps, 1.3);
+                const a = .84 * (k < 0 ? 1 : Math.pow(1 - (k + 0.5) / steps, 1.3));
                 const xl = cross(y1, -1), xr = cross(y1, 1);
-                const upper = [[xl, y1]];
-                for (const [x, y] of ridge) if (x > xl && x < xr) upper.push([x, Math.max(y, y0)]);
-                upper.push([xr, y1]);
-                ridgeFill.poly(upper.flat()).fill({ color: 0xc8ccb0, alpha: a });
-                fillPoly(ridgeFill, upper, 'grass', a * 0.5);
+                const contour = [[xl, y1], ...ridge.filter(([x]) => x > xl && x < xr), [xr, y1]];
+                const upper = below(contour, y0);
+                ridgeFill.poly(upper.flat()).fill({ color: 0xb8c9bb, alpha: a });
+                fillPoly(ridgeFill, upper, 'grass', a * 0.16);
             }
             // its outline fades down the slopes with the fill
             const crest = ridge.filter(([, y]) => y < 330);
-            O.glimpseRidge.addChild(ridgeFill, rope('stroke-graphite', resamplePts(crest.filter(([, y]) => y < 120), 45), { alpha: .32 }));
+            O.glimpseRidge.addChild(ridgeFill, rope('stroke-graphite', resamplePts(crest.filter(([, y]) => y < 120), 45), { alpha: .2 }));
             for (const side of [-1, 1]) {
                 const tail = crest.filter(([x, y]) => y >= 100 && Math.sign(x) === side);
                 const joint = crest.filter(([x, y]) => y < 120 && Math.sign(x) === side).at(side < 0 ? 0 : -1);
-                if (joint && tail.length) O.glimpseRidge.addChild(rope('stroke-graphite', resamplePts(side < 0 ? [...tail, joint] : [joint, ...tail], 45), { alpha: .14 }));
+                if (joint && tail.length) O.glimpseRidge.addChild(rope('stroke-graphite', resamplePts(side < 0 ? [...tail, joint] : [joint, ...tail], 45), { alpha: .09 }));
             }
             L.far.addChild(O.glimpseRidge);
             L.far.addChild(O.glimpse.view);
@@ -1306,10 +1329,10 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
             O.shy = (def.shy || []).map((c) => { const s = spr(c.kind + '-1'); s.anchor?.set?.(0.5, 1); s.x = c.x; s.y = c.y; L.actors.addChild(s); return { c, s }; });
             // the lyktfiskar light the water round them and a pool on the bed below
             if (def.school) {
-                O.schoolHalo = new PIXI.Sprite(shadeTexture()); O.schoolHalo.anchor.set(0.5); O.schoolHalo.width = h(2.4); O.schoolHalo.height = h(1.7);
-                O.schoolHalo.tint = 0xffe39a; O.schoolHalo.alpha = 0; L.far.addChild(O.schoolHalo);
-                O.schoolPool = new PIXI.Sprite(shadeTexture()); O.schoolPool.anchor.set(0.5); O.schoolPool.width = h(2.6); O.schoolPool.height = 70;
-                O.schoolPool.tint = 0xfff1b8; O.schoolPool.alpha = 0; L.terrainBack.addChild(O.schoolPool);
+                O.schoolHalo = spr('p-glow'); O.schoolHalo.anchor?.set?.(0.5); O.schoolHalo.width = h(2.2); O.schoolHalo.height = h(1.65);
+                O.schoolHalo.alpha = 0; L.far.addChild(O.schoolHalo);
+                O.schoolPool = spr('p-glow'); O.schoolPool.anchor?.set?.(0.5); O.schoolPool.width = h(2.2); O.schoolPool.height = 60;
+                O.schoolPool.alpha = 0; L.terrainBack.addChild(O.schoolPool);
             }
             // small schools of little fish far off between the fronds
             O.schools = (def.schools || []).map((sc) => {
@@ -1429,14 +1452,18 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
         endFoldDemo(false);
         endMapAssembly(false);
         dropPeels();
+        // Detached pool members and live particles both belong to this visit.
+        // Destroy only their sprites; the atlas remains shared with the new scene.
+        for (const particle of particles) particle.s.destroy();
+        for (const sprite of pool) sprite.destroy();
+        particles.length = 0; pool.length = 0;
         for (const layer of Object.values(L)) {
-            for (const ch of layer.removeChildren()) if (ch !== hero.view && !particles.some((p) => p.s === ch)) ch.destroy({ children: true });
+            for (const ch of layer.removeChildren()) if (ch !== hero.view) ch.destroy({ children: true });
         }
         for (const ch of bgLayer.removeChildren()) ch.destroy();
         for (const ch of bgFront.removeChildren()) ch.destroy();
         for (const t of gradients.splice(0)) t.destroy(true);
         for (const ch of skyLayer.removeChildren()) ch.destroy({ children: true });
-        particles.length = 0; pool.length = 0;
         for (const m of minis) m.destroy?.();
         minis.length = 0;
         S = null;
@@ -1526,12 +1553,13 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
     function startTurn(rt, { hinge = 'left', duration = 1.05, hold = false } = {}) {
         if (!rt) return null;
         onFx?.('sfx', 'page');
-        let show, destroy;
+        let show, destroy, resize;
         if (G.lessMotion) {
             // reduced motion: a short crossfade instead of a turning page
             const s = new PIXI.Sprite(rt); s.width = app.screen.width; s.height = app.screen.height;
             turnLayer.addChild(s);
             show = (k) => { s.alpha = 1 - k * k * (3 - 2 * k); };
+            resize = (width, height) => { s.width = width; s.height = height; };
             destroy = () => s.destroy();
             duration = Math.min(0.45, duration * 0.4);
         } else {
@@ -1539,9 +1567,10 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
             const turn = createScreenTurn(PIXI, app, { texture: rt, hinge, parent: turnLayer, paper: T('mat-paper') || null,
                 curl: .43, lift: .095, slant: .045 });
             show = (k) => turn.at(k);
+            resize = (width, height) => turn.resize(width, height);
             destroy = () => turn.destroy();
         }
-        const tr = { rt, k: 0, dur: duration, hold, preview: 0, show, destroy, resolve: null };
+        const tr = { rt, k: 0, dur: duration, hold, preview: 0, show, destroy, resize, resolve: null };
         tr.done = new Promise((r) => { tr.resolve = r; });
         show(0);
         turns.push(tr);
@@ -1652,6 +1681,52 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
         cloud.position.set(p.x, p.y); cloud.scale.set(p.scale);
     }
 
+    /** The live frame and the opening picture share all backdrop layers. */
+    function layoutBackdrops({ width, height, camera = cam, picture = false }) {
+        const def = S.def;
+        const swap = (sprite, image) => {
+            const want = G.evening && def.evening?.[image] ? def.evening[image] : image;
+            if (want !== sprite._img) { const texture = T(want); if (texture) { sprite.texture = texture; sprite._img = want; } }
+        };
+        const fill = (graphics, rect, color) => {
+            if (!graphics) return;
+            graphics.clear();
+            if (rect && rect.alpha > .001) graphics.rect(rect.x, rect.y, rect.width, rect.height).fill({ color, alpha: rect.alpha });
+        };
+        let skyFloor = Infinity;
+        for (const b of S.bg) {
+            const bb = b._bg;
+            swap(b, bb.image);
+            for (const layer of b._layers) swap(layer, layer._layer.image);
+            const waterTop = def.waters?.find(w => w.id === bb.under?.water)?.top
+                ?? def.waters?.find(w => w.kind === 'sea')?.top ?? 0;
+            const size = sprite => ({ textureWidth: sprite.texture?.width || 64, textureHeight: sprite.texture?.height || 64 });
+            const layout = backdropLayout({ definition: bb, width, height, cam: camera, ...size(b),
+                layers: b._layers.map(layer => ({ definition: layer._layer, ...size(layer) })),
+                depth: b._depths ? { definition: b._depths._layer, ...size(b._depths) } : null,
+                waterTop, count: S.bg.length, vista: !!S.vista, picture });
+            b.backdropLayout = layout;
+            b.position.set(layout.base.x, layout.base.y); b.scale.set(layout.base.scale); b.alpha = layout.base.alpha;
+            skyFloor = Math.min(skyFloor, layout.skyFloor);
+            fill(b._under, layout.underlay, G.evening ? 0x789bb8 : 0x5584b0);
+            b._layers.forEach((layer, i) => {
+                const p = layout.layers[i]; layer.visible = p.visible; layer.alpha = p.alpha;
+                layer.position.set(p.x, p.y);
+                if (p.repeat) { layer.width = p.width; layer.height = p.height; layer.tileScale.set(p.scale); layer.tilePosition.set(p.tileX, 0); }
+                else layer.scale.set(p.scale);
+                fill(layer._below, p.visible ? p.below : null, G.evening ? 0xc3c29d : layer._layer.fill);
+            });
+            const u = b._depths, p = layout.depths;
+            if (u && p) {
+                u.visible = p.visible; u.position.set(p.x, p.y); u.width = p.width; u.height = p.height;
+                u.tileScale.set(p.scale); u.tilePosition.set(p.tileX, 0); u.alpha = p.alpha;
+                u.tint = G.evening ? 0xffe6c4 : 0xffffff;
+                fill(u._below, p.visible ? p.below : null, u._layer.fill);
+            }
+        }
+        return skyFloor;
+    }
+
     // --- per-frame update -------------------------------------------------------------------------
     let time = 0;
     function render(snap, dt) {
@@ -1702,93 +1777,9 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
         cam.shake = Math.max(0, cam.shake - dt * 30);
         world.position.set(W / 2 - cam.x * cam.zoom + shx, H / 2 - cam.y * cam.zoom);
         S.atmosphere.update({ cam, width: W, height: H, time: scenicTime, lessMotion: G.lessMotion, evening: G.evening, waterTop: S.waterTop ?? 0 });
+        S.habitats?.update({ cam, width: W, height: H, time: scenicTime, lessMotion: G.lessMotion, evening: G.evening });
 
-        // backdrops: a sky that covers the screen (crossfading by camera x), and
-        // the layers in front of the sky props, each at its own depth
-        const swap = (s, image) => {
-            const want = G.evening && def.evening?.[image] ? def.evening[image] : image;
-            if (want !== s._img) { const t = T(want); if (t) { s.texture = t; s._img = want; } }
-        };
-        const portrait = H > W * 1.05;
-        // where the ground line sits on screen, and the ground under the camera (updateCamera's framing)
-        const frameK = portrait ? 0.08 : 0.12, feet = cam.y + (H / cam.zoom) * frameK;
-        // clouds and gulls stay in the sky above a painted horizon (the bay's), never over its water
-        let skyFloor = Infinity;
-        for (const b of S.bg) {
-            const bb = b._bg;
-            swap(b, bb.image);
-            const tw = b.texture?.width || 64, th = b.texture?.height || 64;
-            const sc = Math.max(W / tw, H / th) * 1.08;
-            const mid = (bb.x0 + bb.x1) / 2;
-            b.scale.set(sc);
-            const slack = (tw * sc - W) / 2;
-            b.x = (W - tw * sc) / 2 + clamp(-(cam.x - mid) * cam.zoom * 0.004, -slack, slack);
-            b.y = (H - th * sc) / 2 + clamp(-(cam.y - h(-1)) * cam.zoom * 0.05, -H * 0.04, H * 0.04);
-            // Hills stand on the ground line; the sky's palest row sits just above them.
-            const groundY = (par) => H * (0.5 + frameK) + (bb.ref - feet) * cam.zoom * par;
-            if (bb.ref !== undefined) b.y = Math.min(0, groundY(0.02) - bb.skyRow * th * sc);
-            if (S.vista) {
-                // The bay backdrop's horizon is at 60%; align it with the real waterline.
-                const vistaScale = Math.max(W / tw, H / (th * 0.8)) * 1.08;
-                b.scale.set(vistaScale); b.x = (W - tw * vistaScale) / 2; b.y = H / 2 - th * 0.6 * vistaScale;
-            }
-            // Her painted sea stays behind her beach instead of sinking below the sand.
-            if (bb.seaY !== undefined && !S.vista) b.y = seaAnchorY({ H, th, sc, seaY: bb.seaY, seaRow: bb.seaRow, camY: cam.y, zoom: cam.zoom });
-            let a = 1;
-            if (S.bg.length > 1) {
-                const half = (bb.x1 - bb.x0) / 2;
-                const dx = Math.abs(cam.x - mid) - half;
-                a = clamp(1 - dx / h(5), 0, 1);
-            }
-            b.alpha = a;
-            if (bb.horizon !== undefined && a > 0.5) skyFloor = Math.min(skyFloor, b.y + bb.horizon * th * b.scale.y);
-            if (b._under) {
-                const end = b.y + th * b.scale.y - 2;
-                b._under.clear();
-                if (end < H && a > 0.001) b._under.rect(0, end, W, H - end).fill({ color: G.evening ? 0x789bb8 : 0x5584b0, alpha: a });
-            }
-            // The sky's frame on screen; every layer spans its width.
-            const fw = tw * b.scale.x, fh = th * b.scale.y;
-            for (const l of b._layers) {
-                const lb = l._layer;
-                swap(l, lb.image);
-                l.visible = a > 0.001;
-                if (!l.visible) { l._below?.clear(); continue; }
-                const k = fw / l.texture.width, lh = l.texture.height * k;
-                const y = bb.ref !== undefined && !S.vista ? groundY(lb.par) - lb.y * fh : b.y + (lb.top || 0) * fh;
-                if (lb.repeat) {
-                    l.position.set(0, y); l.width = W; l.height = lh;
-                    l.tileScale.set(k);
-                    l.tilePosition.x = S.vista ? b.x : b.x - cam.x * cam.zoom * lb.par;
-                } else {
-                    l.scale.set(k);
-                    l.position.set(S.vista ? b.x : (W - fw) / 2 + clamp(-(cam.x - mid) * cam.zoom * lb.par, -slack, slack), y);
-                }
-                l.alpha = a;
-                // the nearest band's own colour below it, where no ground covers the screen
-                if (l._below) {
-                    l._below.clear();
-                    if (y + lh < H) l._below.rect(0, y + lh - 1, W, H - y - lh + 1).fill({ color: G.evening ? 0xc3c29d : lb.fill, alpha: a });
-                }
-            }
-            const u = b._depths;
-            if (u) {
-                const ub = u._layer;
-                const top = S.waters.find(wb => wb.w.id === ub.water)?.w.top ?? 0;
-                const y = H / 2 + (top - cam.y) * cam.zoom;
-                u.visible = !S.vista && a > 0.001 && y < H;
-                u._below.clear();
-                if (u.visible) {
-                    const k = cam.zoom * ub.span / u.texture.width, uh = u.texture.height * k;
-                    u.position.set(0, y); u.width = W; u.height = uh;
-                    u.tileScale.set(k);
-                    u.tilePosition.x = -cam.x * cam.zoom * ub.par;
-                    u.alpha = a;
-                    u.tint = G.evening ? 0xffe6c4 : 0xffffff;
-                    if (y + uh < H) u._below.rect(0, y + uh - 1, W, H - y - uh + 1).fill({ color: ub.fill, alpha: a });
-                }
-            }
-        }
+        const skyFloor = layoutBackdrops({ width: W, height: H });
         // sky props: parallax
         for (const it of S.sky) {
             const sx = W / 2 + (it.x - cam.x) * cam.zoom * it.par + (it.x - cam.x) * cam.zoom * (1 - it.par) * 0.0;
@@ -1837,18 +1828,29 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
         }
         // dynamic thin surfaces and ramps
         for (const it of S.dyn) { if (it.c) it.c.visible = cond(it.s.when, F); }
-        if (G.terrain !== S.groundTerrain || G.terrain.revision !== S.groundRevision) S.rebuildGround();
+        const coverage = landscapeCoverage(def.bounds, { x0: cam.x - W / cam.zoom / 2,
+            x1: cam.x + W / cam.zoom / 2, y1: cam.y + H / cam.zoom / 2 }, S.landscapeCoverage);
+        S.seaFold?.extendTo(cam.x + W / cam.zoom / 2 + h(.75));
+        const expanded = Object.keys(coverage).some(key => coverage[key] !== S.landscapeCoverage[key]);
+        if (expanded) S.landscapeCoverage = coverage;
+        if (expanded || G.terrain !== S.groundTerrain || G.terrain.revision !== S.groundRevision) S.rebuildGround();
         // kelp sway
+        const gardenLeft = cam.x - W / cam.zoom / 2 - h(1.5), gardenRight = cam.x + W / cam.zoom / 2 + h(1.5);
+        const gardenTop = cam.y - H / cam.zoom / 2 - 40, gardenBottom = cam.y + H / cam.zoom / 2 + 40;
         for (const k of S.kelp) {
-            k.r.visible = !(k.chapter && !F.has('ch2_open'));
+            k.r.visible = !(k.chapter && !F.has('ch2_open')) && k.x >= gardenLeft && k.x <= gardenRight
+                && k.fy >= gardenTop && k.fy - k.H <= gardenBottom;
             if (k.hold) k.hold.visible = k.r.visible;
             if (!k.r.visible) continue;
             const pts = k.pts;
             const sway = (G.player.hidden && Math.abs(G.player.x - k.x) < h(1.5)) ? 0.4 : 1;
             if (k.fore) {
                 const crossesHero = Math.abs(snap.x - k.x) < h(.75) && snap.y > k.fy - k.H && snap.y - h(1.5) < k.fy;
-                k.r.alpha = damp(k.r.alpha, crossesHero ? .16 : .6, 6, dt);
+                k.r.alpha = damp(k.r.alpha, crossesHero ? .13 : k.alpha, 6, dt);
             }
+            // Static fronds in reduced motion need no repeated vertex uploads.
+            if (G.lessMotion && k.stillSway === sway) continue;
+            k.stillSway = G.lessMotion ? sway : null;
             for (let i = 0; i <= k.n; i++) {
                 const u = 1 - i / k.n; // 1 at the top
                 pts[i][0] = k.x + (k.lean || 0) * Math.pow(u, 1.6) + Math.sin(scenicTime * 0.9 + k.phase + u * 2.2) * 38 * u * u * sway + Math.sin(scenicTime * 0.37 + k.phase) * 12 * u;
@@ -1873,7 +1875,7 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
                 const vis = clamp(1 - r * 1.6, 0, 1);
                 wb.refl._inner.alpha = 0.12 + 0.62 * vis;
                 wb.refl._inner.x = G.lessMotion ? 0 : Math.sin(time * 2) * 9 * r;
-                if (wb.refl._fish) { wb.refl._fish.x = wb.w.x0 + ((time * 90) % (wb.w.x1 - wb.w.x0)); wb.refl._fish.visible = vis > 0.4; }
+                if (wb.refl._fish) { wb.refl._fish.x = wb.w.x0 + ((scenicTime * 90) % (wb.w.x1 - wb.w.x0)); wb.refl._fish.visible = vis > 0.4; }
             }
         }
         for (const q of S.shades) q.sh.visible = q.s.visible && !q.s.destroyed;
@@ -1897,13 +1899,13 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
                 const reveal = r && !G.lessMotion ? clamp((time - r.start) / r.duration * 3 - segment, 0, 1) : 1;
                 dl.route.update({ visible: vis, completed: done, reveal, time, reducedMotion: G.lessMotion });
             }
-            if (dl.ds.glow) dl.glow.alpha = done ? 0.25 : 0.45 + Math.sin(time * 3) * 0.2;
+            if (dl.ds.glow) dl.glow.alpha = done ? 0.25 : 0.45 + Math.sin(scenicTime * 3) * 0.2;
             else {
                 // an unfinished line you could draw now breathes when you come near
                 const p = G.player;
                 const near = !done && cond(dl.ds.inkWhen, F) && p.x > dl.x0 - h(7) && p.x < dl.x1 + h(7) && Math.abs(p.y - dl.y) < h(2);
-                dl.glow.alpha = damp(dl.glow.alpha, near ? 0.5 + Math.sin(time * 3.2) * 0.2 : 0, 3, dt);
-                dl.dash.alpha = near ? 0.78 + Math.sin(time * 3.2 + 1) * 0.22 : 1;
+                dl.glow.alpha = damp(dl.glow.alpha, near ? 0.5 + Math.sin(scenicTime * 3.2) * 0.2 : 0, 3, dt);
+                dl.dash.alpha = near ? 0.78 + Math.sin(scenicTime * 3.2 + 1) * 0.22 : 1;
             }
             updateInk(dl, inkT, G.player.streck?.dir || 1);
             if (dl.solid) dl.solid.visible = done;
@@ -1974,9 +1976,12 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
         if (tooth) { tooth.width = W; tooth.height = H; }
         fade.clear();
         if (fadeAlpha > 0.001) fade.rect(0, 0, W, H).fill({ color: fadeColor, alpha: fadeAlpha });
-        // warm evening
-        world.tint = G.evening ? 0xffe6c4 : 0xffffff;
-        skyLayer.tint = world.tint;
+        // Evening belongs to the environment's light and painted backdrop.
+        // Alva's creature colours and white cloud interiors stay hers; tinting
+        // their common parents used to stain both yellow, including mini horses.
+        world.tint = skyLayer.tint = 0xffffff;
+        const groundLight = G.evening ? 0xfff0df : 0xffffff;
+        for (const layer of [L.terrainBack, L.mid, L.objects, L.fore]) layer.tint = groundLight;
     }
 
     function stepMinis(dt, snap) {
@@ -2024,6 +2029,7 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
     }
 
     function updateObjects(dt, snap, frozen) {
+        const scenicTime = G.lessMotion ? 0 : time;
         const O = S.obj, def = S.def, F = G.flags, Z = G.puz;
         if (def.id === 'land') {
             const target = def.rail.x0 + Z.stone * def.rail.step;
@@ -2084,7 +2090,7 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
                 const vis = F.has('ch2_open');
                 f.s.visible = f.g.visible = vis;
                 if (!vis) return;
-                f.a += dt * (1.2 + i * 0.1);
+                if (!G.lessMotion) f.a += dt * (1.2 + i * 0.1);
                 // circling their centre while out; once the vault is lit, each keeps its own lamp spot under the roof
                 const lamp = sch.state === 'lit' && lamps ? lamps[i % lamps.length] : null;
                 const tx = lamp ? lamp[0] + Math.cos(f.a * 0.6) * 18 : sch.x + Math.cos(f.a) * f.r;
@@ -2122,8 +2128,8 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
             for (const sy of O.shy) {
                 const out = Z.shy[sy.c.id] || 0;
                 sy.s.alpha = out; sy.s.visible = out > 0.02;
-                sy.s.x = sy.c.x + Math.sin(time * 1.3 + sy.c.x) * 30 * out;
-                setTex(sy.s, sy.c.kind + '-' + (1 + (Math.floor(time * 3) % 2)));
+                sy.s.x = sy.c.x + Math.sin(scenicTime * 1.3 + sy.c.x) * 30 * out;
+                setTex(sy.s, sy.c.kind + '-' + (1 + (Math.floor(scenicTime * 3) % 2)));
             }
             const g2 = def.glimpses?.[0];
             if (g2) { O.glimpse.view.visible = F.has(g2.id) && (Z.glimpse[g2.id] || 0) < 1; O.glimpse.view.x = g2.x + h(6); O.glimpse.view.y = g2.y; O.glimpse.update(dt, { x: 0, y: 0, facing: -1, mode: 'swim', gait: 'stand', speed: 60, time, submerge: 1, groundAt: () => null }); O.glimpse.view.alpha = 0.6; }
@@ -2131,7 +2137,7 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
         if (def.id === 'viken') {
             O.shutters.forEach((o) => setTex(o.s, F.has(o.sh.flag) ? 'shutter-open' : 'shutter-closed'));
             O.mechanisms.update(Z, F);
-            O.lamp.alpha = damp(O.lamp.alpha, F.has('lamp_lit') ? 0.95 + Math.sin(time * 2) * 0.05 : 0, 1.2, dt);
+            O.lamp.alpha = damp(O.lamp.alpha, F.has('lamp_lit') ? G.lessMotion ? .95 : 0.95 + Math.sin(time * 2) * 0.05 : 0, 1.2, dt);
             O.beam.alpha = damp(O.beam.alpha, F.has('lamp_lit') ? .88 : 0, 2, dt);
             O.coastPatch.container.visible = F.has('talk_done');
             O.coastPatch.update(sampleShoreTrial(F.has('p8_proven') ? 'proof' : F.has('p8_sea') ? 'draw' : 'folded', 0, { repaired: F.has('p8_done') }));
@@ -2871,6 +2877,7 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
 
     function resize() {
         if (tooth) { tooth.width = app.screen.width; tooth.height = app.screen.height; }
+        for (const turn of turns) turn.resize(app.screen.width, app.screen.height);
         cam.snap = true;
         frameFoldDemo();
         fitMapAssembly();
@@ -2928,35 +2935,37 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
         snapshot({ x, y, zoom, width, height, skyFactor }) {
             const rt = PIXI.RenderTexture.create({ width, height, resolution: 1 });
             const save = { x: cam.x, y: cam.y, zoom: cam.zoom };
-            const sw = app.screen.width, sh = app.screen.height;
-            const backdropState = [...S.bg, ...S.sky.map(it => it.s), ...(S.userCloud ? [S.userCloud] : [])]
+            const restoreBackdrops = preserveBackdropState(S.bg);
+            const worldBefore = { x: world.x, y: world.y, sx: world.scale.x, sy: world.scale.y };
+            const skyState = [...S.sky.map(it => it.s), ...(S.userCloud ? [S.userCloud] : [])]
                 .map(s => ({ s, x: s.x, y: s.y, sx: s.scale.x, sy: s.scale.y }));
-            cam.x = x; cam.y = y; cam.zoom = zoom;
-            world.scale.set(zoom);
-            world.position.set(width / 2 - x * zoom, height / 2 - y * zoom);
-            for (const b of S.bg) { const tw = b.texture.width, th = b.texture.height; const sc = Math.max(width / tw, height / th); b.scale.set(sc); b.x = (width - tw * sc) / 2; b.y = (height - th * sc) / 2; }
-            for (const it of S.sky) { it.s.x = width / 2 + (it.x - x) * zoom * it.par; it.s.y = height / 2 + (it.y - y) * zoom * (skyFactor ?? Math.max(0.5, it.par * 2.5)); it.s.scale.set(zoom * (it.s._baseScale || 1)); }
-            placeUserCloud(width, height, true);
-            const vis = { root: root.visible, hero: hero.view.visible, actors: L.actors.visible, hints: L.hints.visible, fx: L.fx.visible };
-            root.visible = true;
-            hero.view.visible = !G.hideHero;
-            L.actors.visible = !G.hideActors;
-            L.hints.visible = false; L.fx.visible = false;
+            const vis = { root: root.visible, hero: hero.view.visible, actors: L.actors.visible, hints: L.hints.visible, fx: L.fx.visible, overlay: overlay.visible };
             const splashes = G.snapNoSplash ? S.items.filter((q) => q.it.frozen && q.s.visible) : [];
-            for (const q of splashes) q.s.visible = false;
-            // the picture fits its own backdrop; the screen's sea underlay stays out of it
-            const unders = S.bg.map(b => b._under).filter(u => u?.visible);
-            for (const u of unders) u.visible = false;
-            overlay.visible = false;
-            app.renderer.render({ container: root, target: rt, clear: true });
-            overlay.visible = true;
-            for (const u of unders) u.visible = true;
-            for (const q of splashes) q.s.visible = true;
-            root.visible = vis.root; hero.view.visible = vis.hero; L.actors.visible = vis.actors; L.hints.visible = vis.hints; L.fx.visible = vis.fx;
-            Object.assign(cam, save);
-            for (const { s, x: bx, y: by, sx, sy } of backdropState) { s.position.set(bx, by); s.scale.set(sx, sy); }
-            world.scale.set(cam.zoom);
-            world.position.set(sw / 2 - cam.x * cam.zoom, sh / 2 - cam.y * cam.zoom);
+            try {
+                cam.x = x; cam.y = y; cam.zoom = zoom;
+                world.scale.set(zoom); world.position.set(width / 2 - x * zoom, height / 2 - y * zoom);
+                layoutBackdrops({ width, height, picture: true });
+                for (const it of S.sky) {
+                    it.s.x = width / 2 + (it.x - x) * zoom * it.par;
+                    it.s.y = height / 2 + (it.y - y) * zoom * (skyFactor ?? Math.max(0.5, it.par * 2.5));
+                    it.s.scale.set(zoom * (it.s._baseScale || 1));
+                }
+                placeUserCloud(width, height, true);
+                root.visible = true; hero.view.visible = !G.hideHero; L.actors.visible = !G.hideActors;
+                L.hints.visible = false; L.fx.visible = false; overlay.visible = false;
+                for (const q of splashes) q.s.visible = false;
+                app.renderer.render({ container: root, target: rt, clear: true });
+            } catch (error) {
+                rt.destroy(true); throw error;
+            } finally {
+                restoreBackdrops();
+                for (const q of splashes) q.s.visible = true;
+                root.visible = vis.root; hero.view.visible = vis.hero; L.actors.visible = vis.actors;
+                L.hints.visible = vis.hints; L.fx.visible = vis.fx; overlay.visible = vis.overlay;
+                Object.assign(cam, save);
+                for (const { s, x: bx, y: by, sx, sy } of skyState) { s.position.set(bx, by); s.scale.set(sx, sy); }
+                world.scale.set(worldBefore.sx, worldBefore.sy); world.position.set(worldBefore.x, worldBefore.y);
+            }
             return rt;
         }
     };

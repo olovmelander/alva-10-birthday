@@ -798,23 +798,23 @@ function cliff(name, open) {
     const poly = smooth([[2, H], [10, 604], [28, 540], [18, 474], [38, 420], [40, 344], [60, 300], [54, 240], [78, 190], [70, 132], [98, 96], [152, 70], [232, 58], [300, 62], [372, 48], [452, 56], [520, 74], [560, 98], [574, 142], [604, 180], [626, 236], [660, 262], [678, 302], [664, 362], [684, 424], [680, 502], [694, 584], [702, H]], { steps: 5, tension: 0.32 });
     const m = body(S, poly);
     // sandstone: a warm base, strata in horizontal bands, lit from the left
-    soft(S, mix(PP.sandstone, P.paper, 0.25), m, { angle: -0.1, gap: 2.2, len: [30, 90], width: 2, pressure: 0.95 });
+    soft(S, mix(PP.sandstone, P.paper, 0.25), m, { angle: -0.1, gap: 2, len: [45, 110], width: 3.2, pressure: .86 });
     const strata = [];
     let y = 70;
-    while (y < H) { strata.push(y); y += 42 + r() * 40; }
+    while (y < H) { strata.push(y); y += 68 + r() * 52; }
     const layer = pressureMap(W, H, (x, yy) => {
         let k = 0;
         for (let i = 0; i < strata.length; i++) if (yy > strata[i] + Math.sin(x * 0.012 + i) * 6) k = i;
         return 0.5 + 0.45 * ((k * 37) % 5) / 4;
     });
-    pen(S, PP.sandstone, m, { angle: -0.05, gap: 2.2, len: [30, 100], width: 2, grain: 0.5, pmap: layer });
-    pen(S, PP.sandstone, m, { angle: 0.55, gap: 3, len: [14, 40], width: 1.8, grain: 0.5, pressure: 0.45 });
+    pen(S, PP.sandstone, m, { angle: -0.05, gap: 2.2, len: [35, 100], width: 3, grain: .25, pmap: layer });
+    pen(S, PP.sandstone, m, { angle: 0.55, gap: 3, len: [14, 40], width: 1.8, grain: .3, pressure: .25 });
     // shade: right side and under the ledges
-    pen(S, PP.sandstoneDark, m, { angle: 0.9, gap: 2.4, len: [12, 34], width: 1.8, grain: 0.5, pmap: ramp(S, 250, 0, 700, 0, 0, 0.8) });
+    pen(S, PP.sandstoneDark, m, { angle: 0.9, gap: 2.4, len: [12, 34], width: 1.8, grain: .3, pmap: ramp(S, 250, 0, 700, 0, 0, 0.8) });
     pen(S, PP.sandstoneDark, rim(S, poly, m, -14, -10, 4), { angle: 0.8, gap: 2.2, len: [10, 26], width: 1.7, pressure: 0.85 });
     lighten(S, rim(S, poly, m, 12, 14, 4), { amount: 0.35, grain: 0.3 });
     // blend the sandstone like her sand: soft, so the strata and cracks carry the drawing
-    S.burnish(m, 2, 0.55);
+    S.burnish(m, 3, .7);
     // strata lines and joints
     const sl = [];
     for (let i = 0; i < strata.length; i++) {
@@ -822,12 +822,12 @@ function cliff(name, open) {
         for (let x = 0; x <= W; x += 6) pts.push([x, strata[i] + Math.sin(x * 0.012 + i) * 6 + Math.sin(x * 0.05 + i * 2) * 1.5]);
         let j = 0;
         while (j < pts.length - 1) { const n = 6 + Math.floor(r() * 18); if (r() < 0.75) sl.push({ pts: pts.slice(j, j + n + 1), width: 1.5 + r() * 0.8, alpha: 0.5 + r() * 0.4 }); j += n + Math.floor(r() * 5); }
-        for (let q = 0; q < 3; q++) {
+        for (let q = 0; q < 2; q++) {
             const x = 60 + r() * (W - 120), y0 = strata[i] + Math.sin(x * 0.012 + i) * 6, y1 = (strata[i + 1] || H) + Math.sin(x * 0.012 + i + 1) * 6;
             sl.push({ pts: [[x, y0], [x + (r() - 0.5) * 8, (y0 + y1) / 2], [x + (r() - 0.5) * 6, y1]], width: 1.4, alpha: 0.7 });
         }
     }
-    lines(S, mix(PP.sandstoneDark, P.graphite, 0.4), sl, { pressure: 0.9, clip: m });
+    lines(S, mix(PP.sandstoneDark, P.graphite, 0.4), sl, { pressure: .62, clip: m });
     // ledges: shade under a few strata
     for (let i = 1; i < strata.length; i += 2) {
         const band = pressureMap(W, H, (x, yy) => { const d = yy - (strata[i] + Math.sin(x * 0.012 + i) * 6); return d > 0 && d < 16 ? (1 - d / 16) * 0.8 : 0; });
@@ -846,8 +846,8 @@ function cliff(name, open) {
     const am = S.mask(archPts);
     if (!open) {
         // sealed: the opening is filled in with rock, cross-hatched and blocked
-        pen(S, PP.sandstone, am, { angle: 0.8, gap: 2.2, len: [10, 30], width: 1.8, grain: 0.5, pressure: 0.7 });
-        pen(S, PP.sandstoneDark, am, { angle: -0.75, gap: 2.6, len: [10, 28], width: 1.7, grain: 0.5, pressure: 0.5 });
+        pen(S, PP.sandstone, am, { angle: 0.8, gap: 2.2, len: [10, 30], width: 1.8, grain: .3, pressure: 0.7 });
+        pen(S, PP.sandstoneDark, am, { angle: -0.75, gap: 2.6, len: [10, 28], width: 1.7, grain: .3, pressure: 0.5 });
         const bl = [];
         for (const yy of [610, 660]) bl.push({ pts: [[ax - aw + 6, yy], [ax + aw - 6, yy + 2]], width: 1.6, alpha: 0.8 });
         for (const [xx, y0, y1] of [[ax - 40, 560, 610], [ax + 50, 560, 610], [ax, 610, 660], [ax - 80, 612, 660], [ax + 90, 612, 660], [ax - 30, 662, H], [ax + 60, 662, H], [ax + 10, 470, 560]]) bl.push({ pts: [[xx, y0], [xx + 2, y1]], width: 1.5, alpha: 0.75 });
