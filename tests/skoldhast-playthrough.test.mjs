@@ -266,6 +266,9 @@ export async function chapter3(R) {
     // the final: small-wave proof, home-beach PLASK, conclusion and table
     await R.flag('ended', {}, 180);
     await R.settle();
+    // he unfolds the page at Alva's table first; only then does the splash land, on her beach
+    const fx = R.log.filter(e => e.kind === 'fx').map(e => e.name);
+    assert.ok(fx.includes('unfoldPage') && fx.lastIndexOf('unfoldPage') < fx.lastIndexOf('plask'), 'the page unfolds before the splash lands');
     assert.equal(G.checkpoint, 'beachEnd');
     assert.ok(!R.has('final_run'));
 }

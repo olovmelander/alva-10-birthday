@@ -963,7 +963,6 @@ export function createStory(G, io) {
             await s.say(STORY.k3.home);
             G.actors.kv.pose = 'unfold';
             s.stinger('unfold');
-            await s.fx('unfold', {});
             G.flag('unfolded');
             io.save();
             s.camFree();
@@ -975,10 +974,13 @@ export function createStory(G, io) {
         // One clear destination: the original beach, then Alva's table.
         G.flag('final_run');
         G.freeze = true;
-        G.goto('land', 'start', { silent: true });
-        G.actors.klo.visible = false; G.actors.kv.visible = false;
+        // Kartväktaren unfolds the page at Alva's table: the corner swings out again with
+        // Bryggan and his lighthouse, and the view dives back into her beach (prologue.mjs).
+        await io.fx('unfoldPage', { onCovered: () => {
+            G.goto('land', 'start', { silent: true });
+            G.actors.klo.visible = false; G.actors.kv.visible = false;
+        } });
         io.audio?.setArea('quiet');
-        await s.fx('cutToPicture', {});
         await s.say(STORY.final.arrival);
         G.flag('plask');
         P().wet = 1; P().wetTimer = 30;

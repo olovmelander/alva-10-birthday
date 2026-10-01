@@ -161,7 +161,7 @@ export function createGame({ host = document.body, assetBase = './skoldhast/', r
         guide = createGuide(ui.root, { img, portrait: ui.portrait, heroScreen: () => heroScreen(), onGoalTap: () => openJournal(), onDismissHelp: () => companion?.dismissHelp() });
         guide.show(false);
         const heroFactory = await loadHeroFactory();
-        view = createView(PIXI, app, { assets, G, heroFactory, onFx: (name, data) => (name === 'epilogue' ? runEpilogue(data) : name === 'sfx' ? audio?.sfx(data) : null) });
+        view = createView(PIXI, app, { assets, G, heroFactory, onFx: (name, data) => (name === 'epilogue' ? runEpilogue(data) : name === 'unfoldPage' ? runUnfold(data) : name === 'sfx' ? audio?.sfx(data) : null) });
         // The on-screen controls belong to whichever device is actually in use:
         // a touch shows them, the keyboard or a gamepad puts them away.
         setDevice(window.matchMedia?.('(pointer: coarse)').matches ? 'touch' : 'keys');
@@ -517,6 +517,19 @@ export function createGame({ host = document.body, assetBase = './skoldhast/', r
         G.userStrokes = { ...strokes, cloud: cloudPoints(strokes.cloud), cloudColor: cloudColor(strokes.cloudColor) };
         G.userGull = make(strokes.gull, '#4d6e8c');
         G.userCloud = createUserCloud(PIXI, G.userStrokes.cloud, G.userStrokes.cloudColor)?.texture || null;
+    }
+
+    /** Kartväktaren unfolds the page at Alva's table, then the finale goes on in her beach. */
+    async function runUnfold(opts = {}) {
+        mode = 'table';
+        ui.showControls(false);
+        guide?.show(false);
+        await table.unfold(opts);
+        if (state !== 'open') return;
+        view.setScene(G.sceneId);
+        view.root.visible = true;
+        mode = 'play';
+        ui.showControls(true);
     }
 
     async function runEpilogue(opts = {}) {

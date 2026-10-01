@@ -12,7 +12,7 @@ import { STORY, UI, HER_TEXT, FAMILY, CAPTIONS, DRAWING, JOURNAL } from './conte
 import { createOpeningFold } from './opening-fold.mjs';
 import { createOpeningKlo, OPENING_KLO_HOLD, OPENING_KLO_STAGES, openingKloAt, openingKloDuration } from './opening-klo.mjs';
 import { createOpeningCanvas } from './opening-canvas.mjs';
-import { createStuckWave, surfaceGround } from './stuck-wave.mjs';
+import { createStuckWave, surfaceGround, STILL_CLOCK } from './stuck-wave.mjs';
 import { createOpeningNotes, createScribbleReveal } from './opening-notes.mjs';
 import { createMapFragmentProp } from './map-props.mjs';
 import { CLOUD_PENCILS, createUserCloud, paintUserCloud } from './user-cloud.mjs';
@@ -802,20 +802,7 @@ export function createTable({ PIXI, app, view, G, ui, audio, assets, makeHero })
             if (u >= .72) canvasLife?.setKeeper('fold');
             if (!G.lessMotion) { towerFrame = Math.max(towerFrame, e); towerFree = e; layout(); }
         });
-        const front = PIXI.RenderTexture.create({ width: PW, height: PH, resolution: 1 });
-        // Render an unattached copy: promoting the live sheet to a render root
-        // would invalidate its inherited transform and the mask added next.
-        const copy = new PIXI.Container();
-        const printed = new PIXI.Sprite(pic.texture); printed.position.set(PIC.x, PIC.y);
-        copy.addChild(new PIXI.Graphics(paper.context), printed);
-        // Move this unmasked child just for the synchronous capture, before
-        // installing the sheet mask; never promote the live sheet to a root.
-        const canvasIndex = canvasLife ? sheet.getChildIndex(canvasLife.container) : -1;
-        if (canvasLife) copy.addChild(canvasLife.container);
-        copy.addChild(new PIXI.Graphics(seaWash.context), new PIXI.Graphics(shore.context));
-        app.renderer.render({ container: copy, target: front, clear: true });
-        if (canvasLife) sheet.addChildAt(canvasLife.container, canvasIndex);
-        copy.destroy({ children: true });
+        const front = captureFront();
         openingFold = createOpeningFold(PIXI, { parent: paperLayer, sheet, front,
             paper: T('mat-paper'), width: PW, height: PH, endpoint });
         // Live characters and droplets stay in front of the paper they inhabit.
@@ -858,6 +845,104 @@ export function createTable({ PIXI, app, view, G, ui, audio, assets, makeHero })
         ui.caption(STORY.prolog.afterFreezeCaption);
         setPhase('folded');
         await wait(.7);
+    }
+
+    /** Her sheet as it lies now, flat: the painted face a folding corner carries. */
+    function captureFront() {
+        const front = PIXI.RenderTexture.create({ width: PW, height: PH, resolution: 1 });
+        // Render an unattached copy: promoting the live sheet to a render root
+        // would invalidate its inherited transform and the mask added next.
+        const copy = new PIXI.Container();
+        const printed = new PIXI.Sprite(pic.texture); printed.position.set(PIC.x, PIC.y);
+        copy.addChild(new PIXI.Graphics(paper.context), printed);
+        // Move this unmasked child just for the synchronous capture, before
+        // installing the sheet mask; never promote the live sheet to a root.
+        const canvasIndex = canvasLife ? sheet.getChildIndex(canvasLife.container) : -1;
+        if (canvasLife) copy.addChild(canvasLife.container);
+        copy.addChild(new PIXI.Graphics(seaWash.context), new PIXI.Graphics(shore.context));
+        app.renderer.render({ container: copy, target: front, clear: true });
+        if (canvasLife) sheet.addChildAt(canvasLife.container, canvasIndex);
+        copy.destroy({ children: true });
+        return front;
+    }
+
+    // --- the unfolding ------------------------------------------------------------------------
+    // Kartväktaren unfolds the page (the end of Kapitel 3). Her picture lies on the table as the
+    // opening left it: the splash hanging, her line cut short at the crease, the sea corner turned
+    // under with the far end of Bryggan and his lighthouse. The opening's own fold runs backwards,
+    // so the corner swings out again: the jetty is whole, the lighthouse is back in her margin
+    // with its lamp alight and him on its gallery. Then the view dives into her beach, where the
+    // splash can land. `onCovered` runs once the table hides the world.
+    async function unfold({ onCovered } = {}) {
+        // Her picture is of her beach; the world behind the fading table stays where it is.
+        const from = view.sceneId;
+        view.setScene('land');
+        view.render(snapStand(), 0.016);
+        start(false);
+        takePicture();
+        if (from && from !== 'land') view.setScene(from);
+        placeHero(false);
+        frozen = true;
+        const st = G.scenes.land.spots.start, land = G.scenes.land;
+        const [, waterY] = worldToPaper(st.x, 0);
+        const ground = surfaceGround(land.surfaces), waveAt = land.decor.find(it => it.frozen);
+        // the beach's own wave, still hanging as the opening left it
+        wave = createStuckWave(PIXI, { texture: T, ground, x: waveAt.x, y: waveAt.y, seaTop: 0, lessMotion: () => !!G.lessMotion });
+        wave.view.position.set(...worldToPaper(0, 0)); wave.view.scale.set(pictureCam().zoom);
+        wave.settle(G.stuckWaveClock ?? STILL_CLOCK);
+        onPaper.addChild(wave.view);
+        const bed = [];
+        for (let wx = wave.shoreX; wx <= wave.shoreX + h(2.4); wx += 20) bed.push(worldToPaper(wx, ground(wx) ?? 0));
+        canvasLife = createOpeningCanvas(PIXI, { parent: sheet, texture: T, picture: PIC, waterY, bed,
+            sample: pictureSampler(pictureTexture), lessMotion: () => !!G.lessMotion });
+        sheet.setChildIndex(seaWash, sheet.children.length - 1);
+        sheet.setChildIndex(shore, sheet.children.length - 1);
+        // her line, out on the white paper to the third dot, as she drew it, and the sea along it
+        const [shoreStart] = worldToPaper(wave.shoreX, 0);
+        const line = [0, 1, 2].map(i => [shoreStart + i * 40, waterY + (i === 1 ? -.6 : 0)]), endpoint = line.at(-1);
+        shore.moveTo(...line[0]); for (const point of line.slice(1)) shore.lineTo(...point);
+        shore.stroke({ width: 3.2, color: 0x244f8f, alpha: .95, cap: 'round', join: 'round' });
+        pencilPath(shore, line, [{ width: 1.3, color: 0x4f7fb8, alpha: .5, jitter: .8 }, { width: 5, color: 0x9fc2e2, alpha: .18 }]);
+        shore.circle(...endpoint, 2.6).fill({ color: 0x244f8f, alpha: .9 });
+        paintSeaFollows(endpoint, 1);
+        // the corner as it will be once it is out again: lamp alight, him on the gallery
+        canvasLife.setKeeper('unfold');
+        canvasLife.update({ time: 0, alive: 1, frozen: true });
+        const front = captureFront();
+        openingFold = createOpeningFold(PIXI, { parent: paperLayer, sheet, front, paper: T('mat-paper'), width: PW, height: PH, endpoint });
+        paperLayer.setChildIndex(onPaper, paperLayer.children.length - 1);
+        openingFold.set(1, { lessMotion: !!G.lessMotion });
+        picHero._look = null; picHero._emote = null;
+        setPhase('unfold-folded');
+        audio?.setArea('table');
+        running = true;
+        table.alpha = 0;
+        await tween(G.lessMotion ? .4 : 1, (u) => { table.alpha = u; });
+        onCovered?.();
+        // the world under the table follows (the finale moves it to her beach), so the dive lands there
+        if (G.sceneId !== view.sceneId) view.setScene(G.sceneId);
+        await wait(G.lessMotion ? .3 : .8);
+        ui.caption(STORY.final.unfoldCaption);
+        audio?.sfx('rustle');
+        setPhase('unfolding');
+        const lean = canvasLife.landmarks.tower;
+        await tween(G.lessMotion ? .6 : 2.2, (u) => {
+            openingFold.set(1 - ease(u), { lessMotion: !!G.lessMotion });
+            // the sköldhäst turns to watch its far corner come back
+            if (u > .2) lookAtPaper(lean.x, lean.y - 60);
+        });
+        openingFold.destroy(); openingFold = null; front.destroy(true);
+        setPhase('unfolded');
+        canvasLife.setKeeper('stand');
+        picHero._emote = 'happy';
+        // lean towards the lighthouse: Bryggan whole again, the lamp alight
+        if (!G.lessMotion) await tween(1.1, (u) => { towerFrame = ease(u); towerFree = 1; layout(); });
+        await wait(G.lessMotion ? .9 : 1.6);
+        if (!G.lessMotion) await tween(.9, (u) => { towerFrame = 1 - ease(u); layout(); });
+        picHero._look = null;
+        await dive();
+        running = false;
+        stop();
     }
 
     async function dive() {
@@ -945,7 +1030,7 @@ export function createTable({ PIXI, app, view, G, ui, audio, assets, makeHero })
     function ease(u) { const v = Math.max(0, Math.min(1, u)); return v * v * (3 - 2 * v); }
 
     return {
-        prologue, epilogue, layout,
+        prologue, unfold, epilogue, layout,
         speakerBounds(who) {
             if (!table.visible || table.alpha < .9) return null;
             return who === 'horse' ? picHero?.headBounds() : who === 'klo' ? picKlo?.headBounds() : null;

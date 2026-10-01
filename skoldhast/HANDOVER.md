@@ -1,5 +1,28 @@
 # Sköldhästen – handover
 
+## The finale unfolds the page at Alva's table (1 October)
+
+Branch `claude/skoldhast-finale-unfold`. Step 2 after the fold work: the ending now plays the opening's
+fold backwards, so the game ends where it began.
+
+- **What happens:** after Kartväktaren's apology (`STORY.k3.home`), the finale asks for `unfoldPage`.
+  At Alva's table her picture lies folded as the opening left it (the splash hanging, her line cut at
+  the crease, the sea corner under). The caption "Havet vecklas ut igen." mirrors the opening's "Havet
+  viks in under papperet."; the corner swings out with the same `createOpeningFold` run from 1 to 0;
+  Bryggan is whole, the lighthouse is back with its lamp alight and him on the gallery; the view leans
+  towards it, then dives into her beach, where the splash lands as before. About 7 s; reduced motion
+  cuts from folded to unfolded without the swing.
+- **How:** `unfold({ onCovered })` in `prologue.mjs` builds the folded picture the way the opening's
+  crease left it (the front face is captured by the shared `captureFront`), runs `onCovered` once
+  the table is opaque (the finale moves the world to the beach there) and points the view at that
+  scene so the dive lands on it. `runUnfold` in `main.mjs` hands the screen to the table like the
+  epilogue. The old page-lift effects `unfold` and `cutToPicture` in `view.mjs` are gone.
+- **Checks:** new `tests/browser/skoldhast-finale-unfold.mjs` (844×390, 390×844, 390×844 reduced
+  motion): folded, unfolding, unfolded in order; the world moves only under the opaque table; the
+  lighthouse and the whole jetty are back; nothing stays folded; the dive lands at the beach start.
+  The playthrough test asserts the page unfolds before the splash; two story tests now wait for
+  `unfoldPage` instead of the old `unfold` effect.
+
 ## Här är vi on the map, Bryggan, and the fold where the opening puts it (1 October)
 
 Branch `claude/skoldhast-map-here`. Pappa asked whether the map shows where we are ("That would

@@ -544,7 +544,13 @@ the map-piece search begins, any unfinished land puzzles gain matching search go
 
 - **Name the destination before moving.** The sköldhäst says they are going home to the beach where they
   began, to get the splash that has waited throughout the adventure.
-- **Return to the original beach.** The page unfolds directly into Alva's starting composition.
+- **He unfolds the page where it was folded.** The view goes to Alva's table: her picture lies folded as
+  the opening left it, the splash hanging and her line cut short at the crease. The opening's own fold runs
+  backwards ("Havet vecklas ut igen."): the corner swings out across the crease, Bryggan is whole again, and
+  the lighthouse is back in her margin with its shutters open, its lamp alight and him on its gallery. The
+  view leans towards it, then dives into the page (`unfold` in `prologue.mjs`). Reduced motion cuts from
+  folded to unfolded without the swing.
+- **Return to the original beach.** The dive lands in Alva's starting composition, beside the same wave.
   The sköldhäst recognises their beach and the same wave. There is no automatic tour of the steppe.
 - **PLASK.** The original wave reaches the hooves; the sea starts moving again. This fulfils the mission.
 - **Klo's conclusion, beside the beach.** Klo folds PADDA off its sign and celebrates the sköldhäst.
