@@ -3,7 +3,7 @@
  * each piece is clipped from it along its torn silhouette, with the place names as
  * live text on top. */
 import { MAP } from './content/sv.mjs';
-import { MAP_FRAGMENTS, MAP_VIEW, MAP_COAST, MAP_WATERLINE, mapLabels } from './map-layout.mjs';
+import { MAP_FRAGMENTS, MAP_VIEW, MAP_COAST, MAP_WATERLINE, MAP_PIER, MAP_SIGNATURE, mapLabels, mapWhere, placeAt } from './map-layout.mjs';
 
 export { MAP_FRAGMENTS };
 
@@ -31,7 +31,8 @@ function mapArtwork(flags, mapUrl, { labels = true } = {}) {
     // the same recognisable coast instead of apparently blank collected paper.
     const fallback = `<rect width="${w}" height="${h}" fill="#8fbfd6"/>
       <path fill="#efd9a4" d="M${MAP_WATERLINE[0][0]} -10 L${pts(MAP_WATERLINE)} L-10 ${MAP_WATERLINE.at(-1)[1]} L-10 -10Z"/>
-      <path fill="#b9c98f" d="M${MAP_COAST[0][0]} -10 L${pts(MAP_COAST)} L-10 ${MAP_COAST.at(-1)[1]} L-10 -10Z"/>`;
+      <path fill="#b9c98f" d="M${MAP_COAST[0][0]} -10 L${pts(MAP_COAST)} L-10 ${MAP_COAST.at(-1)[1]} L-10 -10Z"/>
+      <path d="M${pts(MAP_PIER)}" stroke="#a0764a" stroke-width="5" fill="none"/>`;
     const art = `${fallback}${mapUrl ? `<image href="${esc(mapUrl)}" x="0" y="0" width="${w}" height="${h}" preserveAspectRatio="none"/>` : ''}`;
     return `${art}${labels ? mapLabelsSvg(flags) : ''}`;
 }
@@ -55,17 +56,59 @@ function piecesSvg(found, prefix, flags, mapUrl) {
     </g>` : `<g class="sk-map-missing" data-piece="${p.id}"><path d="${p.path}" fill="#e5ddca" fill-opacity=".34" stroke="#a39477" stroke-width="1.4" stroke-dasharray="4 6"/><text x="${p.box[0] + p.box[2] / 2}" y="${p.box[1] + p.box[3] / 2}" text-anchor="middle" fill="#a39477" font-size="28">?</text></g>`).join('')}`;
 }
 
+/** Where we are: `state.where` is { scene, x } in horse lengths; null when the map cannot show it. */
+export function mapHere(state) {
+    const at = state?.where ? mapWhere(state.where.scene, state.where.x) : null;
+    if (!at) return null;
+    const place = placeAt(state.where.scene, state.where.x, state.flags);
+    return { ...at, place, text: MAP.hereAt(place ? MAP.places[place] : null), below: hereLabelBelow(at, state.flags) };
+}
+/**
+ * Whether "Här är vi" reads better under the little sköldhäst than over it: wherever
+ * fewer of the shown place names (and Kartväktaren's signature) are in its way.
+ */
+export function hereLabelBelow(at, flags, size = HERE_SIZE) {
+    const box = (x, y, w, h) => [x - w / 2, y - h / 2, x + w / 2, y + h / 2];
+    const s = MAP_SIGNATURE, names = [box(s.x + s.w / 2, s.y - s.h / 2, s.w, s.h)];
+    for (const l of mapLabels(flags)) {
+        if (l.vertical) continue;
+        const f = l.minor ? 16 : 22;
+        names.push(box(l.x, l.y - f * 0.35, MAP.places[l.key].length * f * 0.48, f));
+    }
+    const crowd = (dy) => {
+        const words = box(at.x, at.y + dy * size, 84 * size, 18 * size);
+        return names.reduce((n, b) => n + Math.max(0, Math.min(words[2], b[2]) - Math.max(words[0], b[0]))
+            * Math.max(0, Math.min(words[3], b[3]) - Math.max(words[1], b[1])), 0);
+    };
+    return crowd(HERE_BELOW - 6) < crowd(HERE_ABOVE - 6);
+}
+const HERE_SIZE = 1.25, HERE_ABOVE = -24, HERE_BELOW = 35; // on the map page; the words' baseline over or under it
+/** A tiny sköldhäst in pencil where we are, with a slow ring round it (`size`: 1 on the map page). */
+function hereSvg(here, { size = 1, label = true } = {}) {
+    if (!here) return '';
+    return `<g class="sk-map-here" data-place="${here.place || ''}" transform="translate(${here.x.toFixed(1)} ${here.y.toFixed(1)}) scale(${size})">
+      <circle class="sk-map-here-ring" r="17" fill="#fff6d8" fill-opacity=".4" stroke="#c2412f" stroke-width="2.6"/>
+      <ellipse rx="10.5" ry="7.2" fill="#4f8f3a" stroke="#2f3a2a" stroke-width="1.5"/>
+      <path d="M-5 -6 L-2.5 5 M3 -6.5 L4.5 5" stroke="#9cc25a" stroke-width="1.2" fill="none"/>
+      <circle cx="12" cy="-4.5" r="4" fill="#efe6d4" stroke="#3b3530" stroke-width="1.3"/>
+      <path d="M7.5 -8 L10 -13.5 L11 -8 M10 -9 L13.5 -12.5 L13 -7" stroke="#e0782a" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M-10.5 2 Q-16 5.5 -18 11" stroke="#d4562a" stroke-width="2.4" fill="none" stroke-linecap="round"/>
+      ${label ? `<text class="sk-map-here-label" y="${here.below ? HERE_BELOW : HERE_ABOVE}" text-anchor="middle" fill="#9c4318" stroke="#fbf4df" stroke-width="4" paint-order="stroke" stroke-linejoin="round">${esc(MAP.here)}</text>` : ''}
+    </g>`;
+}
+
 /** A small picture of the pieces found so far, for the "Vad vet vi?" page (opens the map page). */
 export function createMapThumb(state, { mapUrl, onOpen } = {}) {
     const flags = state.flags || new Set(), pieces = collectedMapPieces(flags);
-    const found = new Set(pieces.map(p => p.id));
+    const found = new Set(pieces.map(p => p.id)), here = mapHere(state);
     const b = node('button', 'sk-mapthumb');
     b.type = 'button';
-    b.setAttribute('aria-label', `${MAP.title}: ${MAP.count(pieces.length, MAP_FRAGMENTS.length)}. ${MAP.inspect}`);
+    b.setAttribute('aria-label', `${MAP.title}: ${MAP.count(pieces.length, MAP_FRAGMENTS.length)}.${here ? ` ${here.text}.` : ''} ${MAP.inspect}`);
     const svg = document.createElementNS(svgNS, 'svg');
     svg.setAttribute('viewBox', `0 0 ${MAP_VIEW.w} ${MAP_VIEW.h}`);
     svg.setAttribute('aria-hidden', 'true');
-    svg.innerHTML = piecesSvg(found, `sk-mapthumb-${++serial}`, flags, mapUrl);
+    // the small map is read at a glance: a larger sköldhäst, without its words
+    svg.innerHTML = piecesSvg(found, `sk-mapthumb-${++serial}`, flags, mapUrl) + hereSvg(here, { size: 1.7, label: false });
     b.append(node('span', 'sk-mapthumb-title', MAP.title), svg, node('span', 'sk-mapthumb-count', MAP.count(pieces.length, MAP_FRAGMENTS.length)));
     if (onOpen) b.addEventListener('click', onOpen);
     return b;
@@ -73,7 +116,7 @@ export function createMapThumb(state, { mapUrl, onOpen } = {}) {
 
 export function createMapBook(state, { mapUrl, onSound } = {}) {
     const flags = state.flags || new Set(), pieces = collectedMapPieces(flags);
-    const found = new Set(pieces.map(p => p.id)), prefix = `sk-map-${++serial}`;
+    const found = new Set(pieces.map(p => p.id)), prefix = `sk-map-${++serial}`, here = mapHere(state);
     const root = node('section', 'sk-mapbook');
     root.setAttribute('aria-label', MAP.title);
     const head = node('div', 'sk-mapbook-heading');
@@ -86,7 +129,7 @@ export function createMapBook(state, { mapUrl, onSound } = {}) {
     svg.setAttribute('aria-label', MAP.assembled);
     svg.setAttribute('aria-describedby', `${prefix}-description`);
     svg.id = `${prefix}-drawing`;
-    svg.innerHTML = piecesSvg(found, prefix, flags, mapUrl);
+    svg.innerHTML = piecesSvg(found, prefix, flags, mapUrl) + hereSvg(here, { size: HERE_SIZE });
     stage.append(svg);
     const choices = node('div', 'sk-mapbook-pieces');
     choices.setAttribute('role', 'group'); choices.setAttribute('aria-label', MAP.detailHint);
@@ -154,7 +197,8 @@ export function createMapBook(state, { mapUrl, onSound } = {}) {
         scale.setAttribute('aria-label', MAP.viewStatus(selected ? MAP.pieces[selected].name : null, percent));
         pan.hidden = reset.hidden = zoom <= 1;
         for (const { b, dx, dy } of panButtons) b.disabled = dx < 0 ? panX <= margin : dx > 0 ? panX >= 1 - margin : dy < 0 ? panY <= margin : panY >= 1 - margin;
-        svg.setAttribute('aria-label', selected ? MAP.selected(MAP.pieces[selected].name) : `${MAP.assembled}. ${MAP.collectedSummary(pieces.map(p => MAP.pieces[p.id].name))}`);
+        svg.setAttribute('aria-label', selected ? MAP.selected(MAP.pieces[selected].name)
+            : `${MAP.assembled}. ${MAP.collectedSummary(pieces.map(p => MAP.pieces[p.id].name))}${here ? ` ${here.text}.` : ''}`);
         for (const g of svg.querySelectorAll('.sk-map-piece,.sk-map-missing')) {
             const active = g.dataset.piece === selected;
             g.style.visibility = selected && !active ? 'hidden' : '';

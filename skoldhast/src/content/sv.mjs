@@ -764,6 +764,8 @@ export const DRAWING = {
 export const MAP = {
     title: 'Kartan mellan sidorna', overview: 'Hela kartan', inspect: 'Titta på kartan',
     assembled: 'Så hör kartbitarna ihop', empty: 'Här samlas kartbitarna ni hittar.',
+    // the little sköldhäst on the map: where we are in the world right now
+    here: 'Här är vi', hereAt: place => place ? `Här är vi: vid ${place}` : 'Här är vi',
     missing: 'Inte hittad än', count: (found, total) => `${found} av ${total} kartbitar`,
     selected: (name) => `Du tittar på: ${name}`,
     zoomIn: 'Förstora', zoomOut: 'Förminska', reset: 'Återställ vyn',
@@ -786,7 +788,7 @@ export const MAP = {
         land: { name: 'Kartbiten från land', foundAt: 'På Klippudden', detail: 'Ett långt språng över klyftan tog oss till udden. Här låg en bit av kartans väg runt vecket. Strecket slutar vid den rivna kanten.' },
         sea: { name: 'Kartbiten från havet', foundAt: 'Vid vecket i Kelphjärtat', detail: 'När skalet pressade vecket platt flöt kartbiten upp i det lugna vattnet. Vi hämtade den där. Den fortsätter kartans väg till Pappersfyren.' }
     },
-    places: { steppe: 'Stäppen', cliff: 'Klippudden', beach: 'Stranden', bridge: 'Streckbron', gate: 'Vattenporten', kelp: 'Kelpskogen', vault: 'Mörka valvet', heart: 'Kelphjärtat', bay: 'Spegelviken', tower: 'Pappersfyren', fold: 'Vecket' },
+    places: { steppe: 'Stäppen', cliff: 'Klippudden', beach: 'Stranden', pier: 'Bryggan', bridge: 'Streckbron', gate: 'Vattenporten', kelp: 'Kelpskogen', vault: 'Mörka valvet', heart: 'Kelphjärtat', bay: 'Spegelviken', tower: 'Pappersfyren', fold: 'Vecket' },
     // the crossing round the headland, drawn on the mended map (src/map-journey.mjs)
     journey: { toBay: 'Kartans väg är hel – strömmen bär oss runt udden till Spegelviken', toKelp: 'Strömmen bär oss tillbaka runt udden till Kelpskogen' }
 };

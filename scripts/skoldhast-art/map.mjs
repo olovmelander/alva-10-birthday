@@ -18,7 +18,7 @@ import { lighten } from './materials.mjs';
 import { NAMES } from '../../skoldhast/src/content/sv.mjs';
 import {
     MAP_VIEW, MAP_SCALE as K, MAP_COAST, MAP_WATERLINE, MAP_CLIFF, MAP_CLEFT, MAP_BRIDGE, MAP_POOL, MAP_GATE,
-    MAP_SHELL, MAP_VAULT, MAP_HEART, MAP_TOWER, MAP_FOLD_X, MAP_MARK, MAP_COMPASS, MAP_ROUTES
+    MAP_SHELL, MAP_VAULT, MAP_HEART, MAP_TOWER, MAP_PIER, MAP_PIER_GATE, MAP_FOLD_X, MAP_MARK, MAP_COMPASS, MAP_ROUTES, MAP_SIGNATURE
 } from '../../skoldhast/src/map-layout.mjs';
 
 const { Sheet, PENCILS: P, smooth, resample, ellipse, edgeBand, gradientMap, multiplyMasks, subtractMask, unionMasks, rng } = pencil;
@@ -63,7 +63,8 @@ export function drawMapPage() {
     const sea = subtractMask(whole, shore);
     const cliff = multiplyMasks(land, mask(smooth([[-12, -12], [MAP_CLIFF[1][0], -12], ...MAP_CLIFF.slice(1, -1), [-12, MAP_CLIFF.at(-1)[1]]], { steps: 6 })));
     const steppe = subtractMask(land, cliff);
-    const bay = multiplyMasks(sea, sh.mask(ellipse(u(MAP_TOWER.x - 6), u(MAP_TOWER.y + 30), u(66), u(52), 48), { feather: u(14) }));
+    // Spegelviken reaches west along Bryggan, to where a swimmer comes up under it
+    const bay = multiplyMasks(sea, sh.mask(ellipse(u(MAP_TOWER.x - 22), u(MAP_TOWER.y + 24), u(84), u(54), 48), { feather: u(14) }));
     const openSea = subtractMask(sea, bay);
 
     // --- the sea: pale near the shore, deepening towards the kelp forest -----------------
@@ -226,6 +227,33 @@ export function drawMapPage() {
     const islet = ellipse(u(t.x), u(t.y + 3), u(20), u(5), 24);
     sh.tone(P.rock, sh.mask(islet), { pressure: 0.8 });
     sh.outline(P.graphite, islet, { width: u(0.9), wobble: 0.8, passes: 1, alpha: 0.8, opaque: false });
+    // Bryggan, from the beach to the islet: planks across a narrow deck, its shadow on
+    // the water, posts out in the sea, and the bolted gate standing up on it like the
+    // tower, so it reads from the shore just as it does on the beach.
+    const [pa, pb] = MAP_PIER, plen = Math.hypot(pb[0] - pa[0], pb[1] - pa[1]);
+    const pdx = (pb[0] - pa[0]) / plen, pdy = (pb[1] - pa[1]) / plen, half = 2.7;
+    const along = (s, o = 0) => [pa[0] + pdx * s - pdy * o, pa[1] + pdy * s + pdx * o];
+    const deck = [along(0, -half), along(plen, -half), along(plen, half), along(0, half)];
+    sh.tone(P.foamLine, mask(deck.map(([x, y]) => [x + 0.8, y + 2.8])), { pressure: 0.32 });
+    sh.tone(P.wood, mask(deck), { pressure: 0.9 });
+    for (let s = 1.6; s < plen - 0.6; s += 2.3) line([along(s, -half), along(s + 0.3, half)], P.woodDark, { width: 0.5, alpha: 0.5, wobble: 0.1 });
+    for (const o of [-half, half]) line([along(0, o), along(plen, o)], P.woodDark, { width: 0.9, alpha: 0.9, wobble: 0.3 });
+    for (let s = 15; s < plen - 4; s += 11) {
+        const [x, y] = along(s, half + 0.7);
+        line([[x, y - 0.6], [x, y + 1.6]], P.woodDark, { width: 1.3, alpha: 0.95, wobble: 0 });
+        line([[x - 1.8, y + 2], [x + 1.8, y + 2]], P.foamLine, { width: 0.6, alpha: 0.5 });
+    }
+    // the gate: a board door between two posts, braced, with the bolt across it in red
+    const gt = MAP_PIER_GATE, gw = 5.2, gh = 14;
+    const leaf = [[gt.x - gw, gt.y + 1], [gt.x - gw, gt.y - gh + 1.5], [gt.x + gw, gt.y - gh + 1.5], [gt.x + gw, gt.y + 1]];
+    sh.fill('#c49a66', mask(leaf), { pressure: 0.95, grain: 0.3 });
+    sh.tone(P.wood, mask(leaf), { pressure: 0.6, angle: 1.57 });
+    for (const k of [-1, 0, 1]) line([[gt.x + k * 2.6, gt.y + 0.6], [gt.x + k * 2.6, gt.y - gh + 2]], P.woodDark, { width: 0.5, alpha: 0.6, wobble: 0.1 });
+    line([[gt.x - gw + 0.6, gt.y - 0.4], [gt.x + gw - 0.6, gt.y - gh + 3]], P.woodDark, { width: 0.8, alpha: 0.8 });
+    line(leaf, P.graphite, { width: 0.9, alpha: 0.9, closed: true });
+    for (const sx of [-1, 1]) line([[gt.x + sx * (gw + 0.7), gt.y + 1.6], [gt.x + sx * (gw + 0.7), gt.y - gh - 0.6]], P.woodDark, { width: 1.6, alpha: 0.95, wobble: 0 });
+    line([[gt.x - gw - 2.4, gt.y - gh * 0.5], [gt.x + gw + 2.4, gt.y - gh * 0.5]], P.red, { width: 2, alpha: 0.95, wobble: 0.1 });
+    sh.dots(P.red, [[u(gt.x + gw + 2.4), u(gt.y - gh * 0.5), 1]], { rx: u(1.4), ry: u(1.4), alpha: 1 });
     // its reflection: pale, broken, with the lamp alight
     for (let i = 0; i < 9; i++) {
         const y = t.y + 9 + i * 5, half = 8 - i * 0.5;
@@ -285,10 +313,10 @@ export function drawMapPage() {
     for (let x = 44, k = 0; x < 600; x += 14, k++) line([[x, 32], [x, k % 5 ? 34.6 : 36]], P.graphite, { width: 0.6, alpha: 0.7, wobble: 0 });
     for (let y = 46, k = 0; y < 384; y += 14, k++) line([[34, y], [k % 5 ? 36.6 : 38, y]], P.graphite, { width: 0.6, alpha: 0.7, wobble: 0 });
     const signature = writeWord(NAMES.kv, { wander: 0.2, seed: 41 });
-    const scale = 118 / signature.width;
+    const scale = MAP_SIGNATURE.w / signature.width;
     // Open water above the bay label; entirely inside the first torn corner.
     drawHand(sh, signature.letters.flatMap(l => l.strokes),
-        ([x, y]) => [u(398 + x * scale), u(84 + y * scale)],
+        ([x, y]) => [u(MAP_SIGNATURE.x + x * scale), u(MAP_SIGNATURE.y + y * scale)],
         { width: u(0.8), wobble: 0.1 });
     return sh.toCanvas();
 }

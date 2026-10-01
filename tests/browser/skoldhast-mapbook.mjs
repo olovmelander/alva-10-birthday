@@ -98,6 +98,22 @@ try {
                 assert.equal(await pg.locator(`.sk-mapbook-piece[data-piece="${id}"]`).getAttribute('aria-pressed'),'true');
             }
         }
+        // Här är vi: out on Bryggan by its bolted gate, on the map page and on its thumbnail.
+        assert.equal(await pg.locator('.sk-map-here').count(),0,'no marker without a place in the world');
+        for(const page of [4,2]) {
+            await pg.goto(`http://127.0.0.1:${server.address().port}/skoldhast/dev/menus.html?m=journal&page=${page}&map=all&shot=1&where=land:116`);
+            if(page===4)await waitBook();else await pg.locator('.sk-mapthumb').waitFor();
+            await pg.evaluate(()=>document.fonts.ready);
+            const where=page===4?'.sk-mapbook-stage':'.sk-mapthumb';
+            assert.equal(await pg.locator(`${where} .sk-map-here[data-place="pier"]`).count(),1,`page ${page}: the marker stands on Bryggan`);
+            const said=page===4?await pg.locator('.sk-mapbook-stage svg').getAttribute('aria-label'):await pg.locator('.sk-mapthumb').getAttribute('aria-label');
+            assert.ok(said.includes(MAP.hereAt(MAP.places.pier)),`page ${page}: ${said}`);
+            assert.equal(await pg.locator(`${where} .sk-map-here-label`).count(),page===4?1:0,'the words only on the map page');
+            if(page===4)await shot('here');
+            else if(out&&input==='touch')await pg.locator('.sk-mapthumb').screenshot({path:path.join(out,`here-thumb-${size}.png`)});
+        }
+        await pg.goto(`http://127.0.0.1:${server.address().port}/skoldhast/dev/menus.html?m=journal&page=4&map=all&shot=1`);
+        await waitBook();
         // Inspect the artwork itself with a real tap/click, including SVG aspect
         // ratio letterboxing and the notebook's transformed paper surface.
         for(const [id,x,y] of [['corner',440,125],['land',145,125],['sea',200,330]]) {

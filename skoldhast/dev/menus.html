@@ -23,6 +23,7 @@
     menus.html?m=title            title (&save=1 with a save, &slots=2 with two researchers)
     menus.html?m=code | restart | slots
     menus.html?m=journal&page=2   the journal at a page (0–6); &objective=p5
+                                  &where=land:116 puts Här är vi on the map (scene:x in horse lengths)
     menus.html?m=pause | stuck | settings | report&n=1
     menus.html?m=dialogue&who=klo | choice | toasts | hud | draw
     &big=1 bigger text, &less=1 less motion, &shot=1 hides this page's own links
@@ -74,7 +75,8 @@ function journalState() {
     const collection = { scenes: SCENES, flags };
     return { flags, objective: q.get('objective') || 'p5', tally: Number(q.get('tally') ?? 1), note: q.get('note') || '', pencils: 2, pencilsTotal: totalPencils(collection),
         pencilRegions: pencilProgress(collection).filter(r => r.id !== 'viken'),
-        visited: new Set(['land', 'kelp']), page: q.has('page') ? Number(q.get('page')) : undefined, onClose: () => log('journal closed') };
+        visited: new Set(['land', 'kelp']), page: q.has('page') ? Number(q.get('page')) : undefined, onClose: () => log('journal closed'),
+        where: q.has('where') ? { scene: q.get('where').split(':')[0], x: Number(q.get('where').split(':')[1]) } : null };
 }
 const titleOpts = () => ({
     hasSave: q.has('save'), slots: q.get('slots') === '2' ? [{ id: 'alva', label: 'Alva' }, { id: 'r-signe', label: 'Signe' }] : [{ id: 'alva', label: 'Alva' }],

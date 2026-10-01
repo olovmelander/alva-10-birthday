@@ -317,10 +317,15 @@ and why.
      the crossing or passes through Veckmuren. The underwater passage also allows a swimmer to return.
    - **The crossing is drawn on the mended map** (`src/map-journey.mjs`), not as a page turn: the sea left
      behind stays on screen while Kartväktaren's repaired map arrives over it, a small sköldhäst rides the
-     route the collected pieces made whole from Kelphjärtat round the headland to Spegelviken, and the bay
-     appears under the pier with depth, momentum and a hidden shell kept. The outflow current itself is
-     drawn in the map's blue ink, so the line Klo traced on paper is the current in the sea. The crossing
-     takes the whole water column below the surface swim, down to the floor.
+     route the collected pieces made whole from Kelphjärtat round the headland into Spegelviken, up under
+     Bryggan where the swimmer comes out, and the bay appears under the pier with depth, momentum and a
+     hidden shell kept. The outflow current itself is drawn in the map's blue ink, so the line Klo traced
+     on paper is the current in the sea. The crossing takes the whole water column below the surface swim,
+     down to the floor.
+   - **The map shows where we are, and what can be seen from there.** The journal's map, and its small copy
+     on "Vad vet vi?", puts a little sköldhäst ("Här är vi") where the player is in the world, also over
+     pieces not yet found. Bryggan, the jetty with the bolted gate that is in plain view from the beach, is
+     drawn from the beach out to Pappersfyren's islet, so the map shows what Alva can see.
 6. **Her outline clouds and m-gulls are her style, not damage.** A joke teaches this early:
    - Klo: "Varför är molnen inte färglagda?"
    - Sköldhästen: "Moln är vita, Klo."

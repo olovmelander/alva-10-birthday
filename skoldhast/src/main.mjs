@@ -787,7 +787,9 @@ export function createGame({ host = document.body, assetBase = './skoldhast/', r
         if (G.flags.has('kelp_entered')) visited.add('kelp');
         if (G.flags.has('viken_arrived')) visited.add('viken');
         visited.add('land');
-        return { flags: G.flags, objective: story.objective(), hint: story.guidance().hint, companion: companion?.journal(), tally: G.puz.tally, note, pencils: countPencils(G), pencilsTotal: totalPencils(G), pencilRegions: pencilProgress(G).filter(r => visited.has(r.id)), visited };
+        // where we are, for the little sköldhäst on the journal's map
+        const where = G.sceneId ? { scene: G.sceneId, x: G.player.x / HL } : null;
+        return { flags: G.flags, where, objective: story.objective(), hint: story.guidance().hint, companion: companion?.journal(), tally: G.puz.tally, note, pencils: countPencils(G), pencilsTotal: totalPencils(G), pencilRegions: pencilProgress(G).filter(r => visited.has(r.id)), visited };
     }
     function openJournal() { if (mode !== 'play' || ui.panelOpen()) return; pause(); audio?.sfx('page'); ui.journal({ ...journalState(), onClose: () => resume() }); }
     function openPause() { if (mode !== 'play' || ui.panelOpen()) return; pause(); ui.pauseMenu(); }

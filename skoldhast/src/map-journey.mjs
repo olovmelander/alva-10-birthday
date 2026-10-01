@@ -14,7 +14,7 @@ export const JOURNEY_TIMES_STILL = Object.freeze({ arrive: .25, travel: 0, hold:
 // the part of the map the journey frames (map units): the deep sea, the headland and the bay
 const BOX = Object.freeze({ x: 290, y: 70, w: 340, h: 330 });
 
-/** The leg of the sea route the outflow follows: from Kelphjärtat round to the tower. */
+/** The leg of the sea route the outflow follows: from Kelphjärtat round to Spegelviken, under Bryggan. */
 export function journeyRoute(direction = 'toBay') {
     const route = MAP_ROUTES.sea;
     let start = 0, best = Infinity;
@@ -85,7 +85,7 @@ export function createMapJourney(PIXI, { texture = () => null, direction = 'toBa
         const seam = new PIXI.Graphics().poly(flat).stroke({ width: 1.3, color: 0x8c7651, alpha: .6 });
         sheet.addChild(back, pic, mask, seam);
     }
-    for (const l of mapLabels(flags).filter(l => ['kelp', 'heart', 'bay', 'tower'].includes(l.key))) {
+    for (const l of mapLabels(flags).filter(l => ['kelp', 'heart', 'bay', 'pier', 'tower'].includes(l.key))) {
         const t = new PIXI.Text({ text: MAP.places[l.key], style: {
             fontFamily: '"Patrick Hand", cursive', fontSize: l.minor ? 17 : 22,
             fill: 0x354f50, stroke: { color: 0xfbf4df, width: 4, join: 'round' } } });

@@ -1,5 +1,42 @@
 # Sköldhästen – handover
 
+## Här är vi on the map, and Bryggan drawn on it (1 October)
+
+Branch `claude/skoldhast-map-here`. Pappa asked whether the map shows where we are ("That would
+have been nice to get an understanding of where we are"), and pointed out that the wooden bridge
+with the locked gate, which is in plain view from the beach and leads to the lighthouse, was
+missing from the map.
+
+- **Här är vi.** The journal's map page and its thumbnail on "Vad vet vi?" show a small pencil
+  sköldhäst in a slowly breathing red ring where the player is. The ring holds still with less
+  motion. Each scene's x is laid along the map (`MAP_WHERE` in `map-layout.mjs`): the land from
+  Klippudden over the steppe and beach out along Bryggan; under water from Vattenporten past Mörka
+  valvet to Kelphjärtat; the bay along Bryggan to Pappersfyren. The marker also shows over pieces
+  not found yet, which hints where the missing piece belongs. Screen readers hear "Här är vi: vid
+  <place>", naming the place only once its name is known (`placeAt`). On the map page the words
+  "Här är vi" go above or below the marker, whichever side has fewer place names (and less of
+  Kartväktaren's signature) in the way. The thumbnail shows the marker without words.
+- **Bryggan is on the map** (`MAP_PIER`, `MAP_PIER_GATE`, map art rebuilt): a plank deck from the
+  sand out to the lighthouse islet, with posts, its shadow on the water, and the gate standing on it
+  just past the waterline: a board door between two posts with a red bolt across. It is labelled
+  "Bryggan" (the word the game uses; "Trumbryggan" appears only in code comments). It is on the
+  corner piece, so it is there from the first piece.
+- **The sea route ends under Bryggan**, where the swimmer actually comes up (`SEA_BAY_LINK.baySpawn`).
+  It used to end at the tower. The map journey follows it and now names Bryggan. Spegelviken's pale
+  water reaches west to that spot, and its name moved right to stay clear of the route.
+- Also fixed: the map thumbnail's title ran into "3 av 3 kartbitar" on phones. Title and count now
+  share a grid row, and on narrow pages the count moves under the drawing.
+- Dev page: `menus.html?m=journal&page=4&map=all&where=land:116` places the marker.
+- No save-format, puzzle or release change; `RELEASED_CHAPTER` remains 3 and the ticket gate stays
+  hidden. Plan §3.3 rule 5 describes the map.
+- Verification: **378/378 pure tests pass**. New `tests/skoldhast-map-here.test.mjs` ties the world
+  to the map: the jetty, its gate wall and the viken pier lie on the drawn bridge; walking through the
+  gate does not jump; the route ends just under the bridge where the swimmer arrives; places are
+  named only when known; the words keep clear of names. The mapbook browser check passes at
+  390×844, 844×390, 320×568 and 1440×900 with keyboard and touch, and now also checks the marker on
+  the map page and the thumbnail. Real-game capture: pressing J under water shows the marker in
+  Kelpskogen. The crossing capture ends under Bryggan.
+
 ## Why we do things: drawing with the hooves, the story on the goal note, the map journey (1 October)
 
 Branch `claude/skoldhast-story-clarity`. Pappa asked for clearer puzzles, a clearer meaning of
