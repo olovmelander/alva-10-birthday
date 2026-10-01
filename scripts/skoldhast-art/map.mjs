@@ -8,7 +8,9 @@
  * names are not drawn here: they are live text on top (Patrick Hand).
  *
  * He draws with a ruler: a ruled double border with a scale along it, and the fold
- * (Vecket) as a ruled line out at sea, the page beyond it shaded "between the pages".
+ * (Vecket) as the opening's crease between the beach and Pappersfyren: beyond it the
+ * corner folded under the page, veiled "between the pages". Alva's blue line from the
+ * opening runs out from the beach to the crease and stops there.
  * Alva's world is in her colours: green steppe, a sand beach, a sea deepening into
  * the kelp forest, and Pappersfyren in Spegelviken, lit only in its reflection.
  */
@@ -18,7 +20,8 @@ import { lighten } from './materials.mjs';
 import { NAMES } from '../../skoldhast/src/content/sv.mjs';
 import {
     MAP_VIEW, MAP_SCALE as K, MAP_COAST, MAP_WATERLINE, MAP_CLIFF, MAP_CLEFT, MAP_BRIDGE, MAP_POOL, MAP_GATE,
-    MAP_SHELL, MAP_VAULT, MAP_HEART, MAP_TOWER, MAP_PIER, MAP_PIER_GATE, MAP_FOLD_X, MAP_MARK, MAP_COMPASS, MAP_ROUTES, MAP_SIGNATURE
+    MAP_SHELL, MAP_VAULT, MAP_HEART, MAP_TOWER, MAP_PIER, MAP_PIER_GATE, MAP_FOLD, foldX, MAP_ALVA_LINE, MAP_MARK, MAP_COMPASS,
+    MAP_ROUTES, MAP_SIGNATURE
 } from '../../skoldhast/src/map-layout.mjs';
 
 const { Sheet, PENCILS: P, smooth, resample, ellipse, edgeBand, gradientMap, multiplyMasks, subtractMask, unionMasks, rng } = pencil;
@@ -85,7 +88,7 @@ export function drawMapPage() {
     for (let i = 0; i < 70; i++) {
         const x = 30 + rand() * 580, y = 30 + rand() * 360;
         const at = (Math.round(y * K) * W + Math.round(x * K));
-        if (!(openSea[at] > 0.9) || x > MAP_FOLD_X - 8) continue;
+        if (!(openSea[at] > 0.9) || Math.abs(x - foldX(y)) < 8) continue;
         waves.push([x, y]);
     }
     for (const [x, y] of waves) {
@@ -218,7 +221,7 @@ export function drawMapPage() {
     line(spiral, P.seaDeep, { width: 1.2, alpha: 0.8 });
 
     // --- Spegelviken and Pappersfyren: rocks round the bay, the tower lit only in its reflection
-    for (const [x, y, rx, ry] of [[476, 186, 13, 6], [584, 174, 11, 5]]) {
+    for (const [x, y, rx, ry] of [[476, 186, 13, 6]]) {
         const rock = ellipse(u(x), u(y), u(rx), u(ry), 20, 0.1);
         sh.tone(P.rock, sh.mask(rock), { pressure: 0.7 });
         sh.outline(P.graphite, rock, { width: u(0.9), wobble: 1, passes: 1, alpha: 0.8, opaque: false });
@@ -276,6 +279,15 @@ export function drawMapPage() {
     sh.tone(P.sandShade, mask(roof), { pressure: 0.6 });
     line(roof, P.graphite, { width: 1, alpha: 0.9, closed: true });
 
+    // --- Alva's line from the opening: her blue shore drawn out towards the lighthouse, cut
+    // short by the crease, with the pencil pressed where the fold stopped it -------------------
+    const alvaLine = smooth(MAP_ALVA_LINE.map(([x, y]) => [x, y]), { closed: false, steps: 6 });
+    line(alvaLine, '#9fc2e2', { width: 3.4, alpha: 0.4, wobble: 0.8 });
+    line(alvaLine, P.foamLine, { width: 1.8, alpha: 0.95, wobble: 1.1 });
+    line(alvaLine, '#4f7fb8', { width: 0.7, alpha: 0.55, wobble: 1.6 });
+    const [alvaX, alvaY] = MAP_ALVA_LINE.at(-1);
+    sh.dots(P.foamLine, [[u(alvaX), u(alvaY), 1]], { rx: u(2), ry: u(2), alpha: 1 });
+
     // --- the ways, and the mark where they meet ------------------------------------------------
     dashes(MAP_ROUTES.land, P.red, { dash: 5, gap: 4, width: 1.5, alpha: 0.85 });
     dashes(MAP_ROUTES.sea, P.seaDeep, { dash: 5, gap: 4, width: 1.5, alpha: 0.9 });
@@ -301,10 +313,15 @@ export function drawMapPage() {
     line([[c.x - 2.6, c.y - 19], [c.x - 2.6, c.y - 25], [c.x + 2.6, c.y - 19], [c.x + 2.6, c.y - 25]], P.graphite, { width: 1, alpha: 0.9 }); // N
 
     // --- the fold, and the page beyond it, "between the pages" ---------------------------------
-    const beyond = mask([[MAP_FOLD_X, -12], [652, -12], [652, 432], [MAP_FOLD_X, 432]]);
-    sh.hatch(P.graphiteSoft, { clip: beyond, angle: 0.8, gap: u(2.2), len: [u(8), u(20)], width: u(0.5), pressure: 0.35 });
-    line([[MAP_FOLD_X + 1.6, 34], [MAP_FOLD_X + 1.6, 386]], P.graphiteSoft, { width: 0.8, alpha: 0.4, wobble: 0.1 });
-    dashes([[MAP_FOLD_X, 34], [MAP_FOLD_X, 386]], P.graphite, { dash: 9, gap: 4, width: 1.3, alpha: 0.8 });
+    // Beyond the crease lies the corner he folded under the page, lighthouse and all: still
+    // drawn, since it is his own map, but veiled and hatched "between the pages". On our side
+    // a soft shadow, then his ruled line, its turned edge catching the light.
+    const beyond = mask([[foldX(-12), -12], [652, -12], [652, 432], [foldX(432), 432]]);
+    lighten(sh, beyond, { color: MAP.paper, amount: 0.4, grain: 0.35 });
+    sh.hatch(P.graphiteSoft, { clip: beyond, angle: 0.8, gap: u(2.6), len: [u(8), u(20)], width: u(0.45), pressure: 0.3 });
+    sh.tone(P.graphiteSoft, mask([[foldX(-12) - 5, -12], [foldX(-12), -12], [foldX(432), 432], [foldX(432) - 5, 432]]), { pressure: 0.24 });
+    line([[foldX(32) + 1.8, 32], [foldX(388) + 1.8, 388]], P.paperCream, { width: 1, alpha: 0.85, wobble: 0 });
+    line([[foldX(32), 32], [foldX(388), 388]], P.graphite, { width: 1.6, alpha: 0.9, wobble: 0 });
 
     // --- his ruled border, with a scale along it, and his signature -----------------------------
     const box = (x0, y0, x1, y1) => [[x0, y0], [x1, y0], [x1, y1], [x0, y1], [x0, y0]];

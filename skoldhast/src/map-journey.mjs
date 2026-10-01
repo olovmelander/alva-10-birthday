@@ -85,11 +85,11 @@ export function createMapJourney(PIXI, { texture = () => null, direction = 'toBa
         const seam = new PIXI.Graphics().poly(flat).stroke({ width: 1.3, color: 0x8c7651, alpha: .6 });
         sheet.addChild(back, pic, mask, seam);
     }
-    for (const l of mapLabels(flags).filter(l => ['kelp', 'heart', 'bay', 'pier', 'tower'].includes(l.key))) {
+    for (const l of mapLabels(flags).filter(l => ['kelp', 'heart', 'fold', 'between', 'bay', 'pier', 'tower'].includes(l.key))) {
         const t = new PIXI.Text({ text: MAP.places[l.key], style: {
             fontFamily: '"Patrick Hand", cursive', fontSize: l.minor ? 17 : 22,
             fill: 0x354f50, stroke: { color: 0xfbf4df, width: 4, join: 'round' } } });
-        t.anchor.set(.5, .8); t.position.set(l.x, l.y); sheet.addChild(t);
+        t.anchor.set(.5, .8); t.position.set(l.x, l.y); t.rotation = (l.angle || 0) * Math.PI / 180; sheet.addChild(t);
     }
     const route = journeyRoute(direction);
     const path = new PIXI.Graphics(); path.label = 'map-journey-route'; sheet.addChild(path);

@@ -40,7 +40,7 @@ function mapArtwork(flags, mapUrl, { labels = true } = {}) {
 function mapLabelsSvg(flags) {
     return `<g class="map-labels" fill="#354f50" stroke="#fbf4df" stroke-width="4" paint-order="stroke" stroke-linejoin="round">${
         mapLabels(flags).map(l => `<text x="${l.x}" y="${l.y}" text-anchor="middle" data-place="${l.key}" class="${l.minor ? 'minor' : ''}"${
-            l.vertical ? ` transform="rotate(-90 ${l.x} ${l.y})"` : ''}>${esc(MAP.places[l.key])}</text>`).join('')}</g>`;
+            l.angle ? ` transform="rotate(${l.angle} ${l.x} ${l.y})"` : ''}>${esc(MAP.places[l.key])}</text>`).join('')}</g>`;
 }
 
 /** The pieces themselves, found or still missing (shared by the map page and its thumbnail). */
@@ -71,7 +71,7 @@ export function hereLabelBelow(at, flags, size = HERE_SIZE) {
     const box = (x, y, w, h) => [x - w / 2, y - h / 2, x + w / 2, y + h / 2];
     const s = MAP_SIGNATURE, names = [box(s.x + s.w / 2, s.y - s.h / 2, s.w, s.h)];
     for (const l of mapLabels(flags)) {
-        if (l.vertical) continue;
+        if (l.angle) continue;
         const f = l.minor ? 16 : 22;
         names.push(box(l.x, l.y - f * 0.35, MAP.places[l.key].length * f * 0.48, f));
     }

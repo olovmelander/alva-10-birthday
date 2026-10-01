@@ -8,8 +8,8 @@ import assert from 'node:assert/strict';
 import { HL } from '../skoldhast/src/sim.mjs';
 import { SCENES, SEA_BAY_LINK } from '../skoldhast/src/content/world.mjs';
 import { MAP } from '../skoldhast/src/content/sv.mjs';
-import { MAP_FRAGMENTS, MAP_WATERLINE, MAP_PIER, MAP_PIER_GATE, MAP_TOWER, MAP_GATE, MAP_ROUTES, MAP_WHERE,
-    fragmentPoints, mapWhere, placeAt } from '../skoldhast/src/map-layout.mjs';
+import { MAP_FRAGMENTS, MAP_WATERLINE, MAP_PIER, MAP_PIER_GATE, MAP_TOWER, MAP_GATE, MAP_ROUTES, MAP_WHERE, MAP_ALVA_LINE,
+    fragmentPoints, foldX, mapLabels, mapWhere, placeAt } from '../skoldhast/src/map-layout.mjs';
 import { mapHere, hereLabelBelow } from '../skoldhast/src/mapbook.mjs';
 
 function inside([x, y], pts) {
@@ -65,6 +65,28 @@ test('the sea way ends under Bryggan, where a swimmer comes up out of the curren
     assert.ok(under.d < 10 && under.south, `the way stops just under the bridge (${JSON.stringify(under)})`);
     const spawn = at('viken', SEA_BAY_LINK.baySpawn / HL);
     assert.ok(Math.hypot(spawn[0] - end[0], spawn[1] - end[1]) < 10, 'the swimmer arrives where the way ends');
+});
+
+test("Vecket is the opening's crease: between the beach and Pappersfyren, folded under with the bay", () => {
+    assert.ok(MAP_WATERLINE.every(([x, y]) => x < foldX(y)), 'the beach is on our side of the fold');
+    assert.ok(MAP_TOWER.x - foldX(MAP_TOWER.y) > 60, 'the lighthouse went under with the sea corner');
+    for (const [, x, y] of MAP_WHERE.viken) assert.ok(x > foldX(y), `Spegelviken lies beyond the crease (${x}, ${y})`);
+    const gap = foldX(MAP_PIER_GATE.y) - MAP_PIER_GATE.x;
+    assert.ok(gap > 0 && gap < 12, `the bolted gate is at the crease, on our side (${gap})`);
+    for (const [scene, id] of [['land', 'east-end'], ['kelp', 'fold']]) {
+        const wall = SCENES[scene].walls.find(w => w.id === id).x / HL, [x, y] = at(scene, wall);
+        assert.ok(Math.abs(x - foldX(y)) < 4, `${scene} ends at the crease (${x} vs ${foldX(y)})`);
+    }
+    const [sx, sy] = MAP_ALVA_LINE[0], [ex, ey] = MAP_ALVA_LINE.at(-1);
+    assert.ok(Math.abs(sx - waterlineX(sy)) < 3, "her line starts at the beach's waterline");
+    assert.ok(Math.abs(ex - foldX(ey)) < 0.5, 'and stops on the crease, where the fold cut it');
+    assert.ok(MAP_ALVA_LINE.slice(0, -1).every(([x, y]) => x < foldX(y)));
+    const side = MAP_ROUTES.sea.map(([x, y]) => x > foldX(y));
+    assert.equal(side.filter((beyond, i) => i && beyond !== side[i - 1]).length, 1, 'the current goes in under the fold once');
+    assert.ok(!side[0] && side.at(-1), 'from Vattenporten on our side to Spegelviken beyond');
+    const names = mapLabels(new Set()), fold = names.find(l => l.key === 'fold'), between = names.find(l => l.key === 'between');
+    assert.ok(fold && inside([fold.x, fold.y], corner), 'the opening names the fold, so the map does from the first piece');
+    assert.ok(between && between.x > foldX(between.y), 'the corner beyond it is the sea between the pages');
 });
 
 test('Här är vi names the place only when the player knows its name', () => {

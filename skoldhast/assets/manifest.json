@@ -286,7 +286,7 @@
   "map-page": {
    "bundle": "map",
    "file": "map-page.webp",
-   "bytes": 634978,
+   "bytes": 569682,
    "w": 1920,
    "h": 1260,
    "repeat": false,
@@ -750,7 +750,7 @@
    "files": [
     "assets/map-page.webp"
    ],
-   "bytes": 634978
+   "bytes": 569682
   }
  },
  "built": "2026-10-01"

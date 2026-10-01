@@ -10,7 +10,9 @@
  *
  * Map units: 640 × 420. West is left (Klippudden), the beach is east of the land,
  * the sea lies east and "below" (the deep: Kelpskogen, Mörka valvet, Kelphjärtat),
- * and the fold (Vecket) is a ruled line out at sea, parallel to the shore.
+ * and the fold (Vecket) is the opening's ruler-straight crease between the beach and
+ * Pappersfyren, parallel to the beach's east shore. Beyond it lies the sea corner that
+ * Kartväktaren folded under the page, lighthouse and all: havet mellan sidorna.
  */
 export const MAP_VIEW = Object.freeze({ w: 640, h: 420 });
 export const MAP_SCALE = 3; // map-page pixels per map unit
@@ -51,16 +53,28 @@ export const MAP_TOWER = Object.freeze({ x: 530, y: 128 });    // Pappersfyren (
 // (Trumbryggan) to Pappersfyren's islet. It is in plain view from the beach.
 export const MAP_PIER = Object.freeze([[368, 109], [510, 127]]);
 export const MAP_PIER_GATE = Object.freeze({ x: 391, y: 112 });  // the bolted gate, out past the waterline
-export const MAP_FOLD_X = 582;                                  // Vecket
+// Vecket: the crease from the opening, through this point and leaning `slope` map units
+// east per unit down. It runs between the beach and Pappersfyren, crossing Bryggan just past
+// its gate, where the beach ends (the gate is bolted from the folded side); under water it
+// is Veckmuren. Beyond it is the corner he folded under the page to keep the splash off his
+// paper lighthouse: Spegelviken, the far part of Bryggan and Pappersfyren.
+export const MAP_FOLD = Object.freeze({ x: 400, y: 113, slope: 0.34 });
+/** The crease's x at a height (map units). */
+export const foldX = (y) => MAP_FOLD.x + (y - MAP_FOLD.y) * MAP_FOLD.slope;
+// Alva's line from the opening: her blue shore drawn out from the beach towards the
+// lighthouse, cut short where the crease folded the sea away
+export const MAP_ALVA_LINE = Object.freeze([[379.2, 134], [388, 135.4], [397, 136.1], [foldX(137), 137]]);
 export const MAP_MARK = Object.freeze({ x: 287, y: 227 });     // the route's mark, torn where the pieces meet
 export const MAP_COMPASS = Object.freeze({ x: 62, y: 352 });
 export const MAP_SIGNATURE = Object.freeze({ x: 398, y: 84, w: 118, h: 22 }); // his name: left end, baseline, width, height
-// the ways: over land from Klippudden to the beach, and through the deep round into
-// Spegelviken, up under Bryggan where a swimmer comes out of the current
+// the ways: over land from Klippudden to the beach, and through the deep past Kelphjärtat,
+// in under Veckmuren into the folded-away Spegelviken, up under Bryggan where a swimmer
+// comes out
 export const MAP_ROUTES = Object.freeze({
     land: Object.freeze([[62, 78], [104, 96], [152, 110], [190, 136], [212, 162], [224, 176], [252, 190], [286, 200], [306, 210]]),
-    sea: Object.freeze([[314, 230], [306, 250], [318, 272], [340, 290], [372, 306], [404, 324], [436, 332], [466, 326],
-        [484, 304], [486, 276], [474, 246], [456, 216], [444, 186], [438, 156], [437, 125]])
+    sea: Object.freeze([[314, 230], [306, 250], [318, 272], [340, 290], [372, 306], [404, 324], [436, 332],
+        [466, 340], [482, 344], [494, 328], [492, 298], [478, 266], [464, 234], [454, 202], [447, 172], [442, 146],
+        [440, 125]])
 });
 
 // --- the place names ---------------------------------------------------------------------
@@ -70,15 +84,18 @@ export const MAP_LABELS = Object.freeze([
     { key: 'cliff', x: 70, y: 46, minor: true },
     { key: 'steppe', x: 186, y: 72 },
     { key: 'bridge', x: 206, y: 204, minor: true },
-    { key: 'beach', x: 364, y: 102 },
+    { key: 'beach', x: 348, y: 104 },
     { key: 'pier', x: 446, y: 104, minor: true },
     { key: 'gate', x: 356, y: 214, minor: true },
     { key: 'kelp', x: 190, y: 300 },
     { key: 'vault', x: 356, y: 340, minor: true },
     { key: 'heart', x: 452, y: 380, minor: true },
-    { key: 'bay', x: 514, y: 214, when: TOWER_KNOWN },
+    { key: 'bay', x: 520, y: 214, when: TOWER_KNOWN },
     { key: 'tower', x: 530, y: 44, minor: true, when: TOWER_KNOWN },
-    { key: 'fold', x: 598, y: 300, minor: true, vertical: true, when: ['clue_fold', 'ch1_end'] }
+    // along the crease, on our side; the opening names it ("ditt streck tog slut vid vecket")
+    { key: 'fold', x: 421, y: 180, minor: true, angle: -108.8 },
+    // the corner folded under the page (the adventure's own name)
+    { key: 'between', x: 556, y: 300, minor: true }
 ]);
 
 /** The names shown for a set of flags (or all of them when `flags` is `true`). */
@@ -89,16 +106,17 @@ export function mapLabels(flags) {
 // --- where we are ------------------------------------------------------------------
 // Each scene's world x (in horse lengths) laid along the map, as [x, mapX, mapY].
 // Land: Klippudden over the cleft, the steppe to Streckbron, along the sand to the
-// pool, up the beach past the pink shell and out along Bryggan to its gate. Under
-// water: from Vattenporten past Mörka valvet to Kelphjärtat and on toward the
-// headland. The bay: on along Bryggan (swimmers come up under it) to Pappersfyren.
+// pool, up the beach past the pink shell and out along Bryggan to its gate, where the
+// beach ends at the crease. Under water: from Vattenporten past Mörka valvet to
+// Kelphjärtat and on to Veckmuren at the crease. The bay, beyond the crease: on along
+// Bryggan (swimmers come up under it) to Pappersfyren.
 export const MAP_WHERE = Object.freeze({
     land: Object.freeze([[0, 40, 70], [3, 64, 80], [7, 104, 96], [10, 127, 102], [14, 152, 110], [40, 190, 136],
         [62, 212, 162], [78, 224, 176], [84, 256, 190], [92, 290, 194], [97, 316, 192], [101, 344, 180],
-        [104, 352, 165], [107, 358, 134], [110, 362, 118], [112.2, 370, 109], [115.2, 391, 112], [118.5, 400, 113]]),
+        [104, 352, 165], [107, 358, 134], [110, 362, 118], [112.2, 370, 109], [115.2, 391, 112], [118.5, 401, 113]]),
     kelp: Object.freeze([[-1, 314, 226], [3, 310, 240], [7, 306, 252], [14, 318, 272], [20, 340, 290], [26, 354, 302],
-        [31, 404, 324], [36, 440, 336], [42, 470, 330], [48, 490, 316]]),
-    viken: Object.freeze([[-1, 400, 113], [1.4, 406, 114], [24.2, 506, 126.5], [27.1, 516, 128], [29.8, 530, 128], [32.5, 544, 128], [36, 552, 131]])
+        [31, 404, 324], [36, 440, 336], [42, 462, 340], [46.9, 474, 343], [47.6, 478, 344], [48, 479, 344]]),
+    viken: Object.freeze([[-1, 401, 113], [1.4, 406, 114], [24.2, 506, 126.5], [27.1, 516, 128], [29.8, 530, 128], [32.5, 544, 128], [36, 558, 131]])
 });
 
 /** Where a world position lies on the map (map units), or null for a scene the map does not show. */

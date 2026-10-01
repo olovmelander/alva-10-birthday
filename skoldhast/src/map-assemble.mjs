@@ -126,7 +126,7 @@ export function createMapAssemble(PIXI, { texture, caption, lessMotion = false,
                     fill: 0x354f50, stroke: { color: 0xfbf4df, width: 4, join: 'round' }
                 } });
                 t.anchor.set(.5, .8); t.position.set(l.x, l.y);
-                if (l.vertical) t.rotation = -Math.PI / 2;
+                if (l.angle) t.rotation = l.angle * Math.PI / 180;
                 c.addChild(t); texts.push({ t, size: l.minor ? 16 : 22 });
             }
             sheet.addChild(c); pieces.push({ id: f.id, c });
