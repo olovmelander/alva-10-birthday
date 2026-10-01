@@ -23,7 +23,9 @@ export const RELEASED_CHAPTER = 3;
 // The two drawings look along opposite sides of the same underwater headland.
 // Keep the sea level and swimming corridor identical when changing pages.
 export const SEA_BAY_LINK = Object.freeze({
-    depth: h(4.1), bed: h(5.92), y0: h(3.15), y1: h(5.05),
+    // the crossing takes the whole column below the surface swim, down to the floor:
+    // a swimmer along the seabed crosses too (it used to stop at Veckmuren)
+    depth: h(4.1), bed: h(5.92), y0: h(1.2), y1: h(6.3),
     kelpExit: h(46.9), kelpSpawn: h(46.35), bayExit: h(8.2), baySpawn: h(8.6)
 });
 
@@ -118,9 +120,11 @@ SCENES.land = {
         // the dune step that teaches Streck in the first minute (decal: never refuses)
         { id: 'teach-step', pts: L([93.2, -0.7], [94, -0.73], [95, -0.66]), flag: 'teach_streck', bothWays: true, balk: false, decal: true },
         // P1 Streckbron: the arch over the gully
-        { id: 'p1-arch', pts: L([75.98, -0.75], [76.6, -0.98], [77.3, -1.15], [78, -1.2], [78.7, -1.15], [79.4, -0.98], [80.02, -0.66]), flag: 'p1_inked', bothWays: true },
+        { id: 'p1-arch', pts: L([75.98, -0.75], [76.6, -0.98], [77.3, -1.15], [78, -1.2], [78.7, -1.15], [79.4, -0.98], [80.02, -0.66]), flag: 'p1_inked', bothWays: true,
+            sketch: { depth: 30, mat: 'wood', planks: 64 } }, // the plank bridge it becomes, dashed until drawn
         // P2: the plank by the pool (decal; inkable once the reflection has shown it solid; a real plank once inked)
-        { id: 'p2-plank', pts: L([103.8, -0.42], [104.6, -0.43], [105.2, -0.43]), flag: 'p2_plank', bothWays: true, balk: false, decal: true, inkWhen: 'p2_seen', solid: 'plank-solid' }
+        { id: 'p2-plank', pts: L([103.8, -0.42], [104.6, -0.43], [105.2, -0.43]), flag: 'p2_plank', bothWays: true, balk: false, decal: true, inkWhen: 'p2_seen', solid: 'plank-solid',
+            sketch: { depth: 16, mat: 'wood', planks: 48 } }
     ],
     hurdles: [{ x: h(57), id: 'log-57' }, { x: h(62), id: 'log-62' }],
     // Below the ground the colouring thins into blank paper (deeper than her
@@ -373,7 +377,7 @@ SCENES.kelp = {
         { id: 'lane-vault', pts: L([22.7, 7.8], [23.3, 9.4], [24.3, 10.4], [25.5, 11.35]), width: h(1.5), speed: 300, when: 'ch2_open' },
         { id: 'lane-vault-in', pts: L([25.5, 11.35], [27.5, 11.9], [30, 11.8], [31.4, 11.2]), width: h(1.3), speed: 320, when: 'p5_lit' },
         { id: 'lane-kelp-release', pts: L([41, 9.25], [39.2, 8.1]), width: h(1.8), suck: h(2.3), speed: 330, when: ['p6_kelp_freed', '!p6_flat'] },
-        { id: 'lane-out', pts: L([36, 8.5], [39, 7.1], [42, 6.65], [44.6, 5.75], [46, 4.2], [47.2, 4.1]), width: h(1.4), speed: 520, when: 'marks_both' }
+        { id: 'lane-out', pts: L([36, 8.5], [39, 7.1], [42, 6.65], [44.6, 5.75], [46, 4.2], [47.2, 4.1]), width: h(1.4), speed: 520, when: 'marks_both', ink: 'map' }
     ],
     vortices: [
         { id: 'kelphjartat', x: h(36), y: h(8.4), r: h(3), eye: h(0.45), speed: 620, pull: 160, spin: 1, when: ['ch2_open', 'p6_kelp_freed', '!p6_flat'] }

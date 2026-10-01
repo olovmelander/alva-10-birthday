@@ -23,6 +23,7 @@ import { createRouteCue, createPencilBeam } from './route-cue.mjs';
 import { createActionCue } from './action-cue.mjs';
 import { createFoldDemo, FOLD_BEACH } from './fold-demo.mjs';
 import { createMapAssemble } from './map-assemble.mjs';
+import { createMapJourney } from './map-journey.mjs';
 import { createMapFragmentProp, createGuardianMapPaper } from './map-props.mjs';
 import { createFoldedSeabed } from './folded-seabed.mjs';
 import { createKelpPuzzleScene } from './kelp-scene.mjs';
@@ -74,6 +75,7 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
     let foldDemo = null;
     let foldRequest = 0;
     let mapAssembly = null;
+    let journey = null; // the crossing round the headland, drawn on the mended map
     let mapRequest = 0;
     let kvMemory = null; // Kartväktaren's memory card while he explains the fold
     let shoreTrial = null;
@@ -216,6 +218,60 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
         }
         out.push(pts[pts.length - 1]);
         return out;
+    }
+    /** Pencil dashes along a polyline: `on` drawn, `off` left as paper. */
+    function dashedLine(g, pts, color, width, on, off, alpha = 1) {
+        let carry = 0, drawing = true;
+        for (let i = 1; i < pts.length; i++) {
+            const [ax, ay] = pts[i - 1], [bx, by] = pts[i], len = Math.hypot(bx - ax, by - ay);
+            let s = 0;
+            while (s < len) {
+                const step = Math.min(len - s, (drawing ? on : off) - carry);
+                if (drawing) {
+                    const u0 = s / len, u1 = (s + step) / len;
+                    g.moveTo(ax + (bx - ax) * u0, ay + (by - ay) * u0).lineTo(ax + (bx - ax) * u1, ay + (by - ay) * u1);
+                }
+                s += step; carry += step;
+                if (carry >= (drawing ? on : off) - 1e-6) { carry = 0; drawing = !drawing; }
+            }
+        }
+        g.stroke({ color, width, alpha, cap: 'round', join: 'round' });
+    }
+    /** The part of a polyline between two distances along it. */
+    function clipLine(pts, distances, from, to) {
+        const at = (d) => {
+            for (let i = 1; i < pts.length; i++) if (d <= distances[i]) {
+                const u = (d - distances[i - 1]) / ((distances[i] - distances[i - 1]) || 1);
+                return [lerp(pts[i - 1][0], pts[i][0], u), lerp(pts[i - 1][1], pts[i][1], u)];
+            }
+            return pts.at(-1);
+        };
+        const out = [at(from)];
+        for (let i = 0; i < pts.length; i++) if (distances[i] > from && distances[i] < to) out.push(pts[i]);
+        out.push(at(to));
+        return out;
+    }
+    /** An unfinished thing's body: dashed sketch lines, or (`solid`) its finished colours. */
+    function drawSketch(g, ds, pts, dashed) {
+        const { depth = 26, mat = 'wood', planks = 64 } = ds.sketch;
+        const under = pts.map(([x, y]) => [x, y + depth]);
+        if (dashed) {
+            g.poly([...pts, ...under.slice().reverse()].flat()).fill(pen.hatch(0x8a7458, .2));
+            dashedLine(g, under, 0x5a524a, 3.8, 14, 11, .92);
+            for (let x = pts[0][0] + planks * .6; x < pts.at(-1)[0] - 20; x += planks) {
+                const y = heightOn(pts, x);
+                dashedLine(g, [[x, y + 5], [x + 1, y + depth - 4]], 0x6b635a, 2.6, 7, 6, .7);
+            }
+            return;
+        }
+        fillPoly(g, [...pts, ...under.slice().reverse()], mat);
+        for (let x = pts[0][0] + planks * .6; x < pts.at(-1)[0] - 4; x += planks) {
+            const y = heightOn(pts, x);
+            g.moveTo(x, y + 2).lineTo(x + 1, y + depth - 2);
+        }
+        g.stroke({ width: 2, color: 0x6b4a2c, alpha: .45 });
+        g.moveTo(...under[0]); for (const p of under.slice(1)) g.lineTo(...p);
+        g.stroke({ width: 3.5, color: 0x3b3530, alpha: .85, cap: 'round' });
     }
     function fillPoly(g, pts, mat, alpha = 1) {
         const t = T(MAT_IMAGE[mat] || mat);
@@ -614,7 +670,13 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
             const c = new PIXI.Container();
             const glow = rope('stroke-glow', pts, { color: 0xffd27a, width: 16, alpha: 0.7 });
             if (!ds.glow) glow.alpha = 0;
-            const dash = rope('stroke-dash', pts, { color: 0x3b3530, width: 5, scale: 1 });
+            // An unfinished line is an unfinished drawing: bold pencil dashes along
+            // its walking line and, for a thing that will exist (the bridge, the
+            // plank), its dashed sketch, so it reads as "not drawn yet", not "gone".
+            const dash = new PIXI.Graphics(); dash.label = 'unfinished-' + ds.id;
+            dashedLine(dash, pts, 0x3b3530, 6.5, 22, 13);
+            if (ds.sketch) drawSketch(dash, ds, pts, true);
+            const fillG = ds.sketch ? new PIXI.Graphics() : null;
             // MeshRope keeps its initial point capacity. Allocate the entire line;
             // unfinished points collapse onto the moving pencil tip while drawing.
             const ink = rope('stroke-graphite', pts, { width: 6 });
@@ -622,6 +684,7 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
             const distances = [0];
             for (let i = 1; i < pts.length; i++) distances.push(distances[i - 1] + Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]));
             if (glow) c.addChild(glow);
+            if (fillG) c.addChild(fillG);
             c.addChild(dash, ink);
             // a finished line that becomes a real object (the P2 plank, as the reflection shows it)
             let solid = null;
@@ -635,7 +698,7 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
             (ds.decal ? L.mid : L.objects).addChild(c);
             const route = ds.glow ? createRouteCue(PIXI, pts, { label: ds.id }) : null;
             if (route) L.hints.addChild(route.container);
-            d.dashed.push({ ds, c, glow, dash, ink, solid, route, pts, distances, len: distances.at(-1), x0: Math.min(ds.pts[0][0], ds.pts[ds.pts.length - 1][0]), x1: Math.max(ds.pts[0][0], ds.pts[ds.pts.length - 1][0]), y: ds.pts[0][1] });
+            d.dashed.push({ ds, c, glow, dash, ink, solid, route, pts, distances, fillG, fillKey: '', len: distances.at(-1), x0: Math.min(ds.pts[0][0], ds.pts[ds.pts.length - 1][0]), x1: Math.max(ds.pts[0][0], ds.pts[ds.pts.length - 1][0]), y: ds.pts[0][1] });
         }
         // lanes: motes that show the flow; dashed lanes as blue dashes
         d.lanes = [];
@@ -649,6 +712,12 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
                 const band = new PIXI.Graphics();
                 const path = () => { band.moveTo(pts[0][0], pts[0][1]); for (let i = 1; i < pts.length; i++) band.lineTo(pts[i][0], pts[i][1]); };
                 path(); band.stroke({ width: ln.width * .36, color: 0xcde4d8, alpha: .045, cap: 'round', join: 'round' });
+                // The current the mended map opened is drawn in the map's own ink: the
+                // blue route Klo traced on paper, now running through the sea.
+                if (ln.ink === 'map') {
+                    path(); band.stroke({ width: 30, color: 0xfff7d8, alpha: .2, cap: 'round', join: 'round' });
+                    path(); band.stroke({ width: 9, color: 0x397c98, alpha: .5, cap: 'round', join: 'round' });
+                }
                 for (let row = -1; row <= 1; row++) {
                     for (let i = 1; i < pts.length - 2; i += 4) {
                         const a = pts[i], b = pts[i + 2], dx = b[0] - a[0], dy = b[1] - a[1], len = Math.hypot(dx, dy) || 1;
@@ -1555,8 +1624,11 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
         S = null;
     }
 
-    function setScene(id, { keepCam = false, turn = null } = {}) {
+    function setScene(id, { keepCam = false, turn = null, journey: direction = null } = {}) {
         if (destroyed) return null;
+        // Crossing round the headland: the sea left behind stays on screen while
+        // the mended map arrives over it, and the new scene is built underneath.
+        const left = direction && S ? capture() : null;
         // A request waiting for map art belongs to this visit, even if we later return here.
         if (id !== S?.id) { foldRequest++; mapRequest++; }
         // the old picture becomes a page that turns away over the new one
@@ -1584,8 +1656,26 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
         if (carryShore) shoreTrial = carryShore;
         cam.snap = !keepCam;
         makeTooth();
+        if (direction) return startJourney(direction, left);
         if (rt) return startTurn(rt, { hinge: turn });
         return null;
+    }
+    /** Resolves when the map has travelled and gone; the caller holds the world still meanwhile. */
+    function startJourney(direction, under) {
+        endJourney();
+        const effect = createMapJourney(PIXI, { texture: T, direction, lessMotion: G.lessMotion, flags: G.flags, under });
+        turnLayer.addChild(effect.container);
+        effect.fit(app.screen.width, app.screen.height);
+        journey = { effect, direction };
+        app.canvas.parentElement?.classList.add('sk-journey');
+        onFx?.('sfx', 'rustle');
+        return effect.done.then(() => { if (journey?.effect === effect) endJourney(); });
+    }
+    function endJourney() {
+        if (!journey) return;
+        const { effect } = journey; journey = null;
+        app.canvas.parentElement?.classList.remove('sk-journey');
+        effect.destroy();
     }
 
     /** A distant view across the water, made from the same tower and reflection as the playable bay. */
@@ -1824,6 +1914,7 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
         const scenicTime = G.lessMotion ? 0 : time;
         // one wind for the whole page: the grass, the clouds and the foam move together
         const wind = G.lessMotion ? 0 : 0.8 + 0.3 * Math.sin(time * 0.21) + 0.2 * Math.sin(time * 0.57 + 1.3);
+        if (journey) journey.effect.update(dt);
         if (mapAssembly) {
             mapAssembly.state = mapAssembly.effect.update(dt);
             mapAssembly.measureIn -= dt;
@@ -1994,6 +2085,18 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
                 dl.dash.alpha = near ? 0.78 + Math.sin(scenicTime * 3.2 + 1) * 0.22 : 1;
             }
             updateInk(dl, inkT, G.player.streck?.dir || 1);
+            if (dl.fillG) {
+                // the bridge colours in behind the galloping hooves, then the real one takes over
+                const key = inkT > 0 && inkT < 1 ? inkT.toFixed(3) : '';
+                if (key !== dl.fillKey) {
+                    dl.fillKey = key; dl.fillG.clear();
+                    if (key) {
+                        const dir = G.player.streck?.dir || 1, at = dl.len * (dir < 0 ? 1 - inkT : inkT);
+                        const part = dir < 0 ? clipLine(dl.pts, dl.distances, at, dl.len) : clipLine(dl.pts, dl.distances, 0, at);
+                        if (part.length > 1) drawSketch(dl.fillG, dl.ds, part, false);
+                    }
+                }
+            }
             if (dl.solid) dl.solid.visible = done;
             dl.ink.visible = inkT > 0 && !(done && dl.solid);
             if (inkT > 0 && inkT < 1 && Math.random() < 0.5) emit('ink', snap.x, snap.y - 10, 1, { speed: 120, g: 300, life: 0.4, tint: 0x3b3530 });
@@ -2315,12 +2418,16 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
     const PRINT_KEEP = 360;
     function addPrint(e) {
         const def = S?.def;
-        if (!def || !def.printMats || !def.printMats.includes(e.surface) || e.wading) return;
+        if (!def || !def.printMats || e.wading) return;
+        const sand = def.printMats.includes(e.surface), gallop = e.speed >= 1000;
+        // At full gallop the hooves are Alva's pencil: they mark every ground.
+        // Sand keeps the marks; grass, earth and planks let them fade again.
+        if (!sand && !gallop) return;
         const q = G.prints ||= [];
-        const gallop = e.speed >= 1000;
         // the four hooves land at different places along the body
         const off = [-0.36, -0.12, 0.14, 0.36][(q.length + (gallop ? 1 : 0)) % 4] * HL * (G.player.facing || 1);
-        q.push({ x: e.x + off, y: e.y, g: gallop, t: time });
+        const x = e.x + off, y = G.terrain?.support?.(x, e.y, 60, 90)?.y ?? e.y;
+        q.push({ x, y, g: gallop, t: time, fade: !sand });
         if (q.length > PRINT_KEEP) q.splice(0, q.length - PRINT_KEEP);
     }
     function drawPrints() {
@@ -2328,7 +2435,8 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
         if (!O.prints) return;
         const q = G.prints || [];
         // walk prints fade away after a few seconds; gallop prints are drawn in graphite and stay
-        for (let i = q.length - 1; i >= 0; i--) if (!q[i].g && time - q[i].t > 3 || q[i].t > time + 1) q.splice(i, 1);
+        // on sand (off the sand they are pencil marks that fade)
+        for (let i = q.length - 1; i >= 0; i--) if ((!q[i].g || q[i].fade) && time - q[i].t > (q[i].fade ? 2.4 : 3) || q[i].t > time + 1) q.splice(i, 1);
         const need = q.length;
         while (O.printSprites.length < need) {
             const sp = spr('hoofprint'); sp.anchor?.set?.(0.5, 0.5);
@@ -2340,7 +2448,7 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
             if (!pr) continue;
             sp.x = pr.x; sp.y = pr.y + 4;
             setTex(sp, pr.g ? 'hoofprint-graphite' : 'hoofprint');
-            sp.alpha = pr.g ? 0.8 : Math.max(0, 0.55 * (1 - (time - pr.t) / 3));
+            sp.alpha = pr.fade ? Math.max(0, 0.85 * (1 - (time - pr.t) / 2.4)) : pr.g ? 0.8 : Math.max(0, 0.55 * (1 - (time - pr.t) / 3));
         }
     }
 
@@ -2509,6 +2617,8 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
     on('hoof', (e) => {
         if (e.speed > 900 && !e.hollow) emit(e.wading ? 'drop' : 'sand', e.x - (G.player.facing * 60), e.y - 6, 2, { speed: 180, angle: G.player.facing > 0 ? -2.6 : -0.5, spread: 0.8, life: 0.45 });
         if (S?.id === 'land') addPrint(e);
+        // a puff of graphite where a galloping hoof draws
+        if (e.speed >= 1000 && !e.wading && !e.hollow && S?.id === 'land') emit('ink', e.x, e.y - 4, 1, { speed: 70, g: 260, life: 0.35, scale: 0.7, tint: 0x3b3530 });
     });
     on('flag', (e) => { if (e.flag === 'ended' && G.prints) G.prints.length = 0; }); // the tide wipes Sandpapperet clean
     on('taste', (e) => emit(e.kind === 'kelp' ? 'bubble' : 'dust', e.x, e.y - h(0.2), 6, { speed: 90, g: e.kind === 'kelp' ? -200 : 300 }));
@@ -2968,6 +3078,7 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
     function resize() {
         if (tooth) { tooth.width = app.screen.width; tooth.height = app.screen.height; }
         for (const turn of turns) turn.resize(app.screen.width, app.screen.height);
+        journey?.effect.fit(app.screen.width, app.screen.height);
         cam.snap = true;
         frameFoldDemo();
         fitMapAssembly();
@@ -2979,6 +3090,7 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
     function destroy() {
         if (destroyed) return;
         destroyed = true;
+        endJourney();
         app.canvas.parentElement?.classList.remove('sk-vista');
         for (const id of pendingFrames) cancelAnimationFrame(id);
         pendingFrames.clear();
@@ -3004,6 +3116,8 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
         /** the playable beach's stuck wave (for checks) */
         get stuckWave() { return S?.items.find(q => q.wave)?.wave || null; },
         get foldDemo() { return foldDemo ? { ...foldDemo.effect.state, phase: foldDemo.effect.phase, elapsed: foldDemo.effect.elapsed, bounds: { ...foldDemo.hint.frame } } : null; },
+        /** The crossing's map while it is shown (for checks) */
+        get journey() { return journey ? { direction: journey.direction, ...journey.effect.state } : null; },
         get mapAssembly() { return mapAssembly ? { ...mapAssembly.state, phase: mapAssembly.effect.phase, elapsed: mapAssembly.effect.elapsed,
             variant: mapAssembly.variant, fragment: mapAssembly.fragment, bounds: mapAssembly.layout?.bounds } : null; },
         /** Kartväktaren's memory card while it is shown (for checks) */

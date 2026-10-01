@@ -371,7 +371,11 @@ export function createStory(G, io) {
     beat('k1_p1', {
         on: 'inked', filter: (e) => e.id === 'p1-arch',
         lock: false,
-        async run(s) { s.stinger('aha'); s.checkpoint('steppe'); await s.remark(F.has('ch2_open') ? STORY.k1.bridgeMapDone : STORY.k1.bridgeDone); }
+        async run(s) {
+            s.stinger('aha'); s.checkpoint('steppe');
+            if (!F.has('hint_teach')) { F.add('hint_teach'); s.remark(['horse', STORY.k1.teachStreck]); }
+            await s.remark(F.has('ch2_open') ? STORY.k1.bridgeMapDone : STORY.k1.bridgeDone);
+        }
     });
     beat('k1_boardwalk', {
         on: 'latch', filter: (e) => e.flag === 'spangen_flag',
@@ -1212,7 +1216,8 @@ export function createStory(G, io) {
         }
         hints(dt);
         stepRace(dt);
-        if (running) return;
+        // nothing new begins while the mended map shows the swim round the headland
+        if (running || G.journey) return;
         while (queue.length) {
             const b = queue.shift();
             if (!b.repeat && done(b.id)) continue;
@@ -1345,7 +1350,9 @@ export function createStory(G, io) {
 
     // ---- small guidance moments (non-blocking) ------------------------------------------------
     G.on('inked', (e) => {
-        if (e.id === 'teach-step') { hintOnce('teach', STORY.k1.teachStreck); tipOnce('dashed'); }
+        // the first line drawn anywhere: the tickle in the hooves was Alva's pencil
+        if (e.id === 'teach-step' || e.id === 'p2-plank') hintOnce('teach', STORY.k1.teachStreck, 'horse');
+        if (e.id === 'teach-step') tipOnce('dashed');
         if (e.id === 'p2-plank' && !F.has('p2_open')) hintOnce('plank', STORY.k1.plankDone);
     });
     // the same refusal again and again: Klo steps in with the plain answer for what you are doing now
@@ -1379,7 +1386,7 @@ export function createStory(G, io) {
     G.on('swimStart', () => { if (inScene('kelp') || inScene('viken')) tipOnce('swim'); });
     function watch() {
         const p = P();
-        if (!G.story || G.busy) return;
+        if (!G.story || G.busy || G.journey) return;
         if (inScene('land') && F.has('rule_demo') && !F.has('p2_seen') && Math.abs(p.x - h(102)) < h(3.2)) hintOnce('pool', STORY.k1.poolHint);
         // standing on the cliff side of the stone, where Knuffa would push it the wrong way
         if (inScene('land') && F.has('p2_seen') && !F.has('p2_open') && p.mode === 'ground') {

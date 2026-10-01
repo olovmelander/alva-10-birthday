@@ -144,12 +144,12 @@ export const STORY = {
             ['klo', 'Kartan och stranden hör ihop! När kartan blir platt igen blir stranden det också.'],
             ['horse', 'Då kanske vi kan veckla ut havet och få min våg att plaska igen!']
         ],
-        mapPurpose: 'Kartan och världen hör ihop! Vi kan följa vecket under vågen eller undersöka spåren på land.',
+        mapPurpose: 'Men bara den som vek sidan kan veckla ut den igen. Följ vecket – under vågen eller uppe på land – så hittar vi honom!',
         clouds: [['klo', 'Varför är de andra molnen inte färglagda?'], ['horse', 'De har inte lånat Alvas färgpennor.']],
         note1: ['note', 'OBS! Ofärdigt streck. Rör ej! /Kartväktaren'],
         noteKlo: [
             ['klo', 'Kartväktaren igen! Samma namn som på kartan. Varför får vi inte röra strecken?'],
-            ['klo', 'Vecket har brutit av vägen till Stäppen. Men dina hovar kan rita ihop strecken!']
+            ['klo', 'Vecket avbröt strecken mitt i. Men dina hovar kan rita ihop dem igen!']
         ],
         noteMap: [
             ['klo', 'Kartväktaren igen! Samma namn som på kartan. Varför får vi inte röra strecken?'],
@@ -195,8 +195,10 @@ export const STORY = {
         fluffMiss: 'Fjunet landade inte på någon prickig tuva …',
         plankDone: 'Plankan är hel – precis som i spegeln!',
         archDone: ['klo', 'Vattenporten! Här kan vi simma under den stillastående vågen.'],
-        teachStreck: 'Såg du? Hovarna ritade klart strecket när du galopperade!',
+        teachStreck: 'Det var därför det kittlade! Alvas penna sitter kvar i mina hovar – i full galopp ritar jag.',
         firstThin: 'Strecket är ofärdigt. I full galopp ritar dina hovar klart det!',
+        // the first refusal at an unfinished line, in every help level: a world rule, not a solution
+        thinRule: 'Ett ofärdigt streck … Det kittlar i hovarna, precis som när Alva ritade mig. Kan jag rita klart det i full galopp?',
         teachFluff: 'Fjunet flög åt samma håll som du sprang – och tuvan växte!',
         brantenTufts: 'Kan galoppvinden bära fjunet till tuvan vid den vikta stigen?',
         rampGrew: 'Rötterna lyfter den vikta grässtigen till en ramp!',
@@ -216,14 +218,14 @@ export const STORY = {
     },
     k2: {
         open: [
-            ['klo', 'Här slutar kartans streck vid rivkanten. Därför når strömmen inte fram till fyren.'],
-            ['klo', 'Två bitar flög iväg: en över Stäppen, en ner i havet. Vi får leta på båda ställena.'],
-            ['klo', 'Vi kan leta i djupet, eller spana över Stäppen från branten. Du väljer!']
+            ['klo', 'Kartans streck genom havet leder till tornet – där jag såg han med linjalen. Men kartan revs där sidan veks.'],
+            ['klo', 'Det som händer med kartan händer med världen. Därför är strömmen dit också avbruten.'],
+            ['klo', 'Två bitar flög iväg: en över Stäppen, en ner i havet. Lagar vi kartan, lagas strömmen. Du väljer var vi börjar!']
         ],
         openWithLand: [
-            ['klo', 'Kartbiten från Klippudden passar mot vårt första hörn. Men strömstrecket är avbrutet.'],
-            ['klo', 'En bit saknas fortfarande. Jag såg den falla ner i havet när sidan veks.'],
-            ['klo', 'Vi letar vidare i djupet! Med den sista biten kan vi laga strömmens väg till fyren.']
+            ['klo', 'Kartbiten från Klippudden passar mot vårt första hörn. Men kartans streck till tornet är fortfarande avbrutet.'],
+            ['klo', 'En bit saknas. Jag såg den falla ner i havet när sidan veks.'],
+            ['klo', 'Hittar vi den blir kartan hel – och då blir strömmen till tornet hel också!']
         ],
         record: ['klo', 'Fem hästlängder! Nytt rekord för sköldpaddor. Och för krabbor.'],
         landmarkPurpose: ['klo', 'Där ute på Klippudden ligger kartbiten! Den behövs för att laga vägen till fyren.'],
@@ -252,7 +254,7 @@ export const STORY = {
         halfSea: ['klo', 'Nu saknas bara kartbiten i djupet. Med den kan vi laga vägen till fyren.'],
         halfSeaEarly: ['klo', 'En bit till vår karta! Vi behöver också undersöka vecket under den frusna vågen.'],
         fitPieces: ['klo', 'Vår första kartbit och de två vi hittade. Titta – rivkanterna passar ihop!'],
-        bothHalves: ['klo', 'Vi lagade kartans streck – och strömmen fortsätter runt udden till Spegelviken!'],
+        bothHalves: ['klo', 'Kartan är hel – och då är strömmen hel! Den går runt udden till Spegelviken och fyren.'],
         outflow: ['klo', 'Bottnen stiger här. Strömmen följer den runt udden, på vår sida om Veckmuren.'],
         // the irony, planted before the meeting: his own fold tore his map
         torn: ['klo', 'Titta på rivkanterna! Kartan gick sönder precis där sidan veks.'],
@@ -349,7 +351,7 @@ export const STORY = {
 // ---------------------------------------------------------------------------
 export const BALK = {
     paper: 'Nästa sida är inte ritad än …',
-    thin: 'Strecket är inte klart ännu.',
+    thin: 'För långsamt! Ofärdiga streck ritas klart i full galopp.',
     slow: 'För lite fart vid kanten!',
     runup: 'Jag behöver backens fart för det här språnget!',
     dark: 'Brr, för mörkt. Jag vågar inte simma in.',
@@ -453,6 +455,25 @@ export const THREAD = {
     mission: 'Få havet att plaska igen',
     complete: 'Havet plaskar igen!',
     missionLabel: 'Vårt uppdrag', whyLabel: 'Därför gör vi det', nextLabel: 'Nästa steg',
+    // The story's next purpose, under the mission on the goal note. It says why,
+    // never how: the folded page → the torn map → the broken current → the one
+    // who folded it → the proof that wet paper holds.
+    now: {
+        start: 'Ta reda på vem som stoppade vågen',
+        map: 'Följ vecket – hitta den som vek sidan',
+        reflection: 'Hitta vägen in under den frusna vågen',
+        waves: 'Följ vecket – hitta den som vek sidan',
+        survey: 'Följ vecket ut i havet',
+        investigate: 'Laga kartan – dess väg leder till den som vek sidan',
+        landEarly: 'Följ vecket in under den frusna vågen',
+        land: 'Hitta kartbiten i havet – då blir kartans väg hel',
+        sea: 'Hitta kartbiten på land – då blir kartans väg hel',
+        pieces: 'Sätt ihop kartan – dess väg leder till fyren',
+        tower: 'Hitta den som vek sidan – i Pappersfyren',
+        fear: 'Visa Kartväktaren var du hör hemma',
+        proof: 'Visa Kartväktaren att blött papper håller',
+        end: 'Havet är hemma igen!'
+    },
     recap: {
         start: 'Alvas strandkant avbröts när någon vek undan havet. Vi vill hitta den personen och få tillbaka plasket.',
         map: 'Klos försök visade att kartan och världen hör ihop. Vecket har brutit vägarna både på land och i havet.',
@@ -743,7 +764,9 @@ export const MAP = {
         land: { name: 'Kartbiten från land', foundAt: 'På Klippudden', detail: 'Ett långt språng över klyftan tog oss till udden. Här låg en bit av kartans väg runt vecket. Strecket slutar vid den rivna kanten.' },
         sea: { name: 'Kartbiten från havet', foundAt: 'Vid vecket i Kelphjärtat', detail: 'När skalet pressade vecket platt flöt kartbiten upp i det lugna vattnet. Vi hämtade den där. Den fortsätter kartans väg till Pappersfyren.' }
     },
-    places: { steppe: 'Stäppen', cliff: 'Klippudden', beach: 'Stranden', bridge: 'Streckbron', gate: 'Vattenporten', kelp: 'Kelpskogen', vault: 'Mörka valvet', heart: 'Kelphjärtat', bay: 'Spegelviken', tower: 'Pappersfyren', fold: 'Vecket' }
+    places: { steppe: 'Stäppen', cliff: 'Klippudden', beach: 'Stranden', bridge: 'Streckbron', gate: 'Vattenporten', kelp: 'Kelpskogen', vault: 'Mörka valvet', heart: 'Kelphjärtat', bay: 'Spegelviken', tower: 'Pappersfyren', fold: 'Vecket' },
+    // the crossing round the headland, drawn on the mended map (src/map-journey.mjs)
+    journey: { toBay: 'Kartans väg är hel – strömmen bär oss runt udden till Spegelviken', toKelp: 'Strömmen bär oss tillbaka runt udden till Kelpskogen' }
 };
 
 // ---------------------------------------------------------------------------
@@ -937,8 +960,8 @@ export const KLO_COMPANION = {
         ended: 'Hör du plasket? Jag tänker aldrig tröttna på den mätningen.'
     },
     story: {
-        note: ['klo', 'Kartväktaren igen! Vägen till Stäppen är bruten. Där borta finns havets spår – vi behöver komma över.'],
-        noteMap: ['klo', 'Kartväktaren igen! Bron är bruten. En kartbit flög över Stäppen, på andra sidan.'],
+        note: ['klo', 'Kartväktaren igen! Bron är bara streckad – som om någon slutade rita mitt i. Där borta finns havets spår.'],
+        noteMap: ['klo', 'Kartväktaren igen! Bron är bara streckad – som om någon slutade rita mitt i. Kartbiten flög över Stäppen.'],
         branten: ['klo', 'Stigen har vikt sig vid branten. Bredvid kanten finns en tuva och en backsippa.'],
         brantenMap: ['klo', 'Den vikta stigen hindrar vägen till utsikten. Bredvid kanten står en backsippa.'],
         reflection: ['klo', 'I spegeln är Vattenporten öppen! Pölen visar stranden före vecket. Vi behöver få vägen under vågen tillbaka.'],

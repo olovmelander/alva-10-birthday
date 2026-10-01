@@ -291,6 +291,14 @@ and why.
    it folds the corner and a dune folds up, then unfolds it.
 2. **Where the page was folded, lines broke into dashes.** On land, a galloping sköldhäst inks dashes solid
    again. At sea, dashed current lines carry only a hidden shell.
+   - *Why the hooves can draw:* the sköldhäst is Alva's drawing, and her pencil is still in its hooves. The
+     awakening line plants it ("Det kittlas i hovarna!"). At full gallop every hoof leaves a pencil mark on
+     any ground (kept on sand, fading elsewhere), so galloping visibly *is* drawing before any puzzle needs it.
+   - An unfinished line is drawn as an unfinished drawing: bold pencil dashes, and for a thing it will
+     become (Streckbron, the pool plank) its dashed sketch. Galloping across colours it in behind the hooves.
+   - The first refusal at a dashed line teaches the rule in every help level (a horse thought that recalls
+     the tickle); later refusals say "För långsamt! Ofärdiga streck ritas klart i full galopp." The first
+     line actually drawn pays it off: "Det var därför det kittlade! Alvas penna sitter kvar i mina hovar."
 3. **Only the waves and the sun stopped.**
    - The splash hangs in mid-air, no wave reaches the shore, and the sun hangs at her noon.
    - Under the surface the currents still run.
@@ -307,6 +315,12 @@ and why.
    - Kelpskogen and Spegelviken are the same sea around a headland, with the same waterline. The outflow
      follows a rising seabed sideways into the shallower bay beneath Trumbryggan. It never surfaces before
      the crossing or passes through Veckmuren. The underwater passage also allows a swimmer to return.
+   - **The crossing is drawn on the mended map** (`src/map-journey.mjs`), not as a page turn: the sea left
+     behind stays on screen while Kartväktaren's repaired map arrives over it, a small sköldhäst rides the
+     route the collected pieces made whole from Kelphjärtat round the headland to Spegelviken, and the bay
+     appears under the pier with depth, momentum and a hidden shell kept. The outflow current itself is
+     drawn in the map's blue ink, so the line Klo traced on paper is the current in the sea. The crossing
+     takes the whole water column below the surface swim, down to the floor.
 6. **Her outline clouds and m-gulls are her style, not damage.** A joke teaches this early:
    - Klo: "Varför är molnen inte färglagda?"
    - Sköldhästen: "Moln är vita, Klo."
@@ -736,6 +750,11 @@ The requested hint ladder is shared with the journal:
 | 1 | **En liten ledtråd** notices something about the current experiment without prescribing its solution. |
 | 2 | **Lite tydligare** connects the evidence to a useful ability. |
 | 3 | **Visa mig var** gives the exact current action and controls, with a temporary target mark and contextual instruction. The player can dismiss the help. |
+
+**The goal note always says why.** In every help level the small note at the top shows the story's next
+purpose under the mission (`THREAD.now` per story stage: follow the fold → mend the map, whose route leads to
+the one who folded the page → find him in Pappersfyren → show him that wet paper holds). It never says how.
+With **Guida mig** the note shows the step-by-step goal instead.
 
 Help levels are stored per save slot:
 - **Bara när jag frågar** is the default: no timed solution text or automatic target marks.
