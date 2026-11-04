@@ -275,3 +275,38 @@ land activities in 42,637 fixed steps, with no captured browser errors. Its
 runner now refreshes the action button before tapping between accelerated
 frames, uses the separate Jump input, and stops clear of Signe for the shells.
 The asset check remains under budget: 2,635,353 bytes for first playable.
+
+## The play-order audit (4 November, night)
+
+Äventyr 2's audit (`docs/skoldhast/adventure-2-audit.md`, "The play-order audit") found a jump through a closed gate.
+Pappa asked to fix everything that should be fixed in Äventyr 1, so the same tools were run on it.
+
+### How it was checked
+
+- **Random players:** 40 runs of 45 s at each of 14 gates.
+- **Free play:** 102 runs of 70 s from 17 places on all three scenes, watching for anything stuck, rescued or off the page.
+- **Line coverage:** every line in `STORY`, and every key referenced in the code.
+- **The speaker:** where each speaker's actor stands when it speaks.
+- **Other orders:** running from Klo in the first minutes, which the tests did not walk.
+- **Real browser:** a new game with the real keyboard, and a jump at the gate.
+
+### Found and fixed
+
+| Found | Fixed |
+| --- | --- |
+| A running jump landing right at a wall passed it. The sim's air check lets go just above the ground. The bolted jetty gate let 9 of 40 runs through, the paper at Klippudden's west end 5 of 40. | `walls()` in `src/ground-guard.mjs`, shared with Äventyr 2. |
+| Leave Klo in his hole and run on: he popped up at the note while still "in his hole", asked "Häst eller sköldpadda?" from 25 lengths away, and the player stood frozen about 12 s while he walked back. | The sköldhäst will not go west past the dunes until the map rule is shown, with its reason as a thought. |
+| The map rule could be missed all the way into Kapitel 2, where "vår första kartbit" and "Kartans streck" assume it. It is the rule the whole story stands on. | The same refusal, and Vattenporten waits for Klo's "Ja". |
+| "där jag såg han med linjalen" | "honom" |
+
+The refusal is two one-way walls at 92.4 HL. It holds only in a new game: a save that has read the note or inked the arch
+is never held, and Klo answers from his own hole for such a save.
+
+### Checked, and left as it was
+
+- P1, the three terraces, P4, the far side of the cleft, the paper in the sea, P5, Veckmuren and P8 held against every
+  random run.
+- Free play: nothing stuck, no rescues, nothing off the page.
+- Klo and Kartväktaren speak off the player's position only where the camera follows them, or as a passing bubble.
+- The blank sheet at the start of the table is the staged opening, with a skip button.
+- Klo has his own soft shadow (`klo.mjs`).
