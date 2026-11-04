@@ -12,7 +12,7 @@ import { SCENES, CHECKPOINTS, EGG_TOTAL } from './content/world.mjs';
 
 const SWIM_KEYS = ['vx', 'vy', 'hidden', 'hide', 'facing', 'submerge', 'speed', 'wetTimer'];
 // moment-to-moment states kept as flags (so the sim's conditions can read them), never saved
-const TRANSIENT = new Set(['flash']);
+const TRANSIENT = new Set(['flash', 'tailwind']);
 
 export function createGame() {
     const listeners = new Map();
@@ -71,6 +71,7 @@ export function createGame() {
                 if (unhide) { G.player.hidden = false; G.player.hide = 0; G.player.vy = Math.min(0, G.player.vy); }
             }
             if (!G.sceneDef.lightning) G.flags.delete('flash');
+            if (!G.sceneDef.winds) G.flags.delete('tailwind');
             G.sceneTime = 0;
             G.areas = new Set();
             G.emit('scene', { id: sceneId, from: prev });

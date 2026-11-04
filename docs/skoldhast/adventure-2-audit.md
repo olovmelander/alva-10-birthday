@@ -192,3 +192,18 @@ audits above read the adventure in the one order the robot plays. The adventure 
 
 `sourceDark` and `GOALS.peakDark` cannot be reached today, because the crown lies behind the seeds, so the lantern
 always comes first. They are harmless and stay.
+
+## After a critic's read (4 November, night)
+
+Pappa asked how the whole adventure holds, and then for all four weaknesses to be fixed.
+
+| Found | Fixed |
+| --- | --- |
+| **A hole in the logic.** Eggs hatch only in the nest, yet Alva said the moon must wait or they would hatch alone in the forest. Nothing stopped an early moon. | The eggs hatch *when the moon rises*, told from the first scene, so a moon drawn early would rise over an empty nest. |
+| 18 dialogue boxes before the first step. | 12. The claws moved to the cocoa fruit she picks with them, where they lead into Klo's first love scene. Alva's hello moved to the first egg. The glimmer is a thought, so play has already begun. |
+| Kristallklangen was solved by one gallop, and the crystals made no sound. | The plates take turns and the next one blinks, so it takes three gallops back and forth. Each plate has its own note, so the xylophone joke comes true. |
+| The wind could be galloped through, and Åsktoppen had the fewest jokes. | T3: past the bridge the storm has turned, so the player who has learned to hide must stand up and be carried over a gap. Hypothesis three, "Vindstyrka: väldigt", Klo flying like a pennant and "Bara en vecka?" again. |
+| The view from the crown, the big reveal, showed a plain mountain, half behind the tree, and on a phone mostly the trunk. | The picture turns from the tree to the mountain alone against the sky, at every size. It is drawn in layers with snow on the ridges. The whirl turns round the top; it used to spin like a plate facing the viewer. |
+
+The gusts and the lightning keep the rhythm Pappa chose. A wind where the sköldhäst stands now sets the weather, because
+the two stretches used to take gusts from each other.

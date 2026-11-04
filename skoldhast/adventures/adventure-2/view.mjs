@@ -227,14 +227,53 @@ export function createView(PIXI, app, { assets, G, heroFactory }) {
     // Åsktoppen on the eastern horizon, with the storm swirling round its top (until the cloud is met)
     const peak = new PIXI.Container(); peak.label = 'asktoppen';
     const peakG = new PIXI.Graphics();
-    peakG.poly([-260, 0, -120, -230, -60, -300, 0, -360, 50, -290, 120, -240, 260, 0]).fill(pen.fill(0x3a3c5c)).stroke(pen.line(0x22243a, 2.4, 0.8));
-    peakG.poly([-40, -320, 0, -360, 40, -318, 20, -300, -10, -312]).fill(pen.fill(0xc9ccdf, 0.8));
-    const swirl = new PIXI.Container(); swirl.position.set(0, -390);
+    let peakArt;
+    {
+        // lit from the upper right, like everything on these pages: shoulders in the haze, then the jagged
+        // mass, a dark face and a lit one, cracks, snow in the gullies, the falls at its foot and mist
+        const ridge = (pts, fill, line) => peakG.poly(pts.flat()).fill(fill).stroke(line);
+        ridge([[-430, 0], [-338, -116], [-292, -148], [-246, -116], [-196, -188], [-150, -158], [-100, -60], [-60, 0]], pen.fill(0x4e5178, 0.8), pen.line(0x34365a, 1.8, 0.6));
+        ridge([[60, 0], [132, -148], [176, -204], [206, -170], [264, -232], [302, -180], [348, -118], [440, 0]], pen.fill(0x4e5178, 0.8), pen.line(0x34365a, 1.8, 0.6));
+        const mass = [[-300, 0], [-252, -62], [-226, -52], [-178, -128], [-150, -118], [-112, -204], [-88, -196], [-58, -276], [-36, -268], [-14, -338], [0, -372],
+            [16, -334], [34, -344], [58, -272], [84, -286], [112, -214], [146, -226], [176, -136], [212, -150], [250, -66], [270, -74], [310, 0]];
+        ridge(mass, pen.fill(0x3e4063), pen.line(0x1e2036, 2.6, 0.85));
+        const dark = [[0, -372], [-14, -338], [-36, -268], [-58, -276], [-88, -196], [-112, -204], [-150, -118], [-178, -128], [-226, -52], [-252, -62], [-300, 0],
+            [-58, 0], [-26, -116], [-48, -188], [-8, -262], [-22, -318]];
+        peakG.poly(dark.flat()).fill(pen.fill(0x2a2b47, 0.92));
+        peakG.poly(dark.flat()).fill(pen.hatch(0x171829, 0.5));
+        const lit = [[0, -372], [16, -334], [34, -344], [58, -272], [84, -286], [112, -214], [146, -226], [122, -150], [72, -188], [48, -250], [22, -278], [8, -322]];
+        peakG.poly(lit.flat()).fill(pen.fill(0x5b5e8a, 0.9));
+        peakG.poly(lit.flat()).fill(pen.hatch(0x8c8fb8, 0.45));
+        for (const crack of [[[-22, -318], [-8, -262], [-48, -188], [-26, -116], [-58, 0]], [[48, -250], [30, -176], [64, -110], [44, -30]], [[122, -150], [104, -92], [136, -40]],
+            [[-130, -150], [-112, -96], [-140, -40]], [[-196, -96], [-180, -44]], [[190, -108], [206, -44]]]) {
+            lineAlong(peakG, crack).stroke(pen.line(0x171829, 2.2, 0.7));
+        }
+        const snow = (pts) => peakG.poly(pts.flat()).fill(pen.fill(0xe4e7f4, 0.9));
+        snow([[0, -372], [16, -334], [32, -316], [18, -302], [8, -316], [-4, -294], [-14, -314], [-24, -300], [-32, -316], [-14, -338]]);
+        snow([[-14, -338], [-30, -312], [-36, -268], [-58, -276], [-70, -244], [-88, -196], [-98, -206], [-78, -262], [-56, -292], [-38, -286]]);
+        snow([[16, -334], [34, -344], [58, -272], [84, -286], [112, -214], [100, -222], [80, -262], [60, -250], [44, -296], [30, -310]]);
+        snow([[-112, -204], [-126, -172], [-150, -118], [-158, -128], [-136, -180]]);
+        snow([[112, -214], [146, -226], [162, -176], [146, -188], [130, -196]]);
+        // the falls: the way in is behind them
+        lineAlong(peakG, [[-34, -78], [-30, -46], [-34, -14], [-30, 0]]).stroke(pen.line(0xb9c6de, 4, 0.75));
+        for (let k = 0; k < 7; k++) peakG.ellipse(-300 + k * 100, -6 - hash(k, 201) * 14, 96, 20).fill({ color: 0xaab0cc, alpha: 0.13 });
+        const b = peakG.getLocalBounds(), tex = app.renderer.generateTexture({ target: peakG, resolution: 2 });
+        peakG.destroy();
+        peakArt = new RAW.Sprite(tex); peakArt.position.set(b.x, b.y);
+    }
+    // the whirl lies flat round the top, seen from the side, so it turns instead of tipping over
+    const swirlTilt = new PIXI.Container(); swirlTilt.position.set(0, -384); swirlTilt.scale.set(1, 0.34);
+    const swirl = new PIXI.Container(); swirlTilt.addChild(swirl);
     const swirlG = new PIXI.Graphics();
-    swirlG.ellipse(0, 0, 210, 66).fill(pen.fill(0x5d5a86, 0.85)).stroke(pen.line(0x24223a, 2.4, 0.8));
+    for (let k = 0; k < 14; k++) {
+        const a = k / 14 * Math.PI * 2, r = 184 + hash(k, 211) * 56, R = 44 + hash(k, 212) * 26, x = Math.cos(a) * r, y = Math.sin(a) * r;
+        swirlG.circle(x, y, R).fill(pen.fill(k % 2 ? 0x4b4870 : 0x3d3a5e, 0.96)).stroke(pen.line(0x24223a, 2, 0.7));
+        swirlG.circle(x - R * 0.25, y - R * 0.3, R * 0.5).fill(pen.hatch(0x8f8cb4, 0.55));
+    }
+    swirlG.circle(0, 0, 140).fill(pen.fill(0x2e2c4c, 0.82));
     for (let k = 0; k < 3; k++) {
         const pts = [];
-        for (let a = 0; a < Math.PI * 3; a += 0.2) { const r = 24 + a * 18; pts.push([Math.cos(a + k * 2.1) * r * 1.6, Math.sin(a + k * 2.1) * r * 0.5]); }
+        for (let a = 0; a < Math.PI * 3; a += 0.2) { const r = 24 + a * 20; pts.push([Math.cos(a + k * 2.1) * r, Math.sin(a + k * 2.1) * r]); }
         swirlG.moveTo(pts[0][0], pts[0][1]); for (const [x, y] of pts.slice(1)) swirlG.lineTo(x, y);
         swirlG.stroke(pen.line(k ? 0x9a96c6 : 0x2e2c4c, 10, 0.75));
     }
@@ -242,8 +281,9 @@ export function createView(PIXI, app, { assets, G, heroFactory }) {
     const peakBolt = new PIXI.Graphics();
     peakBolt.moveTo(10, -380).lineTo(-12, -330).lineTo(6, -330).lineTo(-16, -270).stroke(pen.line(0xffe46b, 5));
     peakBolt.visible = false;
-    peak.addChild(peakG, swirl, peakBolt);
+    peak.addChild(peakArt, swirlTilt, peakBolt);
     skyLayer.addChild(peak);
+    let peakVista = 0, peakVistaOn = false; // the view from the crown (fx focus with peak)
     // a bolt across the sky when lightning strikes
     const skyBolt = new PIXI.Graphics(); skyBolt.visible = false; skyLayer.addChild(skyBolt);
     let boltT = 0;
@@ -541,8 +581,9 @@ export function createView(PIXI, app, { assets, G, heroFactory }) {
             lineAlong(gr, offset(top, h(0.17))).stroke(pen.line(0x2f5a7e, 1.6, 0.7));
             const cx = (s.pts[0][0] + s.pts.at(-1)[0]) / 2, cy = s.pts[1][1];
             const glow = glowAt(cx, cy, 3.4, 0x9fd8ff, 0);
+            const shine = new PIXI.Graphics(); poly(shine, band).fill({ color: 0xeafaff }); shine.alpha = 0; L.objects.addChild(shine);
             S.crystalPlates = S.crystalPlates || [];
-            S.crystalPlates.push({ id: s.crystal, glow, cx, cy, gr });
+            S.crystalPlates.push({ id: s.crystal, glow, shine, cx, cy, gr });
         } else if (s.crystalBridge || s.lightBridge) {
             // the bridge once drawn: crystal over the chasm, or light over Åsktoppen's ravine
             const light = !!s.lightBridge, col = light ? 0xffd76b : 0x9fd8ff, ink = light ? 0xb8862c : 0x2f5a7e;
@@ -1066,6 +1107,9 @@ export function createView(PIXI, app, { assets, G, heroFactory }) {
         // Blixtbron's ravine, deep and dark
         ravine(back, h(23.8), h(29.8), h(-3.1), h(-3.1));
         L.back.addChild(softDark('down', h(23.7), h(-2.6), h(29.9), h(3.7), { color: 0x0b0a14, alpha: 0.85 }));
+        // Klippan: the gap only the turned wind crosses
+        ravine(back, h(37), h(39.8), h(-4.35), h(-5.33));
+        L.back.addChild(softDark('down', h(36.9), h(-4.1), h(39.9), h(3.7), { color: 0x0b0a14, alpha: 0.85 }));
         // rocks and a little snow up on the summit
         for (let k = 0; k < 7; k++) {
             const x = h(45 + k * 2.2 + hash(k, 131) * 1.2), y = groundY(def, x);
@@ -1307,14 +1351,15 @@ export function createView(PIXI, app, { assets, G, heroFactory }) {
         // the peak on the horizon: seen from the river beach and the forest; its storm calms once the cloud is met
         peak.visible = skyKind === 'river' || skyKind === 'forest';
         if (peak.visible) {
-            const k = clamp(H / 900, 0.45, 1.1) * 1.15;
             const u = (cam.x - S.def.bounds.x0) / (S.def.bounds.x1 - S.def.bounds.x0);
-            peak.scale.set(k);
             const high = clamp((h(-4) - cam.y) / h(4), 0, 1); // up in Jätteträdet the peak comes into view
-            peak.position.set(W * (skyKind === 'river' ? 1.02 - u * 0.3 : lerp(1.2 - u * 0.35, 0.78, high)), H / 2 + (h(-0.6) - cam.y) * cam.zoom * 0.3 + h(0.4) * cam.zoom); // its foot behind the far forest
+            peakVista = rm ? (peakVistaOn ? 1 : 0) : lerp(peakVista, peakVistaOn ? 1 : 0, 1 - Math.exp(-2.4 * dt));
+            peak.scale.set(lerp(clamp(H / 900, 0.45, 1.1) * 1.15 * (1 + 0.15 * high), 0.78 * H / 430, peakVista));
+            const footY = H / 2 + (h(-0.6) - cam.y) * cam.zoom * 0.3 + h(0.4) * cam.zoom; // its foot behind the far forest
+            peak.position.set(W * lerp(skyKind === 'river' ? 1.02 - u * 0.3 : lerp(1.2 - u * 0.35, 0.88, high), 0.5, peakVista), lerp(footY, H * 1.04, peakVista));
             swirl.rotation += dt * (rm ? 0.05 : 0.3) * stormShown;
             swirl.alpha = 0.15 + 0.85 * stormShown;
-            peakBolt.visible = !rm && stormShown > 0.5 && Math.sin(t * 2.3) > 0.985;
+            peakBolt.visible = !rm && stormShown > 0.5 && Math.sin(t * 2.3) > (peakVistaOn ? 0.9 : 0.985);
         }
         skyBolt.visible = boltT > 0; boltT = Math.max(0, boltT - dt);
         for (const f of farSprites) {
@@ -1505,9 +1550,12 @@ export function createView(PIXI, app, { assets, G, heroFactory }) {
         // K1: each crystal plate glows as it rings; the chasm lightens once all three are lit
         if (S.crystalPlates) {
             const need = S.def.crystals?.beats || 2, allLit = F.has('k1_lit');
+            const next = allLit ? null : S.def.crystals?.plates.find(c => !F.has(c));
             for (const cp of S.crystalPlates) {
-                const n = allLit ? need : Math.min(need, G.puz.crystal?.[cp.id] || 0);
-                const target = n >= need ? 0.85 : n * 0.25;
+                const n = allLit || F.has(cp.id) ? need : Math.min(need, G.puz.crystal?.[cp.id] || 0);
+                const blink = cp.id === next ? (rm ? 0.5 : 0.28 + 0.34 * (0.5 + 0.5 * Math.sin(t * 5))) : 0;
+                const target = n >= need ? 0.85 : Math.max(n * 0.25, blink);
+                cp.shine.alpha = lerp(cp.shine.alpha, n >= need ? 0.55 : blink * 1.3, 1 - Math.exp(-12 * dt));
                 cp.glow.alpha = lerp(cp.glow.alpha, target * (0.85 + 0.15 * Math.sin(t * 3 + cp.cx)), 1 - Math.exp(-6 * dt));
             }
         }
@@ -1559,7 +1607,8 @@ export function createView(PIXI, app, { assets, G, heroFactory }) {
                 const inWind = w && tf.x >= w.x0 && tf.x <= w.x1;
                 const target = inWind ? (gst.state === 'gust' ? 1 : 0.25) : 0;
                 tf.bend = lerp(tf.bend || 0, target, 1 - Math.exp(-8 * dt));
-                tf.tf.rotation = -tf.bend * (rm ? 0.35 : 0.6) + (rm ? 0 : Math.sin(t * 2 + tf.o) * 0.05);
+                if (inWind) tf.dir = w.dir > 0 ? 1 : -1;
+                tf.tf.rotation = (tf.dir || -1) * tf.bend * (rm ? 0.35 : 0.6) + (rm ? 0 : Math.sin(t * 2 + tf.o) * 0.05);
             }
         }
         // the mushroom squashes when it bounces the sköldhäst up
@@ -1619,7 +1668,7 @@ export function createView(PIXI, app, { assets, G, heroFactory }) {
     }, 130, 28);
     const gusts = [];
     for (let i = 0; i < 26; i++) { const st = new RAW.Sprite(gustTex); st.anchor.set(0.5); gustLayer.addChild(st); gusts.push({ st, x: hash(i, 171), y: hash(i, 172), v: 0.8 + hash(i, 173) * 0.6, k: 0.6 + hash(i, 174) * 1.2 }); }
-    let gustAmt = 0;
+    let gustAmt = 0, gustDir = -1;
     function stepGusts(dt, W, H, rm) {
         const g2 = G.puz.gust, w = g2?.w, vw = W / cam.zoom;
         const near = w && S.id === 'topp' && cam.x + vw / 2 > w.x0 && cam.x - vw / 2 < w.x1;
@@ -1628,12 +1677,13 @@ export function createView(PIXI, app, { assets, G, heroFactory }) {
         gustLayer.visible = gustAmt > 0.02;
         if (!gustLayer.visible) return;
         const n = Math.round(gusts.length * gustAmt * (rm ? 0.3 : 1));
+        if (w) gustDir = w.dir > 0 ? 1 : -1;
         gusts.forEach((q, i) => {
             q.st.visible = i < n;
             if (!q.st.visible) return;
-            q.x = (q.x - dt * q.v * (rm ? 0.5 : 1.8) + 1) % 1;
+            q.x = (q.x + gustDir * dt * q.v * (rm ? 0.5 : 1.8) + 1) % 1;
             q.st.position.set(q.x * (W + 160) - 80, q.y * H * 0.8 + H * 0.05);
-            q.st.scale.set(q.k * 1.4, 1);
+            q.st.scale.set(-gustDir * q.k * 1.4, 1);
             q.st.alpha = 0.55 * gustAmt;
         });
     }
@@ -1811,6 +1861,7 @@ export function createView(PIXI, app, { assets, G, heroFactory }) {
         const sp = S.def.spots, rm = !!G.lessMotion;
         switch (name) {
             case 'focus':
+                peakVistaOn = !!data?.peak;
                 if (!data) { G.camHint = null; return; }
                 G.camHint = { x: data.x, y: data.y, zoom: data.zoom || 1 };
                 await waitGame(rm ? 0.3 : 0.9);

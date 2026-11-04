@@ -38,7 +38,7 @@ heads talk, both beaks open and shut.
 
 ## Premise, in words a 10-year-old can repeat
 
-"En storm har blåst bort tukankrabbans tio ägg över hela den magiska skogen. Äggen kläcks bara i månsken –
+"En storm har blåst bort tukankrabbans tio ägg över hela den magiska skogen. Äggen kläcks bara när månen går upp –
 men på den här sidan finns ingen måne. Vem är det som stormar, och varför?"
 
 ## Cast
@@ -75,10 +75,12 @@ men på den här sidan finns ingen måne. Vem är det som stormar, och varför?"
 3. **The storm grows in the dark and quiets in light**: the lightning is the cloud trying to see.
 4. **Moonshine seeds open only when everything is still**: hide by them and they light up. One of them is
    Tukankrabban's lantern from then on; without it the way into the mountain is pitch dark.
-5. **Crystals ring under galloping hooves**, and a crystal that has rung enough lights up.
-6. **Wind cannot take a hidden shell**, and behind a boulder there is shelter.
-7. **Tukankrabba eggs hatch only in moonlight, in the warm sand of the nest.** That is why the moon is drawn
-   last: drawn in the mountains, the eggs would hatch alone out in the forest.
+5. **Crystals ring under galloping hooves, one at a time.** The one whose turn it is blinks, and lights up when
+   it has rung enough; each has its own note.
+6. **Wind cannot take a hidden shell**, and behind a boulder there is shelter. **The storm turns**: past the bridge
+   of light the wind blows towards the top, and carries whoever stands up in it.
+7. **Tukankrabba eggs hatch only when the moon rises, in the warm sand of the nest.** That is why the moon is drawn
+   last: a moon drawn early would rise over an empty nest.
 
 ## Four pages
 
@@ -99,13 +101,14 @@ rock wall down into the water (K2) · Tordyveln's new glitter ball and the gate'
 Källan, the spring that rises through the mountain.
 
 `topp` — **Åsktoppen**, the mountain top in the storm: the spring's pool · Vindkanten, gusts with boulders for
-shelter (T1) · Blixtbron, a ravine with a bridge that shows only in the lightning (T2) · Klippan, more gusts ·
+shelter (T1) · Blixtbron, a ravine with a bridge that shows only in the lightning (T2) · Klippan, where the turned wind
+carries over a gap (T3) ·
 Stormens öga, the calm summit where the cloud sits on its nest of fluff.
 
 ## The story, in five acts
 
 1. **The empty nest** (the table, Sandbanken). The storm takes the eggs; Tukankrabban's rule says they hatch
-   only in moonlight, and there is no moon. The question, asked out loud: *vem är det som stormar – och
+   only when the moon rises, and there is no moon. The question, asked out loud: *vem är det som stormar – och
    varför?* Her first hypothesis: the storm comes from somewhere.
 2. **Eggs across the forest** (Flodstranden, Djupa skogen). Free order. Tordyveln, Skatan and the gold coin,
    Mira's bridge, the mushroom, the moonshine seeds (which give the lantern), the big leap. Klo falls in love
@@ -121,7 +124,7 @@ Stormens öga, the calm summit where the cloud sits on its nest of fluff.
    egg it kept warm and carries everyone home over the whole forest. With ten eggs in the nest: everyone
    gathers, Mira draws the moon, Alva the stars, the eggs hatch, Klo gives his stopwatch.
 
-## Puzzles (10 eggs, 20 steps)
+## Puzzles (10 eggs, 21 steps)
 
 | # | Where | Eggs | What you do | Half |
 | --- | --- | --- | --- | --- |
@@ -135,12 +138,13 @@ Stormens öga, the calm summit where the cloud sits on its nest of fluff.
 | P6 | Djuphålan + Skatträdet | 1 | The magpie trades her "pearl" for something shinier. A hidden shell spirals down the whirlpool to the gold coin; climb the tree and **Ge** her the coin. | both |
 | P7 | Rutschstammen | 1 | The egg sits in an old nest across Ravinen. Gallop down the fallen trunk for the big leap; **Dra** the vine to get back. | horse |
 | — | Jätteträdet | — | Climb the branches to the crown and see the storm over Åsktoppen. | — |
-| K1 | Kristallgrottan | — | Gallop over the three crystal plates until all three ring and glow; the light shows the dashed crystal bridge over the chasm, and a gallop draws it. | horse |
+| K1 | Kristallgrottan | — | The plates take turns, and the next one blinks: the far one, back to the first, then the middle one. Three gallops, each plate with its own note. The light shows the dashed crystal bridge over the chasm, and the last gallop draws it. | horse |
 | K2 | Kristallsjön | 1 | Three currents start by three crystals on the lake floor; the blue and the green loop back. Hide by the white one ("vit som ett ägg"): it carries the shell under the wall. | turtle |
 | K3 | the gate's pool | 1 | **Knuffa** Tordyveln's glitter ball into the pool onto plate A, then lie hidden on plate B: the gate opens. | both |
 | Källan | Kristallgrottan | — | The falling water pushes a swimmer down; a still shell rides the spring up to the mountain top. | turtle |
-| T1 | Vindkanten, Klippan | — | Gusts blow a standing sköldhäst back; hide when the wind howls (a warning comes first), or wait behind a boulder. | turtle |
+| T1 | Vindkanten | — | Gusts blow a standing sköldhäst back; hide when the wind howls (a warning comes first), or wait behind a boulder. | turtle |
 | T2 | Blixtbron | — | The bridge of light shows only in the lightning: gallop out onto it in a flash and draw it. | horse |
+| T3 | Klippan | — | The opposite of T1: the storm has turned, and the gap is too far to jump. Stay out of the shell in a gust and the wind carries you over; hidden, it passes by. | horse |
 | Toppen | Stormens öga | 1 | Climb to the calm summit and meet the cloud: the reveal, and the egg it kept. | — |
 | Finale | the nest | — | Everyone gathers. Mira draws the moon and Alva the stars (the player traces both). The storm ends and ten little tukankrabbor hatch. | Mira and Alva |
 
@@ -157,8 +161,8 @@ come back every few seconds.
    (the player traces the first egg with Alva's pencil); Mira draws the forest and the river, and then (the
    player) a little cloud with her lilac pencil. "Mira, du ritar väl månen sen?" "Mm … blixtar först!" The
    cloud flees east, the page darkens, the eggs blow away like sparks.
-2. **The nest.** Tukankrabban digs in the empty nest. Klo falls in love. Her rule: eggs hatch only in
-   moonlight. "Det finns ingen måne här." The question: who is storming, and why? The first egg (E1).
+2. **The nest.** Tukankrabban digs in the empty nest. Klo falls in love. Her rule: eggs hatch only when the
+   moon rises. "Det finns ingen måne här." The question: who is storming, and why? The first egg (E1).
 3. **Free exploration** of both forest pages in any order (the forest needs P2). After eggs 2, 4, 6 and 8 a
    short Klo-and-Tukankrabban scene (deferred while on the mountain top): the cocoa bean gift, the heartbeat
    measurement, the notebook hearts, a joint hypothesis.

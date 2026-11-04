@@ -42,11 +42,12 @@ const PUZZLES = [
     { id: 'spring', scene: 'kristall', areas: ['k-spring'], solved: F => F.has('topp_reached'), needs: 'k3_open' },
     { id: 't1', scene: 'topp', areas: ['t-wind'], solved: F => F.has('wind_passed') },
     { id: 't2', scene: 'topp', areas: ['t-chasm'], solved: F => F.has('t2_bridge'), seen: 'b:blixtbro' },
+    { id: 't3', scene: 'topp', areas: ['t-gap'], solved: F => F.has('gap_crossed'), needs: 't2_bridge', seen: 'b:medvind' },
     { id: 'summit', scene: 'topp', areas: ['t-climb', 't-summit'], solved: F => F.has('cloud_met'), needs: 't2_bridge' }
 ];
 const EGG_PUZZLES = ['dig', 'p1', 'p5', 'coin', 'trade', 'p2', 'mush', 'p4', 'p7', 'k2', 'k3', 'summit'];
 const IN_MOUNTAIN = new Set(['k2', 'k3', 'summit']);
-const PEAK_PATH = ['k1', 'k2', 'k3', 'spring', 't1', 't2', 'summit'];
+const PEAK_PATH = ['k1', 'k2', 'k3', 'spring', 't1', 't2', 't3', 'summit'];
 
 /** The storm the view and audio draw: full until the cloud is met, softer after, gone with the moon. */
 export function stormLevel(flags) { return flags.has('moon') ? 0 : flags.has('cloud_met') ? 0.5 : 1; }
@@ -56,7 +57,7 @@ export function createStory(G, io) {
     let current = null, thoughtAt = -10;
     const hintLevel = new Map();
     const said = new Map();
-    let eggLine = 0;
+    let eggLine = 0, blownLine = 0;
 
     const F = G.flags;
     const done = (id) => F.has('b:' + id);
@@ -317,16 +318,13 @@ export function createStory(G, io) {
             await say(STORY.arrive);
             G.actors.klo.pose = 'love';
             await say(STORY.arrive2);
-            G.actors.klo.pose = 'idle'; G.actors.tukan.pose = 'happy';
-            await say(STORY.claws);
-            await say(STORY.alvaHello);
-            G.actors.tukan.pose = 'idle';
+            G.actors.klo.pose = 'idle'; G.actors.tukan.pose = 'idle';
             await say(STORY.arrive3);
             await say(STORY.mystery);
             clue('moonRule'); clue('noMoon');
             G.actors.klo.follow = true; G.actors.tukan.follow = true;
             await fx('focus', { x: G.scenes.strand.eggs[0].x, y: G.scenes.strand.eggs[0].y, zoom: 1.1, hold: 0.6 });
-            await say(STORY.digSeen);
+            think(STORY.digSeen, { force: true });
             await fx('focus', null);
         });
     }
@@ -334,7 +332,13 @@ export function createStory(G, io) {
     function onEgg({ id, n }) {
         io.audio?.sfx?.('egg');
         ui().toast?.(WORDS.eggToast(n, EGG_TOTAL));
-        if (id === 'e2') beat('fallen', () => say(STORY.fallen));
+        // the claws that pick the cocoa fruit; when the love scene follows, it takes Klo's line about them
+        if (id === 'e2') beat('fallen', async () => {
+            await say(STORY.fallen);
+            if (G.actors.tukan) G.actors.tukan.pose = 'happy';
+            await say(n === 2 ? STORY.claws.slice(0, 2) : STORY.claws);
+            if (G.actors.tukan) G.actors.tukan.pose = 'idle';
+        });
         if (id === 'e7') beat('tradeThanks', () => say(F.has('cloud_met') ? STORY.tradeThanksLate : STORY.tradeThanks));
         if (n === 1) beat('firstEgg', async () => { await say(STORY.firstEgg); await say(STORY.alvaFirstEgg); });
         else if (!['e2', 'e5', 'e7'].includes(id)) think(STORY.eggLine?.[id] || STORY.eggLines[eggLine++ % STORY.eggLines.length], { gap: 0 });
@@ -454,7 +458,8 @@ export function createStory(G, io) {
                     await fx('focus', null);
                 });
             }
-            if (id === 't-climb' && F.has('t2_bridge')) G.setCheckpoint('bridgeEast');
+            if (id === 't-climb' && F.has('t2_bridge') && !F.has('gap_crossed')) G.setCheckpoint('bridgeEast');
+            if (intro && id === 't-gap' && !F.has('gap_crossed')) beat('medvind', async () => { stage(); await say(STORY.medvind); });
             if (id === 't-summit') { G.setCheckpoint('summit'); if (intro) summit(); }
         }
     }
@@ -465,7 +470,7 @@ export function createStory(G, io) {
         beat('source', async () => {
             const met = F.has('cloud_met'), inside = F.has('visited_kristall');
             stage();
-            await fx('focus', { x: h(20), y: h(-13.5), zoom: 0.8, hold: 0.4, peak: true });
+            await fx('focus', { x: h(30), y: h(-12), zoom: 0.9, hold: 1.1, peak: true }); // from the tree to the mountain
             await say(met ? STORY.sourceAfter : inside ? STORY.sourceLate : STORY.source);
             G.flag('storm_source'); clue('source');
             if (!met) {
@@ -614,10 +619,16 @@ export function createStory(G, io) {
             collectEgg(G, 'e7');
             if (!F.has('cloud_met')) { await say(STORY.trade.slice(2)); clue('cloudCries'); }
         })),
-        G.on('land', (e) => { if (e.id === 'leap-p7') beat('leapDone', () => say(STORY.leapDone)); }),
+        G.on('land', (e) => {
+            if (e.id === 'leap-p7') beat('leapDone', () => say(STORY.leapDone));
+            if (e.id === 'wind-gap') beat('windCarried', async () => { G.setCheckpoint('gapEast'); stage(); await say(STORY.windCarried); });
+        }),
+        G.on('carried', () => thinkOnce('carried', STORY.carried)),
+        G.on('tailHidden', () => think(STORY.tailHidden, { gap: 9 })),
         G.on('vine', () => think(STORY.vineDone, { gap: 0 })),
         G.on('crystalRing', () => thinkOnce('crystalRing', STORY.crystalRing)),
         G.on('crystalSoft', () => think(STORY.crystalSoft, { gap: 8 })),
+        G.on('crystalWait', () => think(STORY.crystalWait, { gap: 6 })),
         G.on('crystalLit', ({ lit, of }) => think(lit < of ? STORY.crystalOne : STORY.crystalAll, { gap: 0, key: 'lit' + lit, force: lit === of })),
         G.on('loopBack', () => think(STORY.loopBack, { gap: 8 })),
         G.on('rescued', () => think(STORY.rescued, { gap: 2 })),
@@ -632,8 +643,8 @@ export function createStory(G, io) {
         })),
         G.on('gust', ({ state }) => { if (state === 'warn' && G.sceneId === 'topp' && G.areas.has('t-wind')) thinkOnce('gustSoon', STORY.gustSoon); }),
         G.on('blown', () => {
-            if (!done('windKlo')) beat('windKlo', () => say(STORY.windKlo));
-            else think(STORY.blown, { gap: 8 });
+            if (!done('windKlo')) beat('windKlo', async () => { await say(STORY.windKlo); think(STORY.windTip, { force: true }); });
+            else think(STORY.blown[blownLine++ % STORY.blown.length], { gap: 8, key: 'blown' });
             G.puz.blown = false;
         }),
         G.on('talk', ({ who }) => talk(who)),
