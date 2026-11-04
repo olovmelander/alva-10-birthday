@@ -98,6 +98,8 @@ export function createUI(host, { assetBase, handlers }) {
     // Small portraits use the same atlas drawings as the characters on the page.
     // Keep them beside the existing name, with no new portrait asset to download.
     function portrait(who, pose) {
+        // another adventure can draw its own characters' faces (null: no face)
+        if (handlers.portrait) { const own = handlers.portrait(who, pose); if (own !== undefined) return own; }
         const face = el('span', 'sk-speaker-face face-' + who);
         face.setAttribute('aria-hidden', 'true');
         if (who === 'horse') face.append(art('hero', 'hero-head'), art('hero', 'hero-eye-open'), art('hero', 'hero-forelock'));
@@ -916,6 +918,8 @@ export function createUI(host, { assetBase, handlers }) {
         root, hud, controls, stickZone, stickBase, stickKnob, hopBtn, actBtn, hideBtn, portrait, updateSpeaker,
         say, choice, toast, caption: captionShow, pulse, report, ending, journal, pauseMenu, settings, title, adventurePicker, slotPicker, draw,
         closePanel,
+        // the notebook's own pieces, for another adventure's panels
+        openPanel, button: btn, art, tape, icon,
         panelOpen: () => panel.classList.contains('on'),
         dialogueOpen: () => !!dlgResolve,
         speaker: () => speaker,

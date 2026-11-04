@@ -17,8 +17,9 @@ Do not start the next chapter's content in the same PR. Keep `RELEASED_CHAPTER`
 (`src/content/world.mjs`) at the last released chapter; raising it *is* the release.
 
 The full existing story is **Äventyr 1**, containing Kapitel 1–3. The series catalogue
-(`src/adventures.mjs`) reserves three adventures; 2 and 3 remain unreleased with no
-entry module until their content is built. Their release flags are independent of
+(`src/adventures.mjs`) reserves three adventures. **Äventyr 2: Den magiska skogen** is built in
+`adventures/adventure-2/` and released (4 November 2026): it opens once Äventyr 1 is finished. 3 has no entry module yet
+(`released: false`). Their release flags are independent of
 `RELEASED_CHAPTER`. Use `src/launcher.mjs` for host integration and the adventure-aware
 save API; never reset other stories or permanent completion when replaying one.
 The runtime contract and release steps are in plan §8.6, "Adventure series".
@@ -46,6 +47,7 @@ The runtime contract and release steps are in plan §8.6, "Adventure series".
 | DOM UI, input, the table prologue/epilogue | `src/ui.mjs`, `src/input.mjs`, `src/prologue.mjs` |
 | Series entry, release/unlock catalogue | `src/launcher.mjs`, `src/adventures.mjs` |
 | Adventure 1 runtime, loop, host glue | `src/main.mjs` |
+| Äventyr 2: Den magiska skogen (world, story, puzzles, view, runtime) | `adventures/adventure-2/` (design: `docs/skoldhast/adventure-2.md`; preview: `dev/play.html?adventure=2`) |
 | Synthesized audio | `src/audio.mjs` |
 | All art | drawn in code in `scripts/skoldhast-art/`, built by `npm run build:skoldhast` |
 

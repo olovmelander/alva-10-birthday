@@ -1,5 +1,319 @@
 # Sköldhästen – handover
 
+## The final visual round: an audit of every scene, and its fixes (4 November, late)
+
+Pappa asked for one last pass: review everything and make the graphics, effects and assets stand out. A subagent
+photographed every scene of both adventures at 1440×900 and 390×844 (64 shots, no page errors) and ranked 12
+weaknesses. What was done about them:
+
+- **The light (both adventures, `src/atmosphere.mjs`):**
+  - **Rays that read as rain** on Äventyr 1's day pages (the ray texture was stretched 3–5×): a long 192×1536 texture
+    with long, faint strokes. Day pages have three shafts, behind the world only, aimed from the light toward the
+    middle of the page.
+  - **A milky sun glow:** by day the bloom is a warm screen blend at lower strength, and stays additive at night.
+    When no sun is drawn on the stretch, Äventyr 1's light comes from beyond the top right corner and only leaks in.
+  - **Haze:** fainter on every page, lilac in the evening, and the evening grade is halved.
+  - **Particles:** pollen is small and warm with a normal blend (12 instead of 26). Snow uses soft dots instead of
+    asterisks. Cloud shadows are fainter and cooler.
+- **Äventyr 2:**
+  - **The pale paper block under every page:** the paper lies in the page's dusk and is never brighter than the
+    ground, and the soil's lower edge is torn smoothly with low-frequency noise. Inside the mountain the rock goes
+    all the way down, which also removes the paper pillar under the lake island.
+  - **Hard rectangles:** ravines, the summit chasm, the Kristall chasm, the strand cave and the Kristall tunnel fade
+    through soft hatched canvas gradients (`softDark()`). The water's front veil stops at the water's bed instead of
+    covering the banks.
+  - **Seams:** where two kinds of ground meet, each runs about two lengths into the other.
+  - **Soil:** a darker skin, broken layer lines, stones (shells and pebbles in sand) and fine roots under turf.
+  - **Bark and light direction:** trunks are pencil-shaded over their colour instead of the plank material, and dark
+    on the left, away from the moon. Stones are lit from the upper right too.
+  - **Jätteträdet:** its crown is built from the same three-depth leaf clusters as the other trees (`crownAt()`).
+  - **Characters:** Klo, Skatan and Tordyveln cast soft contact shadows. Tukankrabban and the horse already had them.
+  - **Weather:**
+    - rain stays out of the strand cave and Rotgrottan;
+    - the storm clouds have weight;
+    - leaves blow across the forest pages;
+    - gusts on Åsktoppen are tapered pencil swooshes instead of ruled lines;
+    - the waterfall falls in wavering strokes.
+  - **Phone portrait:** the ground sits at about 70 % of the height, so there is less empty foreground.
+  - **The table caption** has a soft dark backing, so it is readable on the light wood.
+- **Not done, and why:**
+  - **Sharper art.** Props, hero, NPCs and materials are still at their old texture density. A subagent mapped how to
+    raise it:
+    - the pencil toolkit works in pixels, so props need a Sheet-density refactor with 15–25 call sites;
+    - tall props need 4096 atlases;
+    - decoded memory would grow from about 175 to 315 MiB, a risk on older iPads.
+
+    That is too much for a release night. The order to do it in is noted here for a later session: materials, then
+    hero, then NPCs, then props.
+  - **Äventyr 1's ground.** Its flat paper area on phone, the ruled line at udden and the boxy steppe hollows are
+    untouched. They are part of art Pappa has already reviewed, and changing them risks the puzzles' readability.
+  - **Smaller items:**
+    - the Åsktoppen silhouette seen from the crown is still a plain triangle;
+    - Klo's grounding in Äventyr 1 is unchanged;
+    - Äventyr 1's table still opens on a blank sheet for about 5 s.
+- **Verification:**
+  - `npm test` passes (392).
+  - `skoldhast-adventures.mjs` and `skoldhast-launch.mjs` pass.
+  - `skoldhast-a2.mjs` passes, but its finale is now slow in the cloud's software WebGL: the richer scenes cost more to
+    draw there, and the game slows down when the frame rate drops under 12. Run alone, the finale passes within 300 s.
+    After the portrait check it timed out twice and then passed once, with the limit raised to 480 s
+    (`tests/browser/skoldhast-a2.mjs`). Treat a timeout there as a slow machine; a page error would fail the check
+    differently.
+- **Contact sheets:** `docs/skoldhast/shots/visual/final-round-1440x900.webp` and `final-round-390x844.webp`.
+
+## A visual overhaul: light and air on every page, sharper drawing (4 November, night)
+
+Pappa asked for a total visual overhaul that keeps the coloured-pencil style: more atmosphere, more striking
+everywhere, with a bigger graphics budget (he chose up to 10 MB for the first download). It goes out with
+Äventyr 2's release in PR #11, at his request.
+
+- **A shared atmosphere layer, `src/atmosphere.mjs`.** It paints the air over a page on two layers, one between the
+  far backdrops and the world and one in front of the world:
+  - the light's bloom, sitting on the page's own drawn sun or moon;
+  - shafts of light, hatched like coloured pencil;
+  - haze along the horizon, placed at the hero's ground;
+  - floating motes: pollen by day, fireflies at night, dust in caves, snow on the peak, bubbles under water;
+  - slow cloud shadows over the ground;
+  - a vignette and a colour grade.
+
+  Each page has a mood (day, evening, underwater, storm, moonlit, cave, peak), and moods blend over 1.5 s. A
+  frame costs a few dozen sprites on textures painted once on a canvas. It uses no filters, and only the
+  built-in add, multiply and screen blends.
+- **Äventyr 1:**
+  - The light comes from the sun drawn in the sky, or in from the side when the sun is out of view.
+  - The evening is warm, and under water the light falls in shafts.
+  - The page keeps its own lamp vignette, plankton and water glints.
+  - The steppe and bay evening skies and the bay's evening front are stored at full size instead of half, so they
+    are as sharp as the day.
+- **Äventyr 2:**
+  - Tree crowns are drawn in three depths with a leafy edge and light on the moon's side, and spruces stand among
+    them.
+  - The forest has three rows: a far row, bluer with distance and half lost in mist, then the middle and near rows.
+  - Mist lies between the trees and the path, dark plants frame the front of the page, and rain splashes on the
+    ground.
+  - The moon glows, and fireflies drift.
+  - Water has pencil glints, gets darker with depth, and shows a moon path on the river once the moon is drawn.
+  - The far bands are baked at a higher resolution.
+  - Kristallgrottan has cave dust and a violet haze; Åsktoppen has snow.
+- **Sharper on tablets and laptops.** The pixel cap for large screens rose from 2.6 to 4.2 million device pixels:
+  - a 1180×820 iPad now draws at 2×, up from 1.64×;
+  - a 1440×900 laptop draws at 1.8×, up from 1.42×.
+
+  Phones were already at 2×. A new **frame guard** (`src/frame-guard.mjs`, both adventures) watches frame times.
+  When frames stay below about 42 per second for a few seconds, it steps the resolution down 15 % at a time, never
+  below 55 %, and never back up during the session. A slower device therefore keeps playing smoothly, at the cost
+  of a little sharpness.
+- **Budget:** `BOOT_BUDGET` and its test are 10 MB, raised from 3 MB. The first playable is still **2.36 MB**. The
+  evening bundle grew by 37 KB and the bay bundle by 118 KB; both load in the background.
+- **Verification:** `npm test` passes (392). The browser checks pass:
+  - `skoldhast-a2.mjs`: the prologue, all four pages at 390×844, and the finale.
+  - `skoldhast-adventures.mjs`: every case, including the round trip from Äventyr 1 into Äventyr 2.
+  - `skoldhast-launch.mjs`: all five checks.
+- **Contact sheets** are in `docs/skoldhast/shots/visual/`:
+  - `a1-before-after-1440x900.webp` and `a2-before-after-1440x900.webp`: before and after.
+  - `a1-844x390`, `a1-390x844`, `a2-844x390` and `a2-390x844`: after, at phone sizes.
+  - `a2-mountain-1440x900`: Kristallgrottan and the summit.
+- **Known limits:**
+  - Frame rate on Alva's real device is still unmeasured. The frame guard is the safety net. Open `?debug` on her
+    device: the overlay shows fps and the current resolution.
+  - The props, hero and materials are still drawn at their old texture density. Sharper props would need the prop
+    painters to draw at a higher scale and atlases larger than 2048 px; that is the next step if Pappa wants more.
+- **Frågor till Pappa:**
+  1. Is the light right? It is deliberately soft. `MOODS` in `src/atmosphere.mjs` holds every strength in one place.
+  2. Should Äventyr 2's dark foreground plants stay, or are they too dark for Alva?
+
+## Äventyr 2 is released (4 November, evening)
+
+Pappa's answers to the last questions, and his decision to release Äventyr 2 tonight.
+
+- **Released:** `released: true` for `adventure-2` in `src/adventures.mjs`. Anyone who has finished Äventyr 1
+  gets **Den magiska skogen** under **Välj äventyr** and as "next adventure" on Äventyr 1's ending card. Players
+  who have not finished Äventyr 1 see it locked with its reason. Äventyr 3 stays unreleased. The Sköldhästen
+  button on the ticket page is unchanged: it still shows only with `?skoldhast`.
+- **Decisions (Pappa, 4 November):**
+  1. The mountain may be entered as soon as the lantern is found, before the crown. That stays as built.
+  2. The gusts and the lightning keep their rhythm, which was the recommendation. A gust lasts 1.7 s in every 5 s,
+     with a 0.8 s warning, and the calm is long enough to gallop from one boulder to the next. The bridge of light
+     shows for 2.4 s in every 5.2 s.
+  3. The cloud carries everyone home. That stays as built.
+- **Tests changed on purpose:** `tests/skoldhast-adventures.test.mjs`, `tests/skoldhast-launcher.test.mjs` and
+  `tests/skoldhast-save.test.mjs` now expect Äventyr 2 released and playable after Äventyr 1, still locked before
+  it, and Äventyr 3 refused. `tests/browser/skoldhast-adventures.mjs` expects Äventyr 2 open
+  after Äventyr 1 and Äventyr 3 locked, and the ending card's three actions. It also gains a last case: from
+  Äventyr 1's finished game into Den magiska skogen through the real launcher, and back, with the completion kept.
+  The series shots in `docs/skoldhast/shots/adventures/` are refreshed, plus `adventure-2-title-844x390.webp`.
+- **Verification:** `npm test` passes (392). The browser checks pass: `skoldhast-adventures.mjs` (all cases),
+  `skoldhast-launch.mjs` (all five), and `skoldhast-a2.mjs`. A ticket-page probe (`index.html?skoldhast` with a
+  finished Äventyr 1) opens Äventyr 2 and its prologue without errors.
+- **Known bug:** `skoldhast-adventures.mjs` failed once on "selector return preserves position" (the unfinished
+  Äventyr 1 case, which the release does not touch) and passed when run again. It looks like a timing flake in
+  the check.
+- **To release:** merge this branch to `main` at least 15 minutes before Alva plays. GitHub Pages caches every
+  file for 10 minutes, and module imports carry no version.
+
+## Äventyr 2, the long version: an audit, two new worlds and twelve new puzzle steps (4 November, latest)
+
+Pappa asked for Äventyr 2 to be much longer and more epic, more polished, with a better story, more puzzles, and
+everything hanging together: an audit, every fix, then the longer adventure. The findings and fixes are in
+`docs/skoldhast/adventure-2-audit.md`; the design (four pages, five acts, the puzzle table) is
+`docs/skoldhast/adventure-2.md`.
+
+- **The story now has a question and a journey.** At the nest the sköldhäst asks who is storming, and why. The
+  crown of Jätteträdet no longer holds the answer: from up there they *see* the storm swirl round **Åsktoppen**,
+  the mountain behind the waterfall, and Mira wonders if it is her cloud. The way there goes through the
+  mountain, which is pitch dark until Tukankrabban carries a moonshine seed as a lantern. On the summit, in the
+  eye of the storm, the cloud is afraid of the dark; Mira recognises her cloud and says sorry; Alva explains why
+  the moon must wait for the nest. The cloud gives back the egg it kept warm and carries everyone home in a short
+  picture over the whole forest. Skatan and Tordyveln come to the nest for the finale.
+- **Two new worlds.** **Kristallgrottan**, inside the mountain: crystal plates that ring under galloping hooves
+  (K1, they light the chasm so the crystal bridge can be drawn), a lake with three currents of which only the
+  white one ("vit som ett ägg") runs under the rock wall (K2), Tordyveln's new glitter ball to push into a pool
+  onto one plate while the hidden shell presses the other (K3), and the spring that carries a still shell up
+  through the mountain. **Åsktoppen**: gusts that blow a standing sköldhäst back (hide, or shelter behind a
+  boulder) on two stretches (T1), a bridge of light that shows only in the lightning (T2), and the calm summit.
+- **The forest pages grew too:** a bouncing mushroom up to the owl's branch, the waterfall cave leads on into
+  the mountain, and the eggs are spread over all four pages (4, 3, 2, 1).
+- **The journal** shows the mission, a hand-drawn map of the four pages (eggs found and left, "Här är vi"), the
+  open question and Tukankrabban's current hypothesis.
+- **Fixed in the audit** (the full list is in the audit): the trade or the cloud could lose an egg on a reload;
+  "Guida mig" skipped hints, and "Påminn mig om Klo" did nothing; companions crossed gaps you had not opened;
+  "Alla tio" could play after the ending; a love scene could interrupt the summit; the next-egg hint ignored the
+  page you were on; Swedish (one prompt form, "streckad", place names, "Tukankrabban").
+- **Pictures:** every page has its own sky (Åsktoppen on the horizon from the forest pages, a cave wall and a
+  lantern's soft darkness inside the mountain, jagged peaks, lightning and wind streaks on the top), and all the
+  new pieces are drawn in code on the same pencil tiles: no new download.
+- **Length** (the robot, which plays optimally and skips nothing; no prologue):
+
+  | | Robot play time | Dialogue boxes | Puzzle steps |
+  | --- | --- | --- | --- |
+  | Äventyr 1, Kapitel 1 | 0.7 min | 26 | 2 |
+  | Äventyr 1, all three chapters | 4.1 min | 94 | 8 |
+  | Äventyr 2, first build | 3.6 min | 112 | 8 + the climb |
+  | **Äventyr 2, now** | **4.8 min** | **161** | **20** |
+
+- **Verification:** `npm test` passes (**391**). The A2 robot (`tests/skoldhast-a2-playthrough.test.mjs`) plays
+  from a new game through all four pages to the hatching with ordinary inputs, and also checks the mountain before
+  the crown, no way in without the lantern, a reload on the peak, save repair, the hint peek, and that no
+  companion crosses a closed gap. The browser check (`node tests/browser/skoldhast-a2.mjs --out <dir>`) plays the
+  prologue at 844×390, draws all four pages at 390×844, and plays the finale at 1440×900. New contact sheets:
+  `docs/skoldhast/shots/a2/mountain-*.webp` (the tunnel, Kristallgrottan and Åsktoppen at all three sizes) and
+  `summit-ride-*.webp` (the summit, the cloud ride home, the beach after it).
+- **Not released:** `adventure-2` keeps `released: false`. Play it with **`skoldhast/dev/play.html?adventure=2`**
+  or **`index.html?skoldhast&adventure=2`**.
+- **Known limits:** the robot's 4.8 minutes is a floor; a child's real play time is unmeasured. Frame rate on a
+  real phone is unmeasured (software WebGL in the cloud gives 5–30 fps). The wind and the lightning repeat every
+  five seconds, which may feel fast or slow to Alva.
+- **Frågor till Pappa:**
+  1. Is the order right: the forest first, then the mountain? The mountain can be entered as soon as the lantern
+     is found, even before the crown.
+  2. Should the gusts and the lightning be slower (now about every 5 seconds)?
+  3. Is it all right that the cloud carries everyone home, or should the sköldhäst walk back through the mountain?
+  4. When should `adventure-2` be released?
+
+## Äventyr 2: Alva with us, a Swedish pass, and how long it is (4 November, later)
+
+Pappa asked for three things after the first build: Alva must also be in the game, all the storytelling must be
+in good and correct Swedish, and how long is Äventyr 2 compared with Kapitel 1?
+
+- **Alva draws and speaks through the whole adventure**, not only at the table (still heard and seen as her
+  pencil, never drawn). In the prologue the player draws **the first egg with Alva's pencil** (a traced egg,
+  then the other nine appear in the nest), as well as Mira's cloud. In the finale, after Mira's moon, the player
+  draws **a star with Alva's pencil**, and her stars shine round the moon for the rest of the game. She talks
+  to Tukankrabban at the nest ("Alva, är det du som har ritat mig? Tack för tukanklorna!"), writes the first
+  egg into the notebook, reminds the sköldhäst that her pencil is in its hooves at Mira's bridge, tells us
+  tukankrabbor love pearl necklaces and gold coins (her facts), that moonshine seeds replace sunflower seeds
+  ("Det har jag bestämt."), cheers the big leap, sees that Klo is in love ("Jag visste det! Klo är kär." Mira:
+  "Kär, kär, kär!"), and speaks in the crown and the epilogue: 11 lines during play, 5 at the table.
+- **Swedish pass** over every line, hint, goal and clue: no anglicisms ("Wow", "coolaste"), correct
+  references ("Jag bär äggen i mitt skal. Där har de det varmt och tryggt."), "där inne", "Hundrafyrtio slag i
+  minuten", cocoa *fruits* on the tree, and the moonshine *flowers* whose *seeds* glow (her food, as Alva wrote).
+  Klo "kilar" after the sköldhäst; the colon after "Förresten".
+- **How long it is** (the robot plays optimally and skips nothing; the prologue is not counted in either):
+
+  | | Robot play time | Dialogue boxes | Puzzles |
+  | --- | --- | --- | --- |
+  | Äventyr 1, Kapitel 1 | 0.7 min | 26 | 2 |
+  | Äventyr 1, all three chapters | 4.1 min | 94 | 8 |
+  | Äventyr 2 | 3.6 min | 112 | 8 + the climb |
+
+  So Äventyr 2 is about five times as long as Kapitel 1 and close to the whole of Äventyr 1. A child's real
+  play time is still unmeasured; Äventyr 1 has more long staged scenes (the prologue, the map journeys).
+- Verification: `npm test` passes (387); the robot now also checks Alva's stars and that Alva speaks during
+  play (at least 7 lines). `node tests/browser/skoldhast-a2.mjs` checks both table drawings in the prologue
+  (Alva's egg, Mira's cloud) and both in the finale (Mira's moon, Alva's star).
+
+## Äventyr 2: Den magiska skogen, built in one go (4 November)
+
+Branch `ccr-cae565b1-4dxaeb`. Pappa asked for the whole next chapter at once: a good story, many puzzles, about
+as long as the first adventure, with **Tukankrabban** (Alva's new creature) as a big part of it, **Mira** with us,
+and Professor Klo falling a little in love. The design is `docs/skoldhast/adventure-2.md`.
+
+- **The story.** Alva and Mira draw a new page together at the table. Alva draws Tukankrabban and her nest of ten
+  eggs, and Mira draws the forest, the river, a rope bridge she does not finish, and a little cloud with lightning
+  (the player draws the cloud, with Mira's pencils). The page grows dark, the cloud rumbles, and a storm blows the
+  eggs all over the magic forest. Tukankrabban's eggs hatch only in moonlight, in the nest, but this page has no
+  moon. The sköldhäst and Klo find all ten eggs. In the crown of Jätteträdet they learn why it storms: the cloud
+  is afraid of the dark and flashes so it can see. Mira forgot to draw the moon. With all ten eggs in the sand,
+  Mira draws it (the player traces it), the storm ends and ten little tukankrabbor hatch. Klo gives Tukankrabban
+  his shiny stopwatch, she names the smallest hatchling Lilla Klo, and Klo faints from happiness. At the table:
+  "Kan Klo och tukankrabban gifta sig?" "Forskning pågår." Free exploration follows in the moonlit forest.
+- **Tukankrabban as Alva drew her.** Pappa sent photos of Alva's drawing during the session. The first version was
+  my own guess and did not match it; she is redrawn after the photos: a round orange crab with a curved line
+  across her shell, two big round eyes on stalks, eight thin orange legs, and **claws that are toucan heads**
+  (black head, white eye, an orange beak with a black tip whose orange-red lower half opens like a pincer). Both
+  beaks open and shut when she talks. The photos are not committed; the fidelity list is in the design doc.
+  `skoldhast/dev/a2-characters.html` shows her and the other new characters.
+- **Ten eggs, eight puzzles** (both halves of the sköldhäst, like Äventyr 1): Gräv in the sand (E1); gallop over
+  the hollow log so the hooves drum the cocoa tree (P1); gallop Mira's dashed rope bridge whole (P2); hide in the
+  pool so the shell sinks under the waterfall's push and the undertow carries it into the cave (P3, two eggs);
+  hide still beside the shy moonshine seeds until they light Rotgrottan (P4); Knuffa the dung beetle's ball into
+  the river, which washes the egg free (P5); hide over Djuphålan so the shell spirals down to the gold coin, climb
+  Skatträdet branch by branch and trade it to Skatan (P6, two eggs); gallop down the fallen trunk for the big leap
+  over Ravinen, then Dra the vine back (P7). Then the climb up Jätteträdet to the cloud.
+- **Mira** is with us as Alva is in Äventyr 1: heard in speech boxes and seen as her lilac pencil, never drawn
+  (plan §3.2). She speaks at the table, at her unfinished bridge, in the crown and in the finale.
+- **Klo in love**: he stammers when they meet, offers her a cocoa bean, measures his heartbeat ("Hundrafyrtio i
+  minuten!"), draws hearts he calls diagrams, says "J-ja!" to researching together, and hearts rise over him.
+- **How it is built.** `skoldhast/adventures/adventure-2/` (outside the shared `src/` prefetch tree, plan §8.6):
+  `content/world.mjs` and `content/sv.mjs`, `game.mjs`, `puzzles.mjs`, `story.mjs` (pure), and `view.mjs`,
+  `characters.mjs`, `table.mjs`, `ui.mjs`, `main.mjs`, `a2.css`. It reuses Adventure 1's movement (`src/sim.mjs`,
+  unchanged), the hero, Klo, input, audio, the notebook UI, the guide and Alva's drawing pad. Everything new is
+  drawn in code on Adventure 1's pencil tiles: **no new asset download**, and Adventure 1's first-playable size is
+  unchanged.
+- **Small shared changes, all backward compatible:** `src/ui.mjs` takes an optional `handlers.portrait(who)` and
+  returns `openPanel`, `button`, `art`, `tape`, `icon`; `NAMES` in `src/content/sv.mjs` has the new speakers and
+  `ADVENTURE_UI.titles['adventure-2']` is "Den magiska skogen"; `src/adventures.mjs` gives `adventure-2` its
+  module and adds `previewIds`/`withPreview`; `src/launcher.mjs` opens a previewed adventure directly.
+- **Not released.** `adventure-2` keeps `released: false`, so the ticket page is unchanged for Alva. Pappa can play
+  it now with **`skoldhast/dev/play.html?adventure=2`** or **`index.html?skoldhast&adventure=2`** (no unlock
+  needed). Releasing it is one line: `released: true` in `src/adventures.mjs`; then anyone who finished Äventyr 1
+  has it unlocked under **Välj äventyr**.
+- **One engine gap, closed inside Äventyr 2:** the shared simulation never lets a swimmer climb a sloping bank
+  (Adventure 1 never needed it). Äventyr 2's `game.mjs` lets the sköldhäst wade out where the bank ahead is
+  shallow and the stick points at it. `src/sim.mjs` is untouched.
+- **Verification:** `npm test` passes (**387** tests), including `tests/skoldhast-a2-playthrough.test.mjs`: a
+  robot plays the whole adventure with ordinary inputs (all ten eggs, the crown, the moon, the hatching), a second
+  route takes the forest first, plus world, save/restore and word checks. The catalogue tests were updated on
+  purpose (adventure 2 now has a module). Real browser (`node tests/browser/skoldhast-a2.mjs --out <dir>`): the
+  title and the whole prologue with the cloud drawing at 844×390; both pages at 390×844; and the finale from a
+  ten-egg save at 1440×900, walked into with the keyboard, with Mira's moon traced, the hatching, the epilogue,
+  the ending card and the completion saved. Contact sheets are in `docs/skoldhast/shots/a2/` (every place at
+  1440×900, 844×390 and 390×844, the story moments, and the characters). Adventure 1 is unaffected: the five
+  ticket-launcher checks (`tests/browser/skoldhast-launch.mjs`) and the adventure-series check
+  (`tests/browser/skoldhast-adventures.mjs`, all three sizes, legacy saves, the real finale) pass.
+- **Known limits:** frame rate on a real phone is not measured (software WebGL in the cloud gives 5–30 fps for
+  both adventures). The night palette and the giant tree are first passes and would gain from a second art pass.
+  Playtime is not measured; I expect 30–45 minutes. Word codes do not cover Äventyr 2 (as planned in §8.6).
+- **Frågor till Pappa:**
+  1. Does Tukankrabban look right now? Alva may want to adjust her colours, or the size of the beak claws.
+  2. Should she have a name of her own? In the game she is "Tukankrabban" (like "Kartväktaren"); one word in
+     `adventures/adventure-2/content/sv.mjs` and `src/content/sv.mjs` changes it.
+  3. Is it all right that Mira's storm cloud starts the trouble? It is never her fault in the story (the cloud is
+     afraid of the dark, and she saves the day with the moon), but she might prefer another start.
+  4. Should Mira get her own save slot now (`FAMILY.miraSlot`), so she can play Äventyr 2 herself?
+  5. When should `adventure-2` be released?
+
+
 ## Three browser checks fixed: opening, underwater story, exploration order (1 October)
 
 Branch `claude/skoldhast-checks` (test files only; no game bugs found). All three failed on `main` too.

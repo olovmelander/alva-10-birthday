@@ -1466,14 +1466,17 @@ docs/skoldhast-game-plan.md          this plan
 #### Adventure series (implemented 1 October 2026)
 
 The entire existing game is **Äventyr 1: Havet mellan sidorna**, containing its existing
-Kapitel 1–3. Two further adventures have reserved IDs `adventure-2` and `adventure-3`;
-their stories, titles and gameplay remain undecided. `RELEASED_CHAPTER = 3` still refers
+Kapitel 1–3. Two further adventures have reserved IDs `adventure-2` and `adventure-3`.
+**Äventyr 2: Den magiska skogen** was built on 4 November 2026 (`docs/skoldhast/adventure-2.md`,
+runtime in `skoldhast/adventures/adventure-2/`) and released on 4 November 2026; `?adventure=2`
+opens it without its unlock. Adventure 3 remains undecided. `RELEASED_CHAPTER = 3` still refers
 only to the parts within the first adventure.
 
 - `src/adventures.mjs` owns stable IDs, ordering, prerequisites, release flags and entry
   module paths. A story is playable only when its predecessor is permanently completed,
   its release flag is true, and its entry module exists in the catalogue. Adventures 2
-  and 3 currently have `released: false` and `module: null`.
+  and 3 started with `released: false` and `module: null`; Adventure 2 now has both, and Adventure 3
+  still has neither.
 - `src/launcher.mjs` is the ticket/dev entry point. It guards all switches, shares the
   save service, and closes the old runtime before loading the next one. Current
   `src/main.mjs` remains the first adventure's runtime. Keep each future story's world,

@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 /* Series integration: the real launcher, legacy saves, permanent completion,
  * independent players, replay, pause/resume and the production ending route.
- * Future stories are deliberately unreleased in every case.
+ * Äventyr 2 (released) unlocks only once Äventyr 1 is finished; Äventyr 3 stays unreleased.
+ * The last case goes from Äventyr 1's ending into Äventyr 2 and back.
  * node tests/browser/skoldhast-adventures.mjs [--out docs/skoldhast/shots/adventures]
  */
 import assert from 'node:assert/strict';
@@ -52,13 +53,19 @@ async function profile(page, id = 'alva') {
     }, id);
 }
 
-async function picker(page, from = '.sk-title') {
+async function picker(page, from = '.sk-title', { firstDone = false } = {}) {
     await page.locator(`${from} .sk-choose-adventure`).click();
     await page.waitForSelector('.sk-adventures');
     assert.equal(await page.locator('.sk-adventure-card').count(), 3, 'all three adventures have a place in the series');
     assert.equal(await card(page, FIRST).locator('.sk-adventure-play').count(), 1);
-    for (const id of [SECOND, THIRD]) {
-        assert.ok((await card(page, id).getAttribute('class')).includes('is-locked'), `${id} remains locked while unpublished`);
+    // Den magiska skogen is released: it opens once Äventyr 1 is finished; Äventyr 3 is not released
+    const locked = firstDone ? [THIRD] : [SECOND, THIRD];
+    if (firstDone) {
+        assert.equal((await card(page, SECOND).getAttribute('class')).includes('is-locked'), false, 'Äventyr 2 is open after Äventyr 1');
+        assert.equal(await card(page, SECOND).locator('.sk-adventure-play').count(), 1, 'Äventyr 2 has a launch action');
+    }
+    for (const id of locked) {
+        assert.ok((await card(page, id).getAttribute('class')).includes('is-locked'), `${id} is locked`);
         assert.equal(await card(page, id).locator('.sk-adventure-play').count(), 0, `${id} has no launch action`);
         assert.ok((await card(page, id).locator('.sk-adventure-status').textContent()).trim(), 'the lock has a visible explanation');
     }
@@ -203,18 +210,16 @@ try {
         // property. They still qualify for the sequel as soon as it is released.
         const finished = legacy({ flags: [...legacy().flags, 'ended', 'b:k3_window'], checkpoint: 'beachEnd' });
         const { context, page } = await openPage({ width: 390, height: 844 }, legacyEntries(finished));
-        await picker(page);
+        await picker(page, '.sk-title', { firstDone: true });
         assert.ok((await card(page, FIRST).getAttribute('class')).includes('is-complete'));
         assert.ok((await profile(page)).completedAdventures.includes(FIRST));
         await fits(page, 'completed-selector-390x844');
         await card(page, FIRST).locator('.sk-adventure-play').click();
         await settle(page, 'land');
         assert.equal(await page.evaluate(() => window.__skoldhast.debug.G.has('ended')), true);
-        for (const id of [SECOND, THIRD]) {
-            assert.equal(await page.evaluate(adventure => window.__skoldhast.switchAdventure(adventure), id), false,
-                'direct launch also refuses an unreleased story');
-            assert.equal(await page.evaluate(() => window.__skoldhast.activeAdventure), FIRST);
-        }
+        assert.equal(await page.evaluate(adventure => window.__skoldhast.switchAdventure(adventure), THIRD), false,
+            'direct launch also refuses an unreleased story');
+        assert.equal(await page.evaluate(() => window.__skoldhast.activeAdventure), FIRST);
         await reopen(page);
 
         // Stage another story's independent state as a future-version save;
@@ -243,9 +248,9 @@ try {
         assert.ok(replay.completedAdventures.includes(FIRST), 'replay cannot revoke permanent completion');
         assert.equal(replay.adventures[FIRST].flags.includes('ended'), false, 'the current story really restarted');
         assert.deepEqual(replay.adventures[SECOND], expectedOther, 'replay preserves the other story exactly');
-        await picker(page);
+        await picker(page, '.sk-title', { firstDone: true });
         assert.ok((await card(page, FIRST).getAttribute('class')).includes('is-complete'));
-        results.push('finished legacy migration, unpublished locks, replay preserves unlock and other adventure');
+        results.push('finished legacy migration, Äventyr 2 open and Äventyr 3 locked, replay preserves unlock and other adventure');
         await context.close();
     }
 
@@ -267,20 +272,20 @@ try {
         const ended = await profile(page);
         assert.ok(ended.completedAdventures.includes(FIRST), 'completion is saved before dismissing the ending card');
         assert.equal(ended.adventures[FIRST].checkpoint, 'beachEnd');
-        await endingActionsFit(page, 2);
+        await endingActionsFit(page, 3); // next adventure, choose an adventure, explore
+        assert.equal(await page.locator('.sk-ending .sk-next-adventure').count(), 1, 'the ending offers Den magiska skogen');
         await fits(page, 'ending-844x390');
         await page.locator('.sk-ending .sk-choose-adventure').click();
         await page.waitForSelector('.sk-adventures');
         assert.ok((await card(page, FIRST).getAttribute('class')).includes('is-complete'));
-        assert.equal(await card(page, SECOND).locator('.sk-adventure-play').count(), 0);
+        assert.equal(await card(page, SECOND).locator('.sk-adventure-play').count(), 1, 'Äventyr 2 can be started');
         await fits(page, 'ending-selector-844x390');
         await closePicker(page);
         await settle(page, 'land');
         assert.equal(await page.evaluate(() => window.__skoldhast.debug.G.has('ended')), true);
         results.push('production finale saves completion and opens selector, then returns to the beach');
 
-        // Render a future released sequel without changing the real catalogue
-        // or attempting to load a story that has not been built.
+        // The ending's next-adventure action names Den magiska skogen.
         await page.evaluate(() => {
             window.__skoldhast.pause();
             window.__adventureEndingResult = null;
@@ -292,7 +297,24 @@ try {
         await page.locator('.sk-next-adventure').click();
         await page.waitForFunction(() => !!window.__adventureEndingResult);
         assert.deepEqual(await page.evaluate(() => window.__adventureEndingResult), { type: 'next', adventureId: SECOND });
-        results.push('future next-adventure ending action fits and identifies the selected story');
+        results.push('next-adventure ending action fits and identifies the selected story');
+
+        // Into Den magiska skogen from the pause menu, and back again.
+        await page.evaluate(() => window.__skoldhast.resume());
+        await page.locator('.sk-pause-btn').click();
+        await picker(page, '.sk-pause', { firstDone: true });
+        await card(page, SECOND).locator('.sk-adventure-play').click();
+        await page.waitForSelector('.a2-title .sk-pbtn.primary', { timeout: 60000 });
+        assert.equal(await page.evaluate(() => window.__skoldhast.activeAdventure), SECOND);
+        await fits(page, 'adventure-2-title-844x390');
+        await page.locator('.a2-title .sk-choose-adventure').click();
+        await page.waitForSelector('.sk-adventures');
+        assert.ok((await card(page, FIRST).getAttribute('class')).includes('is-complete'), 'Äventyr 1 stays finished');
+        await card(page, FIRST).locator('.sk-adventure-play').click();
+        await page.waitForSelector('.sk-title', { timeout: 60000 });
+        assert.equal(await page.evaluate(() => window.__skoldhast.activeAdventure), FIRST);
+        assert.ok((await profile(page)).completedAdventures.includes(FIRST), 'the completion survives the round trip');
+        results.push('Äventyr 1 → Den magiska skogen → Äventyr 1 through the real launcher');
         await context.close();
     }
     assert.deepEqual(errors, [], 'no browser runtime or loading errors');

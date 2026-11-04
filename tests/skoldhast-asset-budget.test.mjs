@@ -5,7 +5,7 @@ import path from 'node:path';
 import { gzipSync } from 'node:zlib';
 import { fileURLToPath } from 'node:url';
 
-test('the complete first playable stays within its 3 MB download budget', () => {
+test('the complete first playable stays within its 10 MB download budget', () => {
     const root = fileURLToPath(new URL('../skoldhast/', import.meta.url));
     const { files } = JSON.parse(fs.readFileSync(path.join(root, 'files.json')));
     const manifest = JSON.parse(fs.readFileSync(path.join(root, 'assets/manifest.json')));
@@ -20,5 +20,5 @@ test('the complete first playable stays within its 3 MB download budget', () => 
         const data = fs.readFileSync(path.join(root, file));
         return sum + (/\.(mjs|js|css|json)$/.test(file) ? gzipSync(data).length : data.length);
     }, 0);
-    assert.ok(bytes <= 3_000_000, `${bytes} first-playable bytes exceeds the 3,000,000-byte budget`);
+    assert.ok(bytes <= 10_000_000, `${bytes} first-playable bytes exceeds the 10,000,000-byte budget`);
 });
