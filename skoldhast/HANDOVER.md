@@ -1,5 +1,25 @@
 # Sköldhästen – handover
 
+## Äventyr 2's story audited for one red thread (4 November, evening)
+
+Pappa asked for an audit of the story, the conversations and the gameplay, so that the adventure holds together,
+feels epic, keeps one red thread, and is fun and sweet. The whole adventure was dumped in play order and read
+twice: once by this session and once by an independent story-editor read. The findings and every change are in
+`docs/skoldhast/adventure-2-audit.md` ("The story audit"). In short:
+
+- The big question (who is storming, and why) stays a question until the summit; the prologue no longer gives it
+  away.
+- Nobody knows what they could not know yet.
+- Tukankrabban's research runs the whole way: hypothesis 1 at the nest, hypothesis 2 at the moonshine flowers, the
+  conclusion on the summit.
+- Klo's stopwatch is set up before he gives it.
+- The cloud says sorry, Mira gives it the moon, and the sköldhäst gets its own feeling.
+- More fun: Tukankrabban distracted by glitter, Klo's xylophone, Tordyveln's ball that reaches the mountain.
+- Each egg has its own thought.
+- The white current's line now always plays.
+
+`npm test` passes (392). The robot plays it in 4.8 min with 165 dialogue boxes.
+
 ## Sköldhästen is on the ticket for everyone (4 November, evening)
 
 Pappa revealed the game. The fourth button on the ticket page (`index.html`) shows by default; `?skoldhast` and

@@ -307,7 +307,7 @@ export function createStory(G, io) {
         if (id === 'e2') beat('fallen', () => say(STORY.fallen));
         if (id === 'e7') beat('tradeThanks', () => say(F.has('cloud_met') ? STORY.tradeThanksLate : STORY.tradeThanks));
         if (n === 1) beat('firstEgg', async () => { await say(STORY.firstEgg); await say(STORY.alvaFirstEgg); });
-        else if (!['e2', 'e5', 'e7'].includes(id)) think(STORY.eggLines[eggLine++ % STORY.eggLines.length], { gap: 0 });
+        else if (!['e2', 'e5', 'e7'].includes(id)) think(STORY.eggLine?.[id] || STORY.eggLines[eggLine++ % STORY.eggLines.length], { gap: 0 });
         if (STORY.love[n] && G.sceneId !== 'topp') onLove(n);
         if (n === 3) beat('lightning', async () => { await fx('lightning', {}); await say(STORY.lightning); clue('lightning'); });
         if (n === EGG_TOTAL && F.has('cloud_met') && G.sceneId !== 'topp' && !G.areas.has('nest')) beat('allEggs', async () => {

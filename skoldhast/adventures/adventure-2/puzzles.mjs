@@ -251,7 +251,11 @@ export function stepPuzzles(G, events, dt) {
         if (e.type !== 'laneEnd') continue;
         const lane = sc.lanes?.find(l => l.id === e.id);
         if (lane?.loop) G.emit('loopBack', { id: e.id });
-        if (e.id === 'k2-white') G.emit('throughWall', {});
+    }
+    // K2: through, the first time the sköldhäst is in the water east of the rock wall (however it got there)
+    if (sc.id === 'kristall' && !F.has('k2_through') && p.mode === 'swim' && p.x > 46.8 * HL && p.y > 1.5 * HL && p.x < 54 * HL) {
+        G.flag('k2_through');
+        G.emit('throughWall', {});
     }
     // eggs that lie loose are picked up by touch
     for (const egg of sc.eggs || []) {

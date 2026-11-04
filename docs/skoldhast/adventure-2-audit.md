@@ -94,3 +94,44 @@ now longer than the whole of Äventyr 1.
 - The new places are drawn in code like the rest of Äventyr 2; there is no new art download.
 - Real play time with Alva is unmeasured.
 - `adventure-2` is still `released: false`: Pappa plays it first.
+
+## The story audit (4 November, evening)
+
+Pappa asked for a second audit of the story, the conversations and the gameplay, so that the adventure holds
+together, feels epic, keeps one red thread, and is fun and sweet. The whole adventure was dumped in play order
+from the robot, about 250 lines, and read twice: once by this session and once by an independent story-editor
+read. All the changes are in `adventures/adventure-2/content/sv.mjs` unless noted.
+
+### The red thread
+
+| Found | Fixed |
+| --- | --- |
+| The prologue said the cloud "blir rädd i mörkret". That gave away the answer to the big question in the first minute. | "Det blixtrar – och molnet flyger iväg, bort mot bergen." The fear is now revealed on the summit. |
+| In the crown, Tukankrabban knew there was a cloud and a way into the mountain before anyone had told her. | She says her first hypothesis came true ("stormen kommer därifrån!") and repeats what is said about a way behind the waterfall. At the falls she only finds it. On the peak, Klo says the answer to their question is up there. |
+| The research thread was silent. Hypothesis 2 existed only in the journal, so "Hypotesen stämmer!" on the summit pointed at nothing. | She says hypothesis 1 out loud and Klo praises it. Hypothesis 2 ("värst där det är mörkast") comes at the moonshine flowers. On the summit she draws the conclusion to the cloud's face. |
+| Klo's stopwatch, his last gift, was never set up. | He measures his heartbeat "med stoppuret". |
+| The cloud was forgiven but never said sorry. Mira's moon was given to no one in particular. | The cloud says "Förlåt för stormen" as it hands over the egg. Mira's sorry recalls "blixtar först!". Her moon is "till dig, lilla moln", and at the table the cloud sleeps under "världens största nattlampa". |
+| The sköldhäst had no feeling of its own. | "Alla är rädda ibland. Jag gömmer mig i skalet – och du blixtrar." And at the nest: "Ut ur skalet nu, små ägg. Det har varit fint att bära er." |
+| Small slips: the nest was both warm and too cold; Klo knew about the seeds before the researcher did; Tukankrabban knew where the coin fell; Tordyveln turned up inside the mountain with no explanation. | The storm would blow the egg away; Tukankrabban knows the seeds, and she saw the coin fall; Tordyveln rolled his new ball "ända hit in i berget". |
+| The white current's line under the rock wall often never played. It needed the shell to be still hidden at the current's end. | It plays the first time the sköldhäst is in the water beyond the wall (`puzzles.mjs`). |
+
+### Fun and charm
+
+- Tukankrabban gets distracted by shiny things at last: "Kristallgrottan! Här inne ska vi … Åh! Det glittrar där. Och där. Och där!", and "Bara en vecka?" for the glitter ball. She has researched moonshine seeds for three years, "mest genom att äta dem".
+- Klo gets "Briljant!", "Pling, plong! Du spelar ju xylofon med hovarna." and "Ta min klo …".
+- Tordyveln's "Jag rullar en ny" comes once, and pays off as the glitter ball in the mountain.
+- Each egg without a scene of its own gets its own thought (`STORY.eggLine`), so lines no longer repeat.
+- The last line thanks Alva for drawing Tukankrabban.
+
+### Swedish
+
+`thinRule` was 105 characters. The test checks only dialogue boxes, not thoughts. These lines were also reworded:
+
+- the doubled "i" in "Håll i dig i min klo";
+- "Därifrån … ifrån";
+- "med blixten som ljus";
+- "glänste";
+- "ledsamt";
+- "Stora språnget i skogen".
+
+Every line is now ≤ 100 characters.

@@ -101,6 +101,9 @@ await check('all four pages draw at phone portrait size (390×844)', async () =>
     await p.waitForFunction(() => window.__skoldhast2?.debug?.mode === 'play', null, { timeout: 20000 });
     for (const [scene, x, y, facing] of views) {
         await dbg(p, ([scene, x, y, facing]) => { const { G, view } = window.__skoldhast2.debug; G.goto(scene, { x: x * 200, y: y * 200, facing, mode: y > 0.5 ? 'swim' : undefined }); view.cam.snap = true; }, [scene, x, y, facing]);
+        // a new page is built on the next frames; wait for it rather than for a fixed time (software WebGL is slow)
+        await p.waitForFunction(() => { const { G, view } = window.__skoldhast2.debug; return view.sceneId === G.sceneId; }, null, { timeout: 20000 });
+        await dbg(p, () => { window.__skoldhast2.debug.view.cam.snap = true; });
         await p.waitForTimeout(1500);
         const r = await dbg(p, () => { const { G, view } = window.__skoldhast2.debug; const s = view.heroScreen(); return { scene: view.sceneId, x: s.x, y: s.y, w: innerWidth, h: innerHeight, sceneG: G.sceneId }; });
         assert.equal(r.scene, r.sceneG, 'the view shows the page the game is on');

@@ -53,7 +53,7 @@ The runtime contract and release steps are in plan §8.6, "Adventure series".
 
 `scripts/build-skoldhast-assets.mjs` packs the atlases into `assets/`, writes `assets/manifest.json`
 and `files.json` (what the loader in `index.html` prefetches) and fails if the first-playable
-download grows over 3 MB. `skoldhast/dev/SPEC.md` is the contract between the engine and the art.
+download grows over 10 MB (raised from 3 MB on 4 November 2026). `skoldhast/dev/SPEC.md` is the contract between the engine and the art.
 
 ## Rules that protect Alva
 
