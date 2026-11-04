@@ -94,7 +94,9 @@ export function createView(PIXI, app, { assets, G, heroFactory }) {
         mote: texFrom(g => { for (let i = 6; i >= 1; i--) g.circle(0, 0, i * 2.2).fill({ color: 0xfff1b0, alpha: 0.07 }); g.circle(0, 0, 2.4).fill({ color: 0xfffbe6 }); }, 30, 30),
         leaf: texFrom(g => g.moveTo(-7, 0).quadraticCurveTo(0, -6, 7, 0).quadraticCurveTo(0, 6, -7, 0).fill({ color: 0x6f9a4f }).stroke({ width: 1, color: 0x3f5f33 }), 18, 14),
         bubble: texFrom(g => g.circle(0, 0, 4.5).stroke({ width: 1.3, color: 0xcfe6ef, alpha: 0.9 }), 12, 12),
-        dust: texFrom(g => g.circle(0, 0, 3).fill({ color: 0xc9b58f, alpha: 0.85 }), 8, 8)
+        dust: texFrom(g => g.circle(0, 0, 3).fill({ color: 0xc9b58f, alpha: 0.85 }), 8, 8),
+        // a soft contact shadow, so the characters stand on the ground
+        shadow: texFrom(g => { for (let i = 6; i >= 1; i--) g.ellipse(0, 0, i * 9.5, i * 2.4).fill({ color: 0x1a1424, alpha: 0.075 }); }, 124, 32)
     };
 
     // --- particles ---------------------------------------------------------------------
@@ -270,8 +272,38 @@ export function createView(PIXI, app, { assets, G, heroFactory }) {
 
     // --- scene building ------------------------------------------------------------------
     function material(name, alpha = 1) {
+        // bark is drawn in pencil over its colour, not on the wood planks' grain
+        if (name === 'bark') return pen.fill(0x6a4c32, alpha);
         const [img, color] = MAT[name] || [null, 0xbbbbbb];
         return pen.material(img, alpha, color);
+    }
+    // soft darkness painted once: 'down' fades in from the top, 'side' from the left, 'solid' is even;
+    // every kind has ragged, hatched edges so no ruled rectangle shows
+    const SHADE = {};
+    function shadeTexture(kind) {
+        if (SHADE[kind] || typeof document === 'undefined') return SHADE[kind] || RAW.Texture.WHITE;
+        const cv = document.createElement('canvas'); cv.width = 256; cv.height = 256;
+        const c = cv.getContext('2d'), img = c.createImageData(256, 256);
+        for (let y = 0; y < 256; y++) for (let x = 0; x < 256; x++) {
+            const u = x / 255, v = y / 255, n = hash(x * 0.37 + y * 1.13, 5) * 0.08;
+            const edgeX = Math.min(1, Math.min(u, 1 - u) / (0.1 + hash(y >> 3, 6) * 0.06)), edgeY = Math.min(1, Math.min(v, 1 - v) / 0.12);
+            let a = kind === 'down' ? Math.min(1, v / 0.55) ** 1.4 * edgeX : kind === 'side' ? (1 - u) ** 1.3 * edgeY : edgeX * Math.min(1, (1 - v) / 0.06);
+            a = Math.max(0, Math.min(1, a - n));
+            const i = (y * 256 + x) * 4; img.data[i] = img.data[i + 1] = img.data[i + 2] = 255; img.data[i + 3] = Math.round(a * 255);
+        }
+        c.putImageData(img, 0, 0);
+        // a few pencil strokes across it, as if the dark was shaded in by hand
+        c.globalCompositeOperation = 'destination-out'; c.strokeStyle = 'rgba(0,0,0,0.18)'; c.lineWidth = 1.4;
+        for (let k = 0; k < 90; k++) { const x = hash(k, 7) * 256, y = hash(k, 8) * 256; c.beginPath(); c.moveTo(x, y); c.lineTo(x + 18, y + 26); c.stroke(); }
+        SHADE[kind] = RAW.Texture.from(cv);
+        return SHADE[kind];
+    }
+    function softDark(kind, x0, y0, x1, y1, { color = 0x05040a, alpha = 0.9, mirror = false } = {}) {
+        const sp = new RAW.Sprite(shadeTexture(kind));
+        sp.tint = color; sp.alpha = alpha;
+        sp.position.set(mirror ? x1 : x0, y0); sp.width = x1 - x0; sp.height = y1 - y0;
+        if (mirror) sp.scale.x *= -1;
+        return sp;
     }
     function poly(gr, pts) { gr.poly(pts.flat()); return gr; }
     function lineAlong(gr, pts) { gr.moveTo(pts[0][0], pts[0][1]); for (let i = 1; i < pts.length; i++) gr.lineTo(pts[i][0], pts[i][1]); return gr; }
@@ -323,7 +355,22 @@ export function createView(PIXI, app, { assets, G, heroFactory }) {
                 }
             }
             const front = new PIXI.Graphics();
-            front.rect(w.x0, w.top + 6, w.x1 - w.x0, wb - w.top).fill({ color: 0x3d6d8f, alpha: 0.28 });
+            if (w.kind === 'pipe') front.rect(w.x0, w.top + 6, w.x1 - w.x0, wb - w.top).fill({ color: 0x3d6d8f, alpha: 0.28 });
+            else {
+                // only over the water itself: down to its bed, never over the banks
+                const bedAt = (x) => {
+                    let best = wb;
+                    for (const q of def.surfaces) {
+                        if (q.thin || q.hidden || x < q.pts[0][0] || x > q.pts.at(-1)[0]) continue;
+                        const y = heightOn(q.pts, x);
+                        if (y > w.top && y < best) best = y;
+                    }
+                    return best;
+                };
+                const xs = resampleX([[w.x0, 0], [w.x1, 0]], 24).map(([x]) => x);
+                const veil = [...xs.map(x => [x, w.top + 6]), ...xs.slice().reverse().map(x => [x, Math.max(w.top + 6, bedAt(x) + 4)])];
+                poly(front, veil).fill({ color: 0x3d6d8f, alpha: 0.28 });
+            }
             L.waterFront.addChildAt(front, 0);
             // gentle current marks in the river
             if (w.kind === 'river') {
@@ -348,9 +395,17 @@ export function createView(PIXI, app, { assets, G, heroFactory }) {
                 poly(gr, body).fill(material(under));
             } else {
                 // paper below; the soil's colour thins out about one and a half lengths down
-                poly(gr, body).fill(pen.material('mat-paper', 1, 0xf3ecdc));
+                if (def.underground) {
+                    // inside the mountain the rock goes on down: no paper under a cave
+                    poly(gr, body).fill(material('rock')); poly(gr, body).fill({ color: 0x0e0c16, alpha: 0.55 });
+                } else {
+                    // the paper below lies in the page's dusk, never brighter than the ground over it
+                    poly(gr, body).fill(pen.material('mat-paper', 1, 0xf3ecdc));
+                    poly(gr, body).fill({ color: def.sky === 'peak' ? 0x26263e : 0x2a2a46, alpha: 0.36 });
+                }
                 // the soil's lower edge is torn, not ruled: the colour runs out unevenly into the paper
-                const rag = (dy, amp, seed) => top.map(([x, y]) => [x, y + dy + (hash(x * 0.01, seed) - 0.5) * amp + Math.sin(x * 0.004 + seed) * amp * 0.5]);
+                const vnoise = (x, seed, cell = 150) => { const i = Math.floor(x / cell), f = x / cell - i, u = f * f * (3 - 2 * f); return lerp(hash(i, seed), hash(i + 1, seed), u); };
+                const rag = (dy, amp, seed) => top.map(([x, y]) => [x, y + dy + (vnoise(x, seed) - 0.5) * amp * 2 + (vnoise(x, seed + 9, 38) - 0.5) * amp * 0.4]);
                 const deepEdge = rag(h(1.5), h(0.3), 17), thinEdge = rag(h(2.3), h(0.5), 19);
                 const deep = [...top, ...deepEdge.reverse()], thin = [...rag(h(1.4), h(0.3), 17), ...thinEdge.reverse()];
                 poly(gr, deep).fill(material(under));
@@ -381,8 +436,8 @@ export function createView(PIXI, app, { assets, G, heroFactory }) {
                     const pts = [];
                     for (let k = 0; k < 7; k++) { const a = k / 7 * Math.PI * 2, rr = r * (0.75 + hash(x + k, 25) * 0.4); pts.push([x + Math.cos(a) * rr * 1.3, y + Math.sin(a) * rr * 0.8]); }
                     poly(gr, pts).fill(material('rock', 0.95)).stroke(pen.line(0x4a4450, 1.4, 0.8));
-                    gr.ellipse(x - r * 0.3, y - r * 0.3, r * 0.45, r * 0.22).fill({ color: 0xffffff, alpha: 0.22 });
-                    poly(gr, pts.slice(2, 6)).fill({ color: 0x1d1a20, alpha: 0.18 });
+                    gr.ellipse(x + r * 0.3, y - r * 0.3, r * 0.45, r * 0.22).fill({ color: 0xffffff, alpha: 0.22 });
+                    poly(gr, [[x, y], ...pts.slice(2, 5)]).fill({ color: 0x1d1a20, alpha: 0.2 });
                 }
                 // under grass, fine roots hang down from the turf
                 if (s.mat === 'grass') for (let x = top[0][0] + 10; x < top.at(-1)[0] - 10; x += 16 + hash(x, 26) * 26) {
@@ -408,6 +463,16 @@ export function createView(PIXI, app, { assets, G, heroFactory }) {
             lineAlong(gr, s.pts).stroke(pen.line(s.underwater ? 0x2f4f5f : INK, 2.6, 0.9));
             L.terrain.addChild(gr);
             S.surfaces.set(s.id, gr);
+        }
+        // where two kinds of ground meet, each runs a little way into the other instead of meeting at a ruled line
+        const UNDER = (q) => q.mat === 'grass' ? (q.edgeMat || 'earth') : q.mat === 'bark' ? 'earth' : q.mat;
+        const solids = def.surfaces.filter(q => !q.thin && !q.hidden && !q.underwater);
+        for (const a of solids) for (const b of solids) {
+            if (a === b || Math.abs(a.pts.at(-1)[0] - b.pts[0][0]) > 2 || UNDER(a) === UNDER(b)) continue;
+            const xb = b.pts[0][0], yb = b.pts[0][1];
+            const ca = (MAT[UNDER(a)] || [null, 0x8a6a4a])[1], cb = (MAT[UNDER(b)] || [null, 0x8a6a4a])[1];
+            L.terrain.addChild(softDark('side', xb, yb + h(0.3), xb + h(2), yb + h(2.9), { color: ca, alpha: 0.62 }));
+            L.terrain.addChild(softDark('side', xb - h(2), yb + h(0.3), xb, yb + h(2.9), { color: cb, alpha: 0.62, mirror: true }));
         }
         // the puzzle drawings and places
         if (def.dashed) for (const d of def.dashed) buildDashed(d);
@@ -556,8 +621,10 @@ export function createView(PIXI, app, { assets, G, heroFactory }) {
         const bark = mixColor(0x7c5a3c, 0x3a2a1c, 0.25);
         const tb = trunk / 2, tt = trunk * 0.32;
         const trunkPts = [[x - tb - trunk * 0.35, y + 6], [x - tb, y - height * 0.12], [topX - tt, y - height], [topX + tt, y - height], [x + tb, y - height * 0.12], [x + tb + trunk * 0.4, y + 6]];
-        poly(gr, trunkPts).fill(pen.material('mat-wood', 1, bark));
-        poly(gr, [[x + tb * 0.15, y + 6], [topX + tt * 0.1, y - height], [topX + tt, y - height], [x + tb, y - height * 0.12], [x + tb + trunk * 0.4, y + 6]]).fill({ color: 0x1d140c, alpha: 0.38 });
+        poly(gr, trunkPts).fill(pen.fill(bark));
+        poly(gr, trunkPts).fill(pen.hatch(mixColor(bark, 0x1d140c, 0.45), 0.55));
+        poly(gr, [[x - tb * 0.15, y + 6], [topX - tt * 0.1, y - height], [topX - tt, y - height], [x - tb, y - height * 0.12], [x - tb - trunk * 0.35, y + 6]]).fill({ color: 0x1d140c, alpha: 0.4 });
+        poly(gr, [[x + tb * 0.55, y + 6], [topX + tt * 0.6, y - height], [topX + tt * 0.9, y - height], [x + tb * 0.92, y + 6]]).fill({ color: 0xe8dcc0, alpha: 0.12 });
         for (let k = 0; k < 7; k++) {
             const u = 0.1 + k * 0.12, bx = lerp(x, topX, u) + (r(k) - 0.5) * trunk * 0.5, by = y - height * u;
             gr.moveTo(bx, by).quadraticCurveTo(bx + 4, by - height * 0.05, bx - 2, by - height * 0.1).stroke(pen.line(0x2e1d0e, 1.6, 0.55));
@@ -568,8 +635,12 @@ export function createView(PIXI, app, { assets, G, heroFactory }) {
             const bx = lerp(x, topX, u), by = y - height * u;
             gr.moveTo(bx, by).quadraticCurveTo(bx + dir * crown * 0.35, by - crown * 0.25, bx + dir * crown * 0.7, by - crown * 0.55).stroke(pen.line(bark, Math.max(3, trunk * 0.18)));
         }
-        // the crown: an irregular dome of clusters
-        const cx = topX, cy = y - height - crown * 0.25;
+        crownAt(gr, topX, y - height - crown * 0.25, crown, color, hi, seed);
+    }
+    /** A crown of leaf clusters in three depths: dark behind, the leaf colour, light on the upper right. */
+    function crownAt(gr, cx, cy, crown, color, hi, seed) {
+        const r = (k) => hash(seed + k, 41);
+        const back = mixColor(color, 0x05080a, 0.55), lit = mixColor(hi, 0xa8c890, 0.35), rim = mixColor(hi, 0xe8f2d4, 0.5);
         const lobes = [];
         const n = 7 + Math.floor(r(1) * 4);
         for (let k = 0; k < n; k++) {
@@ -600,11 +671,12 @@ export function createView(PIXI, app, { assets, G, heroFactory }) {
         // shade under the crown, where it meets the trunk
         gr.ellipse(cx - crown * 0.05, cy + crown * 0.55, crown * 0.75, crown * 0.18).fill({ color: 0x0b1216, alpha: 0.28 });
     }
+
     /** A spruce of the magic forest: a short trunk and jagged tiers, dark on the left, lit on the right. */
     function conifer(gr, x, y, { height = h(4), width = h(1.6), color = 0x22402f, hi = 0x4f7c50 } = {}) {
         const seed = x * 0.017, r = (k) => hash(seed + k, 43);
         const dark = mixColor(color, 0x05080a, 0.5), lit = mixColor(hi, 0xa8c890, 0.3);
-        gr.rect(x - width * 0.06, y - height * 0.2, width * 0.12, height * 0.2 + 6).fill(pen.material('mat-wood', 1, 0x5a3e28));
+        gr.rect(x - width * 0.06, y - height * 0.2, width * 0.12, height * 0.2 + 6).fill(pen.fill(0x4e3624));
         const tiers = 5 + Math.floor(r(1) * 3);
         for (let k = 0; k < tiers; k++) {
             const u0 = 0.12 + k / tiers * 0.8, u1 = u0 + 1.6 / tiers;
@@ -681,6 +753,14 @@ export function createView(PIXI, app, { assets, G, heroFactory }) {
             const falls = new PIXI.Container(); L.waterFront.addChild(falls);
             const fg = new PIXI.Graphics();
             fg.moveTo(h(87.2), h(-7.5)).lineTo(h(88.8), h(-7.5)).lineTo(h(89.0), 0).lineTo(h(87.0), 0).closePath().fill({ color: 0xbcd8ea, alpha: 0.5 });
+            // the falling water drawn in long wavering strokes, lighter at the lip
+            for (let k = 0; k < 14; k++) {
+                const x = h(87.25 + k * 0.11 + (hash(k, 59) - 0.5) * 0.05);
+                fg.moveTo(x, h(-7.5));
+                for (let y = -7.5; y < 0; y += 0.5) fg.lineTo(x + Math.sin(y * 3 + k) * 4 + (y + 7.5) * 1.2, h(y + 0.5));
+                fg.stroke(pen.line(k % 3 ? 0xe8f4fa : 0x8fb6d0, 1.6 + (k % 2), 0.55));
+            }
+            fg.rect(h(87.2), h(-7.6), h(1.6), h(0.35)).fill({ color: 0xffffff, alpha: 0.35 });
             fg.moveTo(h(87.2), h(-7.5)).lineTo(h(87.0), 0).moveTo(h(88.8), h(-7.5)).lineTo(h(89.0), 0).stroke(pen.line(0xe8f4fa, 3, 0.8));
             for (let k = 0; k < 7; k++) fg.circle(h(86.9 + k * 0.36), 6 + (k % 2) * 8, 16 + (k % 3) * 6).fill(pen.fill(0xf2f8fb, 0.85));
             falls.addChild(fg);
@@ -699,8 +779,7 @@ export function createView(PIXI, app, { assets, G, heroFactory }) {
                 back.poly([x, y, x + 6, y - 14, x + 12, y]).fill({ color: k % 2 ? 0x9fd8ff : 0xc9b3ff, alpha: 0.75 });
             }
             // darker further in, until Tukankrabban carries a moonshine seed as a lantern
-            const cd = new PIXI.Graphics();
-            for (const [x0, a] of [[94.8, 0.3], [95.5, 0.35], [96.3, 0.45]]) cd.rect(h(x0), h(-1.95), h(99.8 - x0), h(2.45)).fill({ color: 0x05040a, alpha: a });
+            const cd = softDark('side', h(94.6), h(-2.05), h(99.9), h(0.55), { alpha: 0.85, mirror: true });
             L.fore.addChild(cd); S.caveDark = cd;
         } else if (def.id === 'kristall') {
             buildKristall(def, back, mid, fore);
@@ -711,18 +790,18 @@ export function createView(PIXI, app, { assets, G, heroFactory }) {
             ravine(back, h(34.5), h(40), h(-0.6), h(-1.8));
             // Jätteträdet: a trunk as wide as a house, its crown under the storm
             const trunk = [[h(13.2), h(-0.5)], [h(14.6), h(-9)], [h(15.2), h(-13.5)], [h(19.8), h(-13.5)], [h(20.4), h(-9)], [h(21.6), h(-0.5)]];
-            poly(back, trunk).fill(material('bark')); poly(back, trunk).fill({ color: 0x3e2814, alpha: 0.3 });
+            poly(back, trunk).fill(material('bark')); poly(back, trunk).fill(pen.hatch(0x3e2814, 0.55));
+            poly(back, [[h(13.2), h(-0.5)], [h(14.6), h(-9)], [h(15.2), h(-13.5)], [h(16.2), h(-13.5)], [h(15.6), h(-9)], [h(14.6), h(-0.5)]]).fill({ color: 0x1d140c, alpha: 0.38 });
+            poly(back, [[h(19.4), h(-0.5)], [h(19.0), h(-9)], [h(18.8), h(-13.5)], [h(19.4), h(-13.5)], [h(20.0), h(-9)], [h(20.6), h(-0.5)]]).fill({ color: 0xe8dcc0, alpha: 0.1 });
             lineAlong(back, trunk).stroke(pen.line(0x2e1d0e, 3));
             for (let k = 0; k < 26; k++) {
                 const x = h(14.4 + hash(k, 61) * 5.6), y = h(-0.8 - hash(k, 62) * 12.4);
                 back.moveTo(x, y).quadraticCurveTo(x + 10, y - 40, x + 4, y - 80).stroke(pen.line(0x4e331c, 2, 0.6));
             }
             back.ellipse(h(17.4), h(-6.2), h(0.5), h(0.7)).fill({ color: 0x1d140c, alpha: 0.9 }); // a hollow
-            for (let k = 0; k < 9; k++) {
-                const a = k / 9 * Math.PI, r = h(2.6 + hash(k, 63) * 1.4);
-                back.circle(h(17.4) + Math.cos(a) * h(6), h(-14.6) - Math.sin(a) * h(1.6), r).fill(pen.fill(k % 2 ? 0x26473a : 0x2c5240));
+            for (const [cx, cy, cr] of [[11.6, -14.4, 2.3], [23.2, -14.4, 2.3], [14.2, -15.6, 2.7], [20.6, -15.6, 2.7], [17.4, -16.6, 3.0], [17.4, -14.2, 2.6]]) {
+                crownAt(back, h(cx), h(cy), h(cr), 0x2c5240, 0x5a8a5a, cx * 7.1);
             }
-            back.ellipse(h(17.4), h(-15.2), h(7.5), h(1.6)).fill(pen.hatch(0x4f7c50, 0.7));
             // roots arching over Rotgrottan
             const roots = new PIXI.Graphics();
             for (let k = 0; k < 16; k++) {
@@ -856,7 +935,7 @@ export function createView(PIXI, app, { assets, G, heroFactory }) {
             }
         }
         // the way back to the beach: a dark tunnel
-        for (let k = 0; k < 16; k++) fore.rect(h(-1.4 + k * 0.14), h(-3.4), h(0.15), h(3.0)).fill({ color: 0x05040a, alpha: 0.9 * (1 - k / 16) ** 1.6 });
+        L.fore.addChild(softDark('side', h(-1.5), h(-3.5), h(1.0), h(-0.3), { alpha: 0.92 }));
         // big crystals glowing in the dark behind the play
         [[2.6, 0x8fc9f0], [9.2, 0xb79be6], [20.6, 0xe6a6d8], [26.5, 0x8fc9f0], [52.5, 0xb79be6], [57.2, 0x8fc9f0], [68.4, 0xe6a6d8]].forEach(([x, col], i) => {
             const gy = groundY(def, h(x));
@@ -870,9 +949,7 @@ export function createView(PIXI, app, { assets, G, heroFactory }) {
         // K1: the chasm, black until the three plates ring
         ravine(back, h(12), h(18), h(-0.4), h(-0.4));
         // the air over it goes clear once lit; the pit itself stays deep
-        const dark = new PIXI.Graphics(), pit = new PIXI.Graphics();
-        for (let k = 0; k < 7; k++) dark.rect(h(12.02), h(-2.8 + k * 0.34), h(5.96), h(0.35)).fill({ color: 0x05040a, alpha: 0.12 + k * 0.12 });
-        pit.rect(h(12.02), h(-0.42), h(5.96), h(4.4)).fill({ color: 0x05040a, alpha: 0.92 });
+        const dark = softDark('down', h(11.9), h(-2.9), h(18.1), h(-0.38), { alpha: 0.95 }), pit = softDark('solid', h(11.95), h(-0.45), h(18.05), h(4.2), { alpha: 0.92 });
         L.fore.addChild(dark, pit); S.chasmDark = dark; S.chasmPit = pit;
         S.chasmGlow = glowAt(h(15), h(-0.3), 7, 0x9fd8ff, 0, L.back);
 
@@ -980,7 +1057,7 @@ export function createView(PIXI, app, { assets, G, heroFactory }) {
         }
         // Blixtbron's ravine, deep and dark
         ravine(back, h(23.8), h(29.8), h(-3.1), h(-3.1));
-        back.rect(h(23.85), h(0.1), h(5.9), h(3.5)).fill({ color: 0x0b0a14, alpha: 0.75 });
+        L.back.addChild(softDark('down', h(23.7), h(-2.6), h(29.9), h(3.7), { color: 0x0b0a14, alpha: 0.85 }));
         // rocks and a little snow up on the summit
         for (let k = 0; k < 7; k++) {
             const x = h(45 + k * 2.2 + hash(k, 131) * 1.2), y = groundY(def, x);
@@ -1031,7 +1108,8 @@ export function createView(PIXI, app, { assets, G, heroFactory }) {
     // a gap in the ground: its two rock walls going down into the dark, the far forest above
     function ravine(gr, x0, x1, y0, y1) {
         const depth = h(3.2);
-        for (let k = 0; k < 5; k++) gr.rect(x0, Math.min(y0, y1) + h(0.3) + k * h(0.55), x1 - x0, h(0.6)).fill({ color: 0x14121d, alpha: 0.12 + k * 0.09 });
+        const dk = softDark('down', x0 - h(0.1), Math.min(y0, y1) + h(0.1), x1 + h(0.1), Math.max(y0, y1) + depth + h(0.8), { color: 0x14121d, alpha: 0.92 });
+        if (gr.parent) gr.parent.addChildAt(dk, gr.parent.getChildIndex(gr)); else L.back.addChild(dk);
         for (const [x, y, dir] of [[x0, y0, 1], [x1, y1, -1]]) {
             const wall = [[x, y], [x + dir * h(0.35), y + h(0.6)], [x + dir * h(0.2), y + h(1.4)], [x + dir * h(0.45), y + h(2.2)], [x + dir * h(0.25), y + depth], [x, y + depth]];
             poly(gr, wall).fill(material('rock')); poly(gr, wall).fill({ color: 0x2a2433, alpha: 0.45 });
@@ -1178,6 +1256,10 @@ export function createView(PIXI, app, { assets, G, heroFactory }) {
         const moln = createCloud(PIXI, pen, { texture: cloudTexture }); moln.view.scale.set(1.5); L.objects.addChild(moln.view);
         S.A = { klo, hearts, tukan, skata, dyvel, moln };
         S.actors.push(tukan, skata, dyvel, moln, hearts);
+        S.shadows = {};
+        for (const [id, k] of [['klo', 1.1], ['skata', 0.9], ['dyvel', 0.8]]) {
+            const sh = new RAW.Sprite(TX.shadow); sh.anchor.set(0.5); sh.scale.set(k); sh.visible = false; L.objects.addChild(sh); S.shadows[id] = sh;
+        }
     }
 
     function refreshWhen() {
@@ -1347,6 +1429,12 @@ export function createView(PIXI, app, { assets, G, heroFactory }) {
             A.hearts.view.position.set(k.x, k.y - 90);
             A.hearts.update(dt, t, A.klo.container.visible && (k.pose === 'love' || G.flags.has('watch_given') && k.pose !== 'faint'), { reducedMotion: rm });
         }
+        for (const id of ['klo', 'skata', 'dyvel']) {
+            const a = act[id], sh = S.shadows?.[id];
+            if (!sh) continue;
+            sh.visible = !!a && a.visible !== false && a.scene === S.id && !(id === 'klo' && a.pose === 'faint');
+            if (sh.visible) sh.position.set(a.x, a.y + 2);
+        }
         for (const id of ['tukan', 'skata', 'dyvel', 'moln']) {
             const a = act[id], v = A[id];
             if (!a || a.scene !== S.id) { v.view.visible = false; continue; }
@@ -1363,6 +1451,7 @@ export function createView(PIXI, app, { assets, G, heroFactory }) {
 
         // rain and lightning (the storm is Molnet's: it rains less once the cloud is met)
         const under = snap.mode === 'swim' && snap.submerge > 0.7;
+        const sheltered = (S.id === 'strand' && snap.x > h(89)) || (S.id === 'skog' && snap.x > h(74.3) && snap.x < h(87.7) && snap.y > h(-0.95));
         rain.visible = stormShown > 0.03 && S.def.sky !== 'cave';
         const nRain = Math.round(drops.length * stormShown * (rm ? 0.35 : 1));
         // leaves torn loose by the storm blow across the forest pages
@@ -1371,7 +1460,7 @@ export function createView(PIXI, app, { assets, G, heroFactory }) {
             emit('leaf', cam.x + vw * 0.55, cam.y - vh * 0.35 + Math.random() * vh * 0.5, 1,
                 { angle: Math.PI + 0.25, cone: 0.5, speed: 420, gravity: 70, life: 4.5, spread: 10, scale: 1 + Math.random() * 0.6, tint: Math.random() > 0.5 ? 0x8aa05a : 0xb08a4a });
         }
-        if (rain.visible && !rm && !under) {
+        if (rain.visible && !rm && !under && !sheltered) {
             // drops hitting the ground in view
             const vw = W / cam.zoom;
             for (let k = 0; k < 3; k++) {
@@ -1386,7 +1475,7 @@ export function createView(PIXI, app, { assets, G, heroFactory }) {
             if (!s.visible) continue;
             d.y = (d.y + dt * d.v * (rm ? 0.5 : 1.6)) % 1;
             s.position.set(((d.x + d.y * 0.15 - cam.x * cam.zoom * 0.0004) % 1 + 1) % 1 * W, d.y * H);
-            s.alpha = (under ? 0.15 : 0.55) * stormShown;
+            s.alpha = (under ? 0.15 : 0.55) * stormShown * (sheltered ? 0.12 : 1);
         }
         // lightning: now and then over the forest; on the peak it follows the bridge's lightning schedule
         if (stormShown > 0.3 && S.def.sky !== 'peak') {
@@ -1511,7 +1600,15 @@ export function createView(PIXI, app, { assets, G, heroFactory }) {
 
     // Åsktoppen's gusts: streaks of wind across the screen, a warning first
     const gustLayer = new RAW.Container(); overlay.addChildAt(gustLayer, 1);
-    const gustTex = texFrom(gr => gr.moveTo(-40, 0).lineTo(40, 0).stroke({ width: 2.4, color: 0xe6e8f6, alpha: 0.9, cap: 'round' }), 90, 8);
+    const gustTex = texFrom(gr => {
+        // a gust drawn as a pencil swoosh: thin at both ends, a little curve, a short curl at its head
+        for (let k = 0; k < 10; k++) {
+            const u0 = k / 10, u1 = (k + 1) / 10, w2 = 0.6 + Math.sin(u0 * Math.PI) * 2.4;
+            const y = (u) => Math.sin(u * Math.PI) * -6;
+            gr.moveTo(-48 + u0 * 96, y(u0)).lineTo(-48 + u1 * 96, y(u1)).stroke({ width: w2, color: 0xe6e8f6, alpha: 0.85, cap: 'round' });
+        }
+        gr.moveTo(-48, 0).quadraticCurveTo(-60, -6, -54, -12).stroke({ width: 1, color: 0xe6e8f6, alpha: 0.7, cap: 'round' });
+    }, 130, 28);
     const gusts = [];
     for (let i = 0; i < 26; i++) { const st = new RAW.Sprite(gustTex); st.anchor.set(0.5); gustLayer.addChild(st); gusts.push({ st, x: hash(i, 171), y: hash(i, 172), v: 0.8 + hash(i, 173) * 0.6, k: 0.6 + hash(i, 174) * 1.2 }); }
     let gustAmt = 0;
@@ -1669,7 +1766,8 @@ export function createView(PIXI, app, { assets, G, heroFactory }) {
         const p = G.player;
         if (p.mode === 'swim') zoom *= 0.9;
         if (S.id === 'skog' && p.x < h(26) && p.y < h(-1.5)) zoom *= 0.82; // the giant tree: see the branches above
-        let tx = snap.x + (snap.facing || 1) * Math.min(h(1.6), W / zoom * 0.12), ty = snap.y - (p.mode === 'swim' ? h(0.2) : h(1.2));
+        const lift = H > W * 1.15 ? Math.max(h(1.2), (H / zoom) * 0.2) : h(1.2); // portrait: ground at about 70 % of the height
+        let tx = snap.x + (snap.facing || 1) * Math.min(h(1.6), W / zoom * 0.12), ty = snap.y - (p.mode === 'swim' ? h(0.2) : lift);
         const hint = G.camHint;
         if (hint) { tx = hint.x; ty = hint.y; zoom *= hint.zoom || 1; }
         const vw = W / zoom, vh = H / zoom;

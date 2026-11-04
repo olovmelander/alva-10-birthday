@@ -32,7 +32,8 @@
 .a2-journal .a2-here { margin-top: -4px; }
 
 /* the night: the caption and thought bubbles stay readable on the dark forest */
-.sk-a2 .sk-caption { color: #f4ecd6; text-shadow: 0 1px 3px rgba(20, 18, 34, .95), 0 0 10px rgba(20, 18, 34, .8); }
+.sk-a2 .sk-caption { color: #f4ecd6; text-shadow: 0 1px 3px rgba(20, 18, 34, .95), 0 0 10px rgba(20, 18, 34, .8);
+    background: rgba(24, 22, 40, .5); padding: 4px 16px; border-radius: 16px; } /* readable on the table's light wood too */
 .sk-a2 .sk-pencils { color: #f4ecd6; }
 
 /* the egg count sits by the pause button, clear of the goal note */

@@ -1930,6 +1930,8 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
         if (!underwater) {
             const sun = S.sky?.find(it => it.anim === 'sun')?.s;
             if (sun?.visible && sun.worldVisible !== false) { const b = sun.getBounds(); light = { x: b.x + b.width / 2, y: b.y + b.height / 2 }; }
+            // no sun drawn on this stretch: the light comes from beyond the top right corner, faint
+            if (!light) light = { x: W * 1.4, y: -H * 0.5 };
         }
         const hy = world.position.y + (snap.y - 0.8 * HL) * cam.zoom;
         air.update(dt, { camX: cam.x, camY: cam.y, zoom: cam.zoom, W, H, t: time, lessMotion: G.lessMotion, light, hazeY: clamp(hy, H * 0.3, H * 0.85) });
