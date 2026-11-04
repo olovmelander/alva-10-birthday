@@ -16,6 +16,7 @@
   "src/drawing.mjs",
   "src/fold-demo.mjs",
   "src/folded-seabed.mjs",
+  "src/frame-guard.mjs",
   "src/game.mjs",
   "src/guardian.mjs",
   "src/guidance-state.mjs",

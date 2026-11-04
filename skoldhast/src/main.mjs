@@ -13,6 +13,7 @@
  */
 import * as PIXI from '../vendor/pixi-8.21.0.min.mjs';
 import { createGame as createLogic } from './game.mjs';
+import { createFrameGuard } from './frame-guard.mjs';
 import { STEP, snapshot, HL, C } from './sim.mjs';
 import { createView } from './view.mjs';
 import { createUI } from './ui.mjs';
@@ -259,11 +260,17 @@ export function createGame({ host = document.body, assetBase = './skoldhast/', r
         showTitle();
     }
 
+    const frameGuard = createFrameGuard({ onLower: () => {
+        if (!app) return;
+        const { w, h, res } = sizes();
+        app.renderer.resolution = res; app.renderer.resize(w, h); view?.resize();
+    } });
     function sizes() {
         const w = window.innerWidth, h = window.innerHeight;
         const dpr = window.devicePixelRatio || 1;
-        const cap = (w < 900 || h < 500) ? 1.5e6 : 2.6e6;
-        const res = Math.max(1, Math.min(dpr, 2, Math.sqrt(cap / (w * h))));
+        // sharp on tablets and laptops too (the visual overhaul); the frame guard softens it where frames are slow
+        const cap = (w < 900 || h < 500) ? 1.5e6 : 4.2e6;
+        const res = Math.max(1, Math.min(dpr, 2, Math.sqrt(cap / (w * h))) * frameGuard.scale);
         return { w, h, res };
     }
 
@@ -580,6 +587,7 @@ export function createGame({ host = document.body, assetBase = './skoldhast/', r
         let dt = (now - last) / 1000;
         last = now;
         if (dt > 0.25) dt = 0.25;
+        if (!paused && state === 'open' && !document.hidden) frameGuard.sample(dt);
         if (glLostAt) {
             if (document.hidden) glLostAt = now; // count from when the tab is visible again
             else if (now - glLostAt > 2000 && !glPrompt) contextGone();

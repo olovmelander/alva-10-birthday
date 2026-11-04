@@ -183,9 +183,9 @@
   "bg-steppe-evening": {
    "bundle": "evening",
    "file": "bg-steppe-evening.webp",
-   "bytes": 24052,
-   "w": 1024,
-   "h": 512,
+   "bytes": 61638,
+   "w": 2048,
+   "h": 1024,
    "repeat": false,
    "scale": 1
   },
@@ -249,18 +249,18 @@
   "bg-bay-evening": {
    "bundle": "bay",
    "file": "bg-bay-evening.webp",
-   "bytes": 36692,
-   "w": 1024,
-   "h": 512,
+   "bytes": 90582,
+   "w": 2048,
+   "h": 1024,
    "repeat": false,
    "scale": 1
   },
   "bg-bay-front-evening": {
    "bundle": "bay",
    "file": "bg-bay-front-evening.webp",
-   "bytes": 35522,
-   "w": 1024,
-   "h": 512,
+   "bytes": 102104,
+   "w": 2048,
+   "h": 1024,
    "repeat": false,
    "scale": 1
   },
@@ -734,7 +734,7 @@
     "assets/bg-bay-under.webp",
     "assets/mat-cream.webp"
    ],
-   "bytes": 716130
+   "bytes": 836602
   },
   "evening": {
    "files": [
@@ -744,7 +744,7 @@
     "assets/bg-steppe-mid-evening.webp",
     "assets/bg-steppe-near-evening.webp"
    ],
-   "bytes": 231818
+   "bytes": 269404
   },
   "map": {
    "files": [

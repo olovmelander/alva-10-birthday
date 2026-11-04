@@ -3,7 +3,7 @@
  *
  *   const atmo = createAir(PIXI, app, { back, front });
  *   atmo.setMood(MOODS.day, { instant: true });      // per scene, or blended over ~1.5 s
- *   atmo.update(dt, { camX, camY, zoom, W, H, t, lessMotion });
+ *   atmo.update(dt, { camX, camY, zoom, W, H, t, lessMotion, light, hazeY }); // light {x, y} and hazeY in screen px, optional
  *   atmo.flash(0.8);                                  // a lightning flash lights the haze
  *   atmo.destroy();
  *
@@ -26,8 +26,9 @@ export const MOODS = {
     off: {},
     // Äventyr 1: a bright summer day on the page
     day: {
-        light: { x: 0.82, y: 0.06, color: 0xfff1c4, alpha: 0.55, size: 1.0 },
-        rays: { color: 0xfff4d2, alpha: 0.16, count: 6, angle: 0.42, length: 1.25 },
+        light: { x: 0.82, y: 0.06, color: 0xfff1c4, alpha: 0.45, size: 1.0 },
+        rays: { color: 0xfff4d2, alpha: 0.1, count: 6, angle: 0.42, length: 1.25 },
+        shade: { color: 0x8a7a64, alpha: 0.14, n: 3 },
         haze: { color: 0xf2f0e6, alpha: 0.42, y: 0.6, h: 0.3 },
         motes: { kind: 'pollen', n: 26, color: 0xfff6d8, alpha: 0.75 },
         vignette: { color: 0x5a4632, alpha: 0.22 },
@@ -35,7 +36,8 @@ export const MOODS = {
     },
     evening: {
         light: { x: 0.18, y: 0.32, color: 0xffc98a, alpha: 0.6, size: 1.15 },
-        rays: { color: 0xffd9a4, alpha: 0.2, count: 6, angle: -0.95, length: 1.4 },
+        rays: { color: 0xffd9a4, alpha: 0.13, count: 6, angle: -0.95, length: 1.4 },
+        shade: { color: 0x8a5a4a, alpha: 0.1, n: 3 },
         haze: { color: 0xf6d6b8, alpha: 0.5, y: 0.6, h: 0.32 },
         motes: { kind: 'pollen', n: 22, color: 0xffe2b0, alpha: 0.7 },
         vignette: { color: 0x4a2e2a, alpha: 0.3 },
@@ -43,7 +45,7 @@ export const MOODS = {
     },
     underwater: {
         light: { x: 0.5, y: -0.1, color: 0xd6f2ff, alpha: 0.45, size: 1.3 },
-        rays: { color: 0xe2f6ff, alpha: 0.2, count: 7, angle: 0.18, length: 1.3, sway: 1 },
+        rays: { color: 0xe2f6ff, alpha: 0.16, count: 7, angle: 0.18, length: 1.3, sway: 1 },
         motes: { kind: 'bubble', n: 22, color: 0xe8f6ff, alpha: 0.6 },
         vignette: { color: 0x0e3448, alpha: 0.42 },
         grade: { color: 0xb8e2ee, alpha: 0.14, blend: 'multiply' }
@@ -80,7 +82,13 @@ export const MOODS = {
     }
 };
 
-const PARTS = ['light', 'rays', 'haze', 'motes', 'vignette', 'grade'];
+// Äventyr 1's page already has its own soft lamp vignette, and faint shafts and plankton under water
+MOODS.a1Day = { ...MOODS.day, vignette: { ...MOODS.day.vignette, alpha: 0.1 }, haze: { ...MOODS.day.haze, alpha: 0.3 } };
+MOODS.a1Evening = { ...MOODS.evening, vignette: { ...MOODS.evening.vignette, alpha: 0.16 } };
+MOODS.a1Under = { ...MOODS.underwater, rays: { ...MOODS.underwater.rays, alpha: 0.12 }, motes: { ...MOODS.underwater.motes, n: 14 }, vignette: { ...MOODS.underwater.vignette, alpha: 0.26 } };
+MOODS.a1UnderEvening = { ...MOODS.a1Under, light: { ...MOODS.underwater.light, color: 0xffe2c0 }, rays: { ...MOODS.a1Under.rays, color: 0xffe8c8 } };
+
+const PARTS = ['light', 'rays', 'haze', 'motes', 'vignette', 'grade', 'shade'];
 
 function canvasTexture(RAW, w, h, paint) {
     const cv = document.createElement('canvas');
@@ -155,6 +163,9 @@ export function createAir(RAW, app, { back, front } = {}) {
     const sprite = (t, parent, blend = 'normal') => { const s = new RAW.Sprite(t); s.anchor.set(0.5); s.blendMode = blend; parent.addChild(s); return s; };
     const haze = sprite(tex.haze, backC, 'screen');
     const farRays = new RAW.Container(); backC.addChild(farRays);
+    // cloud shadows drifting over the ground
+    const shades = [];
+    for (let i = 0; i < 4; i++) shades.push({ s: sprite(tex.glow, frontC, 'multiply'), x: hash(i, 31) * 1.6 - 0.3, y: 0.15 + hash(i, 32) * 0.6, k: 0.8 + hash(i, 33) * 0.7 });
     const grade = sprite(tex.white, frontC, 'multiply'); grade.anchor.set(0);
     const rays = new RAW.Container(); frontC.addChild(rays);
     const bloom = sprite(tex.glow, frontC, 'add');
@@ -176,7 +187,8 @@ export function createAir(RAW, app, { back, front } = {}) {
         return {
             light: { x: 0.5, y: 0, color: 0xffffff, alpha: 0, size: 1 }, rays: { color: 0xffffff, alpha: 0, count: 0, angle: 0, length: 1, sway: 0 },
             haze: { color: 0xffffff, alpha: 0, y: 0.6, h: 0.3 }, motes: { kind: 'dust', n: 0, color: 0xffffff, alpha: 0 },
-            vignette: { color: 0x000000, alpha: 0 }, grade: { color: 0xffffff, alpha: 0, blend: 'multiply' }
+            vignette: { color: 0x000000, alpha: 0 }, grade: { color: 0xffffff, alpha: 0, blend: 'multiply' },
+            shade: { color: 0x000000, alpha: 0, n: 0 }
         };
     }
     function full(m) {
@@ -205,7 +217,7 @@ export function createAir(RAW, app, { back, front } = {}) {
         if (e >= 0.5) cur.motes.kind = to.motes.kind;
     }
 
-    function update(dt, { camX = 0, camY = 0, zoom = 1, W = app.screen.width, H = app.screen.height, t = 0, lessMotion = false } = {}) {
+    function update(dt, { camX = 0, camY = 0, zoom = 1, W = app.screen.width, H = app.screen.height, t = 0, lessMotion = false, light = null, hazeY = null } = {}) {
         step(dt);
         const M = cur, rm = !!lessMotion, D = Math.min(W, H), diag = Math.hypot(W, H);
         flashV = Math.max(0, flashV - dt * 2.5);
@@ -215,16 +227,18 @@ export function createAir(RAW, app, { back, front } = {}) {
         // haze along the horizon, behind the world
         haze.visible = M.haze.alpha > 0.005 || flashV > 0.01;
         if (haze.visible) {
-            haze.position.set(W / 2, H * M.haze.y); haze.width = W + 8; haze.height = H * M.haze.h;
+            haze.position.set(W / 2, hazeY ?? H * M.haze.y); haze.width = W + 8; haze.height = H * M.haze.h;
             haze.tint = M.haze.color; haze.alpha = Math.min(1, M.haze.alpha + flashV * 0.3);
         }
         // the light's bloom
-        const lx = W * M.light.x, ly = H * M.light.y;
+        // the light: where the page's own sun or moon is drawn, else where the mood puts it
+        // (a drawn sun out of view still lights the page from that side)
+        const lx = light ? clamp(light.x, -0.15 * W, 1.15 * W) : W * M.light.x, ly = light ? clamp(light.y, -0.2 * H, 0.6 * H) : H * M.light.y;
         bloom.visible = bloomCore.visible = M.light.alpha > 0.005;
         if (bloom.visible) {
             const pulse = rm ? 1 : 1 + Math.sin(t * 0.7) * 0.03;
-            bloom.position.set(lx, ly); bloom.width = bloom.height = D * 1.6 * M.light.size * pulse; bloom.tint = M.light.color; bloom.alpha = M.light.alpha * 0.55;
-            bloomCore.position.set(lx, ly); bloomCore.width = bloomCore.height = D * 0.5 * M.light.size; bloomCore.tint = 0xffffff; bloomCore.alpha = M.light.alpha * 0.35;
+            bloom.position.set(lx, ly); bloom.width = bloom.height = D * 1.6 * M.light.size * pulse; bloom.tint = M.light.color; bloom.alpha = M.light.alpha * 0.42;
+            bloomCore.position.set(lx, ly); bloomCore.width = bloomCore.height = D * 0.5 * M.light.size; bloomCore.tint = 0xffffff; bloomCore.alpha = M.light.alpha * 0.25;
         }
         // shafts of light fanning from the light
         rayList.forEach((r, i) => {
@@ -235,7 +249,7 @@ export function createAir(RAW, app, { back, front } = {}) {
             const spread = 0.55, a = M.rays.angle + (k / Math.max(1, (r.far ? 3 : n - 3) - 1) - 0.5) * spread + (r.o - 0.5) * 0.12
                 + (M.rays.sway && !rm ? Math.sin(t * 0.35 + r.o * 6) * 0.04 : 0);
             r.s.position.set(lx, ly); r.s.rotation = a;
-            r.s.width = D * (0.12 + r.o * 0.16) * (r.far ? 1.6 : 1); r.s.height = diag * M.rays.length * (0.75 + r.o * 0.4);
+            r.s.width = D * (0.08 + r.o * 0.12) * (r.far ? 1.6 : 1); r.s.height = diag * M.rays.length * (0.75 + r.o * 0.4);
             r.s.tint = M.rays.color;
             r.s.alpha = M.rays.alpha * (r.far ? 0.7 : 1) * (rm ? 0.8 : 0.65 + 0.35 * Math.sin(t * (0.25 + r.o * 0.3) + r.o * 9));
         });
@@ -262,6 +276,18 @@ export function createAir(RAW, app, { back, front } = {}) {
             q.s.tint = M.motes.color; q.s.alpha = alpha;
             if (kind === 'snow') q.s.rotation += dt * (q.v - 0.5) * 2 * sp;
         });
+        // cloud shadows: soft, slow, on the lower part of the page
+        const groundTop = hazeY ?? H * 0.5;
+        shades.forEach((q, i) => {
+            const on = i < M.shade.n && M.shade.alpha > 0.005;
+            q.s.visible = on;
+            if (!on) return;
+            q.x += (rm ? 0.002 : 0.008) * dt - dcx / W;
+            if (q.x > 1.4) q.x -= 1.8; if (q.x < -0.4) q.x += 1.8;
+            q.s.position.set(q.x * W, groundTop + (H - groundTop) * q.y);
+            q.s.width = D * 1.4 * q.k; q.s.height = D * 0.45 * q.k;
+            q.s.tint = mix(0xffffff, M.shade.color, Math.min(1, M.shade.alpha * 3)); q.s.alpha = 1;
+        });
         // colour grade and vignette over everything
         grade.visible = M.grade.alpha > 0.005;
         if (grade.visible) { grade.width = W; grade.height = H; grade.tint = mix(0xffffff, M.grade.color, Math.min(1, M.grade.alpha * 4)); grade.alpha = Math.min(1, M.grade.alpha * 2.5); grade.blendMode = M.grade.blend || 'multiply'; }
@@ -278,7 +304,8 @@ export function createAir(RAW, app, { back, front } = {}) {
         get mood() { return moodRef; },
         layers: { back: backC, front: frontC },
         destroy() {
-            backC.destroy({ children: true }); frontC.destroy({ children: true });
+            if (!backC.destroyed) backC.destroy({ children: true });
+            if (!frontC.destroyed) frontC.destroy({ children: true });
             for (const [k, t] of Object.entries(tex)) if (k !== 'white') t.destroy(true);
         }
     };

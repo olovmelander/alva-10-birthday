@@ -11,6 +11,7 @@
  */
 import * as PIXI from '../../vendor/pixi-8.21.0.min.mjs';
 import { STEP, snapshot, HL, C } from '../../src/sim.mjs';
+import { createFrameGuard } from '../../src/frame-guard.mjs';
 import { createInput, upMeansHop } from '../../src/input.mjs';
 import { createPressQueue } from '../../src/presses.mjs';
 import { createSave } from '../../src/save.mjs';
@@ -162,11 +163,17 @@ export function createGame({ host = document.body, assetBase = './skoldhast/', s
         showTitle();
     }
 
+    const frameGuard = createFrameGuard({ onLower: () => {
+        if (!app) return;
+        const { w, h, res } = sizes();
+        app.renderer.resolution = res; app.renderer.resize(w, h); view?.resize();
+    } });
     function sizes() {
         const w = window.innerWidth, h = window.innerHeight;
         const dpr = window.devicePixelRatio || 1;
-        const cap = (w < 900 || h < 500) ? 1.5e6 : 2.6e6;
-        const res = Math.max(1, Math.min(dpr, 2, Math.sqrt(cap / (w * h))));
+        // sharp on tablets and laptops too (the visual overhaul); the frame guard softens it where frames are slow
+        const cap = (w < 900 || h < 500) ? 1.5e6 : 4.2e6;
+        const res = Math.max(1, Math.min(dpr, 2, Math.sqrt(cap / (w * h))) * frameGuard.scale);
         return { w, h, res };
     }
     async function loadHeroFactory() {
@@ -403,6 +410,7 @@ export function createGame({ host = document.body, assetBase = './skoldhast/', s
         let dt = (now - last) / 1000;
         last = now;
         if (dt > 0.25) dt = 0.25;
+        if (!paused && state === 'open' && !document.hidden) frameGuard.sample(dt);
         if (paused || state !== 'open') {
             presses.clear(); input?.release();
             if (state === 'open') input?.poll();

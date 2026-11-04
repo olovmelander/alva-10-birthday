@@ -658,7 +658,7 @@ function bgFold() {
 // Bundles: the day land art is in the first download; the evening art (only
 // the finale needs it) arrives in the background with the other bundles.
 // layer: transparent (clear above its silhouette); repeat: tiles sideways only ('x');
-// half: stored at half size (soft skies, far layers); mip: mipmapped, because
+// half: stored at half size (far layers); the evening skies are full size since the visual overhaul. mip: mipmapped, because
 // the engine draws it smaller than stored while it scrolls.
 export const BACKDROPS = [
     { name: 'bg-beach', bundle: 'boot', draw: bgBeach, quality: 62 },
@@ -667,15 +667,15 @@ export const BACKDROPS = [
     { name: 'bg-steppe-far', bundle: 'land', draw: () => steppeLayer('far', false), quality: 74, layer: true, repeat: true, half: true, mip: true },
     { name: 'bg-steppe-mid', bundle: 'land', draw: () => steppeLayer('mid', false), quality: 72, layer: true, repeat: true, mip: true },
     { name: 'bg-steppe-near', bundle: 'land', draw: () => steppeLayer('near', false), quality: 72, layer: true, repeat: true, mip: true },
-    { name: 'bg-steppe-evening', bundle: 'evening', draw: () => steppeSky(true), quality: 74, half: true },
+    { name: 'bg-steppe-evening', bundle: 'evening', draw: () => steppeSky(true), quality: 74 },
     { name: 'bg-steppe-far-evening', bundle: 'evening', draw: () => steppeLayer('far', true), quality: 74, layer: true, repeat: true, half: true, mip: true },
     { name: 'bg-steppe-mid-evening', bundle: 'evening', draw: () => steppeLayer('mid', true), quality: 72, layer: true, repeat: true, mip: true },
     { name: 'bg-steppe-near-evening', bundle: 'evening', draw: () => steppeLayer('near', true), quality: 72, layer: true, repeat: true, mip: true },
     { name: 'bg-under', bundle: 'sea', draw: bgUnder, quality: 72 },
     { name: 'bg-bay', bundle: 'bay', draw: () => bgBaySky(false), quality: 72 },
     { name: 'bg-bay-front', bundle: 'bay', draw: () => bgBayFront(false), quality: 72, layer: true },
-    { name: 'bg-bay-evening', bundle: 'bay', draw: () => bgBaySky(true), quality: 76, half: true },
-    { name: 'bg-bay-front-evening', bundle: 'bay', draw: () => bgBayFront(true), quality: 76, layer: true, half: true },
+    { name: 'bg-bay-evening', bundle: 'bay', draw: () => bgBaySky(true), quality: 76 },
+    { name: 'bg-bay-front-evening', bundle: 'bay', draw: () => bgBayFront(true), quality: 76, layer: true },
     { name: 'bg-bay-under', bundle: 'bay', draw: bgBayUnder, quality: 74, layer: true, repeat: true, mip: true },
     { name: 'bg-fold', bundle: 'sea', draw: bgFold, quality: 72 }
 ];

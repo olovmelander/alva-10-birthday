@@ -16,6 +16,7 @@ import { landscapeCoverage, landscapeShape } from './landscape-edges.mjs';
 import { createKlo } from './klo.mjs';
 import { createGuardian } from './guardian.mjs';
 import { createWaterLight, createAtmosphere } from './scenery.mjs';
+import { createAir, MOODS } from './atmosphere.mjs';
 import { backdropLayout, preserveBackdropState } from './backdrop-layout.mjs';
 import { kelpGardenLayout } from './underwater-garden.mjs';
 import { pencilAvailable } from './puzzles.mjs';
@@ -99,7 +100,11 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
     world.label = 'world'; skyLayer.label = 'sky-props';
     const overlay = new PIXI.Container();       // screen space: tooth, darkness, fades
     const turnLayer = new PIXI.Container();     // screen space: pages turning away (scene changes, the unfold)
-    root.addChild(bgLayer, skyLayer, bgFront, world, overlay, turnLayer);
+    // the air over the page (src/atmosphere.mjs): haze behind the world; the light, motes and grade before it
+    const airBack = new PIXI.Container(), airFront = new PIXI.Container();
+    airBack.label = 'air-back'; airFront.label = 'air-front';
+    root.addChild(bgLayer, skyLayer, bgFront, airBack, world, airFront, overlay, turnLayer);
+    const air = createAir(PIXI, app, { back: airBack, front: airFront });
     const L = {};
     for (const name of ['far', 'terrainBack', 'mid', 'objects', 'actors', 'hero', 'waterFront', 'fore', 'fx', 'cover', 'hints']) {
         L[name] = new PIXI.Container();
@@ -1916,6 +1921,20 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
 
     // --- per-frame update -------------------------------------------------------------------------
     let time = 0;
+    // which air the page has: the day or the evening, above water or under it; the light sits on the drawn sun
+    function updateAir(dt, W, H, snap) {
+        const def = S.def, underwater = def.underwater || (def.id === 'viken' && cam.y > (S.waterTop ?? 0) + 120);
+        const mood = underwater ? (G.evening ? MOODS.a1UnderEvening : MOODS.a1Under) : G.evening ? MOODS.a1Evening : MOODS.a1Day;
+        air.setMood(mood);
+        let light = null;
+        if (!underwater) {
+            const sun = S.sky?.find(it => it.anim === 'sun')?.s;
+            if (sun?.visible && sun.worldVisible !== false) { const b = sun.getBounds(); light = { x: b.x + b.width / 2, y: b.y + b.height / 2 }; }
+        }
+        const hy = world.position.y + (snap.y - 0.8 * HL) * cam.zoom;
+        air.update(dt, { camX: cam.x, camY: cam.y, zoom: cam.zoom, W, H, t: time, lessMotion: G.lessMotion, light, hazeY: clamp(hy, H * 0.3, H * 0.85) });
+    }
+
     function render(snap, dt) {
         time += dt;
         const def = S.def;
@@ -1965,6 +1984,7 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
         cam.shake = Math.max(0, cam.shake - dt * 30);
         world.position.set(W / 2 - cam.x * cam.zoom + shx, H / 2 - cam.y * cam.zoom);
         S.atmosphere.update({ cam, width: W, height: H, time: scenicTime, lessMotion: G.lessMotion, evening: G.evening, waterTop: S.waterTop ?? 0 });
+        updateAir(dt, W, H, snap);
         S.habitats?.update({ cam, width: W, height: H, time: scenicTime, lessMotion: G.lessMotion, evening: G.evening });
 
         const skyFloor = layoutBackdrops({ width: W, height: H });
@@ -3114,6 +3134,7 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
         fadeTex?.destroy(true); fadeTex = null;
         shadeTex?.destroy(true); shadeTex = null;
         vignetteTex?.destroy(true); vignetteTex = null;
+        air.destroy();
         for (const t of gradients.splice(0)) t.destroy(true);
     }
 

@@ -16,6 +16,7 @@
 import { HL, cond, heightOn } from '../../src/sim.mjs';
 import { pencilStyle, pencilPixi, raggedBand, resampleX } from '../../src/pencil-style.mjs';
 import { createAir, MOODS } from '../../src/atmosphere.mjs';
+import { createWaterLight } from '../../src/scenery.mjs';
 import { createKlo } from '../../src/klo.mjs';
 import { createTukan, createMagpie, createBeetle, createBall, createCloud, createEgg, createHatchling, createCoin, createNest, createHearts, PAL, INK } from './characters.mjs';
 import { eggState, ballPose, glitterPose } from './puzzles.mjs';
@@ -293,7 +294,9 @@ export function createView(PIXI, app, { assets, G, heroFactory }) {
             gw.rect(w.x0, w.top, w.x1 - w.x0, wb - w.top).fill(material('wetsand', 0));
             gw.rect(w.x0, w.top, w.x1 - w.x0, wb - w.top).fill({ color: 0x3f6f8e, alpha: 0.85 });
             gw.rect(w.x0, w.top, w.x1 - w.x0, wb - w.top).fill(pen.material('mat-water', 0.35, 0x5d8eaa));
-            for (let k = 0; k < 6; k++) gw.rect(w.x0, w.top + h(0.6) * (k + 1), w.x1 - w.x0, h(0.6)).fill({ color: 0x1d3a52, alpha: 0.08 });
+            // deeper is darker: each band lies over the ones above it
+            for (let k = 0; k < 9; k++) gw.rect(w.x0, w.top + h(0.45) * (k + 1), w.x1 - w.x0, wb - w.top - h(0.45) * (k + 1)).fill({ color: 0x0f2436, alpha: 0.07 });
+            gw.rect(w.x0, w.top, w.x1 - w.x0, h(0.35)).fill({ color: 0x9cc8de, alpha: 0.16 }); // the lit skin of the water
             L.water.addChild(gw);
             // the surface: a pencil line and its light
             const surf = new PIXI.Graphics();
@@ -301,6 +304,20 @@ export function createView(PIXI, app, { assets, G, heroFactory }) {
             lineAlong(surf, wave).stroke(pen.line(0x2c5776, 3, 0.9));
             lineAlong(surf, offset(wave, 7)).stroke(pen.line(0xb7d6e6, 2, 0.5));
             L.waterFront.addChild(surf);
+            // pencil glints on the surface (as on Äventyr 1's sea), and the moon's path once it is drawn
+            if (w.kind !== 'pipe') {
+                const wl = createWaterLight(RAW, w);
+                L.waterFront.addChild(wl.view);
+                S.waterLights = S.waterLights || []; S.waterLights.push(wl);
+                if (!S.moonPath && def.id === 'strand') {
+                    S.moonPath = new RAW.Container(); L.waterFront.addChild(S.moonPath);
+                    for (let k = 0; k < 12; k++) {
+                        const m = new PIXI.Graphics();
+                        m.moveTo(-1, 0).lineTo(1, 0).stroke(pen.line(0xfff1c0, 3.2, 0.9));
+                        S.moonPath.addChild(m);
+                    }
+                }
+            }
             const front = new PIXI.Graphics();
             front.rect(w.x0, w.top + 6, w.x1 - w.x0, wb - w.top).fill({ color: 0x3d6d8f, alpha: 0.28 });
             L.waterFront.addChildAt(front, 0);
@@ -1169,6 +1186,24 @@ export function createView(PIXI, app, { assets, G, heroFactory }) {
         if (!skyHatch.texture.width || skyHatch.texture === RAW.Texture.EMPTY) { const ht = T('pencil-hatch'); if (ht) skyHatch.texture = ht; }
         skyHatch.width = W; skyHatch.height = H; skyHatch.tilePosition.x = -cam.x * cam.zoom * 0.05;
 
+        // water light: glints, dimmer in the storm; the moon's path across the river
+        if (S.waterLights) for (const wl of S.waterLights) {
+            wl.update({ time: t, cam, width: W, height: H, evening: F.has('moon'), lessMotion: rm });
+            wl.view.alpha = S.def.underground ? 0.7 : 0.45 + 0.55 * (1 - stormShown);
+        }
+        if (S.moonPath) {
+            const on = moonState.shown > 0.05, river = S.def.waters.find(w => w.kind === 'river') || S.def.waters[0];
+            S.moonPath.visible = on && !!river;
+            if (S.moonPath.visible) {
+                const mx = cam.x + (moonScreen(W, H).x - W / 2) / cam.zoom;
+                S.moonPath.children.forEach((m, k) => {
+                    const depth = 10 + k * 22, wob = rm ? 0 : Math.sin(t * 1.3 + k * 1.7) * 14;
+                    m.position.set(clamp(mx + wob, river.x0 + 40, river.x1 - 40), river.top + depth);
+                    m.scale.x = (70 - k * 4) * (0.7 + 0.3 * Math.sin(t * 2 + k));
+                    m.alpha = moonState.shown * (0.85 - k * 0.06) * (rm ? 1 : 0.6 + 0.4 * Math.sin(t * 3.1 + k * 2.3));
+                });
+            }
+        }
         // water life
         for (const a of S.anim) {
             if (a.kind === 'current') { a.c.x += a.v * dt; if (a.c.x > a.x1 - h(0.8)) a.c.x = a.x0; }
