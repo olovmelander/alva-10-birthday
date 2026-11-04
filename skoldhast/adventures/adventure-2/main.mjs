@@ -522,6 +522,10 @@ export function createGame({ host = document.body, assetBase = './skoldhast/', s
                 case 'ballSplash': audio.sfx('splash', { size: 0.7 }); break;
                 case 'dug': audio.sfx('rustle'); break;
                 case 'coin': audio.sfx('sparkle'); audio.stinger('discovery'); break;
+                // each crystal plate has its own note: the xylophone Klo jokes about
+                case 'crystalRing': audio.note?.(G.sceneDef.crystals?.notes?.[e.id] ?? 0, { inst: 'shell' }); break;
+                case 'crystalSoft': case 'crystalWait': audio.note?.(G.sceneDef.crystals?.notes?.[e.id] ?? 0, { inst: 'shell', vel: 0.3 }); break;
+                case 'crystalLit': audio.sfx('sparkle'); if (e.lit === e.of) audio.stinger('aha'); break;
                 case 'seedsLit': audio.sfx('sparkle'); audio.stinger('aha'); break;
                 case 'vine': audio.sfx('gate'); break;
                 case 'trade': audio.sfx('sparkle'); break;

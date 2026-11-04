@@ -19,7 +19,8 @@
  *           Kristallsjön's wall, the spring's falling sides
  *   eggs    where each of the ten eggs is and how it is earned
  *   bounce  a surface that throws the sköldhäst up when it lands (the mushroom)
- *   winds   gusts that push a visible sköldhäst back on open ground (a hidden shell holds)
+ *   winds   gusts that push a visible sköldhäst along open ground, back (dir -1) or on towards the top
+ *           (dir 1, where the storm has turned); a hidden shell holds
  *   lightning  a schedule that sets a flag while the lightning shows (T2's bridge inks only then)
  *   crystals, plates, glitterBall  Kristallgrottan's plates, gate and Tordyveln's ball
  */
@@ -339,8 +340,9 @@ SCENES.kristall = {
         { id: 'e4', x: h(48.6), y: h(3.64), how: 'touch' },
         { id: 'e8', x: h(67.6), y: h(-0.44), how: 'touch', when: 'k3_open' }
     ],
-    // K1's three crystal plates: two galloping hoofbeats on each light it
-    crystals: { plates: ['k1_a', 'k1_b', 'k1_c'], beats: 2, minSpeed: 1000, flag: 'k1_lit' },
+    // K1's three crystal plates, in the order they take their turn (the next one blinks): two galloping
+    // hoofbeats light it, so it takes gallops both ways. Each plate has its own note.
+    crystals: { plates: ['k1_c', 'k1_a', 'k1_b'], beats: 2, minSpeed: 1000, flag: 'k1_lit', notes: { k1_a: 0, k1_b: 2, k1_c: 4 } },
     // K3: Tordyveln's glitter ball rolls into the pool onto plate A; a still shell presses plate B
     glitterBall: {
         x0: h(56.4), step: h(0.5), edge: h(57.45), dir: 1, stopX: h(59.4), push: { min: h(0.3), max: h(1.05) },
@@ -368,7 +370,10 @@ SCENES.topp = {
         { id: 'tp-ridge', pts: L([4.6, -0.42], [8, -0.6], [12, -1.4], [16, -2.3], [20, -2.95], [23.8, -3.1]), mat: 'grass', edgeMat: 'rock', windswept: true },
         { id: 'tp-chasm', pts: L([23.8, 3.5], [29.8, 3.5]), mat: 'rock', hidden: true },
         { id: 'tp-bridge', thin: true, pts: L([23.8, -3.1], [25.3, -2.95], [26.8, -2.9], [28.3, -2.95], [29.8, -3.1]), mat: 'light', bridge: true, lightBridge: true, when: 't2_bridge' },
-        { id: 'tp-crag', pts: L([29.8, -3.1], [32, -3.2], [34, -3.3], [40, -5.4], [44, -6.55]), mat: 'grass', edgeMat: 'rock', windswept: true },
+        { id: 'tp-crag', pts: L([29.8, -3.1], [32, -3.2], [34, -3.3], [37, -4.35]), mat: 'grass', edgeMat: 'rock', windswept: true },
+        // T3: a gap only the turned wind can carry anyone over
+        { id: 'tp-gap', pts: L([37, 0.5], [39.8, 0.5]), mat: 'rock', hidden: true },
+        { id: 'tp-crag2', pts: L([39.8, -5.33], [40, -5.4], [44, -6.55]), mat: 'grass', edgeMat: 'rock', windswept: true },
         { id: 'tp-summit', pts: L([44, -6.55], [47, -6.72], [54, -6.8], [58, -6.6], [60.6, -6.2]), mat: 'grass', edgeMat: 'rock', summit: true }
     ],
     walls: [
@@ -377,7 +382,13 @@ SCENES.topp = {
     ],
     edges: [
         { id: 'tp-chasm-w', x: h(23.8), y: h(-3.1), dir: 1, kind: 'balk', reason: 'storm', when: '!t2_bridge' },
-        { id: 'tp-chasm-e', x: h(29.8), y: h(-3.1), dir: -1, kind: 'balk', reason: 'storm', when: '!t2_bridge' }
+        { id: 'tp-chasm-e', x: h(29.8), y: h(-3.1), dir: -1, kind: 'balk', reason: 'storm', when: '!t2_bridge' },
+        // T3: too far to jump; a gust from behind carries a visible sköldhäst over. Calm again after the cloud.
+        { id: 'wind-gap', x: h(37), y: h(-4.35), dy: h(1.5), dir: 1, kind: 'sprang', to: [h(40.1), h(-5.43)], peak: h(0.8), slow: 0.6, pan: true,
+            minSpeed: 120, needs: 'tailwind', needsReason: 'windGap', when: '!cloud_met' },
+        { id: 'wind-gap-e', x: h(39.8), y: h(-5.33), dy: h(1.5), dir: -1, kind: 'balk', reason: 'edge', when: '!cloud_met' },
+        { id: 'calm-gap', x: h(37), y: h(-4.35), dy: h(1.5), dir: 1, kind: 'sprang', to: [h(40.1), h(-5.43)], peak: h(0.8), when: 'cloud_met' },
+        { id: 'calm-gap-e', x: h(39.8), y: h(-5.33), dy: h(1.5), dir: -1, kind: 'sprang', to: [h(36.7), h(-4.25)], peak: h(0.8), when: 'cloud_met' }
     ],
     dashed: [
         // T2: a bridge of light that hooves can draw only while the lightning shows it
@@ -391,8 +402,8 @@ SCENES.topp = {
     winds: [
         { id: 'vindkanten', x0: h(6.5), x1: h(20.4), period: 5.0, gust: 1.7, warn: 0.8, strength: 430, phase: 0,
             shelter: [[h(11.0), h(11.9)], [h(15.3), h(16.2)], [h(19.4), h(20.3)]] },
-        { id: 'klippan', x0: h(34.5), x1: h(43.8), period: 4.6, gust: 1.5, warn: 0.8, strength: 400, phase: 1.3,
-            shelter: [[h(37.6), h(38.5)], [h(41.0), h(41.9)]] }
+        // past the bridge the storm has turned: here the wind blows towards the top
+        { id: 'klippan', x0: h(33.5), x1: h(37.2), period: 4.6, gust: 1.5, warn: 0.8, strength: 460, phase: 1.3, dir: 1 }
     ],
     // T2's lightning: on the peak the flashes come often and last a while
     lightning: { period: 5.2, on: 2.4, phase: 1.0, flag: 'flash' },
@@ -408,6 +419,7 @@ SCENES.topp = {
         { id: 't-arrive', x0: h(-1), x1: h(6.5) },
         { id: 't-wind', x0: h(6.5), x1: h(20.4) },
         { id: 't-chasm', x0: h(20.5), x1: h(23.9) },
+        { id: 't-gap', x0: h(33.5), x1: h(37.2) },
         { id: 't-climb', x0: h(30), x1: h(44) },
         { id: 't-summit', x0: h(45), x1: h(60) }
     ],
@@ -430,6 +442,7 @@ export const CHECKPOINTS = {
     lakeEast: { scene: 'kristall', at: { x: h(56), y: h(-0.45), facing: 1 } },
     topp: { scene: 'topp', at: { x: h(5.4), y: h(-0.45), facing: 1 } },
     bridgeEast: { scene: 'topp', at: { x: h(31), y: h(-3.15), facing: 1 } },
+    gapEast: { scene: 'topp', at: { x: h(41), y: h(-5.7), facing: 1 } },
     summit: { scene: 'topp', spot: 'summit' },
     nest: { scene: 'strand', spot: 'start' }
 };

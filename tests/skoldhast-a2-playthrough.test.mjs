@@ -175,9 +175,13 @@ export async function mountain(R) {
     const { G } = R;
     await R.until(() => G.sceneId === 'kristall', { x: 1 }, 10, 'into the mountain with the lantern');
     await R.settle();
-    // K1: one gallop over the three crystal plates lights the chasm, and draws its bridge
+    // K1: the plates take turns: the far one, back to the first, then the middle one on the way to the bridge
     await R.walkTo(1.0); await R.settle();
-    await R.until(() => R.has('k1_bridge'), { x: 1 }, 10, 'K1: plates and bridge');
+    await R.until(() => R.has('k1_c'), { x: 1 }, 10, 'K1: the far plate');
+    assert.ok(!R.has('k1_a') && !R.has('k1_b'), 'the others wait for their turn');
+    await R.until(() => R.has('k1_a'), { x: -1 }, 10, 'K1: back to the first plate');
+    await R.until(() => G.player.x < 4.5 * HL, { x: -1 }, 5, 'a run-up for the last gallop');
+    await R.until(() => R.has('k1_bridge'), { x: 1 }, 10, 'K1: the middle plate, and on over the bridge');
     for (const f of ['k1_a', 'k1_b', 'k1_c', 'k1_lit']) assert.ok(R.has(f), f);
     await R.settle();
     await R.walkTo(22); await R.settle();
@@ -234,7 +238,7 @@ export async function peak(R) {
     const sheltered = (g) => (g.w.shelter || []).some(([a, b]) => G.player.x >= a && G.player.x <= b);
     const windStep = () => {
         const g = G.puz.gust;
-        if (g && G.player.x < g.w.x1 && G.player.x > g.w.x0 - 0.3 * HL && !sheltered(g)) return G.player.hidden ? {} : { hide: Math.abs(G.player.vx) < 60 };
+        if (g && !g.w.dir && G.player.x < g.w.x1 && G.player.x > g.w.x0 - 0.3 * HL && !sheltered(g)) return G.player.hidden ? {} : { hide: Math.abs(G.player.vx) < 60 };
         return G.player.hidden ? { hop: true } : { x: 0.7 };
     };
     // T1: walking on into a gust pushes the sköldhäst back
@@ -252,6 +256,9 @@ export async function peak(R) {
     await R.until(() => G.flags.has('flash'), {}, 8, 'next flash');
     await R.gallopPast(24.5);
     await R.until(() => R.has('t2_bridge'), {}, 4, 'T2: the hooves draw the bridge of light');
+    await R.settle();
+    // T3: the wind has turned; standing up in a gust carries the sköldhäst over the gap
+    await R.until(() => R.has('gap_crossed'), windStep, 60, 'T3: the wind carries it over');
     await R.settle();
     await R.until(() => G.player.x > 45.5 * HL && !G.player.hidden, windStep, 120, 'up to the summit');
     await R.until(() => R.has('cloud_met'), { x: 0.5 }, 10, 'the cloud in the eye of the storm');

@@ -208,6 +208,8 @@ test('inside the mountain the help and the goal lead up, never back out for an e
     G.flags.add('wind_passed');
     assert.equal(R.story.hint({ peek: true }).text, HINTS.t2[0]);
     G.flags.add('t2_bridge');
+    assert.equal(R.story.hint({ peek: true }).text, HINTS.t3[0]);
+    G.flags.add('gap_crossed');
     assert.equal(R.story.hint({ peek: true }).text, HINTS.summit[0]);
     // out in the forest the eggs still lead
     G.goto('strand', 'start');
@@ -274,13 +276,111 @@ test('Tordyveln in the mountain talks about the ball that is there', async () =>
     assert.ok(!said(R).includes(lineOf(STORY.beetleAfter[0])));
 });
 
-test('K1: one gallop lights all three, and the reveal of the bridge is heard', async () => {
+test('K1: the plates take turns, so one gallop is not enough, and the reveal of the bridge is heard', async () => {
     const R = createRobot(), { G } = R;
     await at(R, MOUNTAIN, 'kristall', { x: 1 * HL, y: -0.42 * HL, facing: 1 });
-    await R.until(() => R.has('k1_lit'), { x: 1 }, 10, 'the plates');
+    await R.until(() => R.has('k1_c'), { x: 1 }, 10, 'the far plate blinks first');
+    assert.ok(!R.has('k1_a') && !R.has('k1_b'), 'the plates on the way there wait');
+    assert.ok(thought(R).includes(STORY.crystalWait), 'and the sköldhäst is told why');
+    await R.until(() => R.events.some(e => e.type === 'balk' && e.reason === 'chasm'), { x: 1 }, 5, 'the chasm is still dark');
+    assert.ok(!R.has('k1_bridge'));
+    await R.until(() => R.has('k1_a'), { x: -1 }, 10, 'back to the first');
+    await R.until(() => G.player.x < 4.5 * HL, { x: -1 }, 5, 'a run-up');
+    await R.until(() => R.has('k1_lit'), { x: 1 }, 10, 'the middle one');
     assert.ok(thought(R).includes(STORY.crystalAll));
-    await R.until(() => R.has('k1_bridge'), { x: 1 }, 5, 'the bridge');
+    await R.until(() => R.has('k1_bridge'), { x: 1 }, 5, 'the bridge, on the same gallop');
     assert.ok(G.player.x > 17 * HL);
+});
+
+test('a saved plate stays lit, and the next one in turn is the one that counts', async () => {
+    const R = createRobot(), { G } = R;
+    await at(R, [...MOUNTAIN, 'k1_b'], 'kristall', { x: 1 * HL, y: -0.42 * HL, facing: 1 });
+    await R.until(() => R.has('k1_c'), { x: 1 }, 10, 'the far plate');
+    await R.until(() => R.has('k1_lit'), { x: -1 }, 10, 'the first plate lights the last');
+    assert.equal(G.flags.has('k1_bridge'), false);
+});
+
+const TOP = [...MOUNTAIN, ...K1, 'egg_e4', 'egg_e8', 'k3_open', 'topp_reached', 'wind_passed', 't2_bridge', 'b:topp', 'b:windKlo', 'b:blixtbro', 'b:t2Done'];
+const nextGust = async (R) => {
+    await R.until(() => !R.has('tailwind'), {}, 8, 'the calm');
+    await R.until(() => R.has('tailwind'), {}, 8, 'a gust');
+};
+
+test('T3: the stretch past the bridge turns the wind: too far to jump, and carried over standing up', async () => {
+    const R = createRobot(), { G } = R;
+    await at(R, TOP, 'topp', { x: 35.2 * HL, y: -3.72 * HL, facing: 1 });
+    await R.settle();
+    assert.ok(said(R).includes(lineOf(STORY.medvind[0])), 'hypothesis three');
+    // in the calm the edge refuses, gallop or not
+    await R.until(() => !R.has('tailwind'), {}, 8, 'the calm');
+    await R.until(() => R.events.some(e => e.type === 'balk' && e.reason === 'windGap'), () => (R.has('tailwind') ? { x: -1 } : { x: 1 }), 12, 'the gap refuses');
+    assert.ok(!R.has('gap_crossed'));
+    // the old habit: hidden, the wind goes by
+    await R.walkTo(35.6); await R.settle();
+    await R.until(() => !R.has('tailwind') && G.puz.gust?.state === 'warn', {}, 8, 'the warning');
+    await R.hide();
+    await nextGust(R);
+    await R.hold(1.2);
+    assert.ok(!R.has('gap_crossed'), 'a hidden shell stays');
+    assert.ok(thought(R).includes(STORY.tailHidden), 'and hears what it missed');
+    await R.emerge(); await R.settle();
+    // standing up, and not even touching the stick
+    await R.until(() => R.has('gap_crossed'), {}, 16, 'the wind carries it over');
+    await R.settle();
+    assert.ok(G.player.x > 39.8 * HL && G.player.mode === 'ground');
+    assert.ok(said(R).includes(lineOf(STORY.windCarried[2])), 'and someone is crying up there');
+    assert.equal(G.checkpoint, 'gapEast');
+    assert.ok(!R.events.some(e => e.type === 'rescued'));
+    // no way back over it until the cloud is calm
+    await R.until(() => R.events.some(e => e.type === 'balk' && e.reason === 'edge'), { x: -0.5 }, 6, 'the far edge');
+});
+
+test('T3: after the cloud the gap is an ordinary leap, both ways, so the top stays open', async () => {
+    const R = createRobot(), { G } = R;
+    await at(R, [...TOP, 'cloud_met', 'b:medvind', 'gap_crossed', 'egg_e5', 'b:summit'], 'topp', { x: 31 * HL, y: -3.15 * HL, facing: 1 });
+    G.goto('topp', { x: 31 * HL, y: -3.15 * HL, facing: 1 });
+    await R.until(() => G.player.x > 41 * HL, { x: 1 }, 10, 'east over the gap');
+    await R.until(() => G.player.x < 33 * HL, { x: -1 }, 10, 'and back');
+    assert.ok(!R.events.some(e => e.type === 'rescued'));
+});
+
+test('T3: the walls of the gap hold against every jump', async () => {
+    for (let x0 = 35.4; x0 < 37; x0 += 0.2) {
+        const R = createRobot(), { G } = R;
+        await at(R, [...TOP, 'b:medvind'], 'topp', { x: 34.6 * HL, y: -3.5 * HL, facing: 1 });
+        await R.until(() => !R.has('tailwind') && !G.puz.gust, {}, 8, 'a calm');
+        let jumped = false;
+        for (let i = 0; i < 90 && !R.has('tailwind'); i++) {
+            const hop = !jumped && G.player.x >= x0 * HL;
+            if (hop) jumped = true;
+            await R.step({ x: 1, hop });
+            assert.ok(G.player.x <= 37.01 * HL, `stopped at the edge, jumping from ${x0.toFixed(1)}`);
+        }
+    }
+});
+
+test('the moon can wait for a reason: the eggs hatch when it rises, and the rule is told from the start', () => {
+    const rule = lineOf(STORY.arrive3[0]), alva = STORY.summit3.find(([who]) => who === 'alva')[1];
+    assert.match(rule, /när månen går upp/);
+    assert.match(alva, /när den går upp/);
+    assert.doesNotMatch(alva, /ensamma/, 'eggs that hatch only in the nest cannot hatch alone in the forest');
+});
+
+test('the start is short, and what moved from it is still said', async () => {
+    const R = createRobot(), { G } = R;
+    G.goto('strand', 'start'); R.story.start(); await R.settle();
+    const start = said(R);
+    assert.ok(start.length <= 12, `${start.length} boxes before the first step`);
+    assert.ok(thought(R).includes(STORY.digSeen), 'the glimmer is a thought, and play has begun');
+    for (const line of [STORY.arrive[0], STORY.arrive2[1], STORY.arrive3[2], STORY.mystery[1], STORY.mystery[2]]) assert.ok(start.includes(lineOf(line)), line[1]);
+    // the first egg: Alva says hello
+    await R.walkTo(30.4); await R.context('dig'); await R.settle();
+    assert.ok(said(R).includes(lineOf(STORY.alvaFirstEgg[1])));
+    // the cocoa fruit: the claws, and the love scene takes it from there
+    G.flags.add('p1_fallen');
+    await R.walkTo(13.3); await R.settle();
+    assert.ok(said(R).includes(lineOf(STORY.claws[1])));
+    assert.ok(said(R).includes(lineOf(STORY.love[2][0])));
 });
 
 test('P4: standing in plain sight does not open the flowers, and the sköldhäst notices why', async () => {

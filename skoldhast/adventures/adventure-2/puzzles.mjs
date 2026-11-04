@@ -10,11 +10,12 @@
  *   P6  a hidden shell spirals down Djuphålan to the gold coin; Ge it to Skatan
  *   P7  the leap is the sim's downhill språng; Dra the vine to come back
  *   P9  the magic mushroom bounces the sköldhäst up to a high branch (game.mjs)
- *   K1  galloping hooves ring three crystal plates; lit, they make the chasm's bridge drawable
+ *   K1  galloping hooves ring three crystal plates in turn, the next one blinking; lit, they make the chasm's bridge drawable
  *   K2  of three currents under Kristallsjön's wall only the white one carries a shell through
  *   K3  Knuffa Tordyveln's glitter ball onto one plate, press the other with a still shell
  *   T1  gusts push a visible sköldhäst back on the ridge; hidden, it holds (applyWinds)
  *   T2  the bridge of light is drawable only while the lightning shows it (stepWeather)
+ *   T3  past the bridge the wind has turned: a visible sköldhäst is carried over the gap, a hidden shell stays
  *
  * Completed steps are flags (they are what the save keeps). Transient motion
  * (a falling egg, the rolling ball) restarts as finished after a reload.
@@ -125,7 +126,9 @@ export function stepWeather(G, events) {
         else if (!on && F.has(L.flag)) { F.delete(L.flag); events.push({ type: 'flash', on: false }); }
     }
     let gust = null;
-    for (const w of sc?.winds || []) {
+    // the wind where the sköldhäst is sets the weather, so one stretch never takes a gust from the other
+    const p = G.player, winds = sc?.winds || [], here = winds.filter(w => p.x >= w.x0 - 2.5 * HL && p.x <= w.x1 + 2.5 * HL);
+    for (const w of here.length ? here : winds) {
         if (F.has('moon')) break;
         const t = (G.time + w.phase) % w.period;
         const state = t < w.gust ? 'gust' : t > w.period - w.warn ? 'warn' : null;
@@ -133,6 +136,9 @@ export function stepWeather(G, events) {
     }
     const was = G.puz.gust?.state || null;
     G.puz.gust = gust;
+    // the moment-to-moment flag T3's gap reads, like the lightning's for T2's bridge
+    const tail = gust?.state === 'gust' && gust.w.dir > 0;
+    if (tail) F.add('tailwind'); else F.delete('tailwind');
     if ((gust?.state || null) !== was) events.push({ type: 'gust', state: gust?.state || null, id: gust?.id });
 }
 
@@ -149,10 +155,22 @@ export function windAt(G, x, y) {
 /** T1: a gust pushes a visible sköldhäst on open ground back west; tucked in its shell it holds. */
 export function applyWinds(G, dt, events) {
     const p = G.player;
-    if (p.mode !== 'ground') return;
-    const w = windAt(G, p.x, p.y);
+    const P = G.puz;
+    const w = p.mode === 'ground' ? windAt(G, p.x, p.y) : null;
+    if (!w?.dir) P.carried = 0;
     if (!w) return;
-    if (p.hidden || p.hideQueued) { p.vx *= Math.exp(-12 * dt); return; }
+    if (p.hidden || p.hideQueued) {
+        p.vx *= Math.exp(-12 * dt);
+        if (w.dir > 0) events.push({ type: 'tailHidden' });
+        return;
+    }
+    // a wind from behind lifts the sköldhäst along, even one standing still
+    if (w.dir > 0) {
+        if (!P.carried) events.push({ type: 'carried', id: w.id });
+        P.carried = Math.min(1, (P.carried || 0) + dt * 3.5);
+        p.vx = Math.max(p.vx, w.strength * P.carried);
+        return;
+    }
     const k = Math.min(1, dt * 5);
     p.vx += (-w.strength - p.vx) * k;
     if (!G.puz.blown) { G.puz.blown = true; events.push({ type: 'blown', id: w.id }); }
@@ -224,6 +242,7 @@ export function stepPuzzles(G, events, dt) {
         for (const e of events) {
             const id = p.surface?.crystal;
             if (e.type !== 'hoof' || !id || F.has(id)) continue;
+            if (id !== sc.crystals.plates.find(c => !F.has(c))) { G.emit('crystalWait', { id }); continue; }
             if (e.speed < sc.crystals.minSpeed) { G.emit('crystalSoft', { id }); continue; }
             P.crystal[id] = (P.crystal[id] || 0) + 1;
             G.emit('crystalRing', { id, n: P.crystal[id] });
@@ -256,6 +275,8 @@ export function stepPuzzles(G, events, dt) {
         const lane = sc.lanes?.find(l => l.id === e.id);
         if (lane?.loop) G.emit('loopBack', { id: e.id });
     }
+    // T3: over the gap
+    for (const e of events) if (e.type === 'land' && e.id === 'wind-gap' && !F.has('gap_crossed')) G.flag('gap_crossed');
     // K2: through, the first time the sköldhäst is in the water east of the rock wall (however it got there)
     if (sc.id === 'kristall' && !F.has('k2_through') && p.mode === 'swim' && p.x > 46.8 * HL && p.y > 1.5 * HL && p.x < 54 * HL) {
         G.flag('k2_through');
