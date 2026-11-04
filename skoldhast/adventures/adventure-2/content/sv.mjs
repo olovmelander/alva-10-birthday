@@ -213,6 +213,7 @@ export const STORY = {
         ['horse', 'Men forsen trycker bort allt som simmar.'],
         ['klo', 'Allt som simmar, ja. Men det som sjunker …?']
     ],
+    forsKnown: [['tukan', 'Forsen! Det är här bakom som gången in i berget ska finnas.']],
     miraRiver: [['mira', 'Floden ritade jag med min allra blåaste penna!']],
     miraFors: [['mira', 'Forsen blev min finaste. Hör hur den brusar!']],
     forsPushed: 'Vattnet forsar ner och trycker mig tillbaka!',
@@ -225,6 +226,7 @@ export const STORY = {
         ['horse', 'Bakom forsen! Och här går en gång rakt in i berget.'],
         ['tukan', 'Vi har ju vår lykta. Kom, månskensfröet visar vägen!']
     ],
+    caveLitBack: [['tukan', 'Nu har vi vår lykta! Kom, månskensfröet visar vägen in i berget.']],
     darkCave: 'Gången in i berget är kolsvart. Jag behöver ljus.',
 
     // P4 the moonshine seeds
@@ -235,6 +237,7 @@ export const STORY = {
     ],
     dark: 'För mörkt. Jag ser inte var jag sätter hovarna.',
     seedsShy: 'Blommorna slöt sig när jag rörde mig …',
+    seedsWatched: 'Blommorna tittar på mig. De vågar inte slå ut när de ser mig …',
     seedsLit: [
         ['tukan', 'De slår ut! Titta, de lysande fröna flyger in i grottan.'],
         ['tukan', 'Jag tar med ett frö som lykta. Det lyser var vi än går.'],
@@ -258,6 +261,7 @@ export const STORY = {
     ],
     beetleTalk: [['dyvel', 'Min boll ska bli den rundaste i hela skogen. Hmpf.']],
     beetleAfter: [['dyvel', 'Ja ja. Jag rullar en ny. En ännu finare.']],
+    washedLate: [['dyvel', 'Min boll! Nu är båda borta … Ja ja. Jag rullar en ny. En ännu finare.']],
     pushWrong: 'Bollen ska ner till floden. Jag får knuffa från andra sidan.',
     ballRoll: 'Den rullar! Rakt ner i floden!',
     washed: [
@@ -276,6 +280,7 @@ export const STORY = {
         ['klo', 'Djuphålan – mitt i floden.'],
         ['alva', 'Tukankrabbor älskar allt som glänser. Pärlhalsband och guldmynt!']
     ],
+    magpieCoin: [['tukan', 'Något som glänser mer? Vi har ju mitt guldmynt!']],
     skataTalk: [['skata', 'Bara något som glänser mer än pärlor. Så är det med det.']],
     skataAfter: [['skata', 'Guldmyntet glänser som en liten sol. Tack för bytet!']],
     whirl: 'Virveln snurrar bort mig! Jag kommer inte ner.',
@@ -309,7 +314,7 @@ export const STORY = {
         ['klo', 'Ett nytt rekord! Det skriver jag upp direkt.'],
         ['alva', 'Oj! Det är det längsta språnget jag någonsin har sett!']
     ],
-    vineAsk: [['tukan', 'Dra i lianen, så får vi en bro tillbaka!']],
+    vineAsk: [['tukan', 'Vi kommer inte över! Dra i lianen, så får vi en bro.']],
     vineDone: 'Nu kommer vi tillbaka över ravinen.',
 
     // the giant tree: from its crown the storm's source can be seen
@@ -331,6 +336,17 @@ export const STORY = {
         ['tukan', 'Månskensfrön lyser i mörker! Det växer månskensblommor i Rotgrottan.']
     ],
     sourceLit: [['tukan', 'Det sägs att en gång bakom forsen leder in i berget. Och vi har vår lykta!']],
+    sourceLate: [
+        ['klo', 'Här uppifrån ser man hela den magiska skogen!'],
+        ['horse', 'Och där borta bakom forsen: berget vi var inne i! Stormen snurrar runt toppen.'],
+        ['tukan', 'Åsktoppen! Hypotes nummer ett stämmer: stormen kommer därifrån!']
+    ],
+    sourceLateGo: [['tukan', 'Vägen dit har vi redan hittat. Tillbaka in i berget!']],
+    sourceAfter: [
+        ['klo', 'Här uppifrån ser man hela den magiska skogen!'],
+        ['horse', 'Och där borta ligger Åsktoppen. Där satt molnet alldeles ensamt.'],
+        ['mira', 'Nu är mitt moln inte ensamt längre. Snart får det sin måne!']
+    ],
 
     // Kristallgrottan
     kristall: [
@@ -358,13 +374,16 @@ export const STORY = {
     ],
     rush: 'Vattnet under väggen forsar emot mig!',
     rescued: 'Hoppsan! Där höll jag på att ramla rakt ut ur sidan.',
-    loopBack: 'Den strömmen gick i en ring, tillbaka hit!',
+    loopBack: 'Den strömmen gick i en ring, tillbaka hit! Jag simmar ner och väljer kristall.',
     throughWall: [['horse', 'Den vita strömmen tog mig rakt under väggen!']],
     glitter: [
         ['dyvel', 'Du igen! Jag rullade min nya boll ända hit in i berget. En glitterboll!'],
         ['tukan', 'Åh! Får jag forska på den? Bara lite? Bara en vecka?'],
         ['dyvel', 'Hmpf. Ni får låna den. Men akta glittret.']
     ],
+    glitterEarly: [['dyvel', 'Du igen! Det här är min andra boll. Jag rullade den ända hit in i berget. En glitterboll!']],
+    glitterTalk: [['dyvel', 'Akta glittret, sa jag. Bollen är nyrullad.']],
+    glitterAfter: [['dyvel', 'En plattboll. Hmpf. Den rundaste i hela dammen, i alla fall.']],
     glitter2: [['klo', 'Porten där borta öppnas nog om båda plattorna i dammen trycks ner.']],
     glitterRoll: 'Bollen rullar ner i dammen …',
     glitterIn: 'Glitterbollen ligger på den ena plattan!',
@@ -398,7 +417,7 @@ export const STORY = {
     storm: 'I mörkret syns ingen bro. Jag väntar på nästa blixt!',
     t2Done: [
         ['alva', 'Du ritade bron i blixtens sken. Snyggt gjort!'],
-        ['tukan', 'Nu är det inte långt kvar till toppen.']
+        ['tukan', 'Inte långt kvar till toppen. Hör ni? Det låter som om någon gråter där uppe.']
     ],
     summit: [
         ['moln', 'Snyft … Är det någon där? Det är så mörkt överallt.'],
@@ -446,7 +465,8 @@ export const STORY = {
     ],
     alvaStars: [['alva', 'Och jag ritar stjärnor runt månen!']],
     moonUp: [
-        ['moln', 'Det är ljust! Jag är inte rädd längre.']
+        ['moln', 'Det är ljust! Jag är inte rädd längre.'],
+        ['tukan', 'Vad var det jag sa? Den kommer alltid. Tror jag.']
     ],
     moonCaption: 'Stormen tystnar. Månskenet faller över boet.',
     hatch: [
@@ -489,6 +509,9 @@ export const GOALS = {
     eggsWhy: 'Äggen kläcks bara i månsken – i boet på Sandbanken.',
     peak: 'Ta dig upp till Åsktoppen',
     peakWhy: 'Där snurrar stormen. Vägen går genom berget bakom forsen.',
+    peakInside: 'Där snurrar stormen. Vi är inne i berget – fortsätt uppåt.',
+    summit: 'Klättra upp till stormens öga',
+    summitWhy: 'Där får vi svar på vår fråga: vem stormar – och varför?',
     peakDark: 'Där snurrar stormen. Inne i berget är det kolsvart – månskensfröna i Rotgrottan lyser.',
     lastEggs: (n, total) => `Hitta de sista äggen (${n} av ${total})`,
     lastWhy: 'Molnet väntar ovanför boet. Mira ritar månen när alla ägg ligger där.',
@@ -572,6 +595,6 @@ export const HYPOTHESIS = {
 };
 
 export const CHATTER = {
-    klo: ['Jag antecknar allt. Särskilt … henne.', 'Häst eller sköldpadda? Jag forskar fortfarande.', 'Stoppuret tickar lika fort som mitt hjärta.'],
-    tukan: ['Jag skulle säga något viktigt. Sen glittrade det.', 'Allt som glänser är intressant!', 'Ditt skal glänser! Nio av tio i glans.', 'Hypotes: ägg trivs bäst i varma skal.', 'Alva ritade mina klor. Är de inte fina?']
+    klo: ['Jag antecknar allt. Särskilt … henne.', 'Häst eller sköldpadda? Jag forskar fortfarande.', 'Mitt hjärta tickar som ett stoppur. Fast stoppuret har hon nu.'],
+    tukan: ['Jag skulle säga något viktigt. Sen glittrade det.', 'Allt som glänser är intressant!', 'Ditt skal glänser! Nio av tio i glans.', 'Hypotes: ägg trivs bäst i varma skal.', 'Alva ritade mina klor. Är de inte fina?', 'Lilla Klo har redan börjat anteckna.']
 };

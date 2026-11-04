@@ -46,6 +46,7 @@ const PUZZLES = [
 ];
 const EGG_PUZZLES = ['dig', 'p1', 'p5', 'coin', 'trade', 'p2', 'mush', 'p4', 'p7', 'k2', 'k3', 'summit'];
 const IN_MOUNTAIN = new Set(['k2', 'k3', 'summit']);
+const PEAK_PATH = ['k1', 'k2', 'k3', 'spring', 't1', 't2', 'summit'];
 
 /** The storm the view and audio draw: full until the cloud is met, softer after, gone with the moon. */
 export function stormLevel(flags) { return flags.has('moon') ? 0 : flags.has('cloud_met') ? 0.5 : 1; }
@@ -64,10 +65,10 @@ export function createStory(G, io) {
     const fx = async (name, data) => { try { return await io.fx?.(name, data); } catch (err) { console.warn('fx', name, err); return null; } };
     const clue = (id) => { if (!F.has('clue_' + id)) { G.flag('clue_' + id); G.emit('clue', { id }); } };
 
-    function think(text, { gap = 2.2, key = text } = {}) {
+    function think(text, { gap = 2.2, key = text, force = false } = {}) {
         if (!text) return;
         const last = said.get(key) ?? -Infinity;
-        if (G.time - last < gap || G.time - thoughtAt < 0.8) return;
+        if (!force && (G.time - last < gap || G.time - thoughtAt < 0.8)) return;
         said.set(key, G.time); thoughtAt = G.time;
         if (io.ui.think) io.ui.think(text); else io.ui.toast?.(text);
     }
@@ -218,6 +219,11 @@ export function createStory(G, io) {
         const here = open.filter(pz => pz.scene === G.sceneId).sort((a, b) => Math.abs(puzzleX(a) - G.player.x) - Math.abs(puzzleX(b) - G.player.x));
         return here[0] || open[0] || null;
     }
+    /** Inside the mountain the way up comes first: no hint sends the sköldhäst back out for an egg. */
+    function peakStep() {
+        if (F.has('cloud_met') || (G.sceneId !== 'kristall' && G.sceneId !== 'topp')) return null;
+        return PEAK_PATH.map(id => PUZZLES.find(pz => pz.id === id)).find(pz => !pz.solved(F) && available(pz)) || null;
+    }
     let peeking = false;
     function ladder(id) {
         const n = Math.min(2, hintLevel.get(id) || 0);
@@ -231,7 +237,7 @@ export function createStory(G, io) {
     }
     function nextHint() {
         if (F.has('ended')) return { puzzle: null, text: null };
-        const pz = activePuzzle();
+        const pz = activePuzzle() || peakStep();
         if (pz) return ladder(pz.id);
         if (F.has('cloud_met') && eggsFound(G) >= EGG_TOTAL) return ladder('nest');
         const next = nextEggPuzzle();
@@ -244,7 +250,11 @@ export function createStory(G, io) {
     let chatter = 0;
     function talk(who) {
         if (who === 'skata') return beat('skataTalk', () => say(F.has('coin_given') ? STORY.skataAfter : STORY.skataTalk), { once: false });
-        if (who === 'dyvel') return beat('dyvelTalk', () => say(F.has('p5_washed') ? STORY.beetleAfter : STORY.beetleTalk), { once: false });
+        if (who === 'dyvel') {
+            const lines = G.sceneId === 'kristall' ? (F.has('k3_ball') ? STORY.glitterAfter : STORY.glitterTalk)
+                : F.has('p5_washed') ? STORY.beetleAfter : STORY.beetleTalk;
+            return beat('dyvelTalk', () => say(lines), { once: false });
+        }
         const h = hint(who);
         const text = h.text || CHATTER[who][chatter++ % CHATTER[who].length];
         beat('talk', () => say([[who, text]]), { once: false });
@@ -257,7 +267,8 @@ export function createStory(G, io) {
         if (F.has('cloud_met')) return n < EGG_TOTAL
             ? { id: 'eggs', text: GOALS.lastEggs(n, EGG_TOTAL), why: GOALS.lastWhy }
             : { id: 'nest', text: GOALS.nest, why: GOALS.nestWhy };
-        if (F.has('storm_source')) return { id: 'peak', text: GOALS.peak, why: F.has('lantern') ? GOALS.peakWhy : GOALS.peakDark };
+        if (F.has('topp_reached')) return { id: 'peak', text: GOALS.summit, why: GOALS.summitWhy };
+        if (F.has('storm_source')) return { id: 'peak', text: GOALS.peak, why: !F.has('lantern') ? GOALS.peakDark : G.sceneId === 'kristall' ? GOALS.peakInside : GOALS.peakWhy };
         return { id: 'eggs', text: GOALS.eggs(n, EGG_TOTAL), why: GOALS.eggsWhy };
     }
     function hypothesis() {
@@ -328,13 +339,20 @@ export function createStory(G, io) {
         if (n === 1) beat('firstEgg', async () => { await say(STORY.firstEgg); await say(STORY.alvaFirstEgg); });
         else if (!['e2', 'e5', 'e7'].includes(id)) think(STORY.eggLine?.[id] || STORY.eggLines[eggLine++ % STORY.eggLines.length], { gap: 0 });
         if (STORY.love[n] && G.sceneId !== 'topp') onLove(n);
-        if (n === 3) beat('lightning', async () => { await fx('lightning', {}); await say(STORY.lightning); clue('lightning'); });
+        if (id === 'e10' && !F.has('p7_vine') && !F.has('ended')) beat('vineAsk', () => say(STORY.vineAsk));
+        lightning();
         if (n === EGG_TOTAL && F.has('cloud_met') && G.sceneId !== 'topp' && !G.areas.has('nest')) beat('allEggs', async () => {
             await say(STORY.allEggs);
             await say(STORY.allEggsHome);
         });
         G.emit('eggCount', { n });
         io.save?.();
+    }
+
+    /** The first clue about the lightning: out under the sky, and only while it is still a mystery. */
+    function lightning() {
+        if (eggsFound(G) < 3 || F.has('cloud_met') || (G.sceneId !== 'strand' && G.sceneId !== 'skog')) return;
+        beat('lightning', async () => { await fx('lightning', {}); await say(STORY.lightning); clue('lightning'); });
     }
 
     function onLove(n) {
@@ -362,13 +380,16 @@ export function createStory(G, io) {
             if (intro && id === 'river') beat('miraRiver', () => say(STORY.miraRiver));
             if (intro && id === 'fors' && !F.has('cave_reached')) beat('fors', async () => {
                 await fx('focus', { x: G.scenes.strand.spots.cave.x - 2 * HL, y: -0.6 * HL, zoom: 0.95, hold: 0.5 });
-                await say(STORY.fors);
+                await say(F.has('storm_source') ? [...STORY.forsKnown, ...STORY.fors.slice(1)] : STORY.fors);
                 await say(STORY.miraFors);
                 await fx('focus', null);
             });
             if (id === 'cave') {
                 if (!F.has('cave_reached')) G.flag('cave_reached');
-                if (intro && !F.has('visited_kristall')) beat(F.has('lantern') ? 'caveLit' : 'caveDark', async () => { stage(); await say(F.has('lantern') ? STORY.caveLit : STORY.caveDark); });
+                if (intro && !F.has('visited_kristall')) beat(F.has('lantern') ? 'caveLit' : 'caveDark', async () => {
+                    stage();
+                    await say(!F.has('lantern') ? STORY.caveDark : done('caveDark') ? STORY.caveLitBack : STORY.caveLit);
+                });
             }
             if (intro && id === 'beetle' && !F.has('p5_rolled') && !F.has('egg_e6')) beat('beetle', async () => {
                 await say(STORY.beetle);
@@ -377,7 +398,7 @@ export function createStory(G, io) {
             if (intro && id === 'magtree' && !F.has('coin_given')) beat('magpie', async () => {
                 await fx('focus', { x: G.scenes.strand.magpie.x, y: G.scenes.strand.magpie.y + 0.6 * HL, zoom: 1.05, hold: 0.4 });
                 await say(STORY.magpie);
-                if (!F.has('coin_got')) await say(STORY.magpie2);
+                await say(F.has('coin_got') ? STORY.magpieCoin : STORY.magpie2);
                 await fx('focus', null);
             });
             if (id === 'magtree' && F.has('coin_got') && !F.has('coin_given')) beat('climb', () => say(STORY.climb));
@@ -414,7 +435,10 @@ export function createStory(G, io) {
                 await fx('focus', null);
             });
             if (id === 'k-beetle') G.setCheckpoint('lakeEast');
-            if (intro && id === 'k-beetle' && !F.has('k3_open')) beat('glitter', async () => { await say(STORY.glitter); await say(STORY.glitter2); });
+            if (intro && id === 'k-beetle' && !F.has('k3_open')) beat('glitter', async () => {
+                await say(F.has('p5_rolled') ? STORY.glitter : [...STORY.glitterEarly, ...STORY.glitter.slice(1)]);
+                await say(STORY.glitter2);
+            });
             if (intro && id === 'k-spring' && F.has('k3_open') && !F.has('topp_reached')) beat('spring', () => say(STORY.spring));
         } else if (sc === 'topp') {
             if (id === 't-arrive') {
@@ -439,12 +463,15 @@ export function createStory(G, io) {
     function crownSource() {
         if (F.has('storm_source') && done('source')) return;
         beat('source', async () => {
+            const met = F.has('cloud_met'), inside = F.has('visited_kristall');
             stage();
             await fx('focus', { x: h(20), y: h(-13.5), zoom: 0.8, hold: 0.4, peak: true });
-            await say(STORY.source);
+            await say(met ? STORY.sourceAfter : inside ? STORY.sourceLate : STORY.source);
             G.flag('storm_source'); clue('source');
-            await say(STORY.sourceMira);
-            await say(F.has('lantern') ? STORY.sourceLit : STORY.sourceDark);
+            if (!met) {
+                await say(STORY.sourceMira);
+                await say(inside ? STORY.sourceLateGo : F.has('lantern') ? STORY.sourceLit : STORY.sourceDark);
+            }
             await fx('focus', null);
         });
     }
@@ -546,6 +573,7 @@ export function createStory(G, io) {
             // a love scene skipped on the peak comes when they are home
             const n = eggsFound(G);
             if (G.sceneId !== 'topp') for (const k of [2, 4, 6, 8]) if (n >= k && !done('love' + k)) { onLove(k); break; }
+            lightning();
         }),
         G.on('balk', (e) => {
             if (e.reason === 'thin') {
@@ -564,6 +592,7 @@ export function createStory(G, io) {
         G.on('bounce', () => thinkOnce('bounce', STORY.bounce)),
         G.on('drumSoft', ({ n }) => { if (n % 6 === 2) think(STORY.drumSoft, { gap: 6 }); }),
         G.on('seedsShy', () => think(STORY.seedsShy, { gap: 6 })),
+        G.on('seedsWatched', () => think(STORY.seedsWatched, { gap: 20 })),
         G.on('drum', ({ n }) => { io.audio?.sfx?.('drum'); if (n === 4) think(STORY.drumHalf, { gap: 0 }); }),
         G.on('pushed', ({ id, from }) => {
             if (id === 'fors' && from < 0) think(STORY.forsPushed, { gap: 6 });
@@ -575,7 +604,7 @@ export function createStory(G, io) {
         G.on('pushWrong', () => think(STORY.pushWrong, { gap: 0 })),
         G.on('push', () => io.audio?.sfx?.('push')),
         G.on('ballRoll', () => think(STORY.ballRoll, { gap: 0 })),
-        G.on('ballWashed', () => beat('washed', () => say(STORY.washed))),
+        G.on('ballWashed', () => beat('washed', () => say(F.has('k3_ball') ? [STORY.washed[0], ...STORY.washedLate] : STORY.washed))),
         G.on('seedsLit', () => beat('seedsLit', async () => { await say(STORY.seedsLit); await say(STORY.alvaSeeds); await say(STORY.seedsLit2); clue('lantern'); })),
         G.on('coin', () => { io.audio?.sfx?.('coin'); beat('coin', () => say(F.has('b:magpie') ? STORY.coin : STORY.coinEarly)); }),
         G.on('trade', () => beat('trade', async () => {
@@ -589,7 +618,7 @@ export function createStory(G, io) {
         G.on('vine', () => think(STORY.vineDone, { gap: 0 })),
         G.on('crystalRing', () => thinkOnce('crystalRing', STORY.crystalRing)),
         G.on('crystalSoft', () => think(STORY.crystalSoft, { gap: 8 })),
-        G.on('crystalLit', ({ lit, of }) => think(lit < of ? STORY.crystalOne : STORY.crystalAll, { gap: 0, key: 'lit' + lit })),
+        G.on('crystalLit', ({ lit, of }) => think(lit < of ? STORY.crystalOne : STORY.crystalAll, { gap: 0, key: 'lit' + lit, force: lit === of })),
         G.on('loopBack', () => think(STORY.loopBack, { gap: 8 })),
         G.on('rescued', () => think(STORY.rescued, { gap: 2 })),
         G.on('throughWall', () => beat('throughWall', () => say(STORY.throughWall))),

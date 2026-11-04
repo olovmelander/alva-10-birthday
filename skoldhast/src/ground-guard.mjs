@@ -36,6 +36,20 @@ export function groundAround(surfaces, x, y) {
 export function createGroundGuard({ pits = false } = {}) {
     let lastSafe = null;
     return {
+        /**
+         * The sim stops a walker and a swimmer at a wall, but not a jump: a running jump lands behind a
+         * closed gate, and one over the page's end drops off the paper. Walls hold in the air too.
+         */
+        walls(G, before, events) {
+            const p = G.player, dir = Math.sign(p.x - before.x);
+            if (!dir || p.mode === 'swim' || !G.terrain) return;
+            const w = G.terrain.wallBetween(before.x, p.x, p.y, dir);
+            if (!w) return;
+            p.x = p.px = w.x - dir; p.vx = 0;
+            if (p.jump) p.jump.vx = 0;
+            if (p.mode === 'ground') p.y = p.py = G.terrain.support(p.x, before.y, 60, 120)?.y ?? p.y;
+            if (w.balk && p.balkCooldown <= 0) { p.balkCooldown = 1.2; events.push({ type: 'balk', reason: w.balk, id: w.id, x: p.x }); }
+        },
         keep(G, before, events) {
             const p = G.player, T = G.terrain;
             if (!T || (p.mode === 'ground' && p.surface)) return; // standing on something: the sim has it right

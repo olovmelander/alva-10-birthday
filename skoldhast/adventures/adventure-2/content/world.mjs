@@ -190,7 +190,9 @@ SCENES.skog = {
         { id: 'owl-branch', thin: true, pts: L([94.4, -3.4], [97.8, -3.4]), mat: 'wood', branch: true }
     ],
     walls: [
-        { id: 'west-paper', x: h(-2.6), y0: h(-6), y1: h(1), balk: 'paper' }
+        { id: 'west-paper', x: h(-2.6), y0: h(-6), y1: h(1), balk: 'paper' },
+        // past the exit to the river beach; reached only if a scene starts just as the sköldhäst leaves
+        { id: 'east-paper', x: h(101.95), y0: h(-6), y1: h(1) }
     ],
     edges: [
         // the branch tips that would drop far; a lower end only steps down onto the branch below

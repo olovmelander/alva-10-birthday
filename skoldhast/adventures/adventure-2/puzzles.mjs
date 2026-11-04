@@ -202,6 +202,10 @@ export function stepPuzzles(G, events, dt) {
         const still = p.mode === 'ground' && p.hidden && p.hide > 0.95 && Math.abs(p.vx) < 5 && p.x >= s.x0 && p.x <= s.x1;
         if (P.wasStill && !still && P.still >= 0.6) G.emit('seedsShy', {});
         P.wasStill = still;
+        // standing there in plain sight is not enough: the flowers can still see the sköldhäst
+        const watched = p.mode === 'ground' && !p.hidden && Math.abs(p.vx) < 5 && p.x >= s.x0 && p.x <= s.x1;
+        P.watched = watched ? (P.watched || 0) + dt : 0;
+        if (P.watched >= 3) { P.watched = 0; G.emit('seedsWatched', {}); }
         P.still = still ? P.still + dt : Math.max(0, P.still - dt * 2);
         if (P.still >= s.seconds) { G.flag(s.flag); G.emit('seedsLit', {}); }
     }
@@ -296,8 +300,8 @@ export function contextAction(G) {
             }
         }
         // P6: Skatan on her branch
-        if (sc.magpie && p.surface?.id === sc.magpie.surface && Math.abs(p.x - sc.magpie.x) < sc.magpie.reach && !F.has('coin_given')) {
-            if (F.has('coin_got')) return { id: 'give', label: CONTEXT.give, run: () => giveCoin(G) };
+        if (sc.magpie && p.surface?.id === sc.magpie.surface && Math.abs(p.x - sc.magpie.x) < sc.magpie.reach && !F.has('eggs_in_nest')) {
+            if (F.has('coin_got') && !F.has('coin_given')) return { id: 'give', label: CONTEXT.give, run: () => giveCoin(G) };
             return { id: 'talk-skata', label: CONTEXT.talk, run: () => G.emit('talk', { who: 'skata' }) };
         }
         // P7: the vine across Ravinen
