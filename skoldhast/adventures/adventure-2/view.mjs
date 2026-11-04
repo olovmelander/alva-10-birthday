@@ -1059,7 +1059,23 @@ export function createView(PIXI, app, { assets, G, heroFactory }) {
             }
         }
         L.back.addChildAt(trees, 0);
+        // a third row far back: smaller trees, bluer with distance, half lost in mist
+        const farTrees = new PIXI.Graphics();
+        for (let x = def.bounds.x0; x < def.bounds.x1; x += h(1.5) + hash(x, 171) * h(1.6)) {
+            if (skip.some(([a, b]) => x > a && x < b)) continue;
+            const y = groundY(x);
+            if (y === null) continue;
+            if (hash(x, 172) > 0.45) conifer(farTrees, x, y - h(0.3), { height: h(2.2 + hash(x, 173) * 1.6), width: h(0.9 + hash(x, 174) * 0.5), color: 0x31495a, hi: 0x5a7386 });
+            else tree(farTrees, x, y - h(0.3), { trunk: h(0.16), height: h(1.5 + hash(x, 175) * 1.2), crown: h(0.75 + hash(x, 176) * 0.4), color: 0x344c5c, hi: 0x5a7386 });
+        }
+        L.back.addChildAt(farTrees, 0);
         const mt = mist();
+        if (mt) for (const s of ground) for (let x = s.pts[0][0]; x < s.pts.at(-1)[0]; x += h(5) + hash(x, 177) * h(4)) {
+            const m = new RAW.Sprite(mt); m.anchor.set(0.5, 0.6);
+            m.width = h(10 + hash(x, 178) * 6); m.height = h(2.2 + hash(x, 179) * 1.2); m.tint = 0x9ea2d0; m.alpha = 0.45;
+            m.position.set(x, heightOn(s.pts, x) - h(0.9)); L.back.addChildAt(m, 1);
+            S.anim.push({ kind: 'mist', s: m, x0: x, o: hash(x, 180) * 6, base: 0.42 });
+        }
         if (mt) for (const s of ground) for (let x = s.pts[0][0]; x < s.pts.at(-1)[0]; x += h(6) + hash(x, 141) * h(5)) {
             const m = new RAW.Sprite(mt); m.anchor.set(0.5, 0.6);
             m.width = h(8 + hash(x, 142) * 6); m.height = h(1.3 + hash(x, 143) * 0.8); m.tint = 0xa4a6d4; m.alpha = 0.32;
@@ -1210,7 +1226,7 @@ export function createView(PIXI, app, { assets, G, heroFactory }) {
             else if (a.kind === 'fall') { const u = (t * (rm ? 0.6 : 1.8) + a.o) % 1; a.c.y = lerp(a.y0, a.y1, u); a.c.alpha = 0.3 + 0.6 * Math.sin(u * Math.PI); }
             else if (a.kind === 'twinkle') { a.s.alpha = 0.3 + 0.7 * Math.max(0, Math.sin(t * 2 + a.o)) ** 4; }
             else if (a.kind === 'foam' && !rm && Math.random() < dt * 14) emit('drop', a.x + (Math.random() - 0.5) * h(1.4), a.y, 1, { speed: 260, cone: 1.2, life: 0.6 });
-            else if (a.kind === 'mist') { a.s.x = a.x0 + Math.sin(t * 0.05 + a.o) * h(1.2) * (rm ? 0.2 : 1); a.s.alpha = 0.26 + 0.08 * Math.sin(t * 0.2 + a.o); }
+            else if (a.kind === 'mist') { a.s.x = a.x0 + Math.sin(t * 0.05 + a.o) * h(1.2) * (rm ? 0.2 : 1); a.s.alpha = (a.base ?? 0.26) + 0.08 * Math.sin(t * 0.2 + a.o); }
             else if (a.kind === 'sway') a.c.rotation = rm ? 0 : Math.sin(t * 0.9 + a.o) * 0.025 + (stormShown > 0.5 ? Math.sin(t * 2.1 + a.o) * 0.02 : 0);
             else if (a.kind === 'along') {
                 const d = ((t * a.speed * (rm ? 0.5 : 1) / a.len + a.o) % 1) * a.len;

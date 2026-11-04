@@ -1,5 +1,66 @@
 # Sköldhästen – handover
 
+## A visual overhaul: light and air on every page, sharper drawing (4 November, night)
+
+Pappa asked for a total visual overhaul that keeps the coloured-pencil style: more atmosphere, more striking
+everywhere, with a bigger graphics budget (he chose up to 10 MB for the first download). It goes out with
+Äventyr 2's release in PR #11, at his request.
+
+- **A shared atmosphere layer, `src/atmosphere.mjs`.** It paints the air over a page on two layers, one between the
+  far backdrops and the world and one in front of the world:
+  - the light's bloom, sitting on the page's own drawn sun or moon;
+  - shafts of light, hatched like coloured pencil;
+  - haze along the horizon, placed at the hero's ground;
+  - floating motes: pollen by day, fireflies at night, dust in caves, snow on the peak, bubbles under water;
+  - slow cloud shadows over the ground;
+  - a vignette and a colour grade.
+
+  Each page has a mood (day, evening, underwater, storm, moonlit, cave, peak), and moods blend over 1.5 s. A
+  frame costs a few dozen sprites on textures painted once on a canvas. It uses no filters, and only the
+  built-in add, multiply and screen blends.
+- **Äventyr 1:**
+  - The light comes from the sun drawn in the sky, or in from the side when the sun is out of view.
+  - The evening is warm, and under water the light falls in shafts.
+  - The page keeps its own lamp vignette, plankton and water glints.
+  - The steppe and bay evening skies and the bay's evening front are stored at full size instead of half, so they
+    are as sharp as the day.
+- **Äventyr 2:**
+  - Tree crowns are drawn in three depths with a leafy edge and light on the moon's side, and spruces stand among
+    them.
+  - The forest has three rows: a far row, bluer with distance and half lost in mist, then the middle and near rows.
+  - Mist lies between the trees and the path, dark plants frame the front of the page, and rain splashes on the
+    ground.
+  - The moon glows, and fireflies drift.
+  - Water has pencil glints, gets darker with depth, and shows a moon path on the river once the moon is drawn.
+  - The far bands are baked at a higher resolution.
+  - Kristallgrottan has cave dust and a violet haze; Åsktoppen has snow.
+- **Sharper on tablets and laptops.** The pixel cap for large screens rose from 2.6 to 4.2 million device pixels:
+  - a 1180×820 iPad now draws at 2×, up from 1.64×;
+  - a 1440×900 laptop draws at 1.8×, up from 1.42×.
+
+  Phones were already at 2×. A new **frame guard** (`src/frame-guard.mjs`, both adventures) watches frame times.
+  When frames stay below about 42 per second for a few seconds, it steps the resolution down 15 % at a time, never
+  below 55 %, and never back up during the session. A slower device therefore keeps playing smoothly, at the cost
+  of a little sharpness.
+- **Budget:** `BOOT_BUDGET` and its test are 10 MB, raised from 3 MB. The first playable is still **2.36 MB**. The
+  evening bundle grew by 37 KB and the bay bundle by 118 KB; both load in the background.
+- **Verification:** `npm test` passes (392). The browser checks pass:
+  - `skoldhast-a2.mjs`: the prologue, all four pages at 390×844, and the finale.
+  - `skoldhast-adventures.mjs`: every case, including the round trip from Äventyr 1 into Äventyr 2.
+  - `skoldhast-launch.mjs`: all five checks.
+- **Contact sheets** are in `docs/skoldhast/shots/visual/`:
+  - `a1-before-after-1440x900.webp` and `a2-before-after-1440x900.webp`: before and after.
+  - `a1-844x390`, `a1-390x844`, `a2-844x390` and `a2-390x844`: after, at phone sizes.
+  - `a2-mountain-1440x900`: Kristallgrottan and the summit.
+- **Known limits:**
+  - Frame rate on Alva's real device is still unmeasured. The frame guard is the safety net. Open `?debug` on her
+    device: the overlay shows fps and the current resolution.
+  - The props, hero and materials are still drawn at their old texture density. Sharper props would need the prop
+    painters to draw at a higher scale and atlases larger than 2048 px; that is the next step if Pappa wants more.
+- **Frågor till Pappa:**
+  1. Is the light right? It is deliberately soft. `MOODS` in `src/atmosphere.mjs` holds every strength in one place.
+  2. Should Äventyr 2's dark foreground plants stay, or are they too dark for Alva?
+
 ## Äventyr 2 is released (4 November, evening)
 
 Pappa's answers to the last questions, and his decision to release Äventyr 2 tonight.
