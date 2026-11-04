@@ -1,5 +1,16 @@
 # Sköldhästen – handover
 
+## Sköldhästen is on the ticket for everyone (4 November, evening)
+
+Pappa revealed the game. The fourth button on the ticket page (`index.html`) shows by default; `?skoldhast` and
+`#skoldhast` are still accepted and change nothing.
+
+- The button appears with the other three once the ticket is revealed.
+- Nothing under `skoldhast/` is fetched until it is pressed (plan §8.7 gate 1 still holds).
+- `tests/browser/skoldhast-launch.mjs` check 1 now expects the button without `?skoldhast`, still no requests before
+  the click, and opens the game from the plain page.
+- `skoldhast/CLAUDE.md` and plan §7.2 record the reveal.
+
 ## The final visual round: an audit of every scene, and its fixes (4 November, late)
 
 Pappa asked for one last pass: review everything and make the graphics, effects and assets stand out. A subagent

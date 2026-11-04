@@ -5,7 +5,7 @@
  *
  *   node tests/browser/skoldhast-launch.mjs
  *
- * 1. Without ?skoldhast the button is hidden and nothing under skoldhast/ is requested.
+ * 1. The button shows without ?skoldhast (revealed on 4 November 2026), and nothing under skoldhast/ is requested before it is pressed.
  * 2. With ?skoldhast the loader hides the ticket at once, prefetches files.json, and opens the game.
  * 3. Avbryt during loading restores the ticket, and the cancelled load never opens the game.
  * 4. close() restores the page; the game opens again afterwards.
@@ -37,11 +37,15 @@ async function check(name, fn) {
 }
 const marioDisplay = (pg) => pg.evaluate(() => document.getElementById('mario-content').style.display);
 
-await check('no ?skoldhast: hidden button, no requests to skoldhast/', async () => {
-    const { pg, ctx, requests } = await page('/index.html');
+await check('no ?skoldhast: the button shows, and nothing loads from skoldhast/ before it is pressed', async () => {
+    const { pg, ctx, requests, errors } = await page('/index.html');
     await pg.waitForTimeout(800);
-    assert.equal(await pg.evaluate(() => document.getElementById('play-skoldhast-btn').hidden), true);
-    assert.deepEqual(requests.filter((u) => u.includes('skoldhast/')), []);
+    assert.equal(await pg.evaluate(() => document.getElementById('play-skoldhast-btn').hidden), false, 'Sköldhästen is on the ticket for everyone');
+    assert.deepEqual(requests.filter((u) => u.includes('skoldhast/')), [], 'nothing loads before the click');
+    // and it opens from the plain ticket page too
+    await pg.evaluate(() => document.getElementById('play-skoldhast-btn').click());
+    await pg.waitForSelector('.sk-root .sk-title', { timeout: 30000 });
+    assert.deepEqual(errors, []);
     await ctx.close();
 });
 
