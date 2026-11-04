@@ -18,6 +18,7 @@
   "src/folded-seabed.mjs",
   "src/frame-guard.mjs",
   "src/game.mjs",
+  "src/ground-guard.mjs",
   "src/guardian.mjs",
   "src/guidance-state.mjs",
   "src/guide.mjs",

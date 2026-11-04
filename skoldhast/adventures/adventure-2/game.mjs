@@ -6,6 +6,7 @@
  * is Adventure 1's own simulation (src/sim.mjs), unchanged.
  */
 import { createPlayer, stepPlayer, Terrain, STEP, HL, C, cond } from '../../src/sim.mjs';
+import { createGroundGuard } from '../../src/ground-guard.mjs';
 import { createPuzzleState, stepPuzzles, contextAction, applyPushes, applyWinds, stepWeather, eggsFound, restorePuzzles } from './puzzles.mjs';
 import { SCENES, CHECKPOINTS, EGG_TOTAL } from './content/world.mjs';
 
@@ -16,6 +17,8 @@ const TRANSIENT = new Set(['flash']);
 export function createGame() {
     const listeners = new Map();
     const timers = [];
+    // ground is solid from every side; every A2 hidden floor is a pit nobody enters on purpose
+    const groundGuard = createGroundGuard({ pits: true });
     const G = {
         scenes: SCENES,
         sceneId: null, sceneDef: null, terrain: null,
@@ -96,9 +99,12 @@ export function createGame() {
             stepWeather(G, events);
             applyPushes(G, dt, events);
             applyWinds(G, dt, events);
+            const before = { x: G.player.x, y: G.player.y };
             stepPlayer(G.player, simInput, { terrain: G.terrain, flags: G.flags }, dt, events);
             wadeOut(G, inp, events);
             bounce(G, events);
+            groundGuard.keep(G, before, events);
+            groundGuard.net(G, events);
             stepPuzzles(G, events, dt);
             for (const e of events) G.emit(e.type, e);
             G.lastEvents = events;

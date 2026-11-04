@@ -1378,6 +1378,7 @@ export function createStory(G, io) {
     G.on('push', (e) => { if (e.notch === G.sceneDef.rail?.target) hintOnce('stone', STORY.k1.stoneDone); });
     // fluff that found no tuft: the sköldhäst wonders (twice at most, so it never nags)
     let fluffMisses = 0;
+    G.on('rescued', () => io.guide?.think(STORY.rescued, 3200));
     G.on('fluffMiss', (e) => { if (fluffMisses++ < 2) io.guide?.think(guided() ? (e.dir > 0 ? STORY.k1.fluffWrongWay : STORY.k1.fluffMiss) : KLO_COMPANION.story.fluffMiss); });
     G.on('grow', (e) => {
         if (e.decor) hintOnce('fluff', STORY.k1.teachFluff);

@@ -572,6 +572,7 @@ export function createStory(G, io) {
         G.on('crystalSoft', () => think(STORY.crystalSoft, { gap: 8 })),
         G.on('crystalLit', ({ lit, of }) => think(lit < of ? STORY.crystalOne : STORY.crystalAll, { gap: 0, key: 'lit' + lit })),
         G.on('loopBack', () => think(STORY.loopBack, { gap: 8 })),
+        G.on('rescued', () => think(STORY.rescued, { gap: 2 })),
         G.on('throughWall', () => beat('throughWall', () => say(STORY.throughWall))),
         G.on('glitterRoll', () => think(STORY.glitterRoll, { gap: 0 })),
         G.on('glitterIn', () => think(STORY.glitterIn, { gap: 0 })),
