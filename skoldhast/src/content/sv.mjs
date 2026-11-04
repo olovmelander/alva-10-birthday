@@ -244,7 +244,7 @@ export const STORY = {
     },
     k2: {
         open: [
-            ['klo', 'Kartans streck genom havet leder till tornet – där jag såg han med linjalen. Men kartan revs där sidan veks.'],
+            ['klo', 'Kartans streck genom havet leder till tornet – där jag såg honom med linjalen. Men kartan revs där sidan veks.'],
             ['klo', 'Det som händer med kartan händer med världen. Därför är strömmen dit också avbruten.'],
             ['klo', 'Två bitar flög iväg: en över Stäppen, en ner i havet. Lagar vi kartan, lagas strömmen. Du väljer var vi börjar!']
         ],
@@ -386,7 +386,9 @@ export const BALK = {
     edge: 'För långt att hoppa härifrån.',
     rail: 'Räcket är i vägen.',
     fold: 'Havet är vikt här!',
-    gate: 'Grinden är reglad från andra sidan.'
+    gate: 'Grinden är reglad från andra sidan.',
+    kloWatch: 'Klo står kvar med stoppuret. Han vill se min galopp först!',
+    kloHole: 'Klo sitter kvar i sitt hål. Jag kan inte gå ifrån honom!'
 };
 
 // ---------------------------------------------------------------------------
