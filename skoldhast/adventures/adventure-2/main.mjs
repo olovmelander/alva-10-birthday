@@ -295,6 +295,7 @@ export function createGame({ host = document.body, assetBase = './skoldhast/', s
             view.setCloudTexture(cloudTexture);
         }
         G.goto('strand', 'start');
+        G.hideHero = true; // it drops in once the page is open (story: the arrival)
         startPlay();
         await table.reveal();
         story.start();

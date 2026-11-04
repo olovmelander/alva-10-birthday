@@ -318,19 +318,22 @@ export function createTable({ PIXI, app, assets, ui, audio, G, heroFactory }) {
         hero.view.scale.set(0.42);
         D.actors.addChild(hero.view);
         D.hero = hero;
-        D.heroState = { x: -120, y: 500, facing: 1, gait: 'gallop', speed: 1200, mode: 'ground', gaitPhase: 0, groundAngle: 0, airT: 0, vx: 1200, vy: 0,
+        D.heroState = { x: 20, y: 500, facing: 1, gait: 'gallop', speed: 1200, mode: 'ground', gaitPhase: 0, groundAngle: 0, airT: 0, vx: 1200, vy: 0,
             groundAt: () => 0, submerge: 0, waterY: null, wet: 0, hide: 0, hiddenMode: false, action: null, actionT: 0, time: 0 };
         const klo = createKlo(PIXI, { texture: T });
         klo.container.scale.set(0.5);
         D.actors.addChild(klo.container);
-        D.kloRig = klo; D.kloActor = { visible: true, x: -200, y: 500, facing: 1, vx: 0, distance: 0, pose: 'idle' };
+        D.kloRig = klo; D.kloActor = { visible: true, x: -40, y: 500, facing: 1, vx: 0, distance: 0, pose: 'idle' };
+        hero.view.alpha = 0; klo.container.alpha = 0;
         ui.caption(TABLE.gallopIn, 3200);
         audio?.sfx?.('hoof', { surface: 'grass', speed01: 1 });
         await tween(2.2, u => {
             const e = ease(u);
-            D.heroState.x = -120 + e * 420; D.heroState.gaitPhase = (D.heroState.gaitPhase + 0.035) % 1;
+            // out of the edge of the page, as if from the page before: they fade in as they cross it
+            D.heroState.x = 20 + e * 300; D.heroState.gaitPhase = (D.heroState.gaitPhase + 0.035) % 1;
             D.heroState.speed = D.heroState.vx = u > 0.85 ? 400 : 1200; D.heroState.gait = u > 0.85 ? 'trot' : 'gallop';
-            const kx = -200 + e * 420; D.kloActor.distance += Math.abs(kx - D.kloActor.x); D.kloActor.vx = 300; D.kloActor.x = kx;
+            const kx = -40 + e * 270; D.kloActor.distance += Math.abs(kx - D.kloActor.x); D.kloActor.vx = 300; D.kloActor.x = kx;
+            hero.view.alpha = clamp((D.heroState.x - 20) / 70, 0, 1); klo.container.alpha = clamp((kx + 10) / 70, 0, 1);
         });
         D.heroState.gait = 'stand'; D.heroState.speed = D.heroState.vx = 0; D.kloActor.vx = 0;
         await wait(0.5);
