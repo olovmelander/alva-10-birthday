@@ -8,7 +8,8 @@
 <style>html, body { margin: 0; background: #333; }</style>
 </head>
 <body>
-<!-- Development page: opens the game directly (no ticket page). ?debug shows the fps overlay. -->
+<!-- Development page: opens the game directly (no ticket page). ?debug shows the fps overlay.
+     ?adventure=2 opens Äventyr 2 (Den magiska skogen) before it is released. -->
 <script type="module">
 import { createGame } from '../src/launcher.mjs';
 const game = createGame({ host: document.body, assetBase: '../' });

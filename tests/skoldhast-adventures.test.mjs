@@ -1,15 +1,15 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { ADVENTURES, FIRST_ADVENTURE, getAdventure, adventureStatus } from '../skoldhast/src/adventures.mjs';
+import { ADVENTURES, FIRST_ADVENTURE, getAdventure, adventureStatus, previewIds, withPreview } from '../skoldhast/src/adventures.mjs';
 
-test('three adventures have stable identities and only the existing story ships', () => {
+test('three adventures have stable identities; Den magiska skogen is built but not released', () => {
     assert.deepEqual(ADVENTURES.map(({ id, number, requires, released }) => ({ id, number, requires, released })), [
         { id: FIRST_ADVENTURE, number: 1, requires: null, released: true },
         { id: 'adventure-2', number: 2, requires: FIRST_ADVENTURE, released: false },
         { id: 'adventure-3', number: 3, requires: 'adventure-2', released: false }
     ]);
     assert.equal(getAdventure(FIRST_ADVENTURE).module, './main.mjs');
-    assert.equal(getAdventure('adventure-2').module, null);
+    assert.equal(getAdventure('adventure-2').module, '../adventures/adventure-2/main.mjs');
     assert.equal(getAdventure('adventure-3').module, null);
     assert.equal(getAdventure('missing'), null);
     assert.deepEqual(adventureStatus(FIRST_ADVENTURE), { unlocked: true, released: true, playable: true, completed: false });
@@ -38,5 +38,17 @@ test('released sequels become playable sequentially using previously earned comp
 
 test('a release flag alone cannot launch an adventure without an entry module', () => {
     const incompleteRelease = ADVENTURES.map((adventure) => ({ ...adventure, released: true }));
-    assert.equal(adventureStatus('adventure-2', { completedAdventures: [FIRST_ADVENTURE] }, incompleteRelease).playable, false);
+    assert.equal(adventureStatus('adventure-3', { completedAdventures: [FIRST_ADVENTURE, 'adventure-2'] }, incompleteRelease).playable, false);
+});
+
+test('?adventure=2 previews Den magiska skogen without its release or unlock; nothing else changes', () => {
+    assert.deepEqual(previewIds('?adventure=2'), ['adventure-2']);
+    assert.deepEqual(previewIds('?skoldhast&adventure=2'), ['adventure-2']);
+    assert.deepEqual(previewIds('#adventure=2'), ['adventure-2']);
+    assert.deepEqual(previewIds('?adventure=3'), [], 'an adventure without a module cannot be previewed');
+    assert.deepEqual(previewIds(''), []);
+    const previewed = withPreview(ADVENTURES, previewIds('?adventure=2'));
+    assert.equal(adventureStatus('adventure-2', { completedAdventures: [] }, previewed).playable, true);
+    assert.equal(adventureStatus('adventure-2', { completedAdventures: [] }).playable, false, 'the shipped catalogue is untouched');
+    assert.equal(withPreview(ADVENTURES, []), ADVENTURES);
 });

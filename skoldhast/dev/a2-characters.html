@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="sv">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Äventyr 2 – figurer</title>
+<style>html, body { margin: 0; background: #fbf8f1; }</style>
+</head>
+<body>
+<!-- Development page: Äventyr 2's characters drawn in code (Tukankrabban as Alva drew her, Skatan,
+     Tordyveln, Molnet, eggs, a hatchling, the coin and the nest), in their poses. -->
+<script type="module">
+import * as PIXI from '../vendor/pixi-8.21.0.min.mjs';
+import { createAssets } from '../src/assets.mjs';
+import { pencilStyle, pencilPixi } from '../src/pencil-style.mjs';
+import { createKlo } from '../src/klo.mjs';
+import { createTukan, createMagpie, createBeetle, createBall, createCloud, createEgg, createHatchling, createCoin, createNest } from '../adventures/adventure-2/characters.mjs';
+const app = new PIXI.Application();
+await app.init({ width: innerWidth, height: innerHeight, backgroundColor: 0xfbf8f1, antialias: true, autoDensity: true, resolution: Math.min(2, devicePixelRatio || 1) });
+document.body.appendChild(app.canvas);
+const assets = createAssets(PIXI, '../');
+await assets.init(); await assets.load('boot');
+const T = n => assets.tex(n), pen = pencilStyle(T), P = pencilPixi(PIXI, T);
+const items = [];
+const add = (obj, x, y, s = 1, actor = {}) => { obj.view.position.set(x, y); obj.view.scale.set(s * (obj.view.scale.x || 1)); app.stage.addChild(obj.view); items.push({ obj, actor: { visible: true, x, y, facing: 1, vx: 0, distance: 0, pose: 'idle', ...actor } }); };
+const W = innerWidth, H = innerHeight, row = H / 3;
+add(createTukan(P, pen), W * 0.16, row * 1 - 10, 1.6);
+add(createTukan(P, pen), W * 0.42, row * 1 - 10, 1.6, { talking: true });
+add(createTukan(P, pen), W * 0.7, row * 1 - 10, 1.6, { pose: 'dig', facing: -1 });
+add(createMagpie(P, pen), W * 0.12, row * 2, 1.8, { facing: 1, pose: 'coin' });
+add(createBeetle(P, pen), W * 0.3, row * 2, 1.8, { facing: 1 });
+add(createCloud(P, pen), W * 0.55, row * 2 - 80, 1, { pose: 'sad' });
+add(createCloud(P, pen), W * 0.82, row * 2 - 80, 1, { pose: 'happy' });
+for (let i = 0; i < 5; i++) { const k = createHatchling(P, pen); k.view.scale.set(2.2); k.view.position.set(W * 0.1 + i * 60, row * 3 - 30); app.stage.addChild(k.view); items.push({ hatch: k }); }
+const egg = createEgg(P, pen, 2); egg.view.position.set(W * 0.5, row * 3 - 30); app.stage.addChild(egg.view); items.push({ egg });
+const coin = createCoin(P, pen, 2); coin.view.position.set(W * 0.6, row * 3 - 50); app.stage.addChild(coin.view); items.push({ coin });
+const nest = createNest(P, pen); nest.view.position.set(W * 0.8, row * 3 - 30); app.stage.addChild(nest.view);
+const klo = createKlo(P, { texture: T }); klo.container.scale.set(1.6); app.stage.addChild(klo.container);
+const kloActor = { visible: true, x: W * 0.9, y: row - 10, facing: -1, pose: 'happy' };
+let t = 0;
+app.ticker.add((tk) => {
+    const dt = tk.deltaMS / 1000; t += dt;
+    for (const it of items) {
+        if (it.obj) it.obj.update(dt, it.actor, t, { storm: 1 });
+        if (it.hatch) it.hatch.update(dt, t, {});
+        if (it.egg) it.egg.update(dt, t, {});
+        if (it.coin) it.coin.update(dt, t);
+    }
+    klo.update(kloActor, { time: t, dt });
+});
+window.__ready = true;
+</script>
+</body>
+</html>

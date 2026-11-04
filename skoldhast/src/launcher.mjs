@@ -1,10 +1,13 @@
 /* Series entry point. Each adventure owns its runtime; only profiles and
  * settings cross the boundary. Unreleased adventures never load their module. */
-import { ADVENTURES, FIRST_ADVENTURE, adventureStatus } from './adventures.mjs';
+import { ADVENTURES, FIRST_ADVENTURE, adventureStatus, previewIds, withPreview } from './adventures.mjs';
 import { createSave } from './save.mjs';
 
-export function createGame({ catalogue = ADVENTURES, saver = createSave(),
-    loadRuntime = adventure => import(adventure.module), onClose, ...options } = {}) {
+export function createGame({ catalogue: shipped = ADVENTURES, saver = createSave(),
+    loadRuntime = adventure => import(adventure.module), onClose,
+    preview = typeof location !== 'undefined' ? previewIds(location.search + location.hash) : [], ...options } = {}) {
+    // a previewed adventure (?adventure=2) opens directly, released or not
+    const catalogue = withPreview(shipped, preview);
     let current = null, activeAdventure = null, selectedSlot = null;
     let state = 'closed', generation = 0, pending = null, closing = null;
 
@@ -26,7 +29,7 @@ export function createGame({ catalogue = ADVENTURES, saver = createSave(),
         if (token !== generation) return false;
         const module = await loadRuntime(adventure);
         if (token !== generation) return false;
-        const runtime = module.createGame({ ...options, saver, adventureId: id, slotId,
+        const runtime = module.createGame({ ...options, saver, adventureId: id, slotId, preview: preview.includes(id),
             onSlotChange: selected => { selectedSlot = selected; },
             onRestart: async () => { await close(); return open(); },
             onChooseAdventure: (next, selected) => {
@@ -74,7 +77,8 @@ export function createGame({ catalogue = ADVENTURES, saver = createSave(),
         if (current) return;
         const slotId = selectedSlot || saver.last() || 'alva';
         const profile = saver.loadProfile(slotId)?.data;
-        const id = eligible(profile?.activeAdventure, slotId) ? profile.activeAdventure : FIRST_ADVENTURE;
+        const id = preview[0] && eligible(preview[0], slotId) ? preview[0]
+            : eligible(profile?.activeAdventure, slotId) ? profile.activeAdventure : FIRST_ADVENTURE;
         return track(launch(id, slotId));
     }
 

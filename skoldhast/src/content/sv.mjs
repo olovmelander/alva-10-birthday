@@ -30,7 +30,9 @@ export const FAMILY = {
 };
 
 export const NAMES = {
-    horse: 'Sköldhästen', klo: 'Professor Klo', kv: 'Kartväktaren', alva: 'Alva', mira: 'Mira', signe: 'Sköldpaddan Signe', note: ''
+    horse: 'Sköldhästen', klo: 'Professor Klo', kv: 'Kartväktaren', alva: 'Alva', mira: 'Mira', signe: 'Sköldpaddan Signe', note: '',
+    // Äventyr 2: Den magiska skogen (its own words are in adventures/adventure-2/content/sv.mjs)
+    tukan: 'Tukankrabban', skata: 'Skatan', dyvel: 'Tordyveln', moln: 'Molnet'
 };
 export const SCENE_TITLES = { land: 'Stranden och Stäppen', kelp: 'Kelpskogen', viken: 'Spegelviken' };
 export const SHORE_TRIAL = {
@@ -102,7 +104,7 @@ export const ADVENTURE_UI = {
     player: name => `Forskare: ${name}`,
     titles: {
         'havet-mellan-sidorna': 'Havet mellan sidorna',
-        'adventure-2': 'Ett nytt äventyr',
+        'adventure-2': 'Den magiska skogen',
         'adventure-3': 'Ett nytt äventyr'
     },
     completed: 'Avklarat', playing: 'Pågår', ready: 'Redo att spelas',
