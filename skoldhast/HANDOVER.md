@@ -1,5 +1,64 @@
 # Sköldhästen – handover
 
+## Äventyr 2, the long version: an audit, two new worlds and twelve new puzzle steps (4 November, latest)
+
+Pappa asked for Äventyr 2 to be much longer and more epic, more polished, with a better story, more puzzles, and
+everything hanging together: an audit, every fix, then the longer adventure. The findings and fixes are in
+`docs/skoldhast/adventure-2-audit.md`; the design (four pages, five acts, the puzzle table) is
+`docs/skoldhast/adventure-2.md`.
+
+- **The story now has a question and a journey.** At the nest the sköldhäst asks who is storming, and why. The
+  crown of Jätteträdet no longer holds the answer: from up there they *see* the storm swirl round **Åsktoppen**,
+  the mountain behind the waterfall, and Mira wonders if it is her cloud. The way there goes through the
+  mountain, which is pitch dark until Tukankrabban carries a moonshine seed as a lantern. On the summit, in the
+  eye of the storm, the cloud is afraid of the dark; Mira recognises her cloud and says sorry; Alva explains why
+  the moon must wait for the nest. The cloud gives back the egg it kept warm and carries everyone home in a short
+  picture over the whole forest. Skatan and Tordyveln come to the nest for the finale.
+- **Two new worlds.** **Kristallgrottan**, inside the mountain: crystal plates that ring under galloping hooves
+  (K1, they light the chasm so the crystal bridge can be drawn), a lake with three currents of which only the
+  white one ("vit som ett ägg") runs under the rock wall (K2), Tordyveln's new glitter ball to push into a pool
+  onto one plate while the hidden shell presses the other (K3), and the spring that carries a still shell up
+  through the mountain. **Åsktoppen**: gusts that blow a standing sköldhäst back (hide, or shelter behind a
+  boulder) on two stretches (T1), a bridge of light that shows only in the lightning (T2), and the calm summit.
+- **The forest pages grew too:** a bouncing mushroom up to the owl's branch, the waterfall cave leads on into
+  the mountain, and the eggs are spread over all four pages (4, 3, 2, 1).
+- **The journal** shows the mission, a hand-drawn map of the four pages (eggs found and left, "Här är vi"), the
+  open question and Tukankrabban's current hypothesis.
+- **Fixed in the audit** (the full list is in the audit): the trade or the cloud could lose an egg on a reload;
+  "Guida mig" skipped hints, and "Påminn mig om Klo" did nothing; companions crossed gaps you had not opened;
+  "Alla tio" could play after the ending; a love scene could interrupt the summit; the next-egg hint ignored the
+  page you were on; Swedish (one prompt form, "streckad", place names, "Tukankrabban").
+- **Pictures:** every page has its own sky (Åsktoppen on the horizon from the forest pages, a cave wall and a
+  lantern's soft darkness inside the mountain, jagged peaks, lightning and wind streaks on the top), and all the
+  new pieces are drawn in code on the same pencil tiles: no new download.
+- **Length** (the robot, which plays optimally and skips nothing; no prologue):
+
+  | | Robot play time | Dialogue boxes | Puzzle steps |
+  | --- | --- | --- | --- |
+  | Äventyr 1, Kapitel 1 | 0.7 min | 26 | 2 |
+  | Äventyr 1, all three chapters | 4.1 min | 94 | 8 |
+  | Äventyr 2, first build | 3.6 min | 112 | 8 + the climb |
+  | **Äventyr 2, now** | **4.8 min** | **161** | **20** |
+
+- **Verification:** `npm test` passes (**391**). The A2 robot (`tests/skoldhast-a2-playthrough.test.mjs`) plays
+  from a new game through all four pages to the hatching with ordinary inputs, and also checks the mountain before
+  the crown, no way in without the lantern, a reload on the peak, save repair, the hint peek, and that no
+  companion crosses a closed gap. The browser check (`node tests/browser/skoldhast-a2.mjs --out <dir>`) plays the
+  prologue at 844×390, draws all four pages at 390×844, and plays the finale at 1440×900. New contact sheets:
+  `docs/skoldhast/shots/a2/mountain-*.webp` (the tunnel, Kristallgrottan and Åsktoppen at all three sizes) and
+  `summit-ride-*.webp` (the summit, the cloud ride home, the beach after it).
+- **Not released:** `adventure-2` keeps `released: false`. Play it with **`skoldhast/dev/play.html?adventure=2`**
+  or **`index.html?skoldhast&adventure=2`**.
+- **Known limits:** the robot's 4.8 minutes is a floor; a child's real play time is unmeasured. Frame rate on a
+  real phone is unmeasured (software WebGL in the cloud gives 5–30 fps). The wind and the lightning repeat every
+  five seconds, which may feel fast or slow to Alva.
+- **Frågor till Pappa:**
+  1. Is the order right: the forest first, then the mountain? The mountain can be entered as soon as the lantern
+     is found, even before the crown.
+  2. Should the gusts and the lightning be slower (now about every 5 seconds)?
+  3. Is it all right that the cloud carries everyone home, or should the sköldhäst walk back through the mountain?
+  4. When should `adventure-2` be released?
+
 ## Äventyr 2: Alva with us, a Swedish pass, and how long it is (4 November, later)
 
 Pappa asked for three things after the first build: Alva must also be in the game, all the storytelling must be

@@ -9,6 +9,12 @@
  *   P5  Knuffa the beetle's ball off the plateau; the river washes the egg free
  *   P6  a hidden shell spirals down Djuphålan to the gold coin; Ge it to Skatan
  *   P7  the leap is the sim's downhill språng; Dra the vine to come back
+ *   P9  the magic mushroom bounces the sköldhäst up to a high branch (game.mjs)
+ *   K1  galloping hooves ring three crystal plates; lit, they make the chasm's bridge drawable
+ *   K2  of three currents under Kristallsjön's wall only the white one carries a shell through
+ *   K3  Knuffa Tordyveln's glitter ball onto one plate, press the other with a still shell
+ *   T1  gusts push a visible sköldhäst back on the ridge; hidden, it holds (applyWinds)
+ *   T2  the bridge of light is drawable only while the lightning shows it (stepWeather)
  *
  * Completed steps are flags (they are what the save keeps). Transient motion
  * (a falling egg, the rolling ball) restarts as finished after a reload.
@@ -19,7 +25,7 @@ import { EGG_IDS } from './content/world.mjs';
 
 const FALL_SECONDS = 0.9;
 const TOUCH = 0.85 * HL;
-const TALK = 1.3 * HL;
+const TALK = 2.6 * HL;
 
 export function createPuzzleState() {
     return {
@@ -28,7 +34,12 @@ export function createPuzzleState() {
         ball: null,          // the beetle ball's x (null = at its start)
         roll: null,          // { t, phase: 'roll' | 'wash' }
         still: 0,            // seconds hidden and still beside the moonshine seeds
-        pushed: {}           // push zones the swimmer is inside now
+        pushed: {},          // push zones the swimmer is inside now
+        crystal: {},         // K1: galloping beats on each crystal plate
+        glitter: null,       // K3: the glitter ball's x (null = at its start)
+        glitterRoll: null,   // { t } while it rolls into the pool
+        plate: 0,            // K3: seconds a still shell has lain on plate B
+        gust: null           // T1: { id, state: 'warn' | 'gust' } on the ridge now
     };
 }
 
@@ -65,6 +76,7 @@ export function eggState(G, egg) {
             return { state: 'ball', x: ballX(G), y: egg.y };
         }
         case 'trade': return { state: 'nest', x: egg.x, y: egg.y };
+        case 'cloud': return { state: 'nest', x: egg.x, y: egg.y };
         default:
             if (!cond(egg.when, F)) return { state: 'dark', x: egg.x, y: egg.y };
             return { state: 'loose', x: egg.x, y: egg.y };
@@ -103,6 +115,49 @@ export function applyPushes(G, dt, events) {
     }
 }
 
+/** The weather on the peak: the lightning flag the bridge of light needs, and each gust's state. */
+export function stepWeather(G, events) {
+    const sc = G.sceneDef, F = G.flags;
+    const L = sc?.lightning;
+    if (L) {
+        const on = !F.has('moon') && ((G.time + L.phase) % L.period) < L.on;
+        if (on && !F.has(L.flag)) { F.add(L.flag); events.push({ type: 'flash', on: true }); }
+        else if (!on && F.has(L.flag)) { F.delete(L.flag); events.push({ type: 'flash', on: false }); }
+    }
+    let gust = null;
+    for (const w of sc?.winds || []) {
+        if (F.has('moon')) break;
+        const t = (G.time + w.phase) % w.period;
+        const state = t < w.gust ? 'gust' : t > w.period - w.warn ? 'warn' : null;
+        if (state) { gust = { id: w.id, state, w }; break; }
+    }
+    const was = G.puz.gust?.state || null;
+    G.puz.gust = gust;
+    if ((gust?.state || null) !== was) events.push({ type: 'gust', state: gust?.state || null, id: gust?.id });
+}
+
+/** Is x in a wind's reach and out of its shelter? */
+export function windAt(G, x, y) {
+    const g = G.puz.gust;
+    if (!g || g.state !== 'gust') return null;
+    const w = g.w;
+    if (x < w.x0 || x > w.x1) return null;
+    if ((w.shelter || []).some(([a, b]) => x >= a && x <= b)) return null;
+    return w;
+}
+
+/** T1: a gust pushes a visible sköldhäst on open ground back west; tucked in its shell it holds. */
+export function applyWinds(G, dt, events) {
+    const p = G.player;
+    if (p.mode !== 'ground') return;
+    const w = windAt(G, p.x, p.y);
+    if (!w) return;
+    if (p.hidden || p.hideQueued) { p.vx *= Math.exp(-12 * dt); return; }
+    const k = Math.min(1, dt * 5);
+    p.vx += (-w.strength - p.vx) * k;
+    if (!G.puz.blown) { G.puz.blown = true; events.push({ type: 'blown', id: w.id }); }
+}
+
 export function stepPuzzles(G, events, dt) {
     const p = G.player, F = G.flags, P = G.puz, sc = G.sceneDef;
     if (!sc) return;
@@ -127,7 +182,6 @@ export function stepPuzzles(G, events, dt) {
     }
     if (P.fall && P.fall.t < FALL_SECONDS) {
         P.fall.t += dt;
-        if (P.fall.t >= FALL_SECONDS) G.emit('eggLanded', { id: 'e2' });
     }
     // P5: the ball rolls down to the river, and the river washes it
     if (P.roll) {
@@ -146,6 +200,8 @@ export function stepPuzzles(G, events, dt) {
     if (sc.seeds && !F.has(sc.seeds.flag)) {
         const s = sc.seeds;
         const still = p.mode === 'ground' && p.hidden && p.hide > 0.95 && Math.abs(p.vx) < 5 && p.x >= s.x0 && p.x <= s.x1;
+        if (P.wasStill && !still && P.still >= 0.6) G.emit('seedsShy', {});
+        P.wasStill = still;
         P.still = still ? P.still + dt : Math.max(0, P.still - dt * 2);
         if (P.still >= s.seconds) { G.flag(s.flag); G.emit('seedsLit', {}); }
     }
@@ -156,6 +212,46 @@ export function stepPuzzles(G, events, dt) {
             G.emit('coin', {});
         }
         if (e.type === 'laneEnd' && e.id === 'undertow') G.emit('undertowIn', {});
+    }
+    // the moonshine seeds give a light to carry
+    if (F.has('p4_lit') && !F.has('lantern')) G.flag('lantern');
+    // K1: galloping hooves ring the crystal plates
+    if (sc.crystals && !F.has(sc.crystals.flag)) {
+        for (const e of events) {
+            const id = p.surface?.crystal;
+            if (e.type !== 'hoof' || !id || F.has(id)) continue;
+            if (e.speed < sc.crystals.minSpeed) { G.emit('crystalSoft', { id }); continue; }
+            P.crystal[id] = (P.crystal[id] || 0) + 1;
+            G.emit('crystalRing', { id, n: P.crystal[id] });
+            if (P.crystal[id] >= sc.crystals.beats) {
+                G.flag(id);
+                const lit = sc.crystals.plates.filter(c => F.has(c)).length;
+                G.emit('crystalLit', { id, lit, of: sc.crystals.plates.length });
+                if (lit === sc.crystals.plates.length) G.flag(sc.crystals.flag);
+            }
+        }
+    }
+    // K3: the glitter ball rolls into the pool, onto plate A
+    if (P.glitterRoll) {
+        const b = sc.glitterBall || G.scenes.kristall.glitterBall;
+        P.glitterRoll.t += dt;
+        if (P.glitterRoll.t >= b.rollSeconds) { P.glitterRoll = null; G.flag(b.flag); G.emit('glitterIn', {}); }
+    }
+    // K3: a still shell on plate B, while the ball weighs down plate A
+    for (const pl of sc.plates || []) {
+        if (F.has(pl.flag)) continue;
+        const on = p.mode === 'swim' && p.hidden && p.hide > 0.9 && p.resting && Math.abs(p.x - pl.x) < pl.w && Math.abs(p.y - pl.y) < 0.5 * HL;
+        if (!on) { if (P.plate > 0.4) G.emit('plateOff', { id: pl.id }); P.plate = 0; continue; }
+        if (P.plate === 0) G.emit('plateOn', { id: pl.id, ready: cond(pl.needs, F) });
+        P.plate += dt;
+        if (P.plate >= pl.hold && cond(pl.needs, F)) { G.flag(pl.flag); G.emit('plateOpen', { id: pl.id }); }
+    }
+    // K2: a current that only goes round, and the one that goes through
+    for (const e of events) {
+        if (e.type !== 'laneEnd') continue;
+        const lane = sc.lanes?.find(l => l.id === e.id);
+        if (lane?.loop) G.emit('loopBack', { id: e.id });
+        if (e.id === 'k2-white') G.emit('throughWall', {});
     }
     // eggs that lie loose are picked up by touch
     for (const egg of sc.eggs || []) {
@@ -187,6 +283,14 @@ export function contextAction(G) {
                 return { id: 'push', label: CONTEXT.push, run: () => G.emit('pushWrong', {}) };
             }
         }
+        // K3: Tordyveln's glitter ball, pushed east into the pool
+        if (sc.glitterBall && !F.has('k3_pushed')) {
+            const b = sc.glitterBall, bx = glitterX(G), dx = bx - p.x;
+            const level = Math.abs(p.y - (heightOn(b.path, bx) ?? p.y)) < 0.45 * HL;
+            if (level && dx >= b.push.min && dx <= b.push.max && p.facing > 0) {
+                return { id: 'push-glitter', label: CONTEXT.push, run: () => pushGlitter(G) };
+            }
+        }
         // P6: Skatan on her branch
         if (sc.magpie && p.surface?.id === sc.magpie.surface && Math.abs(p.x - sc.magpie.x) < sc.magpie.reach && !F.has('coin_given')) {
             if (F.has('coin_got')) return { id: 'give', label: CONTEXT.give, run: () => giveCoin(G) };
@@ -205,7 +309,7 @@ export function contextAction(G) {
     // a word with a companion: their help for what we are doing now
     for (const who of ['tukan', 'klo']) {
         const a = G.actors[who];
-        if (!a?.visible || a.scene !== G.sceneId || a.away) continue;
+        if (!a?.visible || a.scene !== G.sceneId) continue;
         if (Math.abs(p.x - a.x) < TALK && Math.abs(p.y - a.y) < 0.8 * HL) {
             return { id: 'talk-' + who, label: CONTEXT.talk, run: () => G.emit('talk', { who }) };
         }
@@ -225,6 +329,35 @@ function pushBall(G) {
         G.puz.roll = { t: 0, phase: 'roll' };
         G.emit('ballRoll', {});
     }
+}
+
+export function glitterX(G) { return G.puz.glitter ?? G.scenes.kristall.glitterBall.x0; }
+
+function pushGlitter(G) {
+    const b = G.scenes.kristall.glitterBall, p = G.player;
+    if (G.flags.has('k3_pushed') || G.puz.glitterRoll) return;
+    G.puz.glitter = glitterX(G) + b.step;
+    p.action = 'push'; p.actionT = 0; p.actionDur = 0.5;
+    p.nudge = { x: G.puz.glitter - 0.62 * HL, t: 0.6 };
+    G.emit('push', { x: G.puz.glitter });
+    if (G.puz.glitter >= b.edge) {
+        G.flag('k3_pushed');
+        G.puz.glitterRoll = { t: 0 };
+        G.emit('glitterRoll', {});
+    }
+}
+
+/** Where the glitter ball is (for the view): on the shore, rolling in, or on plate A. */
+export function glitterPose(G) {
+    const b = G.scenes.kristall.glitterBall, P = G.puz, F = G.flags;
+    if (F.has(b.flag)) return { x: b.stopX, y: b.path.at(-1)[1], spin: (b.stopX - b.x0) / (0.3 * HL) };
+    if (P.glitterRoll) {
+        const u = Math.min(1, P.glitterRoll.t / b.rollSeconds), e = u * u;
+        const x = b.edge + (b.stopX - b.edge) * e;
+        return { x, y: heightOn(b.path, Math.min(b.path.at(-1)[0], x)) ?? 0, spin: (x - b.x0) / (0.3 * HL) };
+    }
+    const x = glitterX(G);
+    return { x, y: heightOn(b.path, x) ?? 0, spin: (x - b.x0) / (0.3 * HL) };
 }
 
 function giveCoin(G) {
@@ -253,6 +386,9 @@ export function ballPose(G) {
 
 export function restorePuzzles(G, puz) {
     G.puz.ball = Number.isFinite(puz.ball) ? puz.ball : null;
+    G.puz.glitter = Number.isFinite(puz.glitter) ? puz.glitter : null;
+    if (G.flags.has('k3_pushed') && !G.flags.has('k3_ball')) G.flags.add('k3_ball');
+    if (G.flags.has('p4_lit')) G.flags.add('lantern');
     // an interrupted roll is finished on reload: the river has washed the ball
     if (G.flags.has('p5_rolled') && !G.flags.has('p5_washed')) G.flags.add('p5_washed');
 }

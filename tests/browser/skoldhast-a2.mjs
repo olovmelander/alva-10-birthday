@@ -2,8 +2,9 @@
 /*
  * Äventyr 2 (Den magiska skogen) in a real browser, through the launcher's preview
  * (dev/play.html?adventure=2): the title, the whole prologue at Alva's table (Mira's
- * cloud drawn with "Rita åt mig"), the arrival at the nest, staged views of both
- * pages, and the finale from a saved game with all ten eggs: Mira's moon traced,
+ * cloud drawn with "Rita åt mig"), the arrival at the nest, staged views of all
+ * four pages (Flodstranden, Djupa skogen, Kristallgrottan, Åsktoppen), and the
+ * finale from a saved game with all ten eggs: Mira's moon traced, Alva's stars,
  * the hatching, the epilogue and the ending card, with the completion saved.
  *
  *   node tests/browser/skoldhast-a2.mjs [--out dir] [--quick]
@@ -91,13 +92,15 @@ if (!quick) await check('the prologue at Alva\'s table leads to the nest (844×3
     await p.close();
 });
 
-await check('both pages draw at phone portrait size (390×844)', async () => {
-    const views = [['strand', 28.2, -0.39, -1], ['strand', 16.5, -0.6, -1], ['strand', 69.3, -1.95, -1], ['skog', 90.3, -0.6, -1], ['skog', 17, -6.58, 1]];
-    const p = await page({ width: 390, height: 844 }, profile([...SEEN, 'p2_bridge', 'p7_vine']));
+await check('all four pages draw at phone portrait size (390×844)', async () => {
+    const views = [['strand', 28.2, -0.39, -1], ['strand', 16.5, -0.6, -1], ['strand', 69.3, -1.95, -1], ['skog', 90.3, -0.6, -1], ['skog', 17, -6.58, 1],
+        ['kristall', 3.0, -0.42, 1], ['kristall', 35, 2.2, 1], ['kristall', 56, -0.45, 1], ['topp', 12.6, -1.6, 1], ['topp', 49, -6.75, 1]];
+    const p = await page({ width: 390, height: 844 }, profile([...SEEN, 'p2_bridge', 'p7_vine', 'p4_lit', 'lantern', 'storm_source', 'cave_reached',
+        'b:kristall', 'b:caveLit', 'b:plates', 'b:lake', 'b:glitter', 'b:topp', 'b:gustSoon', 'b:windKlo', 'b:summit', 'topp_reached']));
     await p.click('.a2-title .sk-pbtn.primary');
     await p.waitForFunction(() => window.__skoldhast2?.debug?.mode === 'play', null, { timeout: 20000 });
     for (const [scene, x, y, facing] of views) {
-        await dbg(p, ([scene, x, y, facing]) => { const { G, view } = window.__skoldhast2.debug; G.goto(scene, { x: x * 200, y: y * 200, facing }); view.cam.snap = true; }, [scene, x, y, facing]);
+        await dbg(p, ([scene, x, y, facing]) => { const { G, view } = window.__skoldhast2.debug; G.goto(scene, { x: x * 200, y: y * 200, facing, mode: y > 0.5 ? 'swim' : undefined }); view.cam.snap = true; }, [scene, x, y, facing]);
         await p.waitForTimeout(1500);
         const r = await dbg(p, () => { const { G, view } = window.__skoldhast2.debug; const s = view.heroScreen(); return { scene: view.sceneId, x: s.x, y: s.y, w: innerWidth, h: innerHeight, sceneG: G.sceneId }; });
         assert.equal(r.scene, r.sceneG, 'the view shows the page the game is on');

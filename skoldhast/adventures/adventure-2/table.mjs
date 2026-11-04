@@ -282,12 +282,16 @@ export function createTable({ PIXI, app, assets, ui, audio, G, heroFactory }) {
         D.cloudActor = { visible: true, x: 770, y: 150, pose: 'happy' };
         D.sky.addChild(D.cloudRig.view);
         D.cloudRig.view.scale.set(0.9);
-        await ui.say([TABLE.cool, TABLE.evening]);
+        await ui.say([TABLE.cool, TABLE.evening, TABLE.busy]);
         // the page grows dark, and the little cloud is afraid
         D.cloudActor.pose = 'sad';
         ui.caption(TABLE.dark, 3000);
         await tween(1.6, u => { D.night.alpha = ease(u) * 0.55; D.storm = ease(u); });
         lightning();
+        ui.caption(TABLE.cloudFlees, 3200);
+        // the frightened cloud drifts off to the mountains on the page's far edge
+        await tween(1.8, u => { D.cloudActor.x = 770 + ease(u) * 330; D.cloudActor.y = 150 - ease(u) * 60; });
+        D.cloudActor.visible = false;
         ui.caption(TABLE.storm, 3000);
         audio?.sfx?.('wind');
         await wait(0.6);
@@ -374,6 +378,11 @@ export function createTable({ PIXI, app, assets, ui, audio, G, heroFactory }) {
         const moon = new PIXI.Graphics();
         moon.circle(820, 130, 70).fill(pen.fill(0xf8ebb4)).stroke(pen.line(0x8a6cc0, 3));
         moon.circle(800, 115, 12).fill(pen.hatch(0xe2cf86, 0.9)); moon.circle(840, 150, 16).fill(pen.hatch(0xe2cf86, 0.8));
+        // Alva's stars round Mira's moon
+        for (const [x, y, r] of [[700, 150, 16], [760, 70, 11], [905, 80, 13], [930, 175, 10], [860, 230, 9]]) {
+            moon.moveTo(x - r, y).lineTo(x + r, y).moveTo(x, y - r).lineTo(x, y + r).stroke(pen.line(0x4f7c3c, 3));
+            moon.moveTo(x - r * 0.5, y - r * 0.5).lineTo(x + r * 0.5, y + r * 0.5).moveTo(x - r * 0.5, y + r * 0.5).lineTo(x + r * 0.5, y - r * 0.5).stroke(pen.line(0xd9b43c, 2));
+        }
         D.sky.addChild(moon);
         for (const e of D.eggs) e.e.view.visible = false;
         D.hatch.forEach(k => { k.view.visible = true; });

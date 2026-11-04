@@ -69,60 +69,113 @@ men på den här sidan finns ingen måne. Vem är det som stormar, och varför?"
 
 1. Everything from Äventyr 1 still holds: Alva's pencil is in the hooves (full gallop draws unfinished
    lines), the shell sinks like a stone in water and drifts with currents only a shell can ride.
-2. **What Mira drew dashed is unfinished**, and galloping finishes it (the rope bridge).
+2. **What Mira drew dashed is unfinished**, and galloping finishes it (the rope bridge). Inside the mountain
+   a dashed line can be drawn only when something lights it: the crystals for the crystal bridge, the
+   lightning for the bridge of light on Åsktoppen.
 3. **The storm grows in the dark and quiets in light**: the lightning is the cloud trying to see.
-4. **Moonshine seeds open only when everything is still**: hide by them and they light up.
-5. **Tukankrabba eggs hatch only in moonlight, in the warm sand of the nest.**
+4. **Moonshine seeds open only when everything is still**: hide by them and they light up. One of them is
+   Tukankrabban's lantern from then on; without it the way into the mountain is pitch dark.
+5. **Crystals ring under galloping hooves**, and a crystal that has rung enough lights up.
+6. **Wind cannot take a hidden shell**, and behind a boulder there is shelter.
+7. **Tukankrabba eggs hatch only in moonlight, in the warm sand of the nest.** That is why the moon is drawn
+   last: drawn in the mountains, the eggs would hatch alone out in the forest.
 
-## Two pages
+## Four pages
 
 `strand` — **Flodstranden** (west → east): Klyftan with Mira's dashed rope bridge (P2, exit to the forest) ·
 Kakaolunden with the cocoa tree and the hollow log (P1) · Sandbanken with the nest and her shiny collection
 (start, E1) · Glimmerfloden with a gentle current and Djuphålan's whirlpool (the gold coin) · the east bank
-with Tordyvelbacken (P5) and Skatträdet (P6) · Forsen, the waterfall, with the cave behind it (P3).
+with Tordyvelbacken (P5) and Skatträdet (P6) · Forsen, the waterfall, with the cave behind it (P3) and the
+dark tunnel into the mountain.
 
-`skog` — **Djupa skogen** (east → west): the bridge's end and the mushroom (P2's egg) · Rotgrottan, dark
-until the moonshine seeds light it (P4) · Utsiktskullen and Rutschstammen, the fallen trunk to slide-gallop
-down for the big leap over Ravinen (P7), with a vine to pull back · Jätteträdet, climbed by its branches to
-the crown where the cloud sits (the reveal).
+`skog` — **Djupa skogen** (east → west): the bridge's end and the bouncing mushroom (up to the owl's branch
+and its egg) · Rotgrottan, dark until the moonshine seeds light it (P4, and the lantern) · Utsiktskullen and
+Rutschstammen, the fallen trunk to slide-gallop down for the big leap over Ravinen (P7), with a vine to pull
+back · Jätteträdet, climbed by its branches to the crown, where you see where the storm comes from.
 
-## Puzzles (10 eggs)
+`kristall` — **Kristallgrottan**, inside the mountain (west → east): the tunnel from the beach · three
+crystal plates in the floor and the black chasm (K1) · Kristallsjön with three crystals on its floor and a
+rock wall down into the water (K2) · Tordyveln's new glitter ball and the gate's pool with two plates (K3) ·
+Källan, the spring that rises through the mountain.
+
+`topp` — **Åsktoppen**, the mountain top in the storm: the spring's pool · Vindkanten, gusts with boulders for
+shelter (T1) · Blixtbron, a ravine with a bridge that shows only in the lightning (T2) · Klippan, more gusts ·
+Stormens öga, the calm summit where the cloud sits on its nest of fluff.
+
+## The story, in five acts
+
+1. **The empty nest** (the table, Sandbanken). The storm takes the eggs; Tukankrabban's rule says they hatch
+   only in moonlight, and there is no moon. The question, asked out loud: *vem är det som stormar – och
+   varför?* Her first hypothesis: the storm comes from somewhere.
+2. **Eggs across the forest** (Flodstranden, Djupa skogen). Free order. Tordyveln, Skatan and the gold coin,
+   Mira's bridge, the mushroom, the moonshine seeds (which give the lantern), the big leap. Klo falls in love
+   one step at a time (after eggs 2, 4, 6 and 8).
+3. **Where the storm comes from** (Jätteträdet's crown). From the top they see the storm swirl round
+   Åsktoppen, the mountain behind the waterfall. Mira wonders if it is her cloud. Alva: "Det får vi ta reda
+   på. Det är det forskare gör." The goal changes from eggs to the peak.
+4. **Through the mountain** (Forsen's cave, Kristallgrottan, Åsktoppen). The lantern shows the way. The
+   crystals ring, the white current runs under the wall, Tordyveln lends his glitter ball, the spring carries
+   the shell up, the wind is crossed in the shell, the bridge is drawn in a flash of lightning.
+5. **The eye of the storm and the way home** (the summit, the nest). The cloud is afraid of the dark; Mira
+   knows her cloud and says sorry; Alva says why the moon must wait for the nest. The cloud gives back the
+   egg it kept warm and carries everyone home over the whole forest. With ten eggs in the nest: everyone
+   gathers, Mira draws the moon, Alva the stars, the eggs hatch, Klo gives his stopwatch.
+
+## Puzzles (10 eggs, 20 steps)
 
 | # | Where | Eggs | What you do | Half |
 | --- | --- | --- | --- | --- |
 | E1 | Sandbanken | 1 | Something glimmers in the sand: **Gräv** with a hoof. Teaches the action button and the egg basket. | — |
 | P1 | Kakaolunden | 1 | An egg is stuck high in the cocoa tree. Gallop over the hollow log under it: the hoofbeats drum through the roots and shake the tree until the egg falls into the leaves. | horse |
-| P2 | Klyftan | 1 | Mira's rope bridge is only dashed. Gallop across and the hooves draw it whole. The egg waits on the mushroom on the far side. | horse |
-| P3 | Forsen | 2 | The waterfall pushes away everything that swims. Hide in the pool: the shell sinks under the falls and the undercurrent carries it into the cave, where two eggs lie on the ledge. | turtle |
-| P4 | Rotgrottan | 1 | The root cave is pitch dark. Hide still beside the shy moonshine seeds until they open and glow; their light drifts in and shows the way to the egg. | turtle |
-| P5 | Tordyvelbacken | 1 | The beetle rolled an egg into his earth ball. **Knuffa** it to the edge so it rolls into the river, which washes the earth off. Swim to the egg. | horse |
-| P6 | Skatträdet + Djuphålan | 2 | The magpie trades her two "pearls" only for something shinier. The gold coin lies at the bottom of the whirlpool: swimmers are spun away, but a hidden shell spirals down to it. Climb the tree's branches and **Ge** her the coin. | both |
-| P7 | Rutschstammen | 1 | The egg sits in an old nest across Ravinen. A normal gallop is too short: gallop down the fallen trunk for extra speed and make the big leap. **Dra** the vine to get back. | horse |
-| — | Jätteträdet | — | Climb the branches to the crown and meet the cloud: the reveal. | — |
-| Finale | the nest | — | With all ten eggs and the cloud along, the eggs go into the sand. Mira draws the moon and Alva a star beside it (the player traces both with their pencils). The cloud stops being afraid, the storm ends, and ten little tukankrabbor hatch. | Mira and Alva |
+| P2 | Klyftan | — | Mira's rope bridge is only dashed. Gallop across and the hooves draw it whole. | horse |
+| Svamp | Djupa skogen | 1 | The egg is up on the owl's branch. Jump onto the big mushroom: it bounces the sköldhäst up. | horse |
+| P3 | Forsen | — | The waterfall pushes away everything that swims. Hide in the pool: the shell sinks under the falls and the undercurrent carries it into the cave. The tunnel behind is pitch dark. | turtle |
+| P4 | Rotgrottan | 1 | Hide still beside the shy moonshine seeds until they open and glow; their light shows the way to the egg, and one seed becomes the lantern. | turtle |
+| P5 | Tordyvelbacken | 1 | The beetle rolled an egg into his earth ball. **Knuffa** it into the river, which washes the earth off. | horse |
+| P6 | Djuphålan + Skatträdet | 1 | The magpie trades her "pearl" for something shinier. A hidden shell spirals down the whirlpool to the gold coin; climb the tree and **Ge** her the coin. | both |
+| P7 | Rutschstammen | 1 | The egg sits in an old nest across Ravinen. Gallop down the fallen trunk for the big leap; **Dra** the vine to get back. | horse |
+| — | Jätteträdet | — | Climb the branches to the crown and see the storm over Åsktoppen. | — |
+| K1 | Kristallgrottan | — | Gallop over the three crystal plates until all three ring and glow; the light shows the dashed crystal bridge over the chasm, and a gallop draws it. | horse |
+| K2 | Kristallsjön | 1 | Three currents start by three crystals on the lake floor; the blue and the green loop back. Hide by the white one ("vit som ett ägg"): it carries the shell under the wall. | turtle |
+| K3 | the gate's pool | 1 | **Knuffa** Tordyveln's glitter ball into the pool onto plate A, then lie hidden on plate B: the gate opens. | both |
+| Källan | Kristallgrottan | — | The falling water pushes a swimmer down; a still shell rides the spring up to the mountain top. | turtle |
+| T1 | Vindkanten, Klippan | — | Gusts blow a standing sköldhäst back; hide when the wind howls (a warning comes first), or wait behind a boulder. | turtle |
+| T2 | Blixtbron | — | The bridge of light shows only in the lightning: gallop out onto it in a flash and draw it. | horse |
+| Toppen | Stormens öga | 1 | Climb to the calm summit and meet the cloud: the reveal, and the egg it kept. | — |
+| Finale | the nest | — | Everyone gathers. Mira draws the moon and Alva the stars (the player traces both). The storm ends and ten little tukankrabbor hatch. | Mira and Alva |
+
+Eggs per page: Flodstranden 4, Djupa skogen 3, Kristallgrottan 2, Åsktoppen 1. The journal's hand-drawn map
+shows each page with its eggs found and left, and the open question with Tukankrabban's latest hypothesis.
 
 Help follows Äventyr 1: every puzzle has an intro line that says why, and up to three hints in Klo's or
-Tukankrabban's words (never key names). Nothing can fail and nothing is timed.
+Tukankrabban's words (never key names). Nothing can fail and nothing is timed; the gusts and the lightning
+come back every few seconds.
 
 ## Beats
 
-1. **Prologue at the table.** A new page. Mira wants to draw too. Alva draws the tukankrabba and her nest of
-   ten eggs (the player traces the first egg with Alva's pencil); Mira draws the forest and the river, and then
-   (the player) a little cloud with her lilac pencil.
-   "Med blixtar!" The page darkens, the cloud rumbles, the eggs blow away like sparks. The sköldhäst and
-   Klo gallop in from the sea page.
+1. **Prologue at the table.** A new page. Mira wants to draw too. Alva draws the tukankrabba and her nest
+   (the player traces the first egg with Alva's pencil); Mira draws the forest and the river, and then (the
+   player) a little cloud with her lilac pencil. "Mira, du ritar väl månen sen?" "Mm … blixtar först!" The
+   cloud flees east, the page darkens, the eggs blow away like sparks.
 2. **The nest.** Tukankrabban digs in the empty nest. Klo falls in love. Her rule: eggs hatch only in
-   moonlight. "Det finns ingen måne här." "Den kommer. Den kommer alltid." The first egg (E1).
-3. **Free exploration** of both pages in any order (the forest needs P2). After eggs 2, 4, 6 and 8 a short
-   Klo-and-Tukankrabban scene: the cocoa bean gift, the heartbeat measurement, the notebook hearts, a joint
-   hypothesis about the storm.
-4. **Clues** ("Vad vet vi?"): the storm grows when it is darkest; lightning lights the way as if someone
-   wants to see; Skatan says the cloud in Jätteträdet cries every night; there is no moon on this page.
-5. **The crown.** The cloud is afraid of the dark. The horse calls to Mira across the paper: "Du glömde
-   månen!" Mira: "Jag tänkte rita den sist!" The cloud comes along to the nest.
-6. **Finale and epilogue.** Ten eggs in the sand, Mira's moon, the hatching. Klo gives his stopwatch; she
-   gives him a moonshine seed, and calls the smallest hatchling Lilla Klo. At the table: "Kan Klo och
-   tukankrabban gifta sig?" "Forskning pågår." Then free exploration in the moonlit forest.
+   moonlight. "Det finns ingen måne här." The question: who is storming, and why? The first egg (E1).
+3. **Free exploration** of both forest pages in any order (the forest needs P2). After eggs 2, 4, 6 and 8 a
+   short Klo-and-Tukankrabban scene (deferred while on the mountain top): the cocoa bean gift, the heartbeat
+   measurement, the notebook hearts, a joint hypothesis.
+4. **Clues** ("Vad vet vi?"): the moon rule; no moon on this page; lightning lights the way as if someone
+   wants to see; the storm grows when it is darkest; the cloud cries; the storm comes from Åsktoppen;
+   a moonshine seed is a lantern; the cloud is afraid of the dark; the moon.
+5. **The crown.** The storm swirls round Åsktoppen. Mira: "Är det mitt moln som stormar?" The goal becomes the
+   peak; without the lantern, the way in is dark and the next goal says so.
+6. **Kristallgrottan and Åsktoppen.** The cave is lit by the lantern; Tordyveln turns up with his glitter
+   ball; the spring throws them up the mountain; in the wind Klo holds Tukankrabban's claw ("Min hjälte!");
+   Mira's lightning draws the bridge.
+7. **The summit.** "Det är ju mitt moln! Förlåt, lilla moln – jag glömde att ge dig en måne." The cloud
+   gives back the egg it kept and carries everyone home (a short picture of the ride over the forest).
+8. **Finale and epilogue.** Skatan and Tordyveln come to the nest; ten eggs in the sand; Mira's moon, Alva's
+   stars, the hatching. Klo gives his stopwatch; she gives him a moonshine seed, and calls the smallest
+   hatchling Lilla Klo. At the table: "Kan Klo och Tukankrabban gifta sig?" "Forskning pågår." Then free
+   exploration in the moonlit forest.
 
 ## Delivery
 
@@ -131,5 +184,6 @@ Tukankrabban's words (never key names). Nothing can fail and nothing is timed.
   view are its own. Everything new is drawn in code at runtime: no new asset download.
 - Catalogue: `adventure-2` has its entry module; its `released` flag stays `false` until Pappa has played
   it. `dev/play.html?adventure=2` (or `index.html?skoldhast&adventure=2`) previews it without the unlock.
-- Tests: `tests/skoldhast-a2-*.test.mjs` (world, puzzles, and a robot that plays the whole adventure);
-  `tests/browser/skoldhast-a2.mjs` (real browser, three sizes).
+- Tests: `tests/skoldhast-a2-*.test.mjs` (world, puzzles, and a robot that plays the whole adventure through
+  all four pages); `tests/browser/skoldhast-a2.mjs` (real browser, three sizes, all four pages).
+- The audit behind the long version: `docs/skoldhast/adventure-2-audit.md`.

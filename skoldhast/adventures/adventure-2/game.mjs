@@ -5,11 +5,13 @@
  * puzzle state and actors; main.mjs calls G.step(input) at 120 Hz. The movement
  * is Adventure 1's own simulation (src/sim.mjs), unchanged.
  */
-import { createPlayer, stepPlayer, Terrain, STEP, HL, cond } from '../../src/sim.mjs';
-import { createPuzzleState, stepPuzzles, contextAction, applyPushes, eggsFound, restorePuzzles } from './puzzles.mjs';
+import { createPlayer, stepPlayer, Terrain, STEP, HL, C, cond } from '../../src/sim.mjs';
+import { createPuzzleState, stepPuzzles, contextAction, applyPushes, applyWinds, stepWeather, eggsFound, restorePuzzles } from './puzzles.mjs';
 import { SCENES, CHECKPOINTS, EGG_TOTAL } from './content/world.mjs';
 
 const SWIM_KEYS = ['vx', 'vy', 'hidden', 'hide', 'facing', 'submerge', 'speed', 'wetTimer'];
+// moment-to-moment states kept as flags (so the sim's conditions can read them), never saved
+const TRANSIENT = new Set(['flash']);
 
 export function createGame() {
     const listeners = new Map();
@@ -47,7 +49,7 @@ export function createGame() {
         cond(c) { return cond(c, G.flags); },
         eggs() { return eggsFound(G); },
 
-        goto(sceneId, spawn, { swimState = null } = {}) {
+        goto(sceneId, spawn, { swimState = null, unhide = false } = {}) {
             const prev = G.sceneId;
             G.sceneId = sceneId;
             G.sceneDef = SCENES[sceneId];
@@ -62,7 +64,10 @@ export function createGame() {
             if (s?.mode === 'swim') {
                 G.player.water = G.terrain.waterAt(G.player.x, G.player.y); G.player.submerge = 1;
                 if (swimState) for (const key of SWIM_KEYS) G.player[key] = swimState[key];
+                // a spring throws the shell up and open: it arrives swimming, not sinking back
+                if (unhide) { G.player.hidden = false; G.player.hide = 0; G.player.vy = Math.min(0, G.player.vy); }
             }
+            if (!G.sceneDef.lightning) G.flags.delete('flash');
             G.sceneTime = 0;
             G.areas = new Set();
             G.emit('scene', { id: sceneId, from: prev });
@@ -88,9 +93,12 @@ export function createGame() {
                 const c = G.context; G.emit('context', { id: c.id }); c.run();
             }
             if (!locked && inp.tapHero && !G.player.hidden) neigh();
+            stepWeather(G, events);
             applyPushes(G, dt, events);
+            applyWinds(G, dt, events);
             stepPlayer(G.player, simInput, { terrain: G.terrain, flags: G.flags }, dt, events);
             wadeOut(G, inp, events);
+            bounce(G, events);
             stepPuzzles(G, events, dt);
             for (const e of events) G.emit(e.type, e);
             G.lastEvents = events;
@@ -107,7 +115,7 @@ export function createGame() {
                         || (ex.dir && p.vx * ex.dir <= 0 && (inp.x || 0) * ex.dir <= 0)) continue;
                     let swimState = null;
                     if (p.mode === 'swim') swimState = Object.fromEntries(SWIM_KEYS.map(key => [key, p[key]]));
-                    G.emit('exit', ex); G.goto(ex.to, ex.spawn, { swimState }); break;
+                    G.emit('exit', ex); G.goto(ex.to, ex.spawn, { swimState, unhide: !!ex.unhide }); break;
                 }
             }
             if (G.story) G.story.step(dt);
@@ -116,9 +124,9 @@ export function createGame() {
         // --- save ------------------------------------------------------------------
         serialize() {
             return {
-                flags: [...G.flags].sort(),
+                flags: [...G.flags].filter(f => !TRANSIENT.has(f)).sort(),
                 checkpoint: G.checkpoint,
-                puz: { ball: G.puz.ball }
+                puz: { ball: G.puz.ball, glitter: G.puz.glitter }
             };
         },
         restore(data) {
@@ -166,6 +174,20 @@ export function createGame() {
         if (depth > 110 || depth < -0.3 * HL) return;
         p.mode = 'ground'; p.x = p.px = ax; p.y = p.py = s.y; p.surface = s.s; p.vy = 0; p.vx = dir * 160; p.facing = dir;
         events.push({ type: 'swimEnd', x: p.x, y: p.water.top, wade: true });
+    }
+
+    /**
+     * A magic mushroom is a trampoline: landing on it throws the sköldhäst
+     * straight up (it keeps a little of its run), as high as the cap says.
+     */
+    function bounce(G, events) {
+        const p = G.player, cap = p.surface;
+        if (p.mode !== 'ground' || !cap?.bounce) return;
+        if (!events.some(e => e.type === 'land')) return;
+        p.mode = 'air'; p.surface = null;
+        p.vy = -Math.sqrt(2 * C.gravity * cap.bounce);
+        p.jump = { kind: 'hop', vx: p.vx * 0.25, limit: null, dir: p.facing, fromY: p.y };
+        events.push({ type: 'bounce', id: cap.id, x: p.x, y: p.y });
     }
 
     function neigh() {

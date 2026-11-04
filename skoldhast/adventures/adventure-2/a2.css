@@ -38,3 +38,8 @@
 /* the egg count sits by the pause button, clear of the goal note */
 .sk-hud .a2-eggs { position: absolute; top: max(14px, env(safe-area-inset-top)); right: calc(max(12px, env(safe-area-inset-right)) + 62px); padding: 6px 12px;
     border-radius: 14px; background: rgba(30, 28, 48, .45); }
+
+/* the journal's map of the four places */
+.a2-map-box { margin: 4px auto 6px; max-width: 540px; }
+.a2-map { display: block; width: 100%; height: auto; font-family: inherit; }
+.a2-question { font-style: italic; }

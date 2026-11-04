@@ -8,7 +8,7 @@
  */
 import { createUI as createNotebookUI } from '../../src/ui.mjs';
 import { createGuide } from '../../src/guide.mjs';
-import { WORDS, NAMES } from './content/sv.mjs';
+import { WORDS, NAMES, HYPOTHESIS } from './content/sv.mjs';
 import { ADVENTURE_UI, UI as BOOK } from '../../src/content/sv.mjs';
 
 const el = (tag, cls, text) => {
@@ -120,7 +120,33 @@ export function createA2UI(host, { assetBase, handlers }) {
     }
 
     // --- "Vad vet vi?": the mission, what we know, and help ------------------------------
-    function journal({ objective, clues, eggsFound, total, hint, place }) {
+    /** A small hand-drawn map: the four places west to east, how they connect, eggs found, and where we are. */
+    function mapSvg(places) {
+        const order = ['skog', 'strand', 'kristall', 'topp'];
+        const P = order.map(id => places.find(p => p.id === id)).filter(Boolean);
+        const pos = { skog: [70, 112], strand: [210, 120], kristall: [350, 118], topp: [470, 52] };
+        const art = {
+            skog: '<path d="M44 128 L54 92 L64 128 Z M70 128 L84 78 L98 128 Z" fill="#4f7c50" stroke="#2f4f30" stroke-width="1.6"/><path d="M83 128 v-14" stroke="#6a4b2c" stroke-width="3"/>',
+            strand: '<path d="M170 128 Q210 118 250 128" fill="none" stroke="#d9c08a" stroke-width="7"/><path d="M226 126 Q240 116 262 124" fill="none" stroke="#5d8eaa" stroke-width="6"/><ellipse cx="205" cy="124" rx="10" ry="4" fill="#c5a96f"/>',
+            kristall: '<path d="M318 130 L338 96 L362 92 L382 130 Z" fill="#6b6578" stroke="#3b3546" stroke-width="1.6"/><path d="M342 122 l5 -12 l5 12 z M356 124 l4 -9 l4 9 z" fill="#bfe6ff" stroke="#5f8fb0" stroke-width="1"/>',
+            topp: '<path d="M420 132 L470 40 L520 132 Z" fill="#7a7486" stroke="#3b3546" stroke-width="1.8"/><path d="M450 34 q20 -18 40 0 q-20 -6 -40 0" fill="#5d5a7e"/><path d="M468 46 l-6 12 l6 0 l-5 12" fill="none" stroke="#e7c95a" stroke-width="2"/>'
+        };
+        const links = '<path d="M98 120 Q150 112 172 124" fill="none" stroke="#8a6cc0" stroke-width="2" stroke-dasharray="5 4"/>'
+            + '<path d="M262 124 Q300 132 320 126" fill="none" stroke="#5d8eaa" stroke-width="2" stroke-dasharray="5 4"/>'
+            + '<path d="M380 120 Q420 90 450 80" fill="none" stroke="#6fa8c8" stroke-width="2" stroke-dasharray="5 4"/>';
+        let body = '';
+        for (const p of P) {
+            const [x, y] = pos[p.id];
+            body += `<g opacity="${p.visited ? 1 : 0.35}">${art[p.id]}</g>`;
+            body += `<text x="${x}" y="${y + 30}" text-anchor="middle" font-size="13" fill="#3b3530">${p.visited ? p.name : WORDS.mapUnknown}</text>`;
+            body += `<text x="${x}" y="${y + 45}" text-anchor="middle" font-size="12" fill="#6b5f4d">${p.visited ? WORDS.mapEggs(p.found, p.total) : ''}</text>`;
+            if (p.here) body += `<circle cx="${x}" cy="${y - 4}" r="17" fill="none" stroke="#c0392b" stroke-width="2.4"/><text x="${x}" y="${y - 26}" text-anchor="middle" font-size="12" fill="#c0392b">${WORDS.mapHere}</text>`;
+        }
+        return `<svg class="a2-map" viewBox="0 0 540 180" role="img" aria-label="${WORDS.map}">${links}${body}</svg>`;
+    }
+
+    // --- "Vad vet vi?": the mission, the question, the map, what we know, and help ------
+    function journal({ objective, clues, eggsFound, total, hint, place, hypothesis, question, places }) {
         ui.openPanel((c, sheet) => {
             c.classList.add('a2-journal');
             sheet.append(ui.tape('sk-tape-top'));
@@ -133,7 +159,14 @@ export function createA2UI(host, { assetBase, handlers }) {
             for (let i = 0; i < total; i++) { const e = el('span', 'a2-egg' + (i < eggsFound ? ' found' : '')); e.innerHTML = EGG_ICON; row.append(e); }
             row.setAttribute('aria-label', WORDS.eggAria(eggsFound, total));
             c.append(row);
+            if (places?.length) {
+                const map = el('div', 'a2-map-box');
+                map.innerHTML = mapSvg(places);
+                c.append(map);
+            }
             if (place) c.append(el('p', 'sk-j-small a2-here', WORDS.here(place)));
+            if (question) c.append(el('p', 'sk-j-question a2-question', HYPOTHESIS.question));
+            if (hypothesis) { c.append(el('h3', '', HYPOTHESIS.label)); c.append(el('p', 'sk-j-recap a2-hyp', hypothesis)); }
             c.append(el('h3', '', WORDS.knownTitle));
             if (clues.length) { const ul = el('ul', 'sk-j-list'); for (const k of clues) ul.append(el('li', '', k)); c.append(ul); }
             else c.append(el('p', 'sk-j-small', WORDS.knownEmpty));

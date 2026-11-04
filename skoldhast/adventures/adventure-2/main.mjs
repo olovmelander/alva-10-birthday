@@ -28,7 +28,9 @@ import { CHECKPOINTS, EGG_TOTAL } from './content/world.mjs';
 
 export const ADVENTURE_ID = 'adventure-2';
 const DEFAULT_SETTINGS = { help: 'ask', holdGallop: false, followFinger: false, holdToHide: false, bigText: false, lessMotion: false, music: 0.8, sfx: 0.9, voice: 1 };
-const AREA = { strand: 'land', skog: 'land' };
+const AREA = { strand: 'land', skog: 'land', kristall: 'sea', topp: 'bay' };
+// with "Påminn mig om Klo", Klo offers his next hint after this long without anything solved
+const REMIND_AFTER = 45;
 
 export function createGame({ host = document.body, assetBase = './skoldhast/', saver: sharedSaver, adventureId = ADVENTURE_ID, slotId,
     onChooseAdventure, onSlotChange, onRestart, onClose, preview = false } = {}) {
@@ -324,8 +326,9 @@ export function createGame({ host = document.body, assetBase = './skoldhast/', s
         switch (name) {
             case 'caption': ui.caption(data.text, 2600); await G.wait(1.0); return;
             case 'cloudRide':
+                // the cloud carries everyone home: a little picture of the ride, then the beach
+                await view.fx('cloudRide');
                 ui.caption(WORDS.pages.strand, 2600);
-                await view.fx('fadeOut', { rate: 1.6 });
                 pendingFadeIn = true;
                 return;
             case 'moonDraw': {
@@ -443,8 +446,9 @@ export function createGame({ host = document.body, assetBase = './skoldhast/', s
             ui.keyPrompt(hs ? { key: inputDevice === 'pad' ? 'X' : 'E', label: G.context.label, at: { x: hs.x, y: hs.y - HL * 0.8 * hs.scale } } : null);
             ui.guide.show(free);
             const obj = story.objective();
-            if (settings.help === 'guided' && story.activePuzzle()) ui.guide.goal(story.hint().text, obj?.text);
+            if (settings.help === 'guided' && story.activePuzzle()) ui.guide.goal(story.hint({ peek: true }).text, obj?.text);
             else ui.guide.goal(obj?.why || '', obj?.text || null);
+            remind(free);
             ui.guide.update();
             ui.setEggs(G.eggs(), EGG_TOTAL);
             if (audio) {
@@ -519,6 +523,7 @@ export function createGame({ host = document.body, assetBase = './skoldhast/', s
             }
         });
         G.on('checkpoint', () => saveNow());
+        G.on('flag', ({ flag }) => { if (!flag.startsWith('b:') && !flag.startsWith('t:') && !flag.startsWith('visited_')) progressAt = G.time; });
     }
 
     // --------------------------------------------------------------------------------
@@ -531,7 +536,18 @@ export function createGame({ host = document.body, assetBase = './skoldhast/', s
     function openJournal() {
         if (mode !== 'play' || ui.panelOpen()) return;
         pause(); audio?.sfx('page');
-        ui.journal({ objective: story.objective(), clues: story.clues(), eggsFound: G.eggs(), total: EGG_TOTAL, hint: () => story.hint(), place: placeName() });
+        ui.journal({ objective: story.objective(), clues: story.clues(), eggsFound: G.eggs(), total: EGG_TOTAL, hint: () => story.hint(), place: placeName(),
+            hypothesis: story.hypothesis(), question: !G.flags.has('cloud_met'), places: story.places() });
+    }
+    // "Påminn mig om Klo": after a while with nothing solved, Klo offers the next hint once per puzzle
+    let progressAt = 0, reminded = new Set();
+    function remind(free) {
+        if (settings.help !== 'remind' || !free || story.running()) return;
+        const id = story.activePuzzle();
+        if (!id || reminded.has(id) || G.time - progressAt < REMIND_AFTER) return;
+        reminded.add(id);
+        const h = story.hint({ peek: true });
+        if (h?.text) ui.guide.hint(h.text, 'klo');
     }
     function openPause() { if (mode !== 'play' || ui.panelOpen()) return; pause(); ui.pauseMenu(); }
     function askKlo() {
