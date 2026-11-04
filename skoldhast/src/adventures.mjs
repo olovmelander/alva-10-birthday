@@ -3,8 +3,8 @@ export const FIRST_ADVENTURE = 'havet-mellan-sidorna';
 
 export const ADVENTURES = Object.freeze([
     Object.freeze({ id: FIRST_ADVENTURE, number: 1, released: true, requires: null, module: './main.mjs' }),
-    // Den magiska skogen is built (adventures/adventure-2/); raising `released` is its release.
-    Object.freeze({ id: 'adventure-2', number: 2, released: false, requires: FIRST_ADVENTURE, module: '../adventures/adventure-2/main.mjs' }),
+    // Den magiska skogen (adventures/adventure-2/), released on 4 November 2026.
+    Object.freeze({ id: 'adventure-2', number: 2, released: true, requires: FIRST_ADVENTURE, module: '../adventures/adventure-2/main.mjs' }),
     Object.freeze({ id: 'adventure-3', number: 3, released: false, requires: 'adventure-2', module: null })
 ]);
 

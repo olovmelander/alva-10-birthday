@@ -1,5 +1,34 @@
 # Sköldhästen – handover
 
+## Äventyr 2 is released (4 November, evening)
+
+Pappa's answers to the last questions, and his decision to release Äventyr 2 tonight.
+
+- **Released:** `released: true` for `adventure-2` in `src/adventures.mjs`. Anyone who has finished Äventyr 1
+  gets **Den magiska skogen** under **Välj äventyr** and as "next adventure" on Äventyr 1's ending card. Players
+  who have not finished Äventyr 1 see it locked with its reason. Äventyr 3 stays unreleased. The Sköldhästen
+  button on the ticket page is unchanged: it still shows only with `?skoldhast`.
+- **Decisions (Pappa, 4 November):**
+  1. The mountain may be entered as soon as the lantern is found, before the crown. That stays as built.
+  2. The gusts and the lightning keep their rhythm, which was the recommendation. A gust lasts 1.7 s in every 5 s,
+     with a 0.8 s warning, and the calm is long enough to gallop from one boulder to the next. The bridge of light
+     shows for 2.4 s in every 5.2 s.
+  3. The cloud carries everyone home. That stays as built.
+- **Tests changed on purpose:** `tests/skoldhast-adventures.test.mjs`, `tests/skoldhast-launcher.test.mjs` and
+  `tests/skoldhast-save.test.mjs` now expect Äventyr 2 released and playable after Äventyr 1, still locked before
+  it, and Äventyr 3 refused. `tests/browser/skoldhast-adventures.mjs` expects Äventyr 2 open
+  after Äventyr 1 and Äventyr 3 locked, and the ending card's three actions. It also gains a last case: from
+  Äventyr 1's finished game into Den magiska skogen through the real launcher, and back, with the completion kept.
+  The series shots in `docs/skoldhast/shots/adventures/` are refreshed, plus `adventure-2-title-844x390.webp`.
+- **Verification:** `npm test` passes (392). The browser checks pass: `skoldhast-adventures.mjs` (all cases),
+  `skoldhast-launch.mjs` (all five), and `skoldhast-a2.mjs`. A ticket-page probe (`index.html?skoldhast` with a
+  finished Äventyr 1) opens Äventyr 2 and its prologue without errors.
+- **Known bug:** `skoldhast-adventures.mjs` failed once on "selector return preserves position" (the unfinished
+  Äventyr 1 case, which the release does not touch) and passed when run again. It looks like a timing flake in
+  the check.
+- **To release:** merge this branch to `main` at least 15 minutes before Alva plays. GitHub Pages caches every
+  file for 10 minutes, and module imports carry no version.
+
 ## Äventyr 2, the long version: an audit, two new worlds and twelve new puzzle steps (4 November, latest)
 
 Pappa asked for Äventyr 2 to be much longer and more epic, more polished, with a better story, more puzzles, and

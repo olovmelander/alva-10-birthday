@@ -88,7 +88,8 @@ test('legacy whole-story endings unlock the sequel while internal chapters do no
         store.set('skoldhast.v1.slot.' + id, JSON.stringify(state));
         const profile = createSave().loadProfile(id).data;
         assert.equal(adventureStatus('adventure-2', profile).unlocked, completed, id);
-        assert.equal(adventureStatus('adventure-2', profile).playable, false, id);
+        assert.equal(adventureStatus('adventure-2', profile).playable, completed, id + ': Den magiska skogen is released');
+        assert.equal(adventureStatus('adventure-3', profile).playable, false, id);
     }
 });
 
@@ -133,8 +134,11 @@ test('selecting an available adventure changes only the active selection', () =>
     assert.equal(after.activeAdventure, FIRST_ADVENTURE);
     assert.deepEqual(after.adventures, before.adventures);
     assert.deepEqual(after.completedAdventures, before.completedAdventures);
-    assert.equal(s.selectAdventure('alva', 'adventure-2'), false, 'unreleased adventures cannot be selected');
+    assert.equal(s.selectAdventure('alva', 'adventure-3'), false, 'unreleased adventures cannot be selected');
     assert.equal(s.selectAdventure('alva', 'missing'), false);
+    assert.equal(s.selectAdventure('alva', 'adventure-2'), true, 'Den magiska skogen can be selected after Äventyr 1');
+    assert.equal(s.loadProfile('alva').data.activeAdventure, 'adventure-2');
+    assert.deepEqual(s.loadProfile('alva').data.adventures, before.adventures, 'selecting never changes a story');
     assert.equal(s.selectAdventure('missing', FIRST_ADVENTURE), false);
 });
 

@@ -18,7 +18,8 @@ Do not start the next chapter's content in the same PR. Keep `RELEASED_CHAPTER`
 
 The full existing story is **Äventyr 1**, containing Kapitel 1–3. The series catalogue
 (`src/adventures.mjs`) reserves three adventures. **Äventyr 2: Den magiska skogen** is built in
-`adventures/adventure-2/` and connected, but unreleased (`released: false`); 3 has no entry module yet. Their release flags are independent of
+`adventures/adventure-2/` and released (4 November 2026): it opens once Äventyr 1 is finished. 3 has no entry module yet
+(`released: false`). Their release flags are independent of
 `RELEASED_CHAPTER`. Use `src/launcher.mjs` for host integration and the adventure-aware
 save API; never reset other stories or permanent completion when replaying one.
 The runtime contract and release steps are in plan §8.6, "Adventure series".

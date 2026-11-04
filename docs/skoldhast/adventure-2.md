@@ -182,8 +182,9 @@ come back every few seconds.
 - Runtime: `skoldhast/adventures/adventure-2/` (outside the shared `src/` prefetch tree, plan §8.6). It reuses
   `src/sim.mjs`, the hero rig, Professor Klo, input, audio and the notebook UI; world, puzzles, story and
   view are its own. Everything new is drawn in code at runtime: no new asset download.
-- Catalogue: `adventure-2` has its entry module; its `released` flag stays `false` until Pappa has played
-  it. `dev/play.html?adventure=2` (or `index.html?skoldhast&adventure=2`) previews it without the unlock.
+- Catalogue: `adventure-2` has its entry module and was released on 4 November 2026 (`released: true`): anyone
+  who has finished Äventyr 1 finds it under **Välj äventyr** and on Äventyr 1's ending card.
+  `dev/play.html?adventure=2` (or `index.html?skoldhast&adventure=2`) opens it without the unlock.
 - Tests: `tests/skoldhast-a2-*.test.mjs` (world, puzzles, and a robot that plays the whole adventure through
   all four pages); `tests/browser/skoldhast-a2.mjs` (real browser, three sizes, all four pages).
 - The audit behind the long version: `docs/skoldhast/adventure-2-audit.md`.
