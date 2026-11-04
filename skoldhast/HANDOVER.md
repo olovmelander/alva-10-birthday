@@ -1,5 +1,32 @@
 # Sköldhästen – handover
 
+## Äventyr 2 after a critic's read: the logic, the start, the mountain top and the view (4 November, night)
+
+Pappa asked how the adventure holds. The answer named four weaknesses, and he asked for all four to be fixed. The table
+is in `docs/skoldhast/adventure-2-audit.md` ("After a critic's read").
+
+- **The moon has a reason to wait.** The eggs hatch when the moon rises, told from the first scene.
+- **A shorter start:** 18 boxes down to 12 before the first step. Nothing was lost: the claws come at the cocoa fruit, and
+  Alva's hello at the first egg.
+- **Kristallklangen takes turns:** the plates light in the order far, first, middle, and the next one blinks. The plates
+  shine so this is seen, and they now have sound: each its own note (`crystals.notes`).
+- **T3, a new step at Klippan:** the storm has turned, so a gust carries a visible sköldhäst over a gap and passes a hidden
+  shell by. It needs `tailwind`, a moment-to-moment flag like `flash`, never saved. After the cloud the gap is an ordinary
+  leap both ways, so the top stays open. Puzzle steps: 21. More fun on the way up, too.
+- **The view from the crown:** `fx focus` with `peak` turns the picture to the mountain alone against the sky at every
+  size, redrawn in layers. The whirl lies flat and turns round the top.
+- **Decisions kept:** the gusts' and the lightning's rhythm is unchanged. A wind's weather now follows where the sköldhäst
+  stands, because the two stretches took gusts from each other.
+- **Found by the random players:** the first version of the gap let a jump from lower on the slope pass (1 of 50). Its
+  edges now reach `dy: 1.5` lengths. After that, 80 of 80 runs crossed it only with the wind, and free play gives 0
+  rescues.
+- **Verification:** `npm test` passes (419). The robot plays it in 5.0 min with 173 boxes. Real browser, keyboard: K1's
+  three gallops, T3 with the real wind, and the crown at all three sizes, read on screen. `skoldhast-a2`, `skoldhast-launch`
+  and `skoldhast-adventures` pass.
+- **Contact sheets:** `docs/skoldhast/shots/a2/crown-*.webp`, `k1-turns-844x390.webp`, `t3-gust-844x390.webp`.
+- **Frågor till Pappa:** is T3 as fun as it should be for Alva, or too easy? It is one line of world data to make the gust
+  shorter. Real play on her device is still unmeasured.
+
 ## Äventyr 1 checked the same way (4 November, night)
 
 Pappa asked to fix everything that should be fixed in Äventyr 1, after the same audit found the jump hole there. The
@@ -81,8 +108,6 @@ is in `docs/skoldhast/adventure-2-audit.md` ("The play-order audit"). In short:
   `playwright`, which is not in `package.json`: install it outside the repo and set `NODE_PATH`.
 - **Known limits:** a child's real play is still unmeasured. `sourceDark` and `GOALS.peakDark` are unreachable today
   (the crown lies behind the seeds); they are harmless and were left in.
-- **Frågor till Pappa:** K1 is solved by one gallop over the plates (a test says so on purpose). Is that easy enough, or
-  should it ask more?
 
 ## Bug audit: falling through the ground, and Äventyr 2's arrival (4 November, evening)
 
