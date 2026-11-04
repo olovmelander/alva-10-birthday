@@ -149,19 +149,23 @@ export function createView(PIXI, app, { assets, G, heroFactory }) {
     const stormClouds = new PIXI.Container(); skyLayer.addChild(stormClouds);
     const cloudShapes = [];
     for (let i = 0; i < 6; i++) {
+        // a storm cloud in pencil: a heavy dark belly, billows on top lit from above, a ragged fringe of rain-cloud
         const c = new PIXI.Graphics();
         const w = 260 + hash(i, 5) * 260;
-        const lobes = 5 + Math.floor(hash(i, 6) * 3);
+        const lobes = 6 + Math.floor(hash(i, 6) * 4);
+        const L2 = [];
         for (let k = 0; k < lobes; k++) {
-            const x = (k / (lobes - 1) - 0.5) * w, r = 50 + hash(i * 7 + k, 7) * 50;
-            c.circle(x, -Math.sin(k / (lobes - 1) * Math.PI) * r * 0.5, r).fill(pen.fill(0x5d5a7e, 0.95));
+            const u = k / (lobes - 1), x = (u - 0.5) * w, r = 44 + hash(i * 7 + k, 7) * 52;
+            L2.push([x, -Math.sin(u * Math.PI) * r * 0.75 + (hash(i * 3 + k, 8) - 0.5) * 16, r]);
         }
-        for (let k = 0; k < lobes; k++) {
-            const x = (k / (lobes - 1) - 0.5) * w, r = 50 + hash(i * 7 + k, 7) * 50;
-            c.circle(x, -Math.sin(k / (lobes - 1) * Math.PI) * r * 0.5, r).stroke(pen.line(0x24223a, 2.4, 0.7));
-        }
-        c.ellipse(0, -30, w * 0.38, 26).fill(pen.hatch(0x9a98bd, 0.75));
-        c.ellipse(-w * 0.15, -10, w * 0.22, 14).fill(pen.hatch(0x7c7aa2, 0.6));
+        c.ellipse(0, 18, w * 0.56, 38).fill(pen.fill(0x3c3a58, 0.95)); // the belly
+        for (const [x, y, r] of L2) c.circle(x, y, r).fill(pen.fill(0x56537a, 0.96));
+        for (const [x, y, r] of L2) c.circle(x + r * 0.08, y - r * 0.12, r * 0.78).fill(pen.fill(0x6a678e, 0.9));
+        for (const [x, y, r] of L2) c.ellipse(x + r * 0.15, y - r * 0.45, r * 0.55, r * 0.3).fill(pen.hatch(0xa8a6c8, 0.75));
+        // the outline only along the top, broken like a quick pencil
+        for (const [x, y, r] of L2) c.arc(x, y, r, Math.PI * 1.08, Math.PI * 1.92).stroke(pen.line(0x24223a, 2.2, 0.6));
+        c.ellipse(0, 22, w * 0.5, 22).fill(pen.hatch(0x2a2844, 0.7));
+        for (let k = 0; k < 9; k++) { const x = (hash(i * 11 + k, 9) - 0.5) * w * 0.9; c.moveTo(x, 30).lineTo(x - 10, 62 + hash(k, i) * 30).stroke(pen.line(0x4a4870, 3, 0.35)); }
         stormClouds.addChild(c);
         cloudShapes.push({ c, x: hash(i, 8), y: 0.05 + hash(i, 9) * 0.22, par: 0.04 + hash(i, 10) * 0.05, w });
     }
@@ -345,13 +349,45 @@ export function createView(PIXI, app, { assets, G, heroFactory }) {
             } else {
                 // paper below; the soil's colour thins out about one and a half lengths down
                 poly(gr, body).fill(pen.material('mat-paper', 1, 0xf3ecdc));
-                const deep = [...top, ...offset(top, h(1.5)).reverse()], thin = [...offset(top, h(1.45)), ...offset(top, h(2.3)).reverse()];
+                // the soil's lower edge is torn, not ruled: the colour runs out unevenly into the paper
+                const rag = (dy, amp, seed) => top.map(([x, y]) => [x, y + dy + (hash(x * 0.01, seed) - 0.5) * amp + Math.sin(x * 0.004 + seed) * amp * 0.5]);
+                const deepEdge = rag(h(1.5), h(0.3), 17), thinEdge = rag(h(2.3), h(0.5), 19);
+                const deep = [...top, ...deepEdge.reverse()], thin = [...rag(h(1.4), h(0.3), 17), ...thinEdge.reverse()];
                 poly(gr, deep).fill(material(under));
                 poly(gr, thin).fill(material(under, 0.45));
                 poly(gr, deep).fill({ color: under === 'earth' ? 0x5a3f2a : 0x6b6256, alpha: 0.18 });
+                // darker just under the surface, lighter deeper down: the ground has a skin
+                poly(gr, [...top, ...offset(top, h(0.45)).reverse()]).fill({ color: 0x2a1c12, alpha: under === 'earth' ? 0.16 : 0.1 });
+                // layers in the soil, drawn as long uneven pencil lines
+                for (const [dy, a, sd] of [[0.62, 0.28, 3], [1.02, 0.22, 5], [1.32, 0.16, 7]]) {
+                    const line = rag(h(dy), h(0.18), sd);
+                    for (let i = 0; i < line.length - 1; i += 1) {
+                        if (hash(line[i][0], sd) < 0.25) continue; // broken, as a pencil skips
+                        gr.moveTo(line[i][0], line[i][1]).lineTo(line[i + 1][0], line[i + 1][1]).stroke(pen.line(under === 'earth' ? 0x5a3c24 : 0x5c5448, 1.6, a));
+                    }
+                }
                 for (let x = top[0][0] + 20; x < top.at(-1)[0] - 20; x += 34) {
                     const y = heightOn(s.pts, x) + h(0.5 + hash(x, 15) * 1.2);
                     gr.moveTo(x, y).lineTo(x + 14, y + 6).stroke(pen.line(0x6a4a32, 1.6, 0.35));
+                }
+                // stones in the soil; shells and pebbles in the sand
+                for (let x = top[0][0] + 30; x < top.at(-1)[0] - 30; x += 60 + hash(x, 21) * 110) {
+                    const y = heightOn(s.pts, x) + h(0.35 + hash(x, 22) * 1.0), r = 7 + hash(x, 23) * 15;
+                    if (s.mat === 'sand' && hash(x, 24) > 0.6) {
+                        gr.moveTo(x - r, y).quadraticCurveTo(x, y - r * 1.3, x + r, y).closePath().fill(pen.fill(0xf0e2cc, 0.9)).stroke(pen.line(0x9a8466, 1.2, 0.8));
+                        for (let k = -1; k <= 1; k++) gr.moveTo(x, y).lineTo(x + k * r * 0.6, y - r * 0.8).stroke(pen.line(0xb8a07c, 1, 0.7));
+                        continue;
+                    }
+                    const pts = [];
+                    for (let k = 0; k < 7; k++) { const a = k / 7 * Math.PI * 2, rr = r * (0.75 + hash(x + k, 25) * 0.4); pts.push([x + Math.cos(a) * rr * 1.3, y + Math.sin(a) * rr * 0.8]); }
+                    poly(gr, pts).fill(material('rock', 0.95)).stroke(pen.line(0x4a4450, 1.4, 0.8));
+                    gr.ellipse(x - r * 0.3, y - r * 0.3, r * 0.45, r * 0.22).fill({ color: 0xffffff, alpha: 0.22 });
+                    poly(gr, pts.slice(2, 6)).fill({ color: 0x1d1a20, alpha: 0.18 });
+                }
+                // under grass, fine roots hang down from the turf
+                if (s.mat === 'grass') for (let x = top[0][0] + 10; x < top.at(-1)[0] - 10; x += 16 + hash(x, 26) * 26) {
+                    const y = heightOn(s.pts, x) + h(0.28), len = h(0.15 + hash(x, 27) * 0.35), sw = (hash(x, 28) - 0.5) * 18;
+                    gr.moveTo(x, y).quadraticCurveTo(x + sw, y + len * 0.5, x + sw * 0.4, y + len).stroke(pen.line(0x4a3220, 1.2, 0.55));
                 }
             }
             if (s.mat === 'grass') poly(gr, raggedBand(s.pts, h(0.32), s.pts[0][0] * 0.001)).fill(material('grass'));
@@ -1329,6 +1365,12 @@ export function createView(PIXI, app, { assets, G, heroFactory }) {
         const under = snap.mode === 'swim' && snap.submerge > 0.7;
         rain.visible = stormShown > 0.03 && S.def.sky !== 'cave';
         const nRain = Math.round(drops.length * stormShown * (rm ? 0.35 : 1));
+        // leaves torn loose by the storm blow across the forest pages
+        if (!rm && stormShown > 0.4 && (S.def.sky === 'forest' || S.def.sky === 'river') && Math.random() < dt * 1.6 * stormShown) {
+            const vw = W / cam.zoom, vh = H / cam.zoom;
+            emit('leaf', cam.x + vw * 0.55, cam.y - vh * 0.35 + Math.random() * vh * 0.5, 1,
+                { angle: Math.PI + 0.25, cone: 0.5, speed: 420, gravity: 70, life: 4.5, spread: 10, scale: 1 + Math.random() * 0.6, tint: Math.random() > 0.5 ? 0x8aa05a : 0xb08a4a });
+        }
         if (rain.visible && !rm && !under) {
             // drops hitting the ground in view
             const vw = W / cam.zoom;
