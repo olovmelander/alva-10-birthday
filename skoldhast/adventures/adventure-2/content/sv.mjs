@@ -357,6 +357,7 @@ export const STORY = {
         ['klo', 'Vit som ett ägg … Det kanske betyder något.']
     ],
     rush: 'Vattnet under väggen forsar emot mig!',
+    rescued: 'Hoppsan! Där höll jag på att ramla rakt ut ur sidan.',
     loopBack: 'Den strömmen gick i en ring, tillbaka hit!',
     throughWall: [['horse', 'Den vita strömmen tog mig rakt under väggen!']],
     glitter: [

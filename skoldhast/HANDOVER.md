@@ -1,5 +1,35 @@
 # Sköldhästen – handover
 
+## Bug audit: falling through the ground, and Äventyr 2's arrival (4 November, evening)
+
+Pappa found places where the sköldhäst falls straight through the ground, and wanted the intro fixed where it
+arrives.
+
+- **The cause of the falls.** The shared sim lands a falling sköldhäst only on ground it reaches from above. A jump
+  that meets a steep rise or a terrace's step from the side, or a swimmer pushing into a steep bank, slipped under
+  the ground line where nothing lies below, and dropped out of the page.
+- **How the audit found them.** A probe drove the sköldhäst across every page of both adventures, galloping,
+  walking and hopping both ways, with early and late story flags. The sites it found:
+  - Äventyr 1: the hill's terraces, L1 → L2 → the plateau.
+  - Äventyr 2: Tordyvelbacken, the way out of Rotgrottan, and the bank of the spring's pool.
+  - Both adventures: walking out sideways from the floor of any pit (Klyftan, Ravinen, the Kristall chasm, the
+    summit chasm).
+- **The fix, `src/ground-guard.mjs`.** Both games call it right after the sim's step.
+  - If a step would enter the space under a ground line with nothing below, a low rise is climbed and anything
+    higher stops the move like a wall.
+  - Caves and vaults under higher ground are unaffected, because there is ground below there.
+  - As a last resort, below the page (and in Äventyr 2 on a pit floor that is never entered on purpose), the
+    sköldhäst is put back where it last stood, thinking "Hoppsan! Där höll jag på att ramla rakt ut ur sidan."
+  - `src/sim.mjs` is unchanged.
+  - Every checkpoint and spawn in both adventures was checked: each stands on ground or swims.
+  - `tests/skoldhast-ground-guard.test.mjs` covers the sites and fails without the guard.
+- **Äventyr 2's arrival:**
+  - At Alva's table the sköldhäst and Klo appeared on the wooden desk outside the page. Now they come out of the
+    page's own edge and fade in.
+  - After the dive into the page the picture now holds still while the sköldhäst drops into the sand with a puff of
+    dust and Klo lands after it. Then the talk at the nest begins.
+- **Verification:** `npm test` passes (396). The three browser checks pass: `skoldhast-a2.mjs` (prologue, all four pages, finale), `skoldhast-adventures.mjs` and `skoldhast-launch.mjs`.
+
 ## Äventyr 2's story audited for one red thread (4 November, evening)
 
 Pappa asked for an audit of the story, the conversations and the gameplay, so that the adventure holds together,

@@ -122,6 +122,8 @@ export const ADVENTURE_UI = {
 // The story (plan §3.4). Each line: [speaker, text]. Speakers: horse, klo, kv, alva, mira, note, caption.
 // ---------------------------------------------------------------------------
 export const STORY = {
+    // the ground guard put the sköldhäst back where it last stood (src/ground-guard.mjs)
+    rescued: 'Hoppsan! Där höll jag på att ramla rakt ut ur sidan.',
     prolog: {
         captionFull: null, // HER_TEXT.lastTwo when allowed
         // the opening starts in Alva's head, as she writes her field note

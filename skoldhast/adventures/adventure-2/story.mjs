@@ -282,7 +282,26 @@ export function createStory(G, io) {
         beat('arrive', async () => {
             const sp = G.scenes.strand.spots;
             actor('tukan', { scene: 'strand', x: sp.tukanNest.x, y: sp.tukanNest.y, visible: true, facing: 1, pose: 'dig', follow: false });
-            actor('klo', { scene: 'strand', x: sp.kloNest.x + 1.4 * HL, y: sp.kloNest.y, visible: true, facing: -1, follow: false });
+            const kloAt = { x: sp.kloNest.x + 1.4 * HL, y: sp.kloNest.y };
+            actor('klo', { scene: 'strand', x: kloAt.x, y: kloAt.y - 4 * HL, visible: false, facing: -1, follow: false });
+            // they dived into the page: the sköldhäst drops into the sand, and Klo lands just after it
+            if (G.sceneId === 'strand' && !G.flags.has('egg_e1')) {
+                const p = G.player;
+                G.camHint = { x: p.x - 0.8 * HL, y: p.y - 1.3 * HL, zoom: 1.05 }; // hold the picture still while they fall
+                p.y -= 3.2 * HL; p.mode = 'air'; p.surface = null; p.vy = 0; p.vx = 0;
+                G.hideHero = false;
+                await G.wait(0.15);
+                for (let i = 0; i < 120 && G.player.mode !== 'ground'; i++) await G.wait(1 / 60);
+                G.emit('land', { big: true, x: G.player.x, y: G.player.y, id: 'arrival' });
+                await G.wait(0.35);
+                const k = G.actors.klo; k.visible = true;
+                for (let i = 1; i <= 24; i++) { const u = i / 24; k.y = kloAt.y - 4 * HL * (1 - u * u); await G.wait(1 / 60); }
+                k.y = kloAt.y;
+                G.emit('land', { big: false, x: k.x, y: k.y, id: 'klo' });
+                await G.wait(0.4);
+            }
+            G.hideHero = false;
+            const k0 = G.actors.klo; k0.visible = true; k0.y = kloAt.y;
             await fx('focus', { x: sp.nest.x, y: sp.nest.y, zoom: 1.15 });
             await say(STORY.arrive);
             G.actors.klo.pose = 'love';
@@ -572,6 +591,7 @@ export function createStory(G, io) {
         G.on('crystalSoft', () => think(STORY.crystalSoft, { gap: 8 })),
         G.on('crystalLit', ({ lit, of }) => think(lit < of ? STORY.crystalOne : STORY.crystalAll, { gap: 0, key: 'lit' + lit })),
         G.on('loopBack', () => think(STORY.loopBack, { gap: 8 })),
+        G.on('rescued', () => think(STORY.rescued, { gap: 2 })),
         G.on('throughWall', () => beat('throughWall', () => say(STORY.throughWall))),
         G.on('glitterRoll', () => think(STORY.glitterRoll, { gap: 0 })),
         G.on('glitterIn', () => think(STORY.glitterIn, { gap: 0 })),

@@ -6,6 +6,7 @@
  * event bus. main.mjs calls G.step(input) at 120 Hz and renders in between.
  */
 import { createPlayer, stepPlayer, Terrain, STEP, HL, cond } from './sim.mjs';
+import { createGroundGuard } from './ground-guard.mjs';
 import { createPuzzleState, stepPuzzles, contextAction, shakeShells, resetUncommitted } from './puzzles.mjs';
 import { SCENES, CHECKPOINTS, RELEASED_CHAPTER } from './content/world.mjs';
 
@@ -14,6 +15,8 @@ const SWIM_PASSAGE_KEYS = ['vx', 'vy', 'hidden', 'hide', 'facing', 'submerge', '
 export function createGame({ released = RELEASED_CHAPTER } = {}) {
     const listeners = new Map();
     const timers = [];
+    // ground is solid from every side (the hill's terraces, steep banks); never lost below the page
+    const groundGuard = createGroundGuard();
     const G = {
         scenes: SCENES,
         released,
@@ -136,7 +139,10 @@ export function createGame({ released = RELEASED_CHAPTER } = {}) {
             }
             if (G.auto) { G.player.auto = G.auto; } else G.player.auto = null;
             if (!locked && inp.tapHero && !G.player.hidden) neigh();
+            const before = { x: G.player.x, y: G.player.y };
             stepPlayer(G.player, simInput, { terrain: G.terrain, flags: G.flags }, dt, events);
+            groundGuard.keep(G, before, events);
+            groundGuard.net(G, events);
             stepPuzzles(G, events, dt);
             // stats for Klo's measurements
             const sp = Math.abs(G.player.vx);
