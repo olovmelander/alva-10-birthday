@@ -215,7 +215,7 @@ export function createTable({ PIXI, app, assets, ui, audio, G, heroFactory }) {
         shown = true; root.visible = true; layoutDirty = true;
         t = 0; zoom.s = 1; zoom.ox = zoom.oy = 0; veilAlpha = 0; fadingToWorld = false;
         buildPage(); layout();
-        D.tukanActor = { visible: true, x: 0, y: 0, facing: 1, pose: 'idle', vx: 0, distance: 0 };
+        D.tukanActor = { visible: true, x: 410, y: 506, facing: 1, pose: 'idle', vx: 0, distance: 0 };
     }
     function hide() {
         shown = false; root.visible = false; opaque = false;
@@ -353,7 +353,9 @@ export function createTable({ PIXI, app, assets, ui, audio, G, heroFactory }) {
         mode = 'epilogue';
         show();
         veilAlpha = 1;
-        D.night.alpha = 0.35; D.storm = 0;
+        D.night.alpha = 0.12; D.storm = 0;
+        D.tukanActor.x = 660; D.tukanActor.facing = -1;
+        for (const k of D.hatch) k.view.x += 0; // the hatchlings stay round the nest
         D.cloudRig = createCloud(PIXI, pen, { texture: cloudTexture });
         D.cloudActor = { visible: true, x: 520, y: 120, pose: 'happy' };
         D.sky.addChild(D.cloudRig.view); D.cloudRig.view.scale.set(0.7);
@@ -365,8 +367,8 @@ export function createTable({ PIXI, app, assets, ui, audio, G, heroFactory }) {
         D.hatch.forEach(k => { k.view.visible = true; });
         D.tukanActor.pose = 'happy';
         const klo = createKlo(PIXI, { texture: T }); klo.container.scale.set(0.6); D.actors.addChild(klo.container);
-        D.kloRig = klo; D.kloActor = { visible: true, x: 330, y: 506, facing: 1, vx: 0, distance: 0, pose: 'happy' };
-        const hearts = createHearts(PIXI, pen); hearts.view.position.set(330, 440); hearts.view.scale.set(0.8); D.actors.addChild(hearts.view); D.hearts = hearts;
+        D.kloRig = klo; D.kloActor = { visible: true, x: 380, y: 506, facing: 1, vx: 0, distance: 0, pose: 'happy' };
+        const hearts = createHearts(PIXI, pen); hearts.view.position.set(380, 440); hearts.view.scale.set(0.8); D.actors.addChild(hearts.view); D.hearts = hearts;
         audio?.setArea?.('table');
         await tween(1.0, u => { veilAlpha = 1 - ease(u); });
         veilAlpha = 0;

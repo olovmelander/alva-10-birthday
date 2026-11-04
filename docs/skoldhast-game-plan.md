@@ -1466,8 +1466,10 @@ docs/skoldhast-game-plan.md          this plan
 #### Adventure series (implemented 1 October 2026)
 
 The entire existing game is **Äventyr 1: Havet mellan sidorna**, containing its existing
-Kapitel 1–3. Two further adventures have reserved IDs `adventure-2` and `adventure-3`;
-their stories, titles and gameplay remain undecided. `RELEASED_CHAPTER = 3` still refers
+Kapitel 1–3. Two further adventures have reserved IDs `adventure-2` and `adventure-3`.
+**Äventyr 2: Den magiska skogen** was built on 4 November 2026 (`docs/skoldhast/adventure-2.md`,
+runtime in `skoldhast/adventures/adventure-2/`); it is connected but not released. `?adventure=2`
+previews it without its release or unlock. Adventure 3 remains undecided. `RELEASED_CHAPTER = 3` still refers
 only to the parts within the first adventure.
 
 - `src/adventures.mjs` owns stable IDs, ordering, prerequisites, release flags and entry

@@ -485,8 +485,21 @@ export function createView(PIXI, app, { assets, G, heroFactory }) {
                 const x0 = h(73.8 + hash(k, 71) * 1.5), x1 = h(86 + hash(k, 72) * 2.2), y = h(-1.0 - hash(k, 73) * 1.8);
                 roots.moveTo(x0, h(-0.4)).bezierCurveTo(x0 + h(2), y - h(0.6), x1 - h(2), y - h(0.4), x1, h(-0.4)).stroke(pen.line(k % 3 ? 0x5a3b20 : 0x7a5530, 10 + (k % 4) * 3, 0.95));
             }
-            const rootTop = [[h(74), h(-0.6)], [h(74.4), h(-2.6)], [h(81), h(-3.4)], [h(87.6), h(-2.6)], [h(88), h(-0.6)], [h(86), h(-1.0)], [h(81), h(-1.3)], [h(76), h(-1.0)]];
-            poly(fore, rootTop).fill(material('earth')); poly(fore, rootTop).fill({ color: 0x2a1c12, alpha: 0.4 });
+            // a mound of earth and roots over the tunnel, grass on top
+            const crest = [], under = [];
+            for (let x = 74; x <= 88.001; x += 0.5) {
+                const u = (x - 74) / 14, hump = Math.sin(u * Math.PI);
+                crest.push([h(x), h(-0.6 - hump * 2.5 - Math.sin(x * 2.3) * 0.08)]);
+                under.push([h(x), h(-0.6 - Math.sin(Math.min(1, Math.max(0, (x - 74.4) / 13.2)) * Math.PI) * 0.75)]);
+            }
+            const mound = [...crest, ...under.reverse()];
+            poly(fore, mound).fill(material('earth')); poly(fore, mound).fill({ color: 0x2a1c12, alpha: 0.35 });
+            poly(fore, raggedBand(crest, h(0.28), 4)).fill(material('grass'));
+            lineAlong(fore, crest).stroke(pen.line(INK, 2.4));
+            for (let k = 0; k < 14; k++) {
+                const x = h(75 + hash(k, 74) * 12), y = h(-1.25 - hash(k, 75) * 0.1);
+                fore.moveTo(x, y).quadraticCurveTo(x + 10, y + h(0.25), x - 4, y + h(0.45 + hash(k, 76) * 0.3)).stroke(pen.line(0x6a4a2a, 3, 0.8));
+            }
             L.fore.addChild(roots);
             // the dark inside, until the seeds light it
             const dark = new PIXI.Graphics();
@@ -818,8 +831,9 @@ export function createView(PIXI, app, { assets, G, heroFactory }) {
         }
     }
     function moonScreen(W = app.screen.width, H = app.screen.height) {
+        // below the drawing pad's prompt, so the dots to trace are never under it
         const r = Math.max(34, Math.min(W, H) * 0.09);
-        return { x: W * 0.72, y: Math.max(r + 70, H * 0.2), r };
+        return { x: W * 0.7, y: Math.max(r + 170, H * 0.27), r };
     }
 
     function updateCamera(dt, snap, W, H) {
