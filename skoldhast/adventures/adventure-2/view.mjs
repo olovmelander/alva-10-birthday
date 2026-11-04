@@ -414,17 +414,22 @@ export function createView(PIXI, app, { assets, G, heroFactory }) {
                 // darker just under the surface, lighter deeper down: the ground has a skin
                 poly(gr, [...top, ...offset(top, h(0.45)).reverse()]).fill({ color: 0x2a1c12, alpha: under === 'earth' ? 0.16 : 0.1 });
                 // layers in the soil, drawn as long uneven pencil lines
+                // (each kind of mark is one path, stroked once: a page builds quickly even on a slow tablet)
                 for (const [dy, a, sd] of [[0.62, 0.28, 3], [1.02, 0.22, 5], [1.32, 0.16, 7]]) {
                     const line = rag(h(dy), h(0.18), sd);
+                    let pen2 = false;
                     for (let i = 0; i < line.length - 1; i += 1) {
-                        if (hash(line[i][0], sd) < 0.25) continue; // broken, as a pencil skips
-                        gr.moveTo(line[i][0], line[i][1]).lineTo(line[i + 1][0], line[i + 1][1]).stroke(pen.line(under === 'earth' ? 0x5a3c24 : 0x5c5448, 1.6, a));
+                        if (hash(line[i][0], sd) < 0.25) { pen2 = false; continue; } // broken, as a pencil skips
+                        if (!pen2) { gr.moveTo(line[i][0], line[i][1]); pen2 = true; }
+                        gr.lineTo(line[i + 1][0], line[i + 1][1]);
                     }
+                    gr.stroke(pen.line(under === 'earth' ? 0x5a3c24 : 0x5c5448, 1.6, a));
                 }
                 for (let x = top[0][0] + 20; x < top.at(-1)[0] - 20; x += 34) {
                     const y = heightOn(s.pts, x) + h(0.5 + hash(x, 15) * 1.2);
-                    gr.moveTo(x, y).lineTo(x + 14, y + 6).stroke(pen.line(0x6a4a32, 1.6, 0.35));
+                    gr.moveTo(x, y).lineTo(x + 14, y + 6);
                 }
+                gr.stroke(pen.line(0x6a4a32, 1.6, 0.35));
                 // stones in the soil; shells and pebbles in the sand
                 for (let x = top[0][0] + 30; x < top.at(-1)[0] - 30; x += 60 + hash(x, 21) * 110) {
                     const y = heightOn(s.pts, x) + h(0.35 + hash(x, 22) * 1.0), r = 7 + hash(x, 23) * 15;
@@ -440,9 +445,12 @@ export function createView(PIXI, app, { assets, G, heroFactory }) {
                     poly(gr, [[x, y], ...pts.slice(2, 5)]).fill({ color: 0x1d1a20, alpha: 0.2 });
                 }
                 // under grass, fine roots hang down from the turf
-                if (s.mat === 'grass') for (let x = top[0][0] + 10; x < top.at(-1)[0] - 10; x += 16 + hash(x, 26) * 26) {
-                    const y = heightOn(s.pts, x) + h(0.28), len = h(0.15 + hash(x, 27) * 0.35), sw = (hash(x, 28) - 0.5) * 18;
-                    gr.moveTo(x, y).quadraticCurveTo(x + sw, y + len * 0.5, x + sw * 0.4, y + len).stroke(pen.line(0x4a3220, 1.2, 0.55));
+                if (s.mat === 'grass') {
+                    for (let x = top[0][0] + 10; x < top.at(-1)[0] - 10; x += 16 + hash(x, 26) * 26) {
+                        const y = heightOn(s.pts, x) + h(0.28), len = h(0.15 + hash(x, 27) * 0.35), sw = (hash(x, 28) - 0.5) * 18;
+                        gr.moveTo(x, y).quadraticCurveTo(x + sw, y + len * 0.5, x + sw * 0.4, y + len);
+                    }
+                    gr.stroke(pen.line(0x4a3220, 1.2, 0.55));
                 }
             }
             if (s.mat === 'grass') poly(gr, raggedBand(s.pts, h(0.32), s.pts[0][0] * 0.001)).fill(material('grass'));
