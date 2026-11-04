@@ -232,6 +232,9 @@ try {
         async function captureHill(kind, detail, points = []) {
             if (hillCaptured.has(kind)) return;
             hillCaptured.add(kind);
+            // The robot crosses the hill far faster than a player, but thought bubbles run on real time. On a fast
+            // machine one from an earlier moment is still up here; a player needs longer than it lives. Let it end.
+            if (detail.flight) for (let i = 0; i < 90 && document.querySelector('.sk-think.on'); i++) { render(); await sleep(100); }
             for (let i = 0; i < 45; i++) render();
             app.render(); await sleep(100);
             // ResizeObserver publishes live guide clearance on a real frame.
