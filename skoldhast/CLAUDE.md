@@ -26,7 +26,7 @@ The runtime contract and release steps are in plan §8.6, "Adventure series".
 
 ## End of a session
 
-- The game still plays from the ticket page (`index.html?skoldhast`) and from `dev/play.html`.
+- The game still plays from the ticket page (`index.html`) and from `dev/play.html`.
 - `npm test` passes. If you changed the world, the robot in `tests/skoldhast-playthrough.test.mjs`
   still finishes (adjust its route only when the design changed on purpose).
 - Update `HANDOVER.md`: done, next, decisions, known bugs, "Frågor till Pappa".
@@ -57,7 +57,8 @@ download grows over 3 MB. `skoldhast/dev/SPEC.md` is the contract between the en
 
 ## Rules that protect Alva
 
-- The fourth button stays hidden behind `?skoldhast` until Pappa reveals the game.
+- Pappa revealed the game on 4 November 2026: the fourth button shows on the ticket page for everyone
+  (`?skoldhast` is still accepted and changes nothing). Nothing under `skoldhast/` loads before it is pressed.
 - Her printed words: Pappa allowed them on 30 September (plan §0 Q5, answer a). Only her four
   printed sentences go in `HER_TEXT`; never put the magazine page or the photo of it in the repo.
 - First name only. Never her surname, school, town, the magazine, or anything Pappa scribbled over.

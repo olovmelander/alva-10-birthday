@@ -1202,7 +1202,8 @@ so only its build-and-pack pipeline is reused.
 
 ### 7.2 Surprise and reveal
 
-- The fourth button stays **hidden behind `?skoldhast`** until Kapitel 1 is released. `main` is live on GitHub
+- The fourth button stayed **hidden behind `?skoldhast`** until Pappa revealed the game on 4 November 2026; since
+  then it shows for everyone, and still nothing loads before it is pressed. `main` is live on GitHub
   Pages, so unfinished work must never appear to Alva by accident.
 - After the reveal, every merge keeps `releasedChapter` at the last released chapter. Raising it *is* the
   release.
@@ -1305,7 +1306,7 @@ so only its build-and-pack pipeline is reused.
 
 ```text
 CLAUDE.md                pointer to skoldhast/CLAUDE.md and HANDOVER.md
-index.html               hidden 4th button (?skoldhast), inline loading overlay and its CSS (about 120–150 lines)
+index.html               the 4th button (shown for everyone since 4 November 2026), inline loading overlay and its CSS (about 120–150 lines)
 skoldhast/
   CLAUDE.md  HANDOVER.md  skoldhast.css  files.json (first-playable file list, written by the asset build)
   vendor/pixi-8.21.0.min.mjs  vendor/PIXI-LICENSE     (self-contained ESM, MIT, ~234 KB gzipped)

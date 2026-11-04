@@ -1799,7 +1799,7 @@
             50% { box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5), 0 0 30px rgba(255, 120, 200, 0.85); }
         }
 
-        /* Sköldhästen (the fourth game): loaded on demand from skoldhast/, hidden unless ?skoldhast */
+        /* Sköldhästen (the fourth game): loaded on demand from skoldhast/; its button shows for everyone since 4 November 2026 */
         #play-skoldhast-btn {
             position: relative;
             background:
@@ -5673,14 +5673,14 @@
         })();
 
         // Sköldhästen och havet mellan sidorna (the fourth game) lives in skoldhast/.
-        // Its button stays hidden unless the page is opened with ?skoldhast (or #skoldhast).
+        // Pappa revealed it on 4 November 2026: its button shows for everyone (?skoldhast is still accepted, and changes nothing).
+        // Nothing under skoldhast/ is fetched until the button is pressed.
         // The loader fetches every first-playable file (three tries each) before the
         // module import, because a failed import() is remembered for the life of the page.
         (function () {
             const button = document.getElementById('play-skoldhast-btn');
             const overlay = document.getElementById('skoldhast-loader');
             if (!button || !overlay) return;
-            if (!/[?&#]skoldhast(?:-dev)?(?![\w-])/.test(location.search + location.hash)) return;
             button.hidden = false;
             const status = overlay.querySelector('.skl-status');
             const bar = overlay.querySelector('.skl-bar > i');
