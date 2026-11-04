@@ -4,6 +4,7 @@
   "src/action-cue.mjs",
   "src/adventures.mjs",
   "src/assets.mjs",
+  "src/atmosphere.mjs",
   "src/audio.mjs",
   "src/backdrop-layout.mjs",
   "src/beach-play.mjs",

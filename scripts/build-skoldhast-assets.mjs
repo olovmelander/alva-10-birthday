@@ -27,7 +27,7 @@ import { writeAtlas, writeImage } from './skoldhast-art/atlas.mjs';
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const OUT = path.join(ROOT, 'skoldhast', 'assets');
 const MODULES = ['hero', 'npcs', 'props', 'materials', 'backdrops', 'ui', 'map'];
-const BOOT_BUDGET = 3_000_000; // first playable, compressed: the requested decimal 3 MB limit
+const BOOT_BUDGET = 10_000_000; // first playable, compressed: Pappa raised the limit from 3 MB to 10 MB (4 November 2026) for the visual overhaul
 
 const args = process.argv.slice(2);
 const onlyIdx = args.indexOf('--only');
