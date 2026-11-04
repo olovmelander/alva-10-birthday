@@ -164,6 +164,19 @@ export async function eastBank(R) {
     await R.until(() => G.player.mode === 'ground', { x: -1 }, 20, 'out of the pool');
 }
 
+export async function wholeAdventure(R) {
+    await begin(R);
+    await digAndCocoa(R);
+    await bridgeAndForest(R);
+    await climbTree(R);
+    await backToStrand(R);
+    await eastBank(R);
+    await R.walkTo(28, { max: 120 });
+    await R.until(() => R.has('ended'), {}, 30, 'the finale');
+    await R.settle();
+}
+
+if (!process.env.NO_TEST) {
 test('Äventyr 2: a robot plays the whole adventure to the moon and the hatching', async () => {
     const R = createRobot();
     const { G } = R;
@@ -189,8 +202,12 @@ test('Äventyr 2: a robot plays the whole adventure to the moon and the hatching
     for (const name of ['eggsToNest', 'cloudArrive', 'moonDraw', 'moonrise', 'hatch', 'epilogue', 'ending'])
         assert.ok(fx.includes(name), 'finale moment ' + name);
     assert.ok(fx.indexOf('moonDraw') < fx.indexOf('hatch'), 'Mira draws the moon before the eggs hatch');
+    assert.ok(fx.indexOf('moonDraw') < fx.indexOf('starsDraw') && fx.indexOf('starsDraw') < fx.indexOf('hatch'), 'Alva draws the stars round the moon');
+    assert.ok(R.has('alva_stars'));
     const lines = R.log.filter(l => l.kind === 'say').flatMap(l => l.lines);
     assert.ok(lines.some(([who]) => who === 'mira'), 'Mira speaks during the adventure');
+    const alva = lines.filter(([who]) => who === 'alva').length;
+    assert.ok(alva >= 7, `Alva is with us through the adventure (${alva} lines)`);
     for (const n of [2, 4, 6, 8]) assert.ok(R.has('b:love' + n), 'Klo in love, after egg ' + n);
     assert.equal(R.story.objective().id, 'free');
 });
@@ -283,3 +300,4 @@ test('words: short boxes, no key names in help, Mira and Alva only as voices', (
     for (const set of Object.values(HINTS)) for (const h of set) assert.doesNotMatch(h, /(^|\s)(E|G|K|J)(?=[\s.,!]|$)|Mellanslag|Space|Enter|knappen/, h);
     assert.ok(all.every(t => !/Melander|efternamn/i.test(t)));
 });
+}

@@ -130,6 +130,11 @@ export function createView(PIXI, app, { assets, G, heroFactory }) {
     moon.addChild(moonGlow, moonG);
     moon.visible = false;
     const moonState = { shown: 0, target: 0 };
+    // the stars Alva draws round Mira's moon
+    const alvaStars = new RAW.Container(); alvaStars.visible = false; skyLayer.addChild(alvaStars);
+    const ALVA_STARS = [[-2.6, 0.3, 1.9], [-1.4, -0.9, 1.1], [1.5, -0.7, 1.3], [2.3, 0.6, 1.0], [-3.6, -0.6, 0.9], [0.4, 1.7, 0.8]];
+    for (const [dx, dy, k] of ALVA_STARS) { const s = new RAW.Sprite(TX.star); s.anchor.set(0.5); s._d = [dx, dy, k]; alvaStars.addChild(s); }
+    const starsState = { shown: 0 };
     const stormClouds = new PIXI.Container(); skyLayer.addChild(stormClouds);
     const cloudShapes = [];
     for (let i = 0; i < 6; i++) {
@@ -824,6 +829,15 @@ export function createView(PIXI, app, { assets, G, heroFactory }) {
         moon.visible = moonState.shown > 0.01;
         const mp = moonScreen(W, H);
         moon.position.set(mp.x, mp.y); moon.scale.set(mp.r / 60); moon.alpha = moonState.shown;
+        starsState.shown = lerp(starsState.shown, G.flags.has('alva_stars') ? 1 : 0, 1 - Math.exp(-2 * dt));
+        alvaStars.visible = starsState.shown > 0.01;
+        alvaStars.children.forEach((s, i) => {
+            const [dx, dy, k] = s._d;
+            s.position.set(mp.x + dx * mp.r, mp.y + dy * mp.r);
+            s.scale.set(k * mp.r / 26 * (1 + (G.lessMotion ? 0 : 0.12 * Math.sin(t * 2.5 + i))));
+            s.alpha = starsState.shown;
+            s.tint = 0xffefb0;
+        });
         // storm clouds drift and thin out
         for (const c of cloudShapes) {
             c.c.position.set(((c.x * (W + c.w * 2) - cam.x * cam.zoom * c.par + t * (G.lessMotion ? 2 : 8)) % (W + c.w * 2) + (W + c.w * 2)) % (W + c.w * 2) - c.w, c.y * H);
@@ -912,6 +926,12 @@ export function createView(PIXI, app, { assets, G, heroFactory }) {
                 moonState.target = 1;
                 emit('star', G.player.x, G.player.y - h(2), 14, { speed: 260, gravity: 30, life: 1.4, spread: h(4) });
                 await waitGame(rm ? 0.6 : 2.2);
+                return;
+            }
+            case 'starsShine': {
+                const mp = moonScreen();
+                void mp;
+                await waitGame(rm ? 0.3 : 1.2);
                 return;
             }
             case 'hatch': {

@@ -242,10 +242,22 @@ export function createTable({ PIXI, app, assets, ui, audio, G, heroFactory }) {
         ui.caption(TABLE.newPage, 2600);
         await wait(1.2);
         await ui.say([TABLE.ask, TABLE.yes]);
-        // Alva draws the tukankrabba and her eggs
+        // Alva draws the tukankrabba and her nest; the player draws the first egg with Alva's pencil
+        for (const { e } of D.eggs) e.view.visible = false;
         D.alva.visible = true;
         await drawIn(D.alva, 'alva', 2.6);
         ui.caption(TABLE.alvaDraws, 3200);
+        await wait(1.2);
+        const eggGeometry = () => {
+            const [cx, cy] = toCss(660, 380), rx = Math.max(38, 64 * pageScale), ry = rx * 1.3;
+            const anchors = [];
+            for (let i = 0; i <= 10; i++) { const a = -Math.PI / 2 + i / 10 * Math.PI * 2; anchors.push([cx + Math.cos(a) * rx * (Math.sin(a) > 0 ? 1 : 0.86), cy + Math.sin(a) * ry]); }
+            return { anchors };
+        };
+        await ui.draw({ prompt: WORDS.drawEgg, ...eggGeometry(), getGeometry: eggGeometry, color: '#4f7c3c', width: 5, dotRadius: 13 });
+        audio?.sfx?.('sparkle');
+        for (let i = 0; i < D.eggs.length; i++) { D.eggs[i].e.view.visible = true; await wait(0.12); }
+        ui.caption(TABLE.tenEggs, 2600);
         await ui.say([TABLE.alvaFacts]);
         // Mira draws the forest, the river and the bridge
         D.forest.visible = true;

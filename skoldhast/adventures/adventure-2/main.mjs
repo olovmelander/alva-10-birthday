@@ -339,6 +339,17 @@ export function createGame({ host = document.body, assetBase = './skoldhast/', s
                 ui.showControls(true);
                 return;
             }
+            case 'starsDraw': {
+                // a five-pointed star beside the moon, traced with Alva's pencil
+                const m = view.moonScreen(), cx = m.x - m.r * 2.6, cy = m.y + m.r * 0.3, R = m.r * 0.95;
+                const anchors = [];
+                for (let i = 0; i <= 10; i++) { const a = -Math.PI / 2 + i * Math.PI / 5, r = i % 2 ? R * 0.42 : R; anchors.push([cx + Math.cos(a) * r, cy + Math.sin(a) * r]); }
+                ui.showControls(false); ui.guide.show(false);
+                await ui.draw({ prompt: WORDS.drawStars, anchors, color: '#d9b43c', width: 5, dotRadius: 12 });
+                audio?.sfx?.('sparkle');
+                ui.showControls(true);
+                return;
+            }
             case 'moonrise': audio?.setArea('final'); return view.fx(name, data);
             case 'hatch': audio?.stinger?.('plask'); return view.fx(name, data);
             case 'epilogue': {

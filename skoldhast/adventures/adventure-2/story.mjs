@@ -197,6 +197,7 @@ export function createStory(G, io) {
             await say(STORY.arrive2);
             G.actors.klo.pose = 'idle'; G.actors.tukan.pose = 'happy';
             await say(STORY.claws);
+            await say(STORY.alvaHello);
             G.actors.tukan.pose = 'idle';
             await say(STORY.arrive3);
             clue('moonRule'); clue('noMoon');
@@ -214,11 +215,12 @@ export function createStory(G, io) {
         if (id === 'e2') beat('fallen', () => say(STORY.fallen));
         if ((id === 'e4' || id === 'e5') && F.has('egg_e4') && F.has('egg_e5')) beat('caveEggs', () => say(STORY.caveEggs));
         if (id === 'e7') beat('tradeThanks', () => say(STORY.tradeThanks));
-        if (n === 1) beat('firstEgg', () => say(STORY.firstEgg));
+        if (n === 1) beat('firstEgg', async () => { await say(STORY.firstEgg); await say(STORY.alvaFirstEgg); });
         else if (!['e2', 'e4', 'e5', 'e7', 'e8'].includes(id)) think(STORY.eggLines[eggLine++ % STORY.eggLines.length], { gap: 0 });
         if (STORY.love[n]) beat('love' + n, async () => {
             if (G.actors.klo) G.actors.klo.pose = 'love';
             await say(STORY.love[n]);
+            if (n === 8) await say(STORY.alvaLove);
             if (G.actors.klo) G.actors.klo.pose = 'idle';
         });
         if (n === 3) beat('lightning', async () => { await fx('lightning', {}); await say(STORY.lightning); clue('lightning'); });
@@ -318,6 +320,11 @@ export function createStory(G, io) {
         clue('moon');
         G.actors.moln.pose = 'happy';
         await fx('moonrise', {});
+        // Alva draws the stars round Mira's moon
+        await say(STORY.alvaStars);
+        await fx('starsDraw', {});
+        G.flag('alva_stars');
+        await fx('starsShine', {});
         await say(STORY.moonUp);
         ui().caption?.(STORY.moonCaption, 3200);
         await fx('hatch', {});
@@ -367,7 +374,7 @@ export function createStory(G, io) {
         G.on('push', () => io.audio?.sfx?.('push')),
         G.on('ballRoll', () => think(STORY.ballRoll, { gap: 0 })),
         G.on('ballWashed', () => beat('washed', () => say(STORY.washed))),
-        G.on('seedsLit', () => beat('seedsLit', () => say(STORY.seedsLit))),
+        G.on('seedsLit', () => beat('seedsLit', async () => { await say(STORY.seedsLit); await say(STORY.alvaSeeds); })),
         G.on('coin', () => { io.audio?.sfx?.('coin'); beat('coin', () => say(STORY.coin)); }),
         G.on('trade', () => beat('trade', async () => {
             if (G.actors.skata) G.actors.skata.pose = 'coin';

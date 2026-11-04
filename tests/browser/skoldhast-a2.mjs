@@ -52,7 +52,7 @@ async function playThrough(p, done, { maxSeconds = 240, onDraw = null, label = '
     while (Date.now() < end) {
         if (await done()) return;
         if (await p.$('.sk-draw.on')) {
-            await onDraw?.();
+            await onDraw?.(await p.textContent('.sk-draw.on .sk-draw-prompt'));
             await p.click('.sk-draw.on .sk-draw-example', { timeout: 2000, force: true }).catch(() => {});
             await p.waitForTimeout(1600);
             await p.click('.sk-draw.on .sk-draw-done', { timeout: 2000, force: true }).catch(() => {});
@@ -76,10 +76,10 @@ if (!quick) await check('the prologue at Alva\'s table leads to the nest (844×3
     const p = await page({ width: 844, height: 390 });
     await shot(p, 'a2-title-844x390');
     await p.click('.a2-title .sk-pbtn.primary');
-    let drew = false;
+    const drawn = [];
     await playThrough(p, () => dbg(p, () => { const d = window.__skoldhast2?.debug; return d?.mode === 'play' && !d.table.shown; }),
-        { label: 'prologue', onDraw: async () => { drew = true; await shot(p, 'a2-cloud-draw-844x390'); } });
-    assert.ok(drew, 'the player draws Mira\'s cloud');
+        { label: 'prologue', onDraw: async (prompt) => { drawn.push(prompt); await shot(p, `a2-draw${drawn.length}-844x390`); } });
+    assert.ok(drawn.some(t => /Alva/.test(t)) && drawn.some(t => /Miras/.test(t)), 'the player draws with Alva\'s pencil (the first egg) and Mira\'s (the cloud): ' + drawn.join(' | '));
     await playThrough(p, () => dbg(p, () => { const { G, story } = window.__skoldhast2.debug; return G.flags.has('b:arrive') && !story.running() && !G.busy; }), { label: 'arrival' });
     const st = await dbg(p, () => { const { G } = window.__skoldhast2.debug; return { scene: G.sceneId, tukan: G.actors.tukan?.visible, klo: G.actors.klo?.visible, clues: [...G.flags].filter(f => f.startsWith('clue_')) }; });
     assert.equal(st.scene, 'strand'); assert.ok(st.tukan && st.klo, 'Tukankrabban and Klo are at the nest');
@@ -118,14 +118,15 @@ await check('the finale: ten eggs in the nest, Mira\'s moon, the hatching, the t
     await p.keyboard.down('ArrowLeft');
     await p.waitForFunction(() => window.__skoldhast2.debug.G.areas.has('nest') || window.__skoldhast2.debug.story.running(), null, { timeout: 15000 });
     await p.keyboard.up('ArrowLeft');
-    let traced = false, sawHatch = false, sawTable = false;
+    const traced = [];
+    let sawHatch = false, sawTable = false;
     await playThrough(p, async () => {
         const s = await dbg(p, () => { const { G, table } = window.__skoldhast2.debug; return { ended: G.flags.has('ended'), hatched: G.flags.has('hatched'), table: table.shown }; });
         if (s.hatched && !sawHatch) { sawHatch = true; await shot(p, 'a2-hatched-1440x900'); }
         if (s.table && !sawTable) { sawTable = true; await p.waitForTimeout(1500); await shot(p, 'a2-epilogue-1440x900'); }
         return s.ended && !s.table && !(await p.$('.sk-panel.on')) && !(await p.$('.sk-dialogue.on')) && (await dbg(p, () => !window.__skoldhast2.debug.story.running()));
-    }, { label: 'finale', maxSeconds: 300, onDraw: async () => { traced = true; await shot(p, 'a2-moon-draw-1440x900'); } });
-    assert.ok(traced, 'Mira\'s moon is traced');
+    }, { label: 'finale', maxSeconds: 300, onDraw: async (prompt) => { traced.push(prompt); await shot(p, `a2-finale-draw${traced.length}-1440x900`); } });
+    assert.ok(/Mira/.test(traced[0]) && /Alva/.test(traced[1]), 'Mira traces the moon, then Alva the stars: ' + traced.join(' | '));
     assert.ok(sawHatch && sawTable, 'the eggs hatch and the table shows the page');
     await p.waitForTimeout(1500);
     await shot(p, 'a2-moonlit-1440x900');

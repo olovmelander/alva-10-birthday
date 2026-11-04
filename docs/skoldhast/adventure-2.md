@@ -53,9 +53,12 @@ men på den här sidan finns ingen måne. Vem är det som stormar, och varför?"
   ("Hundrafyrtio slag i minuten! Det måste vara stormen"), draws hearts in his notebook and calls them
   diagrams. In the end he gives her the shiniest thing he owns: his stopwatch.
 - **Mira** and **Alva**: at the table, on the other side of the paper. Heard in speech boxes, never drawn
-  (the same rule as Äventyr 1, plan §3.2). Alva draws the tukankrabba; Mira draws the forest, the river, a
-  rope bridge (a bit dashed: she didn't finish it) and a little cloud with lightning "because that is the
-  coolest". In the finale Mira draws the moon.
+  (the same rule as Äventyr 1, plan §3.2), and both with us through the whole adventure. Alva draws the
+  tukankrabba and the first egg (the player traces it with her pencil); Mira draws the forest, the river, a
+  rope bridge (a bit dashed: she didn't finish it) and a little cloud with lightning (the player draws it).
+  In the finale Mira draws the moon and Alva the stars round it. Alva speaks at the nest, at Mira's bridge,
+  about her own facts (shiny things, moonshine seeds instead of sunflower seeds), at the big leap, when Klo
+  is plainly in love, in the crown and at the table.
 - **Molnet** (Mira's little storm cloud): the player draws its shape with Mira's lilac pencil in the
   prologue. It is not bad: it is afraid of the dark, so it thunders and flashes to see. Nobody drew a moon.
 - **Skatan**: a magpie who collects shiny things too. She found two eggs and thinks they are pearls. A rival
@@ -96,7 +99,7 @@ the crown where the cloud sits (the reveal).
 | P6 | Skatträdet + Djuphålan | 2 | The magpie trades her two "pearls" only for something shinier. The gold coin lies at the bottom of the whirlpool: swimmers are spun away, but a hidden shell spirals down to it. Climb the tree's branches and **Ge** her the coin. | both |
 | P7 | Rutschstammen | 1 | The egg sits in an old nest across Ravinen. A normal gallop is too short: gallop down the fallen trunk for extra speed and make the big leap. **Dra** the vine to get back. | horse |
 | — | Jätteträdet | — | Climb the branches to the crown and meet the cloud: the reveal. | — |
-| Finale | the nest | — | With all ten eggs and the cloud along, the eggs go into the sand. Mira draws the moon (the player traces it with her pencil). The cloud stops being afraid, the storm ends, and ten little tukankrabbor hatch. | Mira |
+| Finale | the nest | — | With all ten eggs and the cloud along, the eggs go into the sand. Mira draws the moon and Alva a star beside it (the player traces both with their pencils). The cloud stops being afraid, the storm ends, and ten little tukankrabbor hatch. | Mira and Alva |
 
 Help follows Äventyr 1: every puzzle has an intro line that says why, and up to three hints in Klo's or
 Tukankrabban's words (never key names). Nothing can fail and nothing is timed.
@@ -104,7 +107,8 @@ Tukankrabban's words (never key names). Nothing can fail and nothing is timed.
 ## Beats
 
 1. **Prologue at the table.** A new page. Mira wants to draw too. Alva draws the tukankrabba and her nest of
-   ten eggs; Mira draws the forest and the river, and then (the player) a little cloud with her lilac pencil.
+   ten eggs (the player traces the first egg with Alva's pencil); Mira draws the forest and the river, and then
+   (the player) a little cloud with her lilac pencil.
    "Med blixtar!" The page darkens, the cloud rumbles, the eggs blow away like sparks. The sköldhäst and
    Klo gallop in from the sea page.
 2. **The nest.** Tukankrabban digs in the empty nest. Klo falls in love. Her rule: eggs hatch only in

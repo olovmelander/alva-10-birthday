@@ -5,8 +5,10 @@
  * at most), at most three boxes before control returns, Swedish quotation marks
  * and dashes, "du" to the player, plain child words.
  *
- * Alva and Mira are heard, never drawn (plan §3.2). Tukankrabban is Alva's
- * creature; her facts are in docs/skoldhast/adventure-2.md.
+ * Alva and Mira are heard, never drawn (plan §3.2); both draw in the story
+ * (Alva the tukankrabba, the first egg and the stars; Mira the forest, the
+ * cloud and the moon). Tukankrabban is Alva's creature; her facts and her
+ * drawing are in docs/skoldhast/adventure-2.md.
  */
 
 export const NAMES = {
@@ -26,14 +28,16 @@ export const WORDS = {
     eggToast: (n, total) => `Ägg ${n} av ${total}!`,
     goalLabel: 'Mål',
     known: 'Vad vet vi?', knownEmpty: 'Inget än. Vi har precis börjat forska.',
-    knownTitle: 'Tukankrabbans och Klos forskning',
+    knownTitle: 'Det här har forskarlaget kommit fram till',
     hint: 'Visa en ledtråd', hintMore: 'En ledtråd till', noHint: 'Utforska fritt – allt är klart!',
     stuckDone: 'Du är tillbaka på en trygg plats.',
     endingTitle: 'Tio små tukankrabbor!',
-    endingBody: 'Du hittade alla tio äggen, och Mira ritade månen. Nu stormar det inte längre i den magiska skogen.',
+    endingBody: 'Du hittade alla tio äggen. Mira ritade månen och Alva stjärnorna – nu stormar det inte längre i den magiska skogen.',
     endingExplore: 'Utforska den månljusa skogen',
     drawCloud: 'Rita Miras lilla moln!',
     drawMoon: 'Rita månen, Mira! Följ prickarna.',
+    drawEgg: 'Rita det första ägget, Alva! Följ prickarna.',
+    drawStars: 'Rita en stjärna, Alva! Följ prickarna.',
     pages: { strand: 'Flodstranden', skog: 'Djupa skogen' },
     places: {
         nest: 'boet', grove: 'Kakaolunden', klyft: 'Klyftan', river: 'Glimmerfloden', deep: 'Djuphålan',
@@ -53,17 +57,18 @@ export const TABLE = {
     newPage: 'En ny sida i forskningsdagboken.',
     ask: ['mira', 'Alva! Får jag rita på nästa sida?'],
     yes: ['alva', 'Klart du får. Vi ritar en magisk skog. Där bor tukankrabban.'],
-    alvaDraws: 'Alva ritar en orange krabba – och klorna är två tukaner! Bredvid: tio små ägg i sanden.',
+    alvaDraws: 'Alva ritar en orange krabba. Klorna är två tukanhuvuden!',
+    tenEggs: '… och nio ägg till. Tio små ägg i sanden.',
     alvaFacts: ['alva', 'Hon gräver ner sina ägg vid floden. Och hon är galen i forskning.'],
     miraTrees: ['mira', 'Precis som Klo! Jag ritar träden. Och floden. Och en bro!'],
     miraBridge: 'Mira ritar en hängbro – men hon hinner inte rita klart den.',
     miraCloud: ['mira', 'Nu ritar jag ett moln. Ett litet moln med blixtar!'],
-    cool: ['mira', 'Blixtar är det coolaste som finns.'],
+    cool: ['mira', 'Blixtar är det häftigaste som finns.'],
     evening: ['alva', 'Det blir kväll på sidan. Månen ritar vi sen.'],
     dark: 'Sidan blir mörk. Det lilla molnet mullrar …',
     storm: '… och en storm blåser genom den magiska skogen.',
     eggsAway: ['mira', 'Alva! Äggen blåser iväg!'],
-    gallopIn: 'Sköldhästen och Professor Klo galopperar in på den nya sidan.',
+    gallopIn: 'Sköldhästen galopperar in på den nya sidan, och Professor Klo kilar efter.',
     // epilogue
     table: 'Vid Alvas bord.',
     miraMoon: ['mira', 'Jag ritade månen! Den största som finns.'],
@@ -90,7 +95,11 @@ export const STORY = {
     claws: [
         ['horse', 'Dina klor … de har näbbar!'],
         ['tukan', 'Tukanklor! Med dem plockar jag kakaobönor och månskensfrön.'],
-        ['klo', 'Fantastiskt. Jag antecknar. Med darrande hand.']
+        ['klo', 'Fantastiskt. Jag antecknar … med darrande klo.']
+    ],
+    alvaHello: [
+        ['tukan', 'Alva, är det du som har ritat mig? Tack för tukanklorna!'],
+        ['alva', 'Varsågod! Nu hjälper vi dig att hitta alla äggen.']
     ],
     arrive3: [
         ['tukan', 'Mina ägg kläcks bara i månsken – i den varma sanden här i boet.'],
@@ -100,9 +109,10 @@ export const STORY = {
     digSeen: [['tukan', 'Titta! Något glimmar i sanden där borta!']],
     firstEgg: [
         ['tukan', 'Mitt första ägg! Men boet är för kallt i stormen.'],
-        ['horse', 'Jag bär dem i mitt skal. Där är det varmt och tryggt.'],
+        ['horse', 'Jag bär äggen i mitt skal. Där har de det varmt och tryggt.'],
         ['klo', 'En äggkorg med hovar. Jag antecknar.']
     ],
+    alvaFirstEgg: [['alva', 'Ett av tio! Jag skriver upp det i forskningsdagboken.']],
     eggLines: [
         'Ett ägg till i skalet!', 'Varmt och tryggt i skalet.', 'Det glimmar som en pärla!',
         'Där var du ju, lilla ägg.', 'Snart är ni alla samlade.'
@@ -110,7 +120,7 @@ export const STORY = {
     allEggs: [['tukan', 'Tio! Alla tio! Nu behöver de bara månsken.']],
     allEggsNoCloud: [
         ['horse', 'Alla tio ägg! Men det stormar fortfarande.'],
-        ['klo', 'Skatan sa att molnet sitter i Jätteträdet. Vi borde fråga det varför.']
+        ['klo', 'Skatan sa att molnet bor i Jätteträdet. Vi måste fråga det varför det stormar.']
     ],
     allEggsCloud: [['horse', 'Alla tio ägg! Nu går vi till boet – och molnet följer med.']],
 
@@ -119,10 +129,10 @@ export const STORY = {
         2: [
             ['klo', 'Har du sett hennes klor? Två små tukaner – och båda ler mot mig!'],
             ['horse', 'Klo, dina klor skakar.'],
-            ['klo', 'Det är … stormen. Det är kallt.']
+            ['klo', 'Det är … stormen. Jag fryser.']
         ],
         4: [
-            ['klo', 'Jag mätte mina hjärtslag. Hundrafyrtio i minuten!'],
+            ['klo', 'Jag mätte mina hjärtslag. Hundrafyrtio slag i minuten!'],
             ['horse', 'Är det mycket?'],
             ['klo', 'För en krabba är det … ett vetenskapligt mysterium.']
         ],
@@ -137,6 +147,11 @@ export const STORY = {
             ['horse', 'Han menar ja.']
         ]
     },
+    alvaLove: [
+        ['alva', 'Jag visste det! Klo är kär.'],
+        ['mira', 'Kär, kär, kär!'],
+        ['klo', 'Jag hör inte. Det är … så mycket regn i öronen.']
+    ],
     lightning: [
         ['klo', 'Varje blixt lyser upp hela skogen. Som en jättelik ficklampa.'],
         ['tukan', 'Som om någon vill se något i mörkret … Intressant!']
@@ -144,15 +159,15 @@ export const STORY = {
 
     // P1 the cocoa tree
     grove: [
-        ['tukan', 'Mjölkchokladträdet! Där uppe sitter mitt ägg fast bland kakaobönorna!'],
+        ['tukan', 'Mjölkchokladträdet! Där uppe sitter mitt ägg fast bland kakaofrukterna!'],
         ['horse', 'För högt för mig.'],
-        ['klo', 'Trädets rötter går in under den ihåliga stocken. Hör hur det ekar?']
+        ['klo', 'Trädets rötter går in under den ihåliga stocken. Hör du hur det ekar?']
     ],
     drumSoft: 'Det dunkar lite i stocken … men trädet rör sig knappt.',
     drumHalf: 'Trädet skakar när hovarna trummar!',
     fallen: [
         ['tukan', 'Det föll! Rakt ner i de mjuka löven.'],
-        ['klo', 'Och här … en kakaoböna. Till dig. Den föll också.'],
+        ['klo', 'Och här … en kakaofrukt. Till dig. Den föll också.'],
         ['tukan', 'Mjölkchoklad! Min favorit. Tack, Klo!']
     ],
 
@@ -160,9 +175,9 @@ export const STORY = {
     klyft: [
         ['horse', 'En bro – men den är bara prickad.'],
         ['mira', 'Den ritade jag! Jag hann inte rita klart.'],
-        ['klo', 'Ofärdiga streck kan dina hovar rita klart. Kommer du ihåg?']
+        ['alva', 'Min penna sitter kvar i dina hovar. Galoppera, så ritar du klart Miras bro!']
     ],
-    thinRule: 'Miras streck är ofärdigt. I full galopp ritar Alvas penna i mina hovar klart det!',
+    thinRule: 'Miras streck är inte färdigt. Men Alvas penna sitter i mina hovar – i full galopp kan jag rita klart det!',
     thinSlow: 'För långsamt! Ofärdiga streck ritas klart i full galopp.',
     bridgeDone: [
         ['mira', 'Nu blev den hel! Tack, Sköldhästen!'],
@@ -187,17 +202,18 @@ export const STORY = {
 
     // P4 the moonshine seeds
     seeds: [
-        ['horse', 'Det är kolsvart därinne. Jag ser inte var jag sätter hovarna.'],
-        ['tukan', 'Månskensfrön! De lyser bara när allt är alldeles stilla.'],
-        ['klo', 'Och det mullrar mest när det är mörkast. Hör du?']
+        ['horse', 'Det är kolsvart där inne. Jag ser inte var jag sätter hovarna.'],
+        ['tukan', 'Månskensblommor! Fröna i dem lyser – men bara när allt är alldeles stilla.'],
+        ['klo', 'Och hör du? Det mullrar mest när det är som mörkast.']
     ],
     dark: 'För mörkt. Jag ser inte var jag sätter hovarna.',
-    seedsShy: 'Fröna stängde sig när jag rörde mig …',
+    seedsShy: 'Blommorna slöt sig när jag rörde mig …',
     seedsLit: [
-        ['tukan', 'De öppnar sig! Titta hur ljuset flyger in i grottan.'],
+        ['tukan', 'De slår ut! Titta, de lysande fröna flyger in i grottan.'],
         ['tukan', 'Jag har forskat på månskensfrön i tre år.'],
         ['klo', 'Tre år! Vilken … uthållighet.']
     ],
+    alvaSeeds: [['alva', 'Månskensfrön äter hon i stället för solrosfrön. Det har jag bestämt.']],
 
     // P5 the dung beetle
     beetle: [
@@ -223,7 +239,8 @@ export const STORY = {
     ],
     magpie2: [
         ['tukan', 'Mitt guldmynt! Det skulle hon älska. Men stormen blåste ner det i Djuphålan.'],
-        ['klo', 'Djuphålan – mitt i floden.']
+        ['klo', 'Djuphålan – mitt i floden.'],
+        ['alva', 'Tukankrabbor älskar allt som glänser. Pärlhalsband och guldmynt!']
     ],
     skataTalk: [['skata', 'Bara något som glänser mer än pärlor. Så är det med det.']],
     whirl: 'Virveln snurrar bort mig! Jag kommer inte ner.',
@@ -231,11 +248,11 @@ export const STORY = {
         ['horse', 'Skalet snurrade ända ner till botten – där låg guldmyntet!'],
         ['tukan', 'Mitt guldmynt! Nu kan vi byta med Skatan.']
     ],
-    climb: [['klo', 'Skatans bo sitter högt. Grenarna sitter som en trappa.']],
+    climb: [['klo', 'Skatans bo sitter högt upp. Grenarna går som trappsteg uppför stammen.']],
     trade: [
         ['skata', 'Åh! Det glänser som en liten sol!'],
         ['skata', 'Här, ta dina … ägg. De glänste nästan lika mycket.'],
-        ['skata', 'Förresten. Molnet uppe i Jätteträdet gråter varje natt. Det är därför det stormar.']
+        ['skata', 'Förresten: molnet uppe i Jätteträdet gråter varje natt. Det är därför det stormar.']
     ],
     tradeThanks: [['tukan', 'Två ägg! Och ett spår: molnet i Jätteträdet.']],
 
@@ -249,7 +266,8 @@ export const STORY = {
     runup: 'Mer fart! Ta sats högst uppe på stammen och galoppera hela vägen ner.',
     leapDone: [
         ['horse', 'Stora språnget i skogen!'],
-        ['klo', 'Ett nytt rekord! För land OCH vatten!']
+        ['klo', 'Ett nytt rekord! Det skriver jag upp direkt.'],
+        ['alva', 'Oj! Det är det längsta språnget jag någonsin har sett!']
     ],
     vineAsk: [['tukan', 'Dra i lianen, så får vi en bro tillbaka!']],
     vineDone: 'Nu kommer vi tillbaka över ravinen.',
@@ -260,7 +278,7 @@ export const STORY = {
         ['horse', 'Grenarna slingrar sig ända upp till kronan.']
     ],
     treeCloud: [
-        ['klo', 'Jätteträdet! Skatan sa att molnet sitter högst upp i kronan.'],
+        ['klo', 'Jätteträdet! Skatan sa att molnet bor högst upp i kronan.'],
         ['horse', 'Grenarna slingrar sig ända upp. Vi klättrar!']
     ],
     crown: [
@@ -271,7 +289,7 @@ export const STORY = {
     crown2: [
         ['tukan', 'Hypotes: molnet stormar för att det är mörkt. Det stämmer med allt vi har sett!'],
         ['klo', 'Men varför är det så mörkt här?'],
-        ['horse', 'För att det inte finns någon måne. Mira … du glömde rita månen!']
+        ['horse', 'För att det inte finns någon måne. Mira … du glömde att rita månen!']
     ],
     crown3: [
         ['mira', 'Oj! Jag tänkte rita den sist.'],
@@ -290,6 +308,7 @@ export const STORY = {
         ['horse', 'Mira! Nu behöver vi månen.'],
         ['mira', 'Jag ritar den största månen som finns!']
     ],
+    alvaStars: [['alva', 'Och jag ritar stjärnor runt månen!']],
     moonUp: [
         ['moln', 'Det är ljust! Jag är inte rädd längre.']
     ],
@@ -312,7 +331,7 @@ export const STORY = {
 export const BALK = {
     paper: 'Här tar sidan slut.',
     branch: 'Längre ut på grenen kommer jag inte.',
-    edge: 'För långt ner! Jag hoppar inte där.',
+    edge: 'Det är för långt ner. Där hoppar jag inte!',
     dark: STORY.dark,
     thin: STORY.thinSlow,
     runup: STORY.runup
@@ -335,27 +354,27 @@ export const GOALS = {
 };
 
 export const HINTS = {
-    dig: ['Något glimmar i sanden nära boet.', 'Ställ dig där det glimmar.', 'Tryck på Gräv när du står vid glimret.'],
+    dig: ['Något glimmar i sanden nära boet.', 'Ställ dig där det glimmar.', 'Gräv där det glimmar.'],
     p1: ['Ägget sitter för högt. Kan man få hela trädet att skaka?', 'Stocken under trädet är ihålig. Den låter som en trumma.',
         'Galoppera fram och tillbaka över stocken – hovarna trummar på rötterna.'],
     p2: ['Bron är bara ritad med prickar.', 'Dina hovar ritar när du springer riktigt fort.', 'Ta sats och galoppera ut på den prickade bron.'],
     p3: ['Forsen trycker bort allt som simmar. Men inte det som sjunker.', 'Längs botten under forsen rinner en ström in mot grottan.',
         'Göm dig i vattnet framför forsen. Skalet sjunker, och strömmen tar det med sig.'],
-    p4: ['Fröna är blyga. De stänger sig när något rör sig.', 'Om du blir alldeles stilla bredvid dem kanske de vågar öppna sig.',
-        'Göm dig i skalet bredvid månskensfröna och vänta en stund.'],
+    p4: ['Månskensblommorna är blyga. De sluter sig så fort något rör sig.', 'Om du blir alldeles stilla bredvid dem vågar de kanske slå ut.',
+        'Göm dig i skalet bredvid månskensblommorna och vänta en stund.'],
     p5: ['Bollen är gjord av jord. Vad tvättar bort jord?', 'Floden ligger precis nedanför backen.',
         'Ställ dig på andra sidan bollen och knuffa den mot floden.'],
     coin: ['Skatan vill ha något som glänser mer än pärlor. Tukankrabbans guldmynt?', 'Myntet ligger på botten av Djuphålan. Virveln snurrar bort den som simmar.',
         'Göm dig rakt ovanför virveln. Ett tungt skal snurrar ner mot mitten.'],
-    trade: ['Nu har du myntet. Skatan bor högt upp i trädet.', 'Grenarna sitter som en trappa. Hoppa från gren till gren.',
+    trade: ['Nu har du myntet. Skatan bor högt upp i trädet.', 'Grenarna sitter som trappsteg. Hoppa från gren till gren.',
         'Ställ dig under nästa gren och hoppa rakt upp. Ge sedan myntet till Skatan.'],
     p7: ['Ravinen är för bred för en vanlig galopp.', 'Nerför den fallna stammen går det fortare och fortare.',
         'Ta sats högst upp på stammen och galoppera hela vägen ner.'],
-    vine: ['Lianen hänger vid ravinens kant.', 'Ställ dig vid kanten, vänd mot stammen.', 'Tryck på Dra i lianen.'],
+    vine: ['Lianen hänger vid ravinens kant.', 'Ställ dig vid kanten, med nosen mot stammen.', 'Dra i lianen.'],
     tree: ['Följ grenarna uppåt runt stammen.', 'Där en gren tar slut sitter nästa gren strax ovanför.',
         'Stå stilla längst ut på grenen och hoppa rakt upp.'],
     nest: ['Boet ligger på Sandbanken, mitt på Flodstranden.', 'Gå tillbaka över Miras bro.', 'Gå fram till boet.'],
-    more: ['Det finns fler ägg. Har du varit överallt?', 'Kolla båda sidorna: Flodstranden och Djupa skogen.',
+    more: ['Det finns fler ägg. Har du varit överallt?', 'Leta på båda sidorna i dagboken: Flodstranden och Djupa skogen.',
         'Prata med Tukankrabban eller Klo – de vet var nästa ägg är.']
 };
 
@@ -375,12 +394,12 @@ export const CLUES = {
     darkStorm: 'Det mullrar mest när det är som mörkast.',
     cloudCries: 'Skatan säger att molnet i Jätteträdet gråter varje natt.',
     afraid: 'Molnet är rädd för mörkret. Därför stormar det.',
-    moon: 'Mira ritade månen. Stormen tystnade och äggen kläcktes.'
+    moon: 'Mira ritade månen och Alva stjärnorna. Stormen tystnade och äggen kläcktes.'
 };
 export const CLUE_ORDER = ['moonRule', 'noMoon', 'lightning', 'darkStorm', 'cloudCries', 'afraid', 'moon'];
 
 // tapping on a companion with nothing to say about the current goal
 export const CHATTER = {
     klo: ['Jag antecknar allt. Särskilt … henne.', 'Häst eller sköldpadda? Jag forskar fortfarande.', 'Stoppuret tickar lika fort som mitt hjärta.'],
-    tukan: ['Allt som glänser är intressant!', 'Ditt skal glänser! Nio av tio i glans.', 'Hypotes: ägg trivs bäst i varma skal.']
+    tukan: ['Allt som glänser är intressant!', 'Ditt skal glänser! Nio av tio i glans.', 'Hypotes: ägg trivs bäst i varma skal.', 'Alva ritade mina klor. Är de inte fina?']
 };

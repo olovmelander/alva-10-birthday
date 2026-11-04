@@ -1,5 +1,37 @@
 # Sköldhästen – handover
 
+## Äventyr 2: Alva with us, a Swedish pass, and how long it is (4 November, later)
+
+Pappa asked for three things after the first build: Alva must also be in the game, all the storytelling must be
+in good and correct Swedish, and how long is Äventyr 2 compared with Kapitel 1?
+
+- **Alva draws and speaks through the whole adventure**, not only at the table (still heard and seen as her
+  pencil, never drawn). In the prologue the player draws **the first egg with Alva's pencil** (a traced egg,
+  then the other nine appear in the nest), as well as Mira's cloud. In the finale, after Mira's moon, the player
+  draws **a star with Alva's pencil**, and her stars shine round the moon for the rest of the game. She talks
+  to Tukankrabban at the nest ("Alva, är det du som har ritat mig? Tack för tukanklorna!"), writes the first
+  egg into the notebook, reminds the sköldhäst that her pencil is in its hooves at Mira's bridge, tells us
+  tukankrabbor love pearl necklaces and gold coins (her facts), that moonshine seeds replace sunflower seeds
+  ("Det har jag bestämt."), cheers the big leap, sees that Klo is in love ("Jag visste det! Klo är kär." Mira:
+  "Kär, kär, kär!"), and speaks in the crown and the epilogue: 11 lines during play, 5 at the table.
+- **Swedish pass** over every line, hint, goal and clue: no anglicisms ("Wow", "coolaste"), correct
+  references ("Jag bär äggen i mitt skal. Där har de det varmt och tryggt."), "där inne", "Hundrafyrtio slag i
+  minuten", cocoa *fruits* on the tree, and the moonshine *flowers* whose *seeds* glow (her food, as Alva wrote).
+  Klo "kilar" after the sköldhäst; the colon after "Förresten".
+- **How long it is** (the robot plays optimally and skips nothing; the prologue is not counted in either):
+
+  | | Robot play time | Dialogue boxes | Puzzles |
+  | --- | --- | --- | --- |
+  | Äventyr 1, Kapitel 1 | 0.7 min | 26 | 2 |
+  | Äventyr 1, all three chapters | 4.1 min | 94 | 8 |
+  | Äventyr 2 | 3.6 min | 112 | 8 + the climb |
+
+  So Äventyr 2 is about five times as long as Kapitel 1 and close to the whole of Äventyr 1. A child's real
+  play time is still unmeasured; Äventyr 1 has more long staged scenes (the prologue, the map journeys).
+- Verification: `npm test` passes (387); the robot now also checks Alva's stars and that Alva speaks during
+  play (at least 7 lines). `node tests/browser/skoldhast-a2.mjs` checks both table drawings in the prologue
+  (Alva's egg, Mira's cloud) and both in the finale (Mira's moon, Alva's star).
+
 ## Äventyr 2: Den magiska skogen, built in one go (4 November)
 
 Branch `ccr-cae565b1-4dxaeb`. Pappa asked for the whole next chapter at once: a good story, many puzzles, about
