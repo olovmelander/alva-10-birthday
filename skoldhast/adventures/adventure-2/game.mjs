@@ -103,6 +103,7 @@ export function createGame() {
             stepPlayer(G.player, simInput, { terrain: G.terrain, flags: G.flags }, dt, events);
             wadeOut(G, inp, events);
             bounce(G, events);
+            groundGuard.walls(G, before, events);
             groundGuard.keep(G, before, events);
             groundGuard.net(G, events);
             stepPuzzles(G, events, dt);

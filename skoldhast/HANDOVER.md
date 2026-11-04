@@ -1,5 +1,89 @@
 # Sköldhästen – handover
 
+## Äventyr 1 checked the same way (4 November, night)
+
+Pappa asked to fix everything that should be fixed in Äventyr 1, after the same audit found the jump hole there. The
+same tools were run on it: random players at 14 gates, 102 runs of free play, line coverage, the speaker's position for
+every line, and the first-minute orders the tests do not walk. The details are at the end of
+`docs/skoldhast/story-flow-review.md`.
+
+- **Walls hold in the air, in both adventures.** The sim's air check lets go just above the ground, so a jump landing
+  right at a wall passed it: the bolted jetty gate, and the paper at the west end of Klippudden. `walls()` in
+  `src/ground-guard.mjs` now does this for both games; Äventyr 2's own copy is gone. `src/sim.mjs` is unchanged.
+- **Klo can no longer be left behind in the first minutes.** Gallop past him, run on without hiding, and:
+  - he popped up at the note while still "in his hole";
+  - back at the hole he asked "Häst eller sköldpadda?" from 25 lengths away;
+  - the player then stood frozen for about 12 s while he walked back;
+  - the map rule ("Kartan och stranden hör ihop") could be missed all the way into Kapitel 2, where "vår första
+    kartbit" and "Kartans streck" assume it.
+
+  The rule carries the whole story, so the sköldhäst now refuses to go west past the dunes until it has been shown:
+  "Klo sitter kvar i sitt hål. Jag kan inte gå ifrån honom!", or "Klo står kvar med stoppuret. Han vill se min galopp
+  först!" Vattenporten waits for Klo's "Ja" too. These are one-way walls at 92.4 HL and hold only in a new game: any
+  save that has read the note or inked the arch is never held. `k1_ja` puts him back at his hole for such a save.
+- **Swedish:** "där jag såg han med linjalen" is now "honom".
+- **Checked and left as it was:**
+  - Every other gate held (P1, the three terraces, P4, the far side of the cleft, the paper in the sea, P5, Veckmuren, P8).
+  - Free play: 0 stuck, 0 rescues, nothing off the page.
+  - The handover's "blank sheet for about 5 s" at the table is the staged opening: her thought, the notebook and a skip
+    button. It stays.
+  - "Klo's grounding" was out of date: `klo.mjs` draws his own soft shadow.
+  - `STORY.k2.lanterns` and `whirlHint` were taken out on purpose earlier; the `...Map` help keys are built in code.
+- **Not changed, and why:** Äventyr 1's ground (flat paper on phone, the ruled line at udden, the boxy steppe hollows) is
+  art Pappa has reviewed. Six browser checks still lift touch strokes fast (see "Three browser checks fixed"); that is
+  test code, not the game.
+- **A check that failed on untouched `main` too:** `skoldhast-exploration-order.mjs` stopped at "p3-t3-flight: seed clears
+  live UI" at 844×390. The robot crosses the hill far faster than a player, but thought bubbles run on real time, so on
+  a fast machine an old bubble was still up. A player needs over 7 s there and the bubble lives about 6 s, so the game is
+  right. The check now lets an earlier bubble end.
+- **Verification:** `npm test` passes (413). New `tests/skoldhast-a1-order.test.mjs`: all six fail without the fixes.
+  Real browser, all passing: `skoldhast-launch`, `skoldhast-adventures`, `skoldhast-a2`, `skoldhast-opening`,
+  `skoldhast-geography`, `skoldhast-finale-unfold`, and `skoldhast-exploration-order` (cave first at three sizes, land
+  first at 1440×900). A new game was also played with the real keyboard: held at the dunes, back to the hole, Klo answers
+  beside the sköldhäst, the map rule, the way west; and a jump at the gate. The whole exploration check takes over ten
+  minutes here, so a run with `--order` is handier.
+
+## Äventyr 2 played in other orders: the story, every puzzle and the red thread (4 November, night)
+
+Pappa asked to investigate the story and make sure it is good, and to check that all the puzzles and the red thread
+work as intended. Earlier audits read the adventure in the one order the robot plays, but the adventure is open: once
+the lantern is found, the mountain can come before the crown, Tordyveln, Skatan and most eggs. So this audit played
+the other orders through the real simulation, and ran random players at every puzzle gate. Every finding and change
+is in `docs/skoldhast/adventure-2-audit.md` ("The play-order audit"). In short:
+
+- **The red thread now follows what the player has been through.** Fixed by route:
+  - The crown after the summit replayed the whole discovery: Mira asked "Är det mitt moln som stormar?" after she had
+    said sorry to it. It now has one scene for after Kristallgrottan and one for after the cloud.
+  - "Som om någon vill se något i mörkret … Intressant!" could come right after the cloud explained everything. It now
+    waits for the open sky and is skipped once the cloud is met.
+  - Tordyveln talked about his "new" ball while the egg was still in the old one, and lost two balls without noticing.
+- **One real puzzle hole.** A running jump passed the closed gate in Kristallgrottan: the sim checks walls only on the
+  ground and in water. K3 was skipped and its egg stayed dark. The same jump, or a scene starting at the exit, could
+  leave the forest page (22 rescues in the random runs). Walls now hold in the air (`walls()` in
+  `src/ground-guard.mjs`, shared with Äventyr 1), and the forest got a wall at its east end. `src/sim.mjs` is unchanged.
+- **Help and goals.** Inside the mountain the hints follow the way up instead of sending the player out for an egg, and
+  the goal changes inside the mountain and on the top.
+- **Lines that never played.** "Dra i lianen" (only on coming back), Skatan's thanks, and "Alla tre lyser" (lost to the
+  thought just before it in a gallop). Also new: the coin found first now leads to Skatan, a line when the sköldhäst
+  stands in plain sight of the shy flowers, Tordyveln's own lines in the mountain, and a pointer after a ring current.
+- **Small payoffs.** "Den kommer alltid. Tror jag." comes back when the moon rises, and the crying Skatan heard is
+  heard for ourselves just before the top. Klo no longer talks about the stopwatch he gave away.
+- **Checked and fine, unchanged:** K2's three currents are a real choice, P2, P3, P4, K1, K2, the spring, T2 and the
+  dark passage cannot be bypassed (60 random runs each), nothing gets stuck in free play on any page (104 runs of 80 s),
+  every way back works, and the wind only moves a reader 0.5 lengths. T2 needs about 1.8 lengths of run-up, with a
+  2.4 s flash and under 1 s to the edge.
+- **Verification:** `npm test` passes (407). New `tests/skoldhast-a2-order.test.mjs` holds a second robot that goes from
+  the lantern straight to the cloud and then back for everything else, to the hatching; 10 of its 11 tests failed on the
+  old logic, and the last was rewritten until it did too. `skoldhast-a2.mjs`, `skoldhast-adventures.mjs` and
+  `skoldhast-launch.mjs` pass in a real browser. The gate, K1, the crown after the cloud, the goal note and T2 were also
+  played with the real keyboard and read on screen. The robot's length is now 4.9 min and 167 boxes.
+- **Setup note:** a fresh clone needs `npm ci`, or two test files fail on a missing package. The browser checks need
+  `playwright`, which is not in `package.json`: install it outside the repo and set `NODE_PATH`.
+- **Known limits:** a child's real play is still unmeasured. `sourceDark` and `GOALS.peakDark` are unreachable today
+  (the crown lies behind the seeds); they are harmless and were left in.
+- **Frågor till Pappa:** K1 is solved by one gallop over the plates (a test says so on purpose). Is that easy enough, or
+  should it ask more?
+
 ## Bug audit: falling through the ground, and Äventyr 2's arrival (4 November, evening)
 
 Pappa found places where the sköldhäst falls straight through the ground, and wanted the intro fixed where it

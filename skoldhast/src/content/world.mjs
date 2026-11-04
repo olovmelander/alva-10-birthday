@@ -105,6 +105,10 @@ SCENES.land = {
     ],
     walls: [
         { id: 'gate', x: h(115.2), y0: h(-2.5), y1: h(0.2), when: '!gate_open', balk: 'gate' },
+        // the first minutes: the map's rule is shown at the beach and carries the whole story, so the
+        // sköldhäst does not leave Klo before that (only westward; older saves past here are never held)
+        { id: 'klo-watch', x: h(92.4), y0: h(-2.5), y1: h(0.5), dir: -1, when: ['!klo_hidden', '!note1_read', '!p1_inked'], balk: 'kloWatch' },
+        { id: 'klo-hole', x: h(92.4), y0: h(-2.5), y1: h(0.5), dir: -1, when: ['klo_hidden', '!rule_demo', '!note1_read', '!p1_inked'], balk: 'kloHole' },
         { id: 'west-paper', x: h(-0.6), y0: h(-8), y1: h(1), balk: 'paper' },
         { id: 'east-end', x: h(118.4), y0: h(-4), y1: h(1), when: '!gate_open' }
     ],
@@ -332,7 +336,7 @@ SCENES.land = {
         { id: 'udden-paper', x0: h(-2), x1: h(12.9), until: 'chapter2_available', instant: true, note: { x: h(10.4), y: h(-4.6) } }
     ],
     exits: [
-        { id: 'to-kelp', x0: h(101.0), x1: h(102.7), action: CONTEXT_LABELS.swimIn, when: 'p2_open', to: 'kelp', spawn: 'fromLand' },
+        { id: 'to-kelp', x0: h(101.0), x1: h(102.7), action: CONTEXT_LABELS.swimIn, when: ['p2_open', 'klo_ja'], to: 'kelp', spawn: 'fromLand' },
         { id: 'to-viken', x0: h(117.8), x1: h(118.6), when: 'gate_open', to: 'viken', spawn: 'fromLand', auto: true }
     ]
 };

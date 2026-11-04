@@ -141,6 +141,7 @@ export function createGame({ released = RELEASED_CHAPTER } = {}) {
             if (!locked && inp.tapHero && !G.player.hidden) neigh();
             const before = { x: G.player.x, y: G.player.y };
             stepPlayer(G.player, simInput, { terrain: G.terrain, flags: G.flags }, dt, events);
+            groundGuard.walls(G, before, events);
             groundGuard.keep(G, before, events);
             groundGuard.net(G, events);
             stepPuzzles(G, events, dt);

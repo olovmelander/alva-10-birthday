@@ -135,3 +135,60 @@ read. All the changes are in `adventures/adventure-2/content/sv.mjs` unless note
 - "Stora språnget i skogen".
 
 Every line is now ≤ 100 characters.
+
+## The play-order audit (4 November, night)
+
+Pappa asked to investigate the story again and to check that every puzzle and the red thread work as intended. The
+audits above read the adventure in the one order the robot plays. The adventure is open, so this one tested the others.
+
+### How it was checked
+
+- **Other orders:** a second robot plays from the lantern straight up to the cloud and then back for everything else,
+  to the hatching. Shorter routes cover the dark cave before the lantern, the coin before Skatan, and the crown after
+  Kristallgrottan. Every line was read in play order.
+- **Random players:** 60 runs of 50 s at each of nine puzzle gates, and 104 runs of 80 s of free play over all pages.
+- **Line coverage:** every line in `STORY` was compared with what the robot actually said.
+- **Measurements:** where a hidden shell ends up from every point of Kristallsjön, the run-up T2 needs, how far the wind
+  moves someone reading a dialogue, and every way back.
+- **Real browser:** the gate, K1, the crown after the cloud, the goal note and T2, with the real keyboard, read on screen.
+
+### The red thread
+
+| Found | Fixed |
+| --- | --- |
+| The crown after the summit replayed the discovery: Mira asked if it was her cloud after saying sorry to it, and Tukankrabban called the way in a rumour. | `sourceAfter` is a view with the cloud safe, and `sourceLate` covers the crown after Kristallgrottan. |
+| The lightning clue ("Som om någon vill se något i mörkret") could come right after the cloud had answered it, or inside the mountain ("lyser upp hela skogen"). | It waits for the open sky, and is skipped once the cloud is met. |
+| With the egg still in his earth ball, Tordyveln talked about his "new" ball in the mountain. Later he lost the old ball as if nothing had happened. | `glitterEarly` and `washedLate`. In the mountain he talks about the glitter ball, not the forest. |
+| Klo said "Stoppuret tickar lika fort som mitt hjärta" after giving the stopwatch away. | "Mitt hjärta tickar som ett stoppur. Fast stoppuret har hon nu." |
+| The discovery at the cave was told twice for someone turned back by the dark. | `caveLitBack`. |
+| The falls repeated what the crown had just said about the way in. | `forsKnown`. |
+| The coin found before Skatan never led to the trade. | `magpieCoin`: "Något som glänser mer? Vi har ju mitt guldmynt!" |
+| "Den kommer alltid. Tror jag." was never paid off. | Tukankrabban says it again when the moon rises. |
+| Skatan's crying cloud was only a clue in the journal. | It is heard just before the top, after the bridge of light. |
+
+### Puzzles and flow
+
+| Found | Fixed |
+| --- | --- |
+| **A running jump passed the closed gate (K3).** The sim checks explicit walls only on the ground and in water. The puzzle was skipped, and its egg stayed dark behind the player. 17 % of random runs got through. | `walls()` in `src/ground-guard.mjs`: walls hold in the air too, and the gate says "Porten är stängd." |
+| The same jump passed the forest's west page edge, and a scene starting at its east exit carried the sköldhäst off the page (22 rescues). | The same guard, and a wall at the forest's east end. |
+| Inside the mountain the hints sent the player back out for an egg, and on the mountain top the goal still said to get up there. | `peakStep` follows the way up. New goals: `peakInside`, and `summit` with its reason. |
+| Tukankrabban's request for the vine played only on coming back, and she stands on the far side. | It plays as soon as the egg is taken: "Vi kommer inte över!" |
+| "Alla tre lyser" was lost to the thought before it in a gallop. It is the moment the bridge appears. | The last plate's thought cannot be dropped. |
+| Skatan's thanks could never be heard: the talk ended with the trade. | She can be talked to until she leaves for the nest. |
+| Hiding at the surface works at the falls and the whirlpool, but in Kristallsjön it always means a ring current, even over the white crystal. Hiding in plain sight beside the flowers gave no reaction. | The world is right, so the words help: the ring's thought says to swim down and choose, and `seedsWatched` tells why the flowers stay shut. |
+
+### Checked, and left as it was
+
+- K2 is a real choice: from the bottom, the blue and green crystals loop and the rest of the floor rides the white current.
+- P2, P3, P4, K1, K2, the spring, T2 and the dark passage held against every random run.
+- Nothing got stuck in free play. Every way back works: out of the cave, over the river, under the rock wall, down the
+  spring.
+- The wind moves someone reading a dialogue only 0.5 lengths.
+- T2 is fair: about 1.8 lengths of run-up, a 2.4 s flash, and under a second to the edge. Too close gives "För långsamt!".
+- "Strömmen längs botten …" does play, for a shell left to drift. The robot came out of its shell too early to hear it.
+
+### Not changed
+
+`sourceDark` and `GOALS.peakDark` cannot be reached today, because the crown lies behind the seeds, so the lantern
+always comes first. They are harmless and stay.

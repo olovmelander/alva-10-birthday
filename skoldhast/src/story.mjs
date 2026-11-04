@@ -111,7 +111,7 @@ export function createStory(G, io) {
         klo(props) { Object.assign(G.actors.klo, props); },
         async appear(id, props) {
             const a = G.actors[id];
-            Object.assign(a, props, { visible: true, scene: props.scene || G.sceneId, pop: 1 });
+            Object.assign(a, id === 'klo' ? { inHole: false } : null, props, { visible: true, scene: props.scene || G.sceneId, pop: 1 });
             io.audio?.sfx(id === 'klo' ? 'crabclick' : 'rustle');
             await G.wait(0.4);
         },
@@ -276,6 +276,8 @@ export function createStory(G, io) {
     beat('k1_ja', {
         when: () => inScene('land') && F.has('klo_hidden') && G.player.hidden && G.player.hide > 0.95 && Math.abs(P().x - G.sceneDef.spots.kloHole.x) < h(3),
         async run(s) {
+            const klo = G.actors.klo, hole = G.sceneDef.spots.kloHole;
+            if (klo.scene !== 'land' || Math.abs(klo.x - hole.x) > h(2)) Object.assign(klo, hole, { scene: 'land', visible: true, walk: null, inHole: true, pose: 'peek' });
             await s.wait(1.2);
             G.actors.klo.inHole = false; G.actors.klo.pose = 'signs';
             s.sfx('crabclick');

@@ -166,7 +166,8 @@ come back every few seconds.
    wants to see; the storm grows when it is darkest; the cloud cries; the storm comes from Åsktoppen;
    a moonshine seed is a lantern; the cloud is afraid of the dark; the moon.
 5. **The crown.** The storm swirls round Åsktoppen. Mira: "Är det mitt moln som stormar?" The goal becomes the
-   peak; without the lantern, the way in is dark and the next goal says so.
+   peak. The crown lies behind the seeds, so the lantern is always found first. It is optional for the mountain:
+   climbed after Kristallgrottan or after the cloud, it says only what is still news.
 6. **Kristallgrottan and Åsktoppen.** The cave is lit by the lantern; Tordyveln turns up with his glitter
    ball; the spring throws them up the mountain; in the wind Klo holds Tukankrabban's claw ("Min hjälte!");
    Mira's lightning draws the bridge.

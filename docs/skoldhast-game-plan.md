@@ -1017,6 +1017,9 @@ Kelpskogen (kelp entry, Mörka valvet, Kelphjärtat; Veckmuren along its seaward
   - Klippudden is only covered if that content is genuinely unreleased. Once released, the full land route
     including P4 is open from the start, regardless of cave progress. The underwater chapter reveal still
     introduces the paths beyond the kelp entry toward Mörka valvet and Kelphjärtat.
+  - The one exception is the first minutes: the sköldhäst does not go west past the dunes, or in through
+    Vattenporten, until Klo has shown the map's rule at the beach, because the whole story stands on it. It says
+    why as a thought. A save that has already read the note or inked the arch is never held.
   - `?skoldhast-dev` shows unreleased work.
 
 | Chapter | Places | Required | Ends on | Estimate |
