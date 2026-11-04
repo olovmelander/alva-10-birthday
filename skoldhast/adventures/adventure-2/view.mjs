@@ -15,6 +15,7 @@
  */
 import { HL, cond, heightOn } from '../../src/sim.mjs';
 import { pencilStyle, pencilPixi, raggedBand, resampleX } from '../../src/pencil-style.mjs';
+import { createAir, MOODS } from '../../src/atmosphere.mjs';
 import { createKlo } from '../../src/klo.mjs';
 import { createTukan, createMagpie, createBeetle, createBall, createCloud, createEgg, createHatchling, createCoin, createNest, createHearts, PAL, INK } from './characters.mjs';
 import { eggState, ballPose, glitterPose } from './puzzles.mjs';
@@ -58,7 +59,9 @@ export function createView(PIXI, app, { assets, G, heroFactory }) {
     const farLayer = new PIXI.Container();
     const world = new PIXI.Container(); world.label = 'world';
     const overlay = new PIXI.Container();
-    root.addChild(skyLayer, farLayer, world, overlay);
+    const atmoBack = new RAW.Container(), atmoFront = new RAW.Container();
+    root.addChild(skyLayer, farLayer, atmoBack, world, atmoFront, overlay);
+    const atmo = createAir(RAW, app, { back: atmoBack, front: atmoFront });
     const L = {};
     for (const name of ['back', 'water', 'terrain', 'mid', 'objects', 'actors', 'hero', 'waterFront', 'fore', 'fx']) {
         L[name] = new PIXI.Container(); L[name].label = 'w-' + name; world.addChild(L[name]);
@@ -203,7 +206,7 @@ export function createView(PIXI, app, { assets, G, heroFactory }) {
     function farSet(bands, pars) {
         return bands.map(({ c, W }, i) => {
             const b = c.getLocalBounds();
-            const tex = app.renderer.generateTexture({ target: c, resolution: 0.75 });
+            const tex = app.renderer.generateTexture({ target: c, resolution: 1.25 });
             c.destroy();
             const t = new RAW.TilingSprite({ texture: tex, width: 100, height: tex.height });
             farLayer.addChild(t);
@@ -280,6 +283,7 @@ export function createView(PIXI, app, { assets, G, heroFactory }) {
     function buildScene(id) {
         clearScene();
         const def = G.scenes[id];
+        atmo.setMood(moodFor(def.sky, G.storm ?? 1), { instant: true });
         S = { id, def, actors: [], eggs: new Map(), surfaces: new Map(), when: [], dashed: new Map(), anim: [] };
         const bottom = def.bounds.y1 + h(4);
         // water bodies (behind the ground, so the bed hides what is under it)
@@ -490,18 +494,95 @@ export function createView(PIXI, app, { assets, G, heroFactory }) {
 
     // places drawn for the story: trees, the cave, the waterfall, the roots, the stash
     function tree(gr, x, y, { trunk = h(0.32), height = h(4.2), crown = h(1.6), color = 0x2f5a3e, hi = 0x4f7c50, lean = 0 } = {}) {
-        const topX = x + lean;
-        gr.moveTo(x - trunk / 2, y + 6).lineTo(topX - trunk * 0.3, y - height).lineTo(topX + trunk * 0.3, y - height).lineTo(x + trunk / 2, y + 6).closePath()
-            .fill(material('bark')).stroke(pen.line(0x3e2814, 2));
-        for (let k = 0; k < 4; k++) gr.moveTo(x - trunk * 0.2 + k * 6, y - height * (0.2 + k * 0.18)).lineTo(x - trunk * 0.1 + k * 6, y - height * (0.3 + k * 0.18)).stroke(pen.line(0x4e331c, 1.4, 0.6));
-        const blobs = 6;
-        for (let k = 0; k < blobs; k++) {
-            const a = (k / blobs) * Math.PI * 2, r = crown * (0.45 + hash(x + k, 41) * 0.2);
-            gr.circle(topX + Math.cos(a) * crown * 0.55, y - height - crown * 0.2 + Math.sin(a) * crown * 0.35, r).fill(pen.fill(color));
+        // A tree drawn in pencil: a tapered trunk with bark and a shadowed side, roots, a few limbs, and a
+        // crown of leaf clusters in three depths: dark behind, the leaf colour, and light on the moon's side
+        // (upper right), each cluster's edge scalloped into leaves.
+        const topX = x + lean, seed = x * 0.013;
+        const r = (k) => hash(seed + k, 41);
+        const back = mixColor(color, 0x05080a, 0.55), lit = mixColor(hi, 0xa8c890, 0.35), rim = mixColor(hi, 0xe8f2d4, 0.5);
+        const bark = mixColor(0x7c5a3c, 0x3a2a1c, 0.25);
+        const tb = trunk / 2, tt = trunk * 0.32;
+        const trunkPts = [[x - tb - trunk * 0.35, y + 6], [x - tb, y - height * 0.12], [topX - tt, y - height], [topX + tt, y - height], [x + tb, y - height * 0.12], [x + tb + trunk * 0.4, y + 6]];
+        poly(gr, trunkPts).fill(pen.material('mat-wood', 1, bark));
+        poly(gr, [[x + tb * 0.15, y + 6], [topX + tt * 0.1, y - height], [topX + tt, y - height], [x + tb, y - height * 0.12], [x + tb + trunk * 0.4, y + 6]]).fill({ color: 0x1d140c, alpha: 0.38 });
+        for (let k = 0; k < 7; k++) {
+            const u = 0.1 + k * 0.12, bx = lerp(x, topX, u) + (r(k) - 0.5) * trunk * 0.5, by = y - height * u;
+            gr.moveTo(bx, by).quadraticCurveTo(bx + 4, by - height * 0.05, bx - 2, by - height * 0.1).stroke(pen.line(0x2e1d0e, 1.6, 0.55));
         }
-        gr.circle(topX, y - height - crown * 0.25, crown * 0.6).fill(pen.fill(color));
-        gr.ellipse(topX - crown * 0.2, y - height - crown * 0.5, crown * 0.45, crown * 0.22).fill(pen.hatch(hi, 0.8));
+        poly(gr, trunkPts).stroke(pen.line(0x2e1d0e, 2, 0.9));
+        // limbs reaching into the crown
+        for (const [dir, u] of [[-1, 0.78], [1, 0.86], [-1, 0.94]]) {
+            const bx = lerp(x, topX, u), by = y - height * u;
+            gr.moveTo(bx, by).quadraticCurveTo(bx + dir * crown * 0.35, by - crown * 0.25, bx + dir * crown * 0.7, by - crown * 0.55).stroke(pen.line(bark, Math.max(3, trunk * 0.18)));
+        }
+        // the crown: an irregular dome of clusters
+        const cx = topX, cy = y - height - crown * 0.25;
+        const lobes = [];
+        const n = 7 + Math.floor(r(1) * 4);
+        for (let k = 0; k < n; k++) {
+            const a = Math.PI * (1.05 + (k / (n - 1)) * 0.9) + (r(k + 10) - 0.5) * 0.3;
+            const d = crown * (0.45 + r(k + 20) * 0.25);
+            lobes.push([cx + Math.cos(a) * d * 1.15, cy + Math.sin(a) * d * 0.75 + crown * 0.25, crown * (0.42 + r(k + 30) * 0.22)]);
+        }
+        lobes.push([cx, cy - crown * 0.1, crown * 0.62], [cx - crown * 0.4, cy + crown * 0.25, crown * 0.45], [cx + crown * 0.42, cy + crown * 0.22, crown * 0.45]);
+        const scallop = (lx, ly, lr, col, alpha, from, to, step) => {
+            for (let a = from; a <= to; a += step) gr.circle(lx + Math.cos(a) * lr, ly + Math.sin(a) * lr, lr * 0.3).fill(pen.fill(col, alpha));
+        };
+        // depth 1: dark mass behind, with a leafy outline
+        for (const [lx, ly, lr] of lobes) gr.circle(lx, ly + lr * 0.08, lr).fill(pen.fill(back));
+        for (const [lx, ly, lr] of lobes) scallop(lx, ly + lr * 0.08, lr * 0.95, back, 1, 0, Math.PI * 2, 0.55);
+        // depth 2: the leaf colour, a little up and to the light
+        for (const [lx, ly, lr] of lobes) gr.circle(lx + lr * 0.08, ly - lr * 0.08, lr * 0.82).fill(pen.fill(color));
+        for (const [lx, ly, lr] of lobes) scallop(lx + lr * 0.08, ly - lr * 0.08, lr * 0.78, color, 1, Math.PI * 1.0, Math.PI * 2.05, 0.5);
+        // depth 3: light on the upper right of each cluster, hatched, and a rim of single leaves
+        for (const [lx, ly, lr] of lobes) {
+            gr.ellipse(lx + lr * 0.25, ly - lr * 0.3, lr * 0.5, lr * 0.36).fill(pen.hatch(lit, 0.9));
+            scallop(lx + lr * 0.1, ly - lr * 0.12, lr * 0.74, lit, 0.85, Math.PI * 1.5, Math.PI * 1.95, 0.32);
+        }
+        for (let k = 0; k < 10; k++) {
+            const a = Math.PI * (1.45 + r(k + 40) * 0.5), d = crown * (0.85 + r(k + 50) * 0.2);
+            const lx = cx + Math.cos(a) * d * 1.05, ly = cy + Math.sin(a) * d * 0.8, s2 = 5 + r(k + 60) * 6;
+            gr.moveTo(lx - s2, ly).quadraticCurveTo(lx, ly - s2, lx + s2, ly).quadraticCurveTo(lx, ly + s2 * 0.6, lx - s2, ly).fill(pen.fill(rim, 0.9));
+        }
+        // shade under the crown, where it meets the trunk
+        gr.ellipse(cx - crown * 0.05, cy + crown * 0.55, crown * 0.75, crown * 0.18).fill({ color: 0x0b1216, alpha: 0.28 });
     }
+    /** A spruce of the magic forest: a short trunk and jagged tiers, dark on the left, lit on the right. */
+    function conifer(gr, x, y, { height = h(4), width = h(1.6), color = 0x22402f, hi = 0x4f7c50 } = {}) {
+        const seed = x * 0.017, r = (k) => hash(seed + k, 43);
+        const dark = mixColor(color, 0x05080a, 0.5), lit = mixColor(hi, 0xa8c890, 0.3);
+        gr.rect(x - width * 0.06, y - height * 0.2, width * 0.12, height * 0.2 + 6).fill(pen.material('mat-wood', 1, 0x5a3e28));
+        const tiers = 5 + Math.floor(r(1) * 3);
+        for (let k = 0; k < tiers; k++) {
+            const u0 = 0.12 + k / tiers * 0.8, u1 = u0 + 1.6 / tiers;
+            const yb = y - height * u0, yt = y - height * Math.min(1, u1), w = width * (1 - u0 * 0.85) * (0.9 + r(k + 5) * 0.2);
+            const pts = [[x, yt]];
+            const teeth = 4 + Math.floor(w / 26);
+            for (let i = 0; i <= teeth; i++) {
+                const u = i / teeth, px = x + w * (u * 2 - 1) * 0.5;
+                pts.push([px + (i % 2 ? 0 : (r(k * 9 + i) - 0.5) * 8), yb + (i % 2 ? -h(0.12) : h(0.04) + r(k * 7 + i) * h(0.06))]);
+            }
+            pts.splice(1, 0, [x + w * 0.5, yb]); pts.push([x - w * 0.5, yb]);
+            const body = [[x, yt], [x + w * 0.5, yb], ...pts.slice(2, -1).reverse(), [x - w * 0.5, yb]];
+            poly(gr, body).fill(pen.fill(color));
+            poly(gr, [[x, yt], [x - w * 0.5, yb], [x - w * 0.05, yb - h(0.05)]]).fill(pen.fill(dark, 0.85));
+            poly(gr, [[x, yt], [x + w * 0.44, yb - h(0.04)], [x + w * 0.12, yb - h(0.1)]]).fill(pen.hatch(lit, 0.9));
+            lineAlong(gr, [[x - w * 0.5, yb], [x, yt], [x + w * 0.5, yb]]).stroke(pen.line(0x0e1a14, 1.6, 0.7));
+        }
+    }
+
+    // soft mist lying between the trees and the path, and the dark plants nearest the viewer
+    let mistTex = null;
+    function mist() {
+        if (mistTex || typeof document === 'undefined') return mistTex;
+        const cv = document.createElement('canvas'); cv.width = 256; cv.height = 64;
+        const c = cv.getContext('2d'), g2 = c.createRadialGradient(128, 32, 4, 128, 32, 128);
+        g2.addColorStop(0, 'rgba(255,255,255,0.9)'); g2.addColorStop(0.5, 'rgba(255,255,255,0.35)'); g2.addColorStop(1, 'rgba(255,255,255,0)');
+        c.setTransform(1, 0, 0, 0.25, 0, 24); c.fillStyle = g2; c.fillRect(0, -96, 256, 256);
+        mistTex = RAW.Texture.from(cv);
+        return mistTex;
+    }
+
     function buildPlaces(def) {
         const back = new PIXI.Graphics(), fore = new PIXI.Graphics(), mid = new PIXI.Graphics();
         L.back.addChild(back); L.mid.addChild(mid); L.fore.addChild(fore);
@@ -949,6 +1030,11 @@ export function createView(PIXI, app, { assets, G, heroFactory }) {
                 const y = groundY(x);
                 if (y === null) continue;
                 const k = row ? 1 : 0.62;
+                if (hash(x, 99) > (def.id === 'skog' ? 0.5 : 0.68)) {
+                    conifer(trees, x, y + (row ? 10 : -h(0.05)), { height: h((3.4 + hash(x, 94) * 2.6) * k), width: h((1.3 + hash(x, 95) * 0.7) * k),
+                        color: row ? 0x22402f : 0x243f45, hi: row ? 0x4f7c50 : 0x46676d });
+                    continue;
+                }
                 tree(trees, x, y + (row ? 10 : -h(0.05)), {
                     trunk: h((0.3 + hash(x, 93) * 0.2) * k), height: h((2.6 + hash(x, 94) * 2.2) * k), crown: h((1.2 + hash(x, 95) * 0.8) * k),
                     color: row ? (hash(x, 96) > 0.5 ? 0x284a3c : 0x2f5545) : 0x2c4a50, hi: row ? 0x4f7c50 : 0x46676d, lean: (hash(x, 98) - 0.5) * h(0.4)
@@ -956,6 +1042,27 @@ export function createView(PIXI, app, { assets, G, heroFactory }) {
             }
         }
         L.back.addChildAt(trees, 0);
+        const mt = mist();
+        if (mt) for (const s of ground) for (let x = s.pts[0][0]; x < s.pts.at(-1)[0]; x += h(6) + hash(x, 141) * h(5)) {
+            const m = new RAW.Sprite(mt); m.anchor.set(0.5, 0.6);
+            m.width = h(8 + hash(x, 142) * 6); m.height = h(1.3 + hash(x, 143) * 0.8); m.tint = 0xa4a6d4; m.alpha = 0.32;
+            m.position.set(x, heightOn(s.pts, x) - h(0.25)); L.back.addChild(m);
+            S.anim.push({ kind: 'mist', s: m, x0: x, o: hash(x, 144) * 6 });
+        }
+        // dark plants right in front: they frame the page and give it depth
+        for (const s of ground) for (let x = s.pts[0][0] + h(2); x < s.pts.at(-1)[0] - h(1); x += h(5) + hash(x, 151) * h(5)) {
+            if (keep.some(([a, b]) => x > a - h(1) && x < b + h(1))) continue;
+            if ((def.waters || []).some(w => x > w.x0 - h(1) && x < w.x1 + h(1))) continue;
+            const y = heightOn(s.pts, x), pl = new PIXI.Graphics(), big = 1.6 + hash(x, 152) * 0.9;
+            for (let k = -4; k <= 4; k++) {
+                const a = k * 0.28, len = (60 + hash(x + k, 153) * 40) * big;
+                pl.moveTo(0, 0).quadraticCurveTo(Math.sin(a) * len * 0.6, -len * 0.7, Math.sin(a) * len, -len * Math.cos(a) * 0.85)
+                    .stroke(pen.line(k % 2 ? 0x122218 : 0x1a2e22, 5 * big * 0.7, 0.96));
+            }
+            if (hash(x, 154) > 0.5) for (let k = 0; k < 3; k++) pl.ellipse(-30 + k * 30, -10 - k * 6, 26 * big * 0.6, 12 * big * 0.6).fill(pen.fill(0x15281d, 0.95));
+            pl.position.set(x, y + h(0.42)); L.fore.addChild(pl);
+            S.anim.push({ kind: 'sway', c: pl, o: hash(x, 155) * 6 });
+        }
     }
 
     function buildObjects(def) {
@@ -1031,6 +1138,8 @@ export function createView(PIXI, app, { assets, G, heroFactory }) {
         world.position.set(Math.round(W / 2 - cam.x * cam.zoom + shx), Math.round(H / 2 - cam.y * cam.zoom));
 
         drawSky(W, H, night, t, dt);
+        atmo.setMood(moodFor(S.def.sky, stormShown));
+        atmo.update(dt, { camX: cam.x, camY: cam.y, zoom: cam.zoom, W, H, t, lessMotion: rm });
         const farScale = clamp(cam.zoom * 1.5, 0.45, 1.15);
         const skyKind = S.def.sky;
         for (const f of farForest) f.t.visible = skyKind === 'river' || skyKind === 'forest';
@@ -1066,6 +1175,8 @@ export function createView(PIXI, app, { assets, G, heroFactory }) {
             else if (a.kind === 'fall') { const u = (t * (rm ? 0.6 : 1.8) + a.o) % 1; a.c.y = lerp(a.y0, a.y1, u); a.c.alpha = 0.3 + 0.6 * Math.sin(u * Math.PI); }
             else if (a.kind === 'twinkle') { a.s.alpha = 0.3 + 0.7 * Math.max(0, Math.sin(t * 2 + a.o)) ** 4; }
             else if (a.kind === 'foam' && !rm && Math.random() < dt * 14) emit('drop', a.x + (Math.random() - 0.5) * h(1.4), a.y, 1, { speed: 260, cone: 1.2, life: 0.6 });
+            else if (a.kind === 'mist') { a.s.x = a.x0 + Math.sin(t * 0.05 + a.o) * h(1.2) * (rm ? 0.2 : 1); a.s.alpha = 0.26 + 0.08 * Math.sin(t * 0.2 + a.o); }
+            else if (a.kind === 'sway') a.c.rotation = rm ? 0 : Math.sin(t * 0.9 + a.o) * 0.025 + (stormShown > 0.5 ? Math.sin(t * 2.1 + a.o) * 0.02 : 0);
             else if (a.kind === 'along') {
                 const d = ((t * a.speed * (rm ? 0.5 : 1) / a.len + a.o) % 1) * a.len;
                 let i = 1; while (i < a.acc.length - 1 && a.acc[i] < d) i++;
@@ -1167,6 +1278,15 @@ export function createView(PIXI, app, { assets, G, heroFactory }) {
         const under = snap.mode === 'swim' && snap.submerge > 0.7;
         rain.visible = stormShown > 0.03 && S.def.sky !== 'cave';
         const nRain = Math.round(drops.length * stormShown * (rm ? 0.35 : 1));
+        if (rain.visible && !rm && !under) {
+            // drops hitting the ground in view
+            const vw = W / cam.zoom;
+            for (let k = 0; k < 3; k++) {
+                if (Math.random() > dt * 26 * stormShown) continue;
+                const x = cam.x + (Math.random() - 0.5) * vw, y = groundY(S.def, x);
+                if (y !== null) emit('drop', x, y - 2, 2, { speed: 140, cone: 1.3, life: 0.3, gravity: 900, spread: 6, spreadY: 2, scale: 0.6 });
+            }
+        }
         for (let i = 0; i < drops.length; i++) {
             const d = drops[i], s = d.s;
             s.visible = i < nRain;
@@ -1386,6 +1506,21 @@ export function createView(PIXI, app, { assets, G, heroFactory }) {
         r.layer.destroy({ children: true });
     }
 
+    // the air of each page: the storm night until the moon, the cave, the mountain top
+    const MOOD_A2 = {
+        storm: MOODS.storm, moonlit: MOODS.moonlit,
+        forestStorm: { ...MOODS.storm, motes: { ...MOODS.storm.motes, n: 18 } },
+        forestMoon: { ...MOODS.moonlit, motes: { ...MOODS.moonlit.motes, n: 36 } },
+        cave: { ...MOODS.cave, vignette: { ...MOODS.cave.vignette, alpha: 0.2 } }, peak: MOODS.peak
+    };
+    function moodFor(sky, stormLevel) {
+        if (sky === 'cave') return MOOD_A2.cave;
+        if (sky === 'peak') return MOOD_A2.peak;
+        const moon = G.flags.has('moon');
+        if (sky === 'forest') return moon ? MOOD_A2.forestMoon : MOOD_A2.forestStorm;
+        return moon ? MOOD_A2.moonlit : MOOD_A2.storm;
+    }
+
     function drawSky(W, H, night, t, dt) {
         skyG.clear();
         const kind = S.def.sky, pal = kind === 'cave' ? SKY.cave : kind === 'peak' ? SKY.peak : SKY.storm;
@@ -1455,6 +1590,7 @@ export function createView(PIXI, app, { assets, G, heroFactory }) {
     function lightning(strength = 0.6) {
         if (G.lessMotion) strength *= 0.35;
         flash = Math.max(flash, strength);
+        atmo.flash(strength);
         if (S && S.def.sky !== 'cave' && !G.lessMotion) {
             // a jagged bolt across the sky
             const W = app.screen.width, H = app.screen.height;
@@ -1620,6 +1756,7 @@ export function createView(PIXI, app, { assets, G, heroFactory }) {
             hero?.destroy?.(); hero = null;
             for (const t of Object.values(TX)) t.destroy(true);
             gustTex.destroy(true); shadeTex?.destroy(true);
+            atmo.destroy();
             for (const f of farSprites) f.t.texture.destroy(true);
             root.destroy({ children: true });
         }
