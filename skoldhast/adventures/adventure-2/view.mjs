@@ -95,6 +95,14 @@ export function createView(PIXI, app, { assets, G, heroFactory, eggTarget = null
         streak: texFrom(g => g.moveTo(0, -14).lineTo(-3, 14).stroke({ width: 2, color: 0xc9d6ee, alpha: 0.85, cap: 'round' }), 10, 32),
         drop: texFrom(g => g.circle(0, 0, 4).fill({ color: 0xbcd6ea, alpha: 0.9 }), 10, 10),
         star: texFrom(g => { g.moveTo(-8, 0).lineTo(8, 0).moveTo(0, -8).lineTo(0, 8).stroke({ width: 2.2, color: 0xfff6cf, cap: 'round' }); g.circle(0, 0, 2).fill(0xffffff); }, 20, 20),
+        // Alva's stars: five points, as she draws them, pale gold with a pencil edge and a soft halo (they were thick
+        // flat yellow crosses, 5 November)
+        alvaStar: texFrom(g => {
+            for (let i = 5; i >= 1; i--) g.circle(0, 0, 6 + i * 3.2).fill({ color: 0xfff1b0, alpha: 0.06 });
+            const pts = []; for (let i = 0; i < 10; i++) { const a = -Math.PI / 2 + i * Math.PI / 5, r = i % 2 ? 4.6 : 11; pts.push(Math.cos(a) * r, Math.sin(a) * r); }
+            g.poly(pts).fill({ color: 0xffe9a0 }).stroke({ width: 1.4, color: 0x8a6a2a, alpha: 0.85 });
+            g.circle(-1.5, -2, 1.6).fill({ color: 0xffffff, alpha: 0.9 });
+        }, 44, 44),
         mote: texFrom(g => { for (let i = 6; i >= 1; i--) g.circle(0, 0, i * 2.2).fill({ color: 0xfff1b0, alpha: 0.07 }); g.circle(0, 0, 2.4).fill({ color: 0xfffbe6 }); }, 30, 30),
         leaf: texFrom(g => g.moveTo(-7, 0).quadraticCurveTo(0, -6, 7, 0).quadraticCurveTo(0, 6, -7, 0).fill({ color: 0x6f9a4f }).stroke({ width: 1, color: 0x3f5f33 }), 18, 14),
         bubble: texFrom(g => g.circle(0, 0, 4.5).stroke({ width: 1.3, color: 0xcfe6ef, alpha: 0.9 }), 12, 12),
@@ -150,7 +158,7 @@ export function createView(PIXI, app, { assets, G, heroFactory, eggTarget = null
     // the stars Alva draws round Mira's moon
     const alvaStars = new RAW.Container(); alvaStars.visible = false; moonLayer.addChild(alvaStars);
     const ALVA_STARS = [[-2.6, 0.3, 1.9], [-1.4, -0.9, 1.1], [1.5, -0.7, 1.3], [2.3, 0.6, 1.0], [-3.6, -0.6, 0.9], [0.4, 1.7, 0.8]];
-    for (const [dx, dy, k] of ALVA_STARS) { const s = new RAW.Sprite(TX.star); s.anchor.set(0.5); s._d = [dx, dy, k]; alvaStars.addChild(s); }
+    for (const [dx, dy, k] of ALVA_STARS) { const s = new RAW.Sprite(TX.alvaStar); s.anchor.set(0.5); s._d = [dx, dy, k]; alvaStars.addChild(s); }
     const starsState = { shown: 0 };
     const stormClouds = new PIXI.Container(); skyLayer.addChild(stormClouds);
     const cloudShapes = [];
@@ -857,7 +865,16 @@ export function createView(PIXI, app, { assets, G, heroFactory, eggTarget = null
             lineAlong(fore, cliff.slice(2).concat([cliff[0]])).stroke(pen.line(INK, 2.4));
             const falls = new PIXI.Container(); L.waterFront.addChild(falls);
             const fg = new PIXI.Graphics();
-            fg.moveTo(h(87.2), h(-7.5)).lineTo(h(88.8), h(-7.5)).lineTo(h(89.0), 0).lineTo(h(87.0), 0).closePath().fill({ color: 0xbcd8ea, alpha: 0.5 });
+            // the sheet of water: its edges waver as falling water does, fuller at the lip (5 November: it was a ruled
+            // pale strip with straight white edges)
+            const edgeL = [], edgeR = [];
+            for (let y = -7.5; y <= 0.001; y += 0.25) {
+                const u = (y + 7.5) / 7.5;
+                edgeL.push([h(87.2 - 0.2 * u) + Math.sin(y * 4.1) * 6 + Math.sin(y * 9.3) * 3, h(y)]);
+                edgeR.push([h(88.8 + 0.2 * u) + Math.sin(y * 3.7 + 1) * 6 + Math.sin(y * 8.1) * 3, h(y)]);
+            }
+            poly(fg, [...edgeL, ...edgeR.slice().reverse()]).fill({ color: 0xbcd8ea, alpha: 0.5 });
+            poly(fg, [...edgeL.slice(0, 8), ...edgeR.slice(0, 8).reverse()]).fill({ color: 0xe8f4fa, alpha: 0.35 }); // fuller where it pours over
             // the falling water drawn in long wavering strokes, lighter at the lip
             for (let k = 0; k < 14; k++) {
                 const x = h(87.25 + k * 0.11 + (hash(k, 59) - 0.5) * 0.05);
@@ -866,8 +883,12 @@ export function createView(PIXI, app, { assets, G, heroFactory, eggTarget = null
                 fg.stroke(pen.line(k % 3 ? 0xe8f4fa : 0x8fb6d0, 1.6 + (k % 2), 0.55));
             }
             fg.rect(h(87.2), h(-7.6), h(1.6), h(0.35)).fill({ color: 0xffffff, alpha: 0.35 });
-            fg.moveTo(h(87.2), h(-7.5)).lineTo(h(87.0), 0).moveTo(h(88.8), h(-7.5)).lineTo(h(89.0), 0).stroke(pen.line(0xe8f4fa, 3, 0.8));
+            lineAlong(fg, edgeL).stroke(pen.line(0xe8f4fa, 2.6, 0.75)); lineAlong(fg, edgeR).stroke(pen.line(0xe8f4fa, 2.6, 0.75));
+            // the lip: the water curls over the cliff's edge
+            fg.moveTo(h(87.0), h(-7.6)).quadraticCurveTo(h(88.0), h(-7.95), h(89.0), h(-7.6)).stroke(pen.line(0xf2f8fb, 5, 0.85));
             for (let k = 0; k < 7; k++) fg.circle(h(86.9 + k * 0.36), 6 + (k % 2) * 8, 16 + (k % 3) * 6).fill(pen.fill(0xf2f8fb, 0.85));
+            // spray mist rising at the foot
+            for (let k = 0; k < 9; k++) fg.circle(h(86.6 + hash(k, 57) * 2.8), -h(0.25 + hash(k, 58) * 0.9), 14 + hash(k, 56) * 22).fill({ color: 0xe8f2f8, alpha: 0.13 });
             falls.addChild(fg);
             for (let k = 0; k < 10; k++) {
                 const st = new PIXI.Graphics();
@@ -1208,10 +1229,23 @@ export function createView(PIXI, app, { assets, G, heroFactory, eggTarget = null
         // the eye of the storm: a ring of clouds turning round the calm summit
         S.eye = { c: new PIXI.Container(), puffs: [], x: def.spots.cloud.x, y: def.spots.cloud.y - h(0.6) };
         L.back.addChild(S.eye.c);
+        // each puff a little storm cloud of its own: lobes, a pale lit rim on top, a shaded belly, sizes that vary
+        // (they were flat identical discs that read as overlapping coins, 5 November)
         for (let k = 0; k < 16; k++) {
-            const pf = new PIXI.Graphics(), r = h(0.7 + hash(k, 141) * 0.5);
-            pf.circle(0, 0, r).fill(pen.fill(k % 2 ? 0x4b4870 : 0x3d3a5e, 0.95)).stroke(pen.line(0x24223a, 2, 0.7));
-            pf.circle(-r * 0.3, -r * 0.35, r * 0.5).fill(pen.hatch(0x8f8cb4, 0.6));
+            const pf = new PIXI.Graphics(), r = h(0.55 + hash(k, 141) * 0.55), body = k % 2 ? 0x4b4870 : 0x3d3a5e;
+            const lobes = [];
+            const n = 4 + Math.floor(hash(k, 142) * 3);
+            for (let i = 0; i < n; i++) {
+                const u = (i + 0.5) / n, lx = (u - 0.5) * r * 2.6, lr = r * (0.55 + Math.sin(u * Math.PI) * 0.5 + hash(k + i, 143) * 0.15);
+                lobes.push([lx, -Math.sin(u * Math.PI) * r * 0.35, lr]);
+            }
+            for (const [lx, ly, lr] of lobes) pf.circle(lx, ly, lr).fill(pen.fill(body, 0.96));
+            pf.ellipse(0, r * 0.35, r * 1.5, r * 0.45).fill(pen.fill(mixColor(body, 0x14121f, 0.45), 0.9)); // the flat dark belly
+            for (const [lx, ly, lr] of lobes) {
+                pf.moveTo(lx - lr * 0.8, ly - lr * 0.45).quadraticCurveTo(lx, ly - lr * 1.12, lx + lr * 0.8, ly - lr * 0.45).stroke(pen.line(0xb8b4dc, 2.6, 0.55));
+                pf.circle(lx - lr * 0.25, ly - lr * 0.3, lr * 0.45).fill(pen.hatch(0x8f8cb4, 0.45));
+            }
+            pf.moveTo(-r * 1.4, r * 0.55).quadraticCurveTo(0, r * 0.85, r * 1.4, r * 0.55).stroke(pen.line(0x24223a, 2, 0.55));
             S.eye.c.addChild(pf); S.eye.puffs.push({ pf, a: k / 16 * Math.PI * 2 });
         }
         S.eyeGlow = glowAt(S.eye.x, S.eye.y, 9, 0xdfe4ff, 0.25, L.back);
@@ -1474,6 +1508,8 @@ export function createView(PIXI, app, { assets, G, heroFactory, eggTarget = null
         }
         if (!skyHatch.texture.width || skyHatch.texture === RAW.Texture.EMPTY) { const ht = T('pencil-hatch'); if (ht) skyHatch.texture = ht; }
         skyHatch.width = W; skyHatch.height = H; skyHatch.tilePosition.x = -cam.x * cam.zoom * 0.05;
+        // the storm's heavy pencil hatching thins out as the storm calms: the moonlit ending is clear
+        skyHatch.alpha = 0.05 + 0.13 * stormShown;
 
         // water light: glints, dimmer in the storm; the moon's path across the river
         if (S.waterLights) for (const wl of S.waterLights) {
@@ -1937,9 +1973,9 @@ export function createView(PIXI, app, { assets, G, heroFactory, eggTarget = null
         alvaStars.children.forEach((s, i) => {
             const [dx, dy, k] = s._d;
             s.position.set(mp.x + dx * mp.r, mp.y + dy * mp.r);
-            s.scale.set(k * mp.r / 26 * (1 + (G.lessMotion ? 0 : 0.12 * Math.sin(t * 2.5 + i))));
+            s.scale.set(k * mp.r / 30 * (1 + (G.lessMotion ? 0 : 0.12 * Math.sin(t * 2.5 + i))));
+            s.rotation = G.lessMotion ? 0 : Math.sin(t * 0.7 + i) * 0.15;
             s.alpha = starsState.shown;
-            s.tint = 0xffefb0;
         });
         // storm clouds drift and thin out
         for (const c of cloudShapes) {
