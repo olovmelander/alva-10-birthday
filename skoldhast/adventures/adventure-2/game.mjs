@@ -155,10 +155,28 @@ export function createGame() {
             const cands = [];
             for (const cp of Object.values(CHECKPOINTS)) if (cp.scene === G.sceneId) cands.push(cp.spot ? sc.spots[cp.spot] : cp.at);
             for (const [k, v] of Object.entries(sc.spots)) if (/^(start|from)/.test(k)) cands.push(v);
+            // never past something still closed (5 November: from Kristallgrottan's shut gate it landed in the spring
+            // beyond it; on Åsktoppen it skipped the bridge and the gap): no refusing edge, unfinished dashed line or
+            // wall between here and there; and a spot of the same kind (swimming or on foot) comes first
+            const T = G.terrain;
+            const shut = (x) => {
+                const dir = Math.sign(x - p.x) || 1, x0 = p.x;
+                for (const e of T.edges || []) {
+                    if (e.kind === 'pass' || Math.abs(p.y - e.y) > (e.dy ?? 90) + 40) continue;
+                    if (dir > 0 ? (e.x > x0 && e.x <= x) : (e.x < x0 && e.x >= x)) return true;
+                }
+                for (const d of T.dashed || []) {
+                    const sx = (dir > 0 ? d.pts[0] : d.pts.at(-1))[0];
+                    if (dir > 0 ? (sx > x0 && sx <= x) : (sx < x0 && sx >= x)) return true;
+                }
+                return !!T.wallBetween?.(x0, x, p.y, dir);
+            };
+            const swimming = p.mode === 'swim';
             let best = null, bd = Infinity;
             for (const c of cands) {
-                if (!c) continue;
-                const d = Math.hypot(c.x - p.x, c.y - p.y);
+                if (!c || shut(c.x)) continue;
+                const same = (c.mode === 'swim') === swimming;
+                const d = Math.hypot(c.x - p.x, c.y - p.y) + (same ? 0 : 40 * HL);
                 if (d > HL * 0.8 && d < bd) { bd = d; best = c; }
             }
             return best;

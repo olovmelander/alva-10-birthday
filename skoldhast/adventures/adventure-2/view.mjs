@@ -382,6 +382,8 @@ export function createView(PIXI, app, { assets, G, heroFactory, eggTarget = null
         if (!S) return;
         // a coin still flying lives in L.fx, which is about to be destroyed: end its flight (and its waiting beat) first
         if (coinFlight) { const c = coinFlight; coinFlight = null; c.done?.(); }
+        // and eggs still flying somewhere end their flights, so a beat waiting for them goes on
+        for (const f of S.flying || []) f.done?.();
         // every scene display (and its actors) lives in these layers; the hero is kept
         for (const l of Object.values(L)) if (l !== L.hero) l.removeChildren().forEach(c => c.destroy({ children: true }));
         parts.length = 0;
@@ -2158,7 +2160,9 @@ export function createView(PIXI, app, { assets, G, heroFactory, eggTarget = null
                 return;
             case 'lightning': lightning(0.9); await waitGame(0.7); return;
             case 'eggsDrop': {
-                const from = { x: S.def.magpie.x, y: S.def.magpie.y - 10 };
+                // from Skatan's nest, or from where the story says (the cloud on Åsktoppen, which has no magpie: it
+                // threw there and the last egg never fell from the cloud, 5 November)
+                const from = data.from || { x: S.def.magpie.x, y: S.def.magpie.y - 10 };
                 const ids = data.ids || [];
                 await Promise.all(ids.map((id, i) => new Promise(done => {
                     const e = createEgg(PIXI, pen, EGG_SCALE); L.fx.addChild(e.view);

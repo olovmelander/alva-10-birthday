@@ -428,7 +428,9 @@ export function createStory(G, io) {
                 await say(STORY.miraFors);
                 await fx('focus', null);
             });
+            if (id === 'klyft' && F.has('p2_bridge')) G.setCheckpoint('west');
             if (id === 'cave') {
+                G.setCheckpoint('cave');
                 if (!F.has('cave_reached')) G.flag('cave_reached');
                 if (intro && !F.has('visited_kristall')) beat(F.has('lantern') ? 'caveLit' : 'caveDark', async () => {
                     stage();

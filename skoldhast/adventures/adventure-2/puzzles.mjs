@@ -156,6 +156,9 @@ export function windAt(G, x, y) {
 export function applyWinds(G, dt, events) {
     const p = G.player;
     const P = G.puz;
+    // while the story holds the controls the wind holds too: at Klippan it used to carry the sköldhäst over the gap
+    // while Alva was still reading "Så långt kan ingen hoppa" (5 November)
+    if (G.busy > 0) { P.carried = 0; return; }
     const w = p.mode === 'ground' ? windAt(G, p.x, p.y) : null;
     if (!w?.dir) P.carried = 0;
     if (!w) return;

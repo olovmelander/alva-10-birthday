@@ -444,7 +444,11 @@ export const CHECKPOINTS = {
     bridgeEast: { scene: 'topp', at: { x: h(31), y: h(-3.15), facing: 1 } },
     gapEast: { scene: 'topp', at: { x: h(41), y: h(-5.7), facing: 1 } },
     summit: { scene: 'topp', spot: 'summit' },
-    nest: { scene: 'strand', spot: 'start' }
+    nest: { scene: 'strand', spot: 'start' },
+    // (5 November) the cave behind the falls, and the beach's west end once Klyftan's bridge is drawn: a reload no
+    // longer sends the player back to redo P3, or back into Djupa skogen
+    cave: { scene: 'strand', spot: 'fromKristall' },
+    west: { scene: 'strand', spot: 'fromSkog' }
 };
 
 export { h as hl };
