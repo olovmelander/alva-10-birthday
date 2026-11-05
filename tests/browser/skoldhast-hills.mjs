@@ -136,6 +136,7 @@ try {
         G.camHint = { x: 47 * 200, y: -1.6 * 200, zoom: 1 };
         view.cam.snap = true;
     });
+    const buildsBefore = await pg.evaluate(() => window.__skoldhast.debug.view.groundBuilds);
     for (const [name, grow, seconds] of [['ungrown', false, 0], ['growth-first-frame', true, 1 / 120], ['growth-half-second', false, 0.5], ['grown', false, 1]]) {
         const details = await pg.evaluate(({ grow, seconds }) => {
             const { G, view, app } = window.__skoldhast.debug;
@@ -167,6 +168,10 @@ try {
         }
         await saveCapture(`ramp1-${name}`, details);
     }
+    // The page's whole ground is rebuilt when the ramp starts to rise and when it has risen, never for each
+    // step in between: that rebuilt it every frame and phones stuttered as Branten's strips rose (5 November).
+    const builds = await pg.evaluate(() => window.__skoldhast.debug.view.groundBuilds) - buildsBefore;
+    if (!args.baseline) assert.ok(builds <= 2, `a rising ramp rebuilds the ground at most twice, not every frame (${builds})`);
     const sharp = (await import('sharp')).default;
     const tw = Math.round(W * 0.5), th = Math.round(H * 0.5), cols = W > H ? 4 : 6, labelH = 22;
     const composites = await Promise.all(files.map(async (file, i) => {
