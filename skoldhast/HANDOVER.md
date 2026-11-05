@@ -1,5 +1,22 @@
 # Sköldhästen – handover
 
+## Nobody is cut off mid-sentence (5 November)
+
+Pappa: when the sköldhäst says something and then Klo, or someone else, says something about the story, the first
+voice stops abruptly mid-sentence.
+
+The cause: a speech box (`say`) silenced anything else at once. That included a thought or hint still being said
+(`aside`), which the story's next beat cut off.
+- `ui.say` now waits for that thought or hint to end its sentence, up to 6 s (`voice.asideEnd`), before the box opens
+  with its own voice. Text and voice stay together. The thought bubble stays on screen while it is being said.
+- A voice that is stopped, for example when the reader taps on, fades out over 0.12 s instead of being cut. Each
+  clip has its own gain node.
+- Tapping on still stops the line being read, by design: the reader chose to move on.
+- Checks:
+  - `tests/skoldhast-voice.test.mjs` covers the wait and the fade.
+  - `tests/browser/skoldhast-voice.mjs`: while the sköldhäst thinks aloud, a box for Klo must open only after the
+    thought has ended, and then speak.
+
 ## You can see who is speaking, everywhere; Äventyr 2's sköldhäst gallops in on its hooves (5 November)
 
 Pappa saw two things in Äventyr 2's opening:
