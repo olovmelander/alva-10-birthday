@@ -3,7 +3,8 @@
  * Browser check of the explicitly enabled Guida mig mode (src/guide.mjs):
  * through Alva's table (the pencil prompts are confirmed with Enter), then Kapitel 1 must say
  * what to do at every step without a word from anyone:
- *   - the goal note asks for a gallop past Klo, and a tip explains the gallop;
+ *   - the goal note asks for a gallop past Klo (on keys no tip card: since 30 September tipOnce in
+ *     story.mjs shows control tips only on touch, where they can point at the stick);
  *   - Klo's hint bubble speaks up by itself;
  *   - after the stopwatch the goal turns to hiding, and hiding by the hole makes Klo say Ja;
  *   - a refusal shows a thought bubble.
@@ -12,7 +13,7 @@
  */
 import assert from 'node:assert/strict';
 import { serve, launch } from '../../scripts/skoldhast-shot.mjs';
-import { GOALS, TIPS, STORY, BALK } from '../../skoldhast/src/content/sv.mjs';
+import { GOALS, STORY, BALK } from '../../skoldhast/src/content/sv.mjs';
 
 const outIdx = process.argv.indexOf('--out');
 const OUT = outIdx > 0 ? process.argv[outIdx + 1] : null;
@@ -49,11 +50,11 @@ for (let i = 0; i < 400; i++) {
 }
 assert.ok(await D(() => window.__skoldhast.debug.G.flags.has('intro_done')), 'the table leads into Kapitel 1');
 
-// Kapitel 1 begins: the goal note and the gallop tip
+// Kapitel 1 begins: the goal note; the gallop tip is used up without a card on keys
 await pg.waitForFunction(() => !window.__skoldhast.debug.G.busy && document.querySelector('.sk-goal:not(.empty)'), null, { timeout: 20000 });
 assert.equal(await text('.sk-goal-text'), GOALS.explore, 'the goal note asks for a gallop past Klo');
-await pg.waitForFunction(() => document.querySelector('.sk-tip.on'), null, { timeout: 10000 });
-assert.equal(await text('.sk-tip-text'), TIPS.gallop.keys, 'a tip explains how to gallop');
+await pg.waitForFunction(() => window.__skoldhast.debug.G.flags.has('tip_gallop'), null, { timeout: 10000 });
+assert.equal(await pg.locator('.sk-tip.on').count(), 0, 'no touch tip card for a keyboard player');
 await pg.waitForFunction(() => document.querySelector('.sk-hintbubble.on'), null, { timeout: 10000 });
 assert.equal(await text('.sk-hint-text'), STORY.k1.enterHint, 'Klo says what he wants');
 await shot('1-start');

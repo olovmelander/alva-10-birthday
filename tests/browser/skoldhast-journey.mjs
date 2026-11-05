@@ -95,6 +95,9 @@ try {
         G.on('plankNote', e => notes.push(e.note));
         const originalReport = ui.report;
         ui.report = async n => { log.push({ kind: 'report', n }); return originalReport(n); };
+        // the story's effects reach the view through view.fx (main.mjs); chapter3 checks their order
+        const originalFx = view.fx;
+        view.fx = (name, data) => { log.push({ t: G.time, kind: 'fx', name }); return originalFx.call(view, name, data); };
         const sleep = ms => new Promise(r => setTimeout(r, ms));
         let steps = 0, stickOn = false, kx = 0, ky = 0;
         const zone = ui.stickZone;

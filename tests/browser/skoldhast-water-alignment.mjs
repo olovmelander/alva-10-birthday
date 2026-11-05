@@ -171,7 +171,12 @@ try {
                     if (before.scene === 'kelp' && after.scene === 'kelp' && before.water && after.water && before.water !== after.water) window.__waterSteps.push({ before, after });
                 };
             });
-            await page.waitForFunction(() => window.__skoldhast.debug.G.context?.id === 'exit');
+            // Back on land after Kapitel 1, Klo opens Kapitel 2 (k2_open, since 1 October): read it through.
+            await page.waitForFunction(() => {
+                const { G, ui } = window.__skoldhast.debug;
+                if (ui.dialogueOpen()) ui.advance();
+                return G.context?.id === 'exit';
+            }, null, { polling: 150 });
             await capture('land-cave-mouth');
             await page.keyboard.press('e'); // "Simma in" is the context button: E (Space is Hoppa since 1 October)
             await settledScene(page, 'kelp');

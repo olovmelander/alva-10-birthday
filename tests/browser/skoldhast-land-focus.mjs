@@ -2,12 +2,14 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import { serve, launch } from '../../scripts/skoldhast-shot.mjs';
-import { CODE_RESTORE } from '../../skoldhast/src/save.mjs';
+import { CODE_RESTORE, LAND_ROUTE } from '../../skoldhast/src/save.mjs';
 
 const out = 'docs/skoldhast/shots/puzzle-audit/after/land';
 fs.mkdirSync(out, { recursive: true });
 const server = await serve(), browser = await launch(), results = [];
-const stageFlags = [...CODE_RESTORE[1].flags, 'b:k2_open'];
+// Since 30 September the land route (P1 and P3) belongs to Kapitel 2, so the end of Kapitel 1 no longer
+// carries it; each shot below removes what its own discovery needs.
+const stageFlags = [...CODE_RESTORE[1].flags, 'b:k2_open', ...LAND_ROUTE];
 try {
     for (const [width, height, lessMotion] of [[844, 390, false], [390, 844, true]]) {
         const ctx = await browser.newContext({ viewport: { width, height }, hasTouch: true, isMobile: true });
