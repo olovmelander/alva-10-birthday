@@ -126,6 +126,10 @@ test('any order: the lantern, straight up to the cloud, then back for all the re
     assert.ok(!all.includes(lineOf(STORY.glitter[0])), 'he cannot talk of a new ball while the old one is still whole');
     assert.ok(late.includes(lineOf(STORY.washedLate[0])));
     assert.ok(!all.includes(lineOf(STORY.washed[1])));
+    // recorded speech: no line twice in one playthrough, and hypothesis one is confirmed on the top it reached first
+    assert.deepEqual(all.filter((x, i) => all.indexOf(x) !== i), [], 'no line is said twice');
+    assert.ok(all.includes(lineOf(STORY.toppFirst[1])), 'the top before the crown confirms hypothesis one');
+    assert.ok(!all.includes(lineOf(STORY.topp[1])));
 });
 
 test('the crown after Kristallgrottan, before the cloud: Mira still wonders, but nobody looks for the way', async () => {

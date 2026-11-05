@@ -775,7 +775,7 @@ export function createGame({ host = document.body, assetBase = './skoldhast/', r
             // The first unfinished line teaches the world rule in every help level
             // (it is how Alva's page works, not the answer to a puzzle).
             if (e.reason === 'thin' && !G.flags.has('hint_thinRule')) {
-                G.flags.add('hint_thinRule'); guide.think(STORY.k1.thinRule, 7000);
+                G.flags.add('hint_thinRule'); guide.think(G.flags.has('hint_teach') ? STORY.k1.thinRuleKnown : STORY.k1.thinRule, 7000);
                 thinRuleUntil = performance.now() + 7000; return;
             }
             // a held key refuses again at once: let the first, longer thought be read

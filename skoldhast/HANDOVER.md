@@ -1,5 +1,59 @@
 # Sköldhästen – handover
 
+## Voices: the cast is chosen and the script is checked before recording (5 November)
+
+Pappa listened to samples and chose a voice for every role, the sköldhäst included. It keeps the pronoun "den", with a
+voice that sounds female. Before recording, he asked for a final check of the story, every conversation and the
+narration. All of it is in `docs/skoldhast/voice-audit.md`. In short:
+
+- **The cast** is saved in his ElevenLabs account as "Sköldhästen – <roll>". The narrator is his own voice. Model:
+  Eleven v4.
+- **What gets a voice:**
+  - Speech boxes.
+  - Klo's story hints and his notebook.
+  - The sköldhäst's thoughts.
+  - Story captions, read by the narrator.
+  - Äventyr 2's companion talk, in both Klo's and Tukankrabban's voices.
+
+  Buttons, toasts, goals, the journal, Äventyr 1's guided help, control tips and sound captions stay text. The script
+  is about 960 clips and 51,000 characters.
+- **The red thread, fixed:**
+  - Äventyr 1:
+    - "tornet" is now "fyren", and Kapitel 2 no longer depends on the prologue choice or gives the torn map away early.
+    - The land-first route keeps the map-is-the-world rule.
+    - The small-wave trial has its reason again: "Blöt om hovarna varje dag – och ändå hel!"
+    - The hero does not ask what it has already said.
+    - The cloud joke fits a white cloud.
+  - Äventyr 2:
+    - Every hypothesis is put forward before it is confirmed, in both orders. Number two is confirmed by name on the
+      summit, and number three by Klo's wind measurement.
+    - The seed rule no longer contradicts the lantern.
+    - The mountain-first lines fit that order.
+- **Spoken aloud:**
+  - "Här står ”Kartväktaren”" became "Och ett namn: Kartväktaren".
+  - "man" (mane) became "manen".
+  - Nobody names themselves in the third person.
+  - Repeats that a recording would make obvious were taken out. The second shutter has its own line, and "spana
+    efter kartbiten" is no longer said four times.
+- **Tests:**
+  - The robots now fail if a line is said twice in one playthrough.
+  - The Äventyr 2 robots fail if a hypothesis is confirmed before it is put forward.
+  - A white paper cloud has its own test.
+- **Checked:**
+  - `npm test` passes (420).
+  - In a real browser, `skoldhast-map-scenes` (844×390), `skoldhast-launch`, `skoldhast-adventures` and
+    `skoldhast-a2` pass.
+- **Next, the recording step.** Its rules are in the audit:
+  - One clip at a time; captions and thoughts do not wait today.
+  - Repeated feedback thoughts are voiced at most every ~20 s.
+  - "/Kartväktaren" is spoken without the slash, and capitals are lowercased.
+  - Clips are looked up by speaker and text.
+  - Listen first to "Snyft", "Hmpf" and "J-ja".
+- **Frågor till Pappa:**
+  - Kartväktaren's notes: his own voice (recommended) or the narrator's?
+  - Alva's own printed sentences (the prologue caption, the last note): your voice or Alva's character voice?
+  - Klo's guided-help bubbles: text only (recommended), or rewritten in Klo's words and voiced?
+
 ## Äventyr 2 on phones: the table's caption and the egg count (5 November)
 
 Pappa asked whether Äventyr 2 is done. A fresh check found the story, puzzles and finale sound. It found two layout

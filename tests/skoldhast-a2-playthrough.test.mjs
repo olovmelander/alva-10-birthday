@@ -317,6 +317,15 @@ test('Äventyr 2: a robot plays the whole adventure over four pages, to the moon
     const finale = lines.findIndex(([, text]) => text === STORY.finale[0][1]);
     assert.ok(finale > 0 && !lines.slice(finale).some(([, text]) => text === STORY.allEggs[0][1]), '"Alla tio" never comes after the finale has begun');
     assert.equal(R.story.objective().id, 'free');
+    // every line is going to be recorded speech: none is heard twice in one playthrough
+    const texts = lines.map(([, text]) => text);
+    assert.deepEqual(texts.filter((x, i) => texts.indexOf(x) !== i), [], 'no line is said twice');
+    // the research thread: each hypothesis is put forward before it is confirmed
+    const at = (line) => texts.indexOf(line[1]);
+    const h1 = texts.findIndex(x => x.includes('Hypotes nummer ett: stormen kommer någonstans ifrån'));
+    assert.ok(h1 >= 0 && h1 < at(STORY.source[2]), 'hypothesis one, then its confirmation from the crown');
+    assert.ok(at(STORY.seeds[2]) < at(STORY.summit2[0]), 'hypothesis two, then its confirmation on the summit');
+    assert.ok(at(STORY.medvind[0]) < at(STORY.windCarried[1]), 'hypothesis three, then the measurement that confirms it');
 });
 
 test('help: a peek at the next hint does not use up the ladder', async () => {

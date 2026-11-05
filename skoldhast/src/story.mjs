@@ -349,7 +349,10 @@ export function createStory(G, io) {
     beat('k1_clouds', {
         when: () => inScene('land') && F.has('rule_demo') && G.sceneTime > 6 && P().x < h(100) && P().x > h(84) && !done('k1_clouds'),
         lock: false,
-        async run(s) { await s.remark(STORY.k1.clouds); }
+        async run(s) {
+            const colored = G.userStrokes?.cloud?.length && G.userStrokes.cloudColor !== 'paper';
+            await s.remark(colored ? STORY.k1.clouds : STORY.k1.cloudsWhite);
+        }
     });
 
     beat('k1_note', {
@@ -1365,7 +1368,6 @@ export function createStory(G, io) {
     const balks = { key: '', n: 0, t: 0 };
     G.on('balk', (e) => {
         if (!guided()) return;
-        if (e.reason === 'thin' && !F.has('p1_inked')) hintOnce('thin', STORY.k1.firstThin);
         if (['slow', 'runup'].includes(e.reason) && e.id === 'sprang-p4') hintOnce('leap', STORY.k2.leapHint);
         if (e.id === 'klipp-edge' && F.has('p4_leap') && !F.has('p4_plank')) hintOnce('rope', STORY.k2.ropeHint);
         const key = e.reason + ':' + (e.id || '');

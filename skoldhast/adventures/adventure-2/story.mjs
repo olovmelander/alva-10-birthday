@@ -448,7 +448,7 @@ export function createStory(G, io) {
             if (id === 't-arrive') {
                 if (!F.has('topp_reached')) G.flag('topp_reached');
                 G.setCheckpoint('topp');
-                if (intro) beat('topp', () => say(STORY.topp));
+                if (intro) beat('topp', () => say(done('source') ? STORY.topp : STORY.toppFirst));
             }
             if (id === 't-chasm') {
                 if (!F.has('wind_passed')) G.flag('wind_passed');
@@ -471,11 +471,12 @@ export function createStory(G, io) {
             const met = F.has('cloud_met'), inside = F.has('visited_kristall');
             stage();
             await fx('focus', { x: h(30), y: h(-12), zoom: 0.9, hold: 1.1, peak: true }); // from the tree to the mountain
-            await say(met ? STORY.sourceAfter : inside ? STORY.sourceLate : STORY.source);
+            // hypothesis one is confirmed once: on the top if the top came first
+            await say(met ? STORY.sourceAfter : inside ? (F.has('topp_reached') ? STORY.sourceLate.slice(0, 2) : STORY.sourceLate) : STORY.source);
             G.flag('storm_source'); clue('source');
             if (!met) {
                 await say(STORY.sourceMira);
-                await say(inside ? STORY.sourceLateGo : F.has('lantern') ? STORY.sourceLit : STORY.sourceDark);
+                await say(inside ? STORY.sourceLateGo : F.has('lantern') ? (F.has('cave_reached') ? STORY.sourceLitKnown : STORY.sourceLit) : STORY.sourceDark);
             }
             await fx('focus', null);
         });

@@ -65,7 +65,7 @@ export const TABLE = {
     tenEggs: '… och nio ägg till. Tio små ägg i sanden.',
     alvaFacts: ['alva', 'Hon gräver ner sina ägg vid floden. Och hon är galen i forskning.'],
     miraTrees: ['mira', 'Precis som Klo! Jag ritar träden. Och floden. Och en bro!'],
-    miraBridge: 'Mira ritar en hängbro – men hon hinner inte rita klart den.',
+    miraBridge: 'Mira ritar en hängbro – men hon glömmer att rita klart den.',
     miraCloud: ['mira', 'Nu ritar jag ett moln. Ett litet moln med blixtar!'],
     cool: ['mira', 'Blixtar är det häftigaste som finns.'],
     evening: ['alva', 'Det blir kväll på sidan. Mira, du ritar väl månen sen?'],
@@ -129,13 +129,13 @@ export const STORY = {
         e3: 'Ett ägg på grenen! Tack, svampen.',
         e4: 'Ett ägg från sjöbotten! Det glittrar som kristallerna.',
         e6: 'Där var du ju, lilla ägg. Rent och fint.',
-        e8: 'Snart är ni alla samlade.',
+        e8: 'Ett ägg bakom porten! Tack för lånet, Tordyveln.',
         e9: 'Varmt och tryggt i skalet.',
         e10: 'Det glimmar som en pärla – men det är ett ägg!'
     },
     eggLines: [
         'Ett ägg till i skalet!', 'Varmt och tryggt i skalet.', 'Det glimmar som en pärla!',
-        'Där var du ju, lilla ägg.', 'Snart är ni alla samlade.'
+        'Där var du ju, lilla ägg.', 'Välkommen in i skalet, lilla ägg.'
     ],
     allEggs: [['tukan', 'Tio! Alla tio! Nu behöver de bara en måne.']],
     allEggsHome: [['horse', 'Då går vi hem till boet. Molnet väntar där!']],
@@ -143,7 +143,7 @@ export const STORY = {
     // Klo is in love (after eggs 2, 4, 6 and 8)
     love: {
         2: [
-            ['klo', 'Har du sett hennes klor? Två små tukaner – och båda ler mot mig!'],
+            ['klo', 'Hennes klor … två små tukaner. Och båda ler mot mig!'],
             ['horse', 'Klo, dina klor skakar.'],
             ['klo', 'Det är … stormen. Jag fryser.']
         ],
@@ -166,7 +166,7 @@ export const STORY = {
     alvaLove: [
         ['alva', 'Jag visste det! Klo är kär.'],
         ['mira', 'Kär, kär, kär!'],
-        ['klo', 'Jag hör inte. Det är … så mycket regn i öronen.']
+        ['klo', 'Jag hör inte. Det är … stormen. Den mullrar så.']
     ],
     lightning: [
         ['klo', 'Varje blixt lyser upp hela skogen. Som en jättelik ficklampa.'],
@@ -190,7 +190,7 @@ export const STORY = {
     // P2 Mira's bridge
     klyft: [
         ['horse', 'En bro – men den är bara streckad.'],
-        ['mira', 'Den ritade jag! Jag hann inte rita klart.'],
+        ['mira', 'Den ritade jag! Men jag glömde att rita klart den.'],
         ['alva', 'Min penna sitter kvar i dina hovar. Galoppera, så ritar du klart Miras bro!']
     ],
     thinRule: 'Det håller inte än! I full galopp ritar hovarna klart Miras streck.',
@@ -224,16 +224,16 @@ export const STORY = {
     ],
     caveLit: [
         ['horse', 'Bakom forsen! Och här går en gång rakt in i berget.'],
-        ['tukan', 'Vi har ju vår lykta. Kom, månskensfröet visar vägen!']
+        ['tukan', 'Där inne är det kolsvart. Kom, månskensfröet visar vägen!']
     ],
     caveLitBack: [['tukan', 'Nu har vi vår lykta! Kom, månskensfröet visar vägen in i berget.']],
     darkCave: 'Gången in i berget är kolsvart. Jag behöver ljus.',
 
     // P4 the moonshine seeds
     seeds: [
-        ['tukan', 'Månskensblommor! Fröna i dem lyser – men bara när allt är alldeles stilla.'],
+        ['tukan', 'Månskensblommor! De slår bara ut när allt är alldeles stilla – och då lyser fröna.'],
         ['klo', 'Och hör du? Det mullrar mest när det är som mörkast.'],
-        ['tukan', 'Hypotes nummer två: stormen är värst där det är mörkast!']
+        ['tukan', 'Hypotes nummer två: stormen är värst när det är som mörkast!']
     ],
     dark: 'För mörkt. Jag ser inte var jag sätter hovarna.',
     seedsShy: 'Blommorna slöt sig när jag rörde mig …',
@@ -260,7 +260,7 @@ export const STORY = {
         ['klo', 'Bollen är gjord av jord. Och vad tvättar bort jord?']
     ],
     beetleTalk: [['dyvel', 'Min boll ska bli den rundaste i hela skogen. Hmpf.']],
-    beetleAfter: [['dyvel', 'Ja ja. Jag rullar en ny. En ännu finare.']],
+    beetleAfter: [['dyvel', 'Hmpf. Stör mig inte. Jag tänker ut en ny boll – en ännu finare.']],
     washedLate: [['dyvel', 'Min boll! Nu är båda borta … Ja ja. Jag rullar en ny. En ännu finare.']],
     pushWrong: 'Bollen ska ner till floden. Jag får knuffa från andra sidan.',
     ballRoll: 'Den rullar! Rakt ner i floden!',
@@ -282,7 +282,7 @@ export const STORY = {
     ],
     magpieCoin: [['tukan', 'Något som glänser mer? Vi har ju mitt guldmynt!']],
     skataTalk: [['skata', 'Bara något som glänser mer än pärlor. Så är det med det.']],
-    skataAfter: [['skata', 'Guldmyntet glänser som en liten sol. Tack för bytet!']],
+    skataAfter: [['skata', 'Guldmyntet klär mig, eller hur? Nästan lika fint som mina fjädrar.']],
     whirl: 'Virveln snurrar bort mig! Jag kommer inte ner.',
     coin: [
         ['horse', 'Skalet snurrade ända ner till botten – där låg guldmyntet!'],
@@ -336,6 +336,8 @@ export const STORY = {
         ['tukan', 'Månskensfrön lyser i mörker! Det växer månskensblommor i Rotgrottan.']
     ],
     sourceLit: [['tukan', 'Det sägs att en gång bakom forsen leder in i berget. Och vi har vår lykta!']],
+    // the crown after the dark cave: they have stood in that passage themselves
+    sourceLitKnown: [['tukan', 'Gången bakom forsen leder in i berget! Och nu har vi vår lykta.']],
     sourceLate: [
         ['klo', 'Här uppifrån ser man hela den magiska skogen!'],
         ['horse', 'Och där borta bakom forsen: berget vi var inne i! Stormen snurrar runt toppen.'],
@@ -404,8 +406,14 @@ export const STORY = {
         ['tukan', 'Åsktoppen. Här blåser det som värst.'],
         ['klo', 'Och högst upp snurrar stormen. Där får vi svar på vår fråga.']
     ],
+    // the top before the crown: hypothesis one is confirmed here instead
+    toppFirst: [
+        ['horse', 'Källan kastade upp oss … ända upp på berget!'],
+        ['tukan', 'Åsktoppen! Hypotes nummer ett stämmer: stormen kommer härifrån!'],
+        ['klo', 'Och högst upp snurrar stormen. Där får vi svar på vår fråga.']
+    ],
     gustSoon: 'Det viner i gräset – en vindby kommer!',
-    blown: ['Vinden knuffar mig bakåt! I skalet blåser jag inte bort.', 'Min man står rakt ut. Jag ser ut som en flagga.', 'Det här räknas inte som galopp.'],
+    blown: ['Vinden knuffar mig bakåt! Nästa gång gömmer jag mig.', 'Manen står rakt ut. Jag ser ut som en flagga.', 'Det här räknas inte som galopp.'],
     windKlo: [
         ['klo', 'Ta min klo, Tukankrabban! Jag håller i dig.'],
         ['tukan', 'Min hjälte! Du fladdrar rakt ut som en vimpel.'],
@@ -424,7 +432,7 @@ export const STORY = {
         ['horse', 'Tukankrabban. Stormen.']
     ],
     medvind: [
-        ['tukan', 'Hypotes nummer tre: stormen snurrar! Här uppe blåser den åt andra hållet.'],
+        ['tukan', 'Hypotes nummer tre: om stormen snurrar, blåser den åt andra hållet här uppe!'],
         ['klo', 'Briljant! Det hade jag inte heller kommit på.'],
         ['horse', 'Och stigen tar slut där framme. Så långt kan ingen hoppa.']
     ],
@@ -432,7 +440,7 @@ export const STORY = {
     carried: 'Vinden tar tag i mig – men nu blåser den framåt!',
     windCarried: [
         ['horse', 'Vinden bar mig över! Det där räknas som flygning.'],
-        ['klo', 'Mätning klar. Vindstyrka: väldigt.'],
+        ['klo', 'Mätning klar: hypotes tre stämmer. Vindstyrka: väldigt.'],
         ['tukan', 'Hör ni? Det låter som om någon gråter där uppe.']
     ],
     summit: [
@@ -441,7 +449,7 @@ export const STORY = {
         ['moln', 'Jag är rädd för mörkret. När jag blixtrar blir det ljust en liten stund.']
     ],
     summit2: [
-        ['tukan', 'Hypotesen stämmer! Du blixtrar för att kunna se – därför stormar det mest i mörkret.'],
+        ['tukan', 'Hypotes nummer två stämmer! Du blixtrar för att kunna se – därför stormar det mest i mörkret.'],
         ['klo', 'Men varför är det så mörkt på den här sidan?'],
         ['horse', 'För att det inte finns någon måne. Mira … du ritade aldrig månen.']
     ],
@@ -491,7 +499,7 @@ export const STORY = {
     ],
     watchCaption: 'Professor Klo ger henne sitt stoppur.',
     gift: [
-        ['tukan', 'Det glänser som månen! Du får ett månskensfrö. Det lyser bara när dina klor är stilla.'],
+        ['tukan', 'Det glänser som månen! Här är vår lykta. Den lyser starkast när dina klor är stilla.'],
         ['tukan', 'Och den minsta ungen döper jag till Lilla Klo.'],
         ['klo', 'Lilla … Klo …']
     ],
@@ -563,7 +571,7 @@ export const HINTS = {
     tree: ['Följ grenarna uppåt runt stammen.', 'Där en gren tar slut sitter nästa gren strax ovanför.',
         'Stå stilla längst ut på grenen och hoppa rakt upp.'],
     k1: ['Kristallerna i golvet klingar när man rör vid dem. En av dem blinkar.', 'Bara den som blinkar lyser upp. Sedan blinkar nästa, kanske bakom dig.',
-        'Galoppera över den kristall som blinkar, fram och tillbaka tills alla tre lyser. Rita sedan bron i full galopp.'],
+        'Galoppera över den som blinkar, tills alla tre lyser. Rita sedan bron i full galopp.'],
     k2: ['Under väggen går tre strömmar. Bara en av dem går hela vägen.', 'Vit som ett ägg … Vilken kristall liknar äggen?',
         'Göm dig vid den vita kristallen på botten. Strömmen tar skalet under väggen.'],
     k3: ['Porten öppnas när båda plattorna i dammen trycks ner.', 'Glitterbollen är tung. Den kan ligga på en av plattorna.',
@@ -585,7 +593,7 @@ export const HINTS = {
 export const WHERE = {
     dig: 'i sanden nära boet', p1: 'i mjölkchokladträdet i Kakaolunden', p2: 'bortom Miras bro i väster',
     mush: 'på en gren ovanför svampen i Djupa skogen', p4: 'i Rotgrottan i Djupa skogen', p5: 'i Tordyvelns boll på andra sidan floden',
-    coin: 'hos Skatan i Skatträdet', coinDeep: 'hos Skatan – hennes byte ligger på botten av Djuphålan', trade: 'hos Skatan i Skatträdet', p7: 'på andra sidan ravinen i Djupa skogen',
+    coin: 'hos Skatan i Skatträdet', coinDeep: 'hos Skatan – och guldmyntet hon vill ha ligger i Djuphålan', trade: 'hos Skatan i Skatträdet', p7: 'på andra sidan ravinen i Djupa skogen',
     k2: 'under klippväggen i Kristallsjön', k3: 'bakom porten i Kristallgrottan', summit: 'högst upp på Åsktoppen',
     tree: 'i Jätteträdet', nest: 'i boet'
 };
@@ -607,8 +615,8 @@ export const CLUE_ORDER = ['moonRule', 'noMoon', 'lightning', 'darkStorm', 'clou
 /** Tukankrabban's hypothesis about the storm, as far as the research has come. */
 export const HYPOTHESIS = {
     start: 'Hypotes: stormen kommer någonstans ifrån. Men varifrån?',
-    dark: 'Hypotes: stormen är värst där det är mörkast.',
-    source: 'Hypotes: stormen kommer från Åsktoppen – och den är värst där det är mörkast.',
+    dark: 'Hypotes: stormen är värst när det är som mörkast.',
+    source: 'Hypotes: stormen kommer från Åsktoppen – och den är värst när det är som mörkast.',
     done: 'Slutsats: molnet är rädd för mörkret. Det blixtrar för att kunna se.',
     label: 'Tukankrabbans hypotes',
     question: 'Frågan: vem är det som stormar – och varför?'
