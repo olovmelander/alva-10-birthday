@@ -57,8 +57,12 @@ A headless hunt through Äventyr 2's logic (the robot trying other orders, reloa
 - **Klippan (T3) solved itself while Alva read.** The forward wind kept carrying the sköldhäst over the gap during
   "Så långt kan ingen hoppa". The wind now holds while the story holds the controls (`applyWinds`, `G.busy`).
 - **"Jag har fastnat" could jump past what was still closed.** At Kristallgrottan's shut gate it landed in the
-  spring beyond; on Åsktoppen it skipped the bridge and the gap. `safeSpot` now never picks a spot past a refusing
-  edge, an unfinished dashed line or a wall, and prefers a spot of the same kind (swimming or on foot).
+  spring beyond; on Åsktoppen it skipped the bridge and the gap. `safeSpot` now never picks a spot past a gate (any
+  wall inside the page), an unfinished dashed line, Kristallsjön's rock wall, or water that drives a swimmer back
+  (Forsen's falls), whatever the player's height, nor past a refusing edge within 1.5 lengths of the player's height.
+  It prefers a spot of the same kind (swimming or on foot). A first version judged the gate at the player's own
+  height, so from deep water it did not count; a review caught it. `tests/skoldhast-a2-order.test.mjs` pins the
+  cases (K3 pool, Kristallsjön, Forsen's pool, Rutschstammen, the summit chasm).
 - **The cloud's egg never fell from the cloud.** `eggsDrop` always started from Skatan's nest, which Åsktoppen
   does not have, and threw. It starts where the story says (`data.from`).
 - A page rebuilt while eggs were flying ends their flights, so a beat waiting for them goes on.
