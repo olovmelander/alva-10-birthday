@@ -1721,7 +1721,14 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
         // The lens is only a few pixels wide in the landscape postcard. Keep the
         // familiar pencil halo readable without filters or a separate distant asset.
         O.lamp.scale.set(1.7); bay.refl._lamp.scale.set(1.7);
-        bay.refl.mask.height = h(10.4);
+        // The postcard's sea surrounds its small island, so the whole reflection shows in it. The
+        // playable bay's mask keeps the reflection off the islet's stone, which lies right under
+        // the tower: reused here, it hid the reflected tower and its lit lamp completely.
+        const bayMask = bay.refl.mask;
+        const seaMask = new PIXI.Graphics().rect(x - h(100), y + 4, h(200), h(10.4)).fill({ color: 0xffffff });
+        bay.refl.addChild(seaMask);
+        bay.refl.mask = seaMask;
+        bayMask?.destroy();
         O.lamp.alpha = G.flags.has('lamp_lit') ? 1 : 0;
         S.vista = { c, tower, lamp: O.lamp, reflection: bay.refl, phase: 'entering' };
         return { x0: x - h(6), x1: x + h(6), y0: y - h(10.4), y1: y + h(10.4) };
@@ -3178,7 +3185,8 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
             const worldBefore = { x: world.x, y: world.y, sx: world.scale.x, sy: world.scale.y };
             const skyState = [...S.sky.map(it => it.s), ...(S.userCloud ? [S.userCloud] : [])]
                 .map(s => ({ s, x: s.x, y: s.y, sx: s.scale.x, sy: s.scale.y }));
-            const vis = { root: root.visible, hero: hero.view.visible, actors: L.actors.visible, hints: L.hints.visible, fx: L.fx.visible, overlay: overlay.visible };
+            const vis = { root: root.visible, hero: hero.view.visible, actors: L.actors.visible, hints: L.hints.visible, fx: L.fx.visible, overlay: overlay.visible,
+                airBack: airBack.visible, airFront: airFront.visible };
             const splashes = G.snapNoSplash ? S.items.filter((q) => q.it.frozen && q.s.visible) : [];
             try {
                 cam.x = x; cam.y = y; cam.zoom = zoom;
@@ -3192,6 +3200,9 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
                 placeUserCloud(width, height, true);
                 root.visible = true; hero.view.visible = !G.hideHero; L.actors.visible = !G.hideActors;
                 L.hints.visible = false; L.fx.visible = false; overlay.visible = false;
+                // the screen's air (vignette, haze, bloom) is laid out for the live screen, not this picture:
+                // baked in, it left a dark seam down her drawing on the table in portrait
+                airBack.visible = false; airFront.visible = false;
                 for (const q of splashes) q.s.visible = false;
                 app.renderer.render({ container: root, target: rt, clear: true });
             } catch (error) {
@@ -3201,6 +3212,7 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
                 for (const q of splashes) q.s.visible = true;
                 root.visible = vis.root; hero.view.visible = vis.hero; L.actors.visible = vis.actors;
                 L.hints.visible = vis.hints; L.fx.visible = vis.fx; overlay.visible = vis.overlay;
+                airBack.visible = vis.airBack; airFront.visible = vis.airFront;
                 Object.assign(cam, save);
                 for (const { s, x: bx, y: by, sx, sy } of skyState) { s.position.set(bx, by); s.scale.set(sx, sy); }
                 world.scale.set(worldBefore.sx, worldBefore.sy); world.position.set(worldBefore.x, worldBefore.y);

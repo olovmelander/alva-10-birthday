@@ -16,7 +16,7 @@ export const CONTENT_VERSION = 1;
 
 // Chapter 1 now ends at the sea-fold discovery. A word code must not award
 // the separate land route that its player can choose next in chapter 2.
-const LAND_ROUTE = [
+export const LAND_ROUTE = [
     'b:k1_note', 'note1_read', 'teach_streck', 'p1_inked', 'b:k1_p1', 'entrance_fluff', 'glimpse1', 'b:k1_glimpse', 'b:k1_branten', 'p3_t1', 'p3_t2', 'p3_t3',
     'p3_done', 'b:k1_p3', 'clue_note1', 'clue_wave_marks', 'clue_glimpse', 'spangen_flag'];
 const K1_END = ['intro_done', 'b:k1_enter', 'b:k1_stopwatch', 'klo_hidden', 'b:k1_ja', 'klo_ja', 'b:k1_mapcorner', 'rule_demo',

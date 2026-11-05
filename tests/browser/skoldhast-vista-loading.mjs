@@ -24,7 +24,10 @@ try {
         }, CODE_RESTORE[2].flags);
         let release, requests = 0, gated = true;
         const gate = new Promise(r => { release = r; });
-        await page.route(/\/assets\/(?:props-bay\.json|npcs-bay\.json|bg-bay(?:[-a-z]*)?\.webp)(?:\?.*)?$/, async route => {
+        // Hold only the bay's two atlas descriptions: that keeps the bundle unloaded. Holding its backgrounds
+        // too took all six of Chromium's connections to this local HTTP/1.1 server, so the land's own art
+        // never arrived (GitHub Pages serves HTTP/2, one shared connection).
+        await page.route(/\/assets\/(?:props-bay\.json|npcs-bay\.json)(?:\?.*)?$/, async route => {
             requests++; if (gated) await gate;
             await route.continue().catch(() => {});
         });

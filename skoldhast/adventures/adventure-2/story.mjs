@@ -189,6 +189,14 @@ export function createStory(G, io) {
         a.vx = (nx - a.x) / dt; a.x = nx; a.y = gy; a.facing = dir;
     }
     /** For a scene where they speak: Klo and Tukankrabban come up beside the horse, on its own ground. */
+    /** Runs fn while the camera keeps what the lines are about in the picture, with the sköldhäst if it fits
+     *  (view.mjs frameSpeaker). box: [x0, x1, y0, y1] in horse lengths. */
+    async function about(box, fn) {
+        const look = { x0: box[0] * HL, x1: box[1] * HL, y0: box[2] * HL, y1: box[3] * HL };
+        G.camLook = look;
+        try { return await fn(); } finally { if (G.camLook === look) G.camLook = null; }
+    }
+
     function stage() {
         const p = G.player;
         for (const [who, off] of [['klo', 1.5], ['tukan', 2.6]]) {
@@ -380,7 +388,8 @@ export function createStory(G, io) {
                 await say(STORY.grove);
                 await fx('focus', null);
             });
-            if (intro && id === 'klyft' && !F.has('p2_bridge')) beat('klyft', () => say(STORY.klyft));
+            // Miras streckade bro över Klyftan
+            if (intro && id === 'klyft' && !F.has('p2_bridge')) beat('klyft', () => about([1.5, 6.5, -1.3, 0], () => say(STORY.klyft)));
             if (intro && id === 'river') beat('miraRiver', () => say(STORY.miraRiver));
             if (intro && id === 'fors' && !F.has('cave_reached')) beat('fors', async () => {
                 await fx('focus', { x: G.scenes.strand.spots.cave.x - 2 * HL, y: -0.6 * HL, zoom: 0.95, hold: 0.5 });
@@ -392,20 +401,23 @@ export function createStory(G, io) {
                 if (!F.has('cave_reached')) G.flag('cave_reached');
                 if (intro && !F.has('visited_kristall')) beat(F.has('lantern') ? 'caveLit' : 'caveDark', async () => {
                     stage();
-                    await say(!F.has('lantern') ? STORY.caveDark : done('caveDark') ? STORY.caveLitBack : STORY.caveLit);
+                    // the passage into the mountain behind the falls
+                    await about([92.4, 95.2, -2.2, 0], () => say(!F.has('lantern') ? STORY.caveDark : done('caveDark') ? STORY.caveLitBack : STORY.caveLit));
                 });
             }
-            if (intro && id === 'beetle' && !F.has('p5_rolled') && !F.has('egg_e6')) beat('beetle', async () => {
+            // Tordyvelns boll, with the egg in it
+            if (intro && id === 'beetle' && !F.has('p5_rolled') && !F.has('egg_e6')) beat('beetle', () => about([61, 63.8, -2.6, -1.1], async () => {
                 await say(STORY.beetle);
                 await say(STORY.beetle2);
-            });
+            }));
             if (intro && id === 'magtree' && !F.has('coin_given')) beat('magpie', async () => {
                 await fx('focus', { x: G.scenes.strand.magpie.x, y: G.scenes.strand.magpie.y + 0.6 * HL, zoom: 1.05, hold: 0.4 });
                 await say(STORY.magpie);
                 await say(F.has('coin_got') ? STORY.magpieCoin : STORY.magpie2);
                 await fx('focus', null);
             });
-            if (id === 'magtree' && F.has('coin_got') && !F.has('coin_given')) beat('climb', () => say(STORY.climb));
+            // Skatans bo high up, and the branches that go up the trunk like steps
+            if (id === 'magtree' && F.has('coin_got') && !F.has('coin_given')) beat('climb', () => about([67.2, 70.2, -3.9, -0.4], () => say(STORY.climb)));
             if (id === 'nest') maybeFinale();
         } else if (sc === 'skog') {
             if (id === 'arrive') G.setCheckpoint('skog');
@@ -415,14 +427,16 @@ export function createStory(G, io) {
                 await say(STORY.skogArrive);
                 await fx('focus', null);
             });
-            if (intro && id === 'seeds' && !F.has('p4_lit')) beat('seeds', async () => { await say(STORY.seeds); clue('darkStorm'); });
+            if (intro && id === 'seeds' && !F.has('p4_lit')) beat('seeds', () => about([88.7, 90.8, -1.6, -0.4], async () => { await say(STORY.seeds); clue('darkStorm'); }));
             if (intro && (id === 'hill' || id === 'trunkTop') && !F.has('egg_e10')) beat('leapSeen', async () => {
                 await fx('focus', { x: G.scenes.skog.eggs[2].x, y: G.scenes.skog.eggs[2].y - 0.5 * HL, zoom: 0.85, hold: 0.6 });
                 await say(STORY.leapSeen);
                 await fx('focus', null);
             });
-            if (intro && id === 'ledge' && F.has('egg_e10') && !F.has('p7_vine')) beat('vineAsk', () => say(STORY.vineAsk));
-            if (intro && id === 'tree' && !F.has('storm_source')) beat('tree', () => say(STORY.tree));
+            // the ravine they cannot cross, and the vine that becomes a bridge
+            if (intro && id === 'ledge' && F.has('egg_e10') && !F.has('p7_vine')) beat('vineAsk', () => about([33.2, 40, -2.6, 0.2], () => say(STORY.vineAsk)));
+            // Jätteträdet: the branches winding up (the crown is out of sight, as Klo says)
+            if (intro && id === 'tree' && !F.has('storm_source')) beat('tree', () => about([22, 27, -5, -0.4], () => say(STORY.tree)));
             if (id === 'crown') { G.setCheckpoint('crown'); if (intro) crownSource(); }
         } else if (sc === 'kristall') {
             if (id === 'k-arrive') {
@@ -432,7 +446,8 @@ export function createStory(G, io) {
                     if (!F.has('storm_source')) { G.flag('storm_source'); clue('source'); }
                 });
             }
-            if (intro && id === 'k-plates' && !F.has('k1_bridge')) beat('plates', () => say(STORY.plates));
+            // the three ringing crystals and the dark chasm beyond them
+            if (intro && id === 'k-plates' && !F.has('k1_bridge')) beat('plates', () => about([6.4, 14.5, -1.4, 0.4], () => say(STORY.plates)));
             if (intro && id === 'k-lake' && !F.has('egg_e4')) beat('lake', async () => {
                 await fx('focus', { x: G.scenes.kristall.spots.blueCrystal.x, y: h(1.6), zoom: 0.85, hold: 0.7 });
                 await say(STORY.lake);
@@ -441,9 +456,10 @@ export function createStory(G, io) {
             if (id === 'k-beetle') G.setCheckpoint('lakeEast');
             if (intro && id === 'k-beetle' && !F.has('k3_open')) beat('glitter', async () => {
                 await say(F.has('p5_rolled') ? STORY.glitter : [...STORY.glitterEarly, ...STORY.glitter.slice(1)]);
-                await say(STORY.glitter2);
+                // "Porten där borta": the gate, and the two plates in the pond
+                await about([59, 66.8, -1.8, 2.6], () => say(STORY.glitter2));
             });
-            if (intro && id === 'k-spring' && F.has('k3_open') && !F.has('topp_reached')) beat('spring', () => say(STORY.spring));
+            if (intro && id === 'k-spring' && F.has('k3_open') && !F.has('topp_reached')) beat('spring', () => about([72, 74, -1, 3], () => say(STORY.spring)));
         } else if (sc === 'topp') {
             if (id === 't-arrive') {
                 if (!F.has('topp_reached')) G.flag('topp_reached');
@@ -459,7 +475,8 @@ export function createStory(G, io) {
                 });
             }
             if (id === 't-climb' && F.has('t2_bridge') && !F.has('gap_crossed')) G.setCheckpoint('bridgeEast');
-            if (intro && id === 't-gap' && !F.has('gap_crossed')) beat('medvind', async () => { stage(); await say(STORY.medvind); });
+            // "stigen tar slut där framme": the end of the crag, the gap, the far crag
+            if (intro && id === 't-gap' && !F.has('gap_crossed')) beat('medvind', async () => { stage(); await about([35.5, 40.5, -5.8, -3], () => say(STORY.medvind)); });
             if (id === 't-summit') { G.setCheckpoint('summit'); if (intro) summit(); }
         }
     }

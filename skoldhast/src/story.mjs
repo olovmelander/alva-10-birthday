@@ -909,11 +909,12 @@ export function createStory(G, io) {
         when: () => inScene('viken') && F.has('talk_done') && !F.has('p8_land') && !F.has('ended'),
         async run(s) {
             await s.fx('lineAppears', {});
+            // the wide look along the pier comes while Klo talks about its lines, not after (5 November)
+            await s.cam({ x: h(12), y: h(-1.2), zoom: 0.62, t: 1.2, hold: 0.6 });
             await s.say(discovery(STORY.k3.line, 'line'));
             const corner = G.sceneDef.spots.window;
             await s.cam({ x: corner.x, y: corner.y, zoom: .9, t: 1, hold: 1 });
             await s.say(STORY.k3.corner);
-            await s.cam({ x: h(12), y: h(-1.2), zoom: 0.62, t: 1.2, hold: 1.2 });
             s.camFree();
         }
     });
@@ -1026,7 +1027,11 @@ export function createStory(G, io) {
         async run(s) {
             const r = G.sceneDef.race;
             await s.appear('signe', { scene: 'land', x: r.signe.x, y: r.signe.y, pose: 'idle', facing: -1 });
-            await s.say(STORY.after.signeHello);
+            await s.say(STORY.after.signeHello.slice(0, 1));
+            // "Kapplöpning till pölen?": the pool (the race's finish) comes into the picture, with Signe
+            await s.cam({ x: (r.finish + r.signe.x) / 2, y: r.signe.y - h(1), zoom: 0.8, t: 0.8, hold: 0.5 });
+            await s.say(STORY.after.signeHello.slice(1));
+            s.camFree();
             G.flag('signe_met');
         }
     });

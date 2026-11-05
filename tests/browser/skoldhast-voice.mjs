@@ -3,14 +3,15 @@
  * Sköldhästen's recorded voices in a real browser (Chromium): Äventyr 2's prologue at Alva's table
  * is played through with taps. Each caption and box fetches its clip as it is shown (the narrator
  * for captions, Mira and Alva for their lines), only then, and the prologue still reaches the nest:
- * waiting for a reading never holds the game up.
+ * waiting for a reading never holds the game up. And a box waits for a thought still being said
+ * to end, so nobody is cut off mid-sentence.
  *
  *   NODE_PATH=$(npm root -g) node tests/browser/skoldhast-voice.mjs
  */
 import assert from 'node:assert/strict';
 import { serve, launch } from '../../scripts/skoldhast-shot.mjs';
 import { voiceKey } from '../../skoldhast/src/voice-key.mjs';
-import { TABLE } from '../../skoldhast/adventures/adventure-2/content/sv.mjs';
+import { TABLE, STORY } from '../../skoldhast/adventures/adventure-2/content/sv.mjs';
 
 const server = await serve(), browser = await launch();
 const url = `http://127.0.0.1:${server.address().port}/skoldhast/dev/play.html?adventure=2&debug`;
@@ -55,6 +56,47 @@ await check('the table is read aloud: the narrator, Mira and Alva, clip by clip,
     for (const f of fetched) { assert.equal(f.status, 200); assert.match(f.type, /audio\/mpeg/); }
     assert.deepEqual(errors, []);
     console.log(`   ${fetched.length} clips fetched in ${((Date.now() - t0) / 1000).toFixed(0)} s`);
+    await p.close();
+});
+
+await check('nobody is cut off mid-sentence: Klo\'s box waits for the sköldhäst\'s thought to end, then speaks', async () => {
+    const SEEN = ['arrive', 'firstEgg', 'grove', 'klyft', 'fors', 'beetle', 'magpie', 'seeds', 'leapSeen', 'tree', 'skogArrive', 'lightning',
+        'love2', 'love4', 'love6', 'love8', 'climb', 'crown', 'allEggs'].map(b => 'b:' + b);
+    const save = { v: 2, contentVersion: 1, label: 'Alva', updated: 1, settings: {}, activeAdventure: 'adventure-2', completedAdventures: ['havet-mellan-sidorna'],
+        adventures: { 'adventure-2': { contentVersion: 1, flags: SEEN, checkpoint: 'start', puz: {}, strokes: null, ended: false } } };
+    const p = await browser.newPage({ viewport: { width: 844, height: 390 } });
+    const errors = [];
+    p.on('pageerror', e => errors.push(e.message));
+    await p.addInitScript((s) => {
+        localStorage.setItem('skoldhast.v2.index', JSON.stringify({ slots: ['alva'], last: 'alva', deleted: [] }));
+        localStorage.setItem('skoldhast.v2.slot.alva', JSON.stringify(s));
+    }, save);
+    await p.goto(url);
+    await p.waitForSelector('.a2-title .sk-pbtn.primary', { timeout: 30000 });
+    await p.click('.a2-title .sk-pbtn.primary');
+    await p.waitForFunction(() => { const d = window.__skoldhast2?.debug; return d?.mode === 'play' && !d.story.running() && !d.G.busy; }, null, { timeout: 30000 });
+    const thought = STORY.thinRule, line = STORY.medvind.find(([who]) => who === 'klo')[1];
+    const r = await p.evaluate(async ([thought, line]) => {
+        const { ui } = window.__skoldhast2.debug, v = ui.voice, wait = ms => new Promise(res => setTimeout(res, ms));
+        await v.ready;
+        const t0 = performance.now();
+        ui.guide.think(thought);
+        const spoke = v.speaking;
+        void ui.say([['klo', line]]); // the story moves on while the sköldhäst is still thinking aloud
+        let boxAt = null, endAt = null;
+        for (let i = 0; i < 600 && boxAt === null; i++) {
+            if (endAt === null && v.speaking !== 'aside') endAt = performance.now() - t0;
+            if (ui.dialogueOpen()) boxAt = performance.now() - t0;
+            await wait(20);
+        }
+        await wait(300);
+        return { spoke, clip: v.seconds('horse', thought) * 1000, boxAt, endAt, then: v.speaking };
+    }, [thought, line]);
+    assert.equal(r.spoke, 'aside', 'the thought is said aloud');
+    assert.ok(r.boxAt !== null && r.endAt !== null && r.endAt <= r.boxAt + 40, `the box opens once the thought has ended (${Math.round(r.endAt)} ms, box ${Math.round(r.boxAt)} ms)`);
+    assert.ok(r.boxAt >= r.clip - 400, `the thought is heard to its end (${Math.round(r.clip)} ms clip)`);
+    assert.equal(r.then, 'say', "then Klo's own line is spoken");
+    assert.deepEqual(errors, []);
     await p.close();
 });
 

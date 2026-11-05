@@ -41,6 +41,10 @@ const doodle = (name, cls) => icon(name, 'sk-doodle ' + cls);
 // the journal's tabs: one icon for each page
 const TAB_ICONS = ['shell', 'pencil', 'bulb', 'watch', 'lens', 'report', 'note'];
 
+// Mira's purple pencil (Äventyr 2's table draws the same one)
+const MIRA_PENCIL = '<svg viewBox="0 0 64 48" aria-hidden="true"><path d="M8 40 L44 8 L52 14 L16 46 Z" fill="#a98ad0" stroke="#5e4a7d" stroke-width="2"/>'
+    + '<path d="M8 40 L4 47 L16 46 Z" fill="#f3e3c4" stroke="#5e4a7d" stroke-width="1.5"/><path d="M4 47 L7 43" stroke="#3b3530" stroke-width="2"/></svg>';
+
 export function createUI(host, { assetBase, handlers, voice = null }) {
     const root = el('div', 'sk-ui');
     host.appendChild(root);
@@ -106,6 +110,9 @@ export function createUI(host, { assetBase, handlers, voice = null }) {
         else if (who === 'klo') face.append(art('npcs', pose === 'peek' ? 'klo-peek' : 'klo-idle-1'));
         else if (who === 'kv') face.append(art('npcs-bay', 'kv-part-head-normal'));
         else if (who === 'signe') face.append(art('npcs-land', 'turtle-signe'));
+        // Alva and Mira are never drawn: each is her pencil, the same one that speaks on the table's page
+        else if (who === 'alva') face.append(art('table', 'alva-pencil'));
+        else if (who === 'mira') face.innerHTML = MIRA_PENCIL;
         else return null;
         return face;
     }
@@ -199,6 +206,9 @@ export function createUI(host, { assetBase, handlers, voice = null }) {
 
     async function say(lines, { onSpeaker } = {}) {
         voice?.prefetch(lines);
+        // a thought or a hint still being said ends its sentence first (up to 6 s): the box then opens
+        // with its own voice, rather than cutting the other off mid-sentence
+        if (voice?.speaking === 'aside') await voice.asideEnd?.(6);
         for (const [who, text] of lines) {
             if (!text) continue;
             speaker = who;
@@ -225,13 +235,44 @@ export function createUI(host, { assetBase, handlers, voice = null }) {
     speaking.setAttribute('aria-hidden', 'true');
     speaking.innerHTML = '<svg viewBox="0 0 36 30" fill="none"><path class="sk-speaking-paper" d="M6 3 Q17 1 28 3 Q33 4 33 10 L32 17 Q31 21 24 21 L17 28 L17 22 Q3 24 3 16 L2 9 Q2 4 6 3Z"/><path class="sk-speaking-pencil" d="M6 3 Q17 1 28 3 Q33 4 33 10 L32 17 Q31 21 24 21 L17 28 L17 22 Q3 24 3 16 L2 9 Q2 4 6 3Z"/><path class="sk-speaking-dots" d="M10 12h1 M17 12h1 M24 12h1"/></svg>';
     root.appendChild(speaking);
+    // A speaker drawn on the page but outside the picture (Klo a little ahead on a phone held upright) gets a
+    // round badge with their face at that edge of the screen, its point turned toward them.
+    const edge = el('div', 'sk-speaking-edge');
+    edge.setAttribute('aria-hidden', 'true');
+    const edgePoint = el('span', 'sk-edge-point'), edgeFace = el('span', 'sk-edge-face');
+    edge.append(edgePoint, edgeFace);
+    root.appendChild(edge);
+    let edgeWho = null;
+    const EDGE_R = 25, EDGE_M = 22; // the margin leaves room for the point
+    const hits = (cx, cy, r) => cx + EDGE_R > r.left - 4 && cx - EDGE_R < r.right + 4 && cy + EDGE_R > r.top - 4 && cy - EDGE_R < r.bottom + 4;
+    function showEdge(who, x, y, W, H) {
+        if (edgeWho !== who) { edgeFace.replaceChildren(...[portrait(who)].filter(Boolean)); edgeWho = who; }
+        const lo = EDGE_R + EDGE_M, hiX = W - lo, hiY = H - lo;
+        if (!edgeFace.firstChild || hiX < lo || hiY < lo) { edge.classList.remove('on'); return; }
+        const cx = Math.min(hiX, Math.max(lo, x));
+        let cy = Math.min(hiY, Math.max(lo, y));
+        // slide along the edge past the speech box and the round buttons, to the nearer free side
+        for (let i = 0; i < 4; i++) {
+            const r = obstacles.find(o => hits(cx, cy, o));
+            if (!r) break;
+            const up = r.top - 4 - EDGE_R, down = r.bottom + 4 + EDGE_R;
+            cy = up >= lo && (down > hiY || cy - up <= down - cy) ? up : down;
+        }
+        if (cy < lo || cy > hiY || obstacles.some(o => hits(cx, cy, o))) { edge.classList.remove('on'); return; }
+        edge.style.transform = `translate(${Math.round(cx - EDGE_R)}px, ${Math.round(cy - EDGE_R)}px)`;
+        edgePoint.style.transform = `rotate(${Math.atan2(y - cy, x - cx).toFixed(3)}rad)`;
+        edge.dataset.speaker = who;
+        edge.classList.add('on');
+    }
     let obstacles = [], measureAt = 0, markWho = null;
     function updateSpeaker(who, bounds) {
-        if (!who || !bounds || panel.classList.contains('on')) { speaking.classList.remove('on'); markWho = null; return; }
+        // Alva and Mira are never drawn. Away from the table's page (in the world, where they draw the moon and the
+        // stars), each speaks from her side of the table, beyond the edge of the page: her pencil in the badge.
+        const girl = !bounds && (who === 'alva' || who === 'mira');
+        if (!who || (!bounds && !girl) || panel.classList.contains('on')) { speaking.classList.remove('on'); edge.classList.remove('on'); markWho = null; return; }
         const W = root.clientWidth, H = root.clientHeight;
+        if (girl) bounds = who === 'alva' ? { minX: W + 300, maxX: W + 300, minY: H * .32, maxY: H * .32 } : { minX: -300, maxX: -300, minY: H * .32, maxY: H * .32 };
         const x = (bounds.minX + bounds.maxX) / 2, y = bounds.minY;
-        // An off-screen character is still identified by the portrait and name.
-        if (x < 0 || x > W || bounds.maxY < 0 || y > H) { speaking.classList.remove('on'); return; }
         const now = performance.now();
         if (now >= measureAt || markWho !== who) {
             const origin = root.getBoundingClientRect();
@@ -242,13 +283,22 @@ export function createUI(host, { assetBase, handlers, voice = null }) {
                 });
             measureAt = now + 150;
         }
-        const left = x - 18, top = y - 36;
-        const clear = left >= 4 && left + 36 <= W - 4 && top >= 4 && top + 30 <= H - 4 &&
-            !obstacles.some(r => left < r.right + 4 && left + 36 > r.left - 4 && top < r.bottom + 4 && top + 30 > r.top - 4);
-        speaking.classList.toggle('on', clear);
-        speaking.dataset.speaker = who;
-        speaking.style.transform = `translate(${Math.round(left)}px, ${Math.round(top)}px)`;
         markWho = who;
+        const left = x - 18, top = y - 36;
+        // the mark above the head does not fit on the screen: the speaker is out of the picture, or at its very edge
+        if (left < 4 || left + 36 > W - 4 || bounds.maxY < 4 || y > H - 4) {
+            speaking.classList.remove('on');
+            showEdge(who, x, (bounds.minY + bounds.maxY) / 2, W, H);
+            return;
+        }
+        edge.classList.remove('on');
+        // above the head first; if the speech box or a button is there (Molnet just under the box), beside the head
+        const fits = ([l, t]) => l >= 4 && l + 36 <= W - 4 && t >= 4 && t + 30 <= H - 4 &&
+            !obstacles.some(r => l < r.right + 4 && l + 36 > r.left - 4 && t < r.bottom + 4 && t + 30 > r.top - 4);
+        const spot = [[left, top], [bounds.maxX + 2, y + 14], [bounds.minX - 38, y + 14]].find(fits);
+        speaking.classList.toggle('on', !!spot);
+        speaking.dataset.speaker = who;
+        if (spot) speaking.style.transform = `translate(${Math.round(spot[0])}px, ${Math.round(spot[1])}px)`;
     }
 
     // choices (the prologue)

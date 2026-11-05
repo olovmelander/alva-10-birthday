@@ -95,6 +95,9 @@ try {
         G.on('plankNote', e => notes.push(e.note));
         const originalReport = ui.report;
         ui.report = async n => { log.push({ kind: 'report', n }); return originalReport(n); };
+        // the story's effects reach the view through view.fx (main.mjs); chapter3 checks their order
+        const originalFx = view.fx;
+        view.fx = (name, data) => { log.push({ t: G.time, kind: 'fx', name }); return originalFx.call(view, name, data); };
         const sleep = ms => new Promise(r => setTimeout(r, ms));
         let steps = 0, stickOn = false, kx = 0, ky = 0;
         const zone = ui.stickZone;
@@ -126,7 +129,8 @@ try {
                     if (Math.abs(iy) < .95 && pulse >= Math.abs(iy)) y = 0;
                 }
                 if (x !== kx) { if (kx) key(kx < 0 ? 'ArrowLeft' : 'ArrowRight', false); if (x) key(x < 0 ? 'ArrowLeft' : 'ArrowRight', true); kx = x; }
-                if (y !== ky) { if (ky) key(ky < 0 ? 'ArrowUp' : 'x', false); if (y) key(y < 0 ? 'ArrowUp' : 'x', true); ky = y; }
+                // under water ↓ dives and ↑ swims up (input.mjs, since 1 October; X did nothing any more)
+                if (y !== ky) { if (ky) key(ky < 0 ? 'ArrowUp' : 'ArrowDown', false); if (y) key(y < 0 ? 'ArrowUp' : 'ArrowDown', true); ky = y; }
             }
         }
         drive.pulse = 0;

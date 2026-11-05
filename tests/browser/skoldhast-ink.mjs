@@ -34,23 +34,25 @@ try {
     });
     for (const [scene, id] of [['land', 'p1-arch'], ['viken', 'p8-d1']]) {
         const fresh = await pg.evaluate(({ scene, id }) => {
-            const { G, view } = window.__skoldhast.debug;
+            const { G, view, assets } = window.__skoldhast.debug;
             G.flags.add('talk_done');
             G.goto(scene, { x: 0, y: 0 }, { silent: true });
             const ds = G.sceneDef.dashed.find(d => d.id === id);
             G.flags.delete(ds.flag); ds._ink = 0;
             G.terrain.refresh(); view.setScene(scene);
             const parent = ds.decal ? view.layers.mid : view.layers.objects;
-            const group = parent.children.find(c => c.children?.length === 3 && c.children[1]._pts?.length > 2 && Math.abs(c.children[1]._pts[0].x - ds.pts[0][0]) < 1);
+            // the line's group (view.mjs, dashed lines): its glow rope runs the whole line, its ink rope follows the pencil
+            const group = parent.children.find(c => c.children?.some(s => s.label === 'unfinished-' + id));
             if (!group) throw new Error('missing ink group: ' + id);
-            window.__inkGroup = group;
-            return { visible: group.children[2].visible, points: group.children[2]._pts.length };
+            window.__inkRope = group.children.find(s => s.texture === assets.tex('stroke-graphite'));
+            window.__inkLine = group.children.find(s => s.texture === assets.tex('stroke-glow'));
+            return { visible: window.__inkRope.visible, points: window.__inkRope._pts.length };
         }, { scene, id });
         records.push({ id, fresh });
         for (const dir of [1, -1]) for (const progress of [0, 0.4, 1, 0.15, 0]) {
             const data = await pg.evaluate(({ id, dir, progress }) => {
                 const { G, view, app } = window.__skoldhast.debug, sim = window.__inkSim;
-                const ds = G.sceneDef.dashed.find(d => d.id === id), group = window.__inkGroup, ink = group.children[2];
+                const ds = G.sceneDef.dashed.find(d => d.id === id), ink = window.__inkRope;
                 const length = sim.lineLength(ds.pts), tip = sim.pointAt(ds.pts, length * (dir < 0 ? 1 - progress : progress));
                 ds._ink = progress;
                 if (progress === 1) G.flags.add(ds.flag); else G.flags.delete(ds.flag);
@@ -60,7 +62,7 @@ try {
                 view.render(sim.snapshot(G.player, 1, G.terrain, G.time), 0);
                 app.render();
                 const points = ink._pts.map(p => [p.x, p.y]);
-                const source = group.children[1]._pts.map(p => [p.x, p.y]);
+                const source = window.__inkLine._pts.map(p => [p.x, p.y]);
                 const from = dir < 0 ? [tip.x, tip.y] : source[0];
                 const to = dir < 0 ? source.at(-1) : [tip.x, tip.y];
                 const mesh = ink.geometry?.getBuffer('aPosition')?.data;

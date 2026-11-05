@@ -7,7 +7,7 @@
  * finale from a saved game with all ten eggs: Mira's moon traced, Alva's stars,
  * the hatching, the epilogue and the ending card, with the completion saved.
  *
- *   node tests/browser/skoldhast-a2.mjs [--out dir] [--quick]
+ *   node tests/browser/skoldhast-a2.mjs [--out dir] [--quick] [--only <words in a check's name>]
  *
  * --quick skips the prologue (the slowest part under software WebGL).
  */
@@ -20,6 +20,8 @@ const args = process.argv.slice(2);
 const outArg = args.indexOf('--out');
 const out = outArg >= 0 ? args[outArg + 1] : null;
 const quick = args.includes('--quick');
+const onlyArg = args.indexOf('--only');
+const only = onlyArg >= 0 ? args[onlyArg + 1] : null;
 if (out) fs.mkdirSync(out, { recursive: true });
 
 const server = await serve(), browser = await launch();
@@ -47,8 +49,28 @@ const profile = (flags, checkpoint = 'start') => ({ v: 2, contentVersion: 1, lab
 const dbg = (p, fn, arg) => p.evaluate(fn, arg);
 const shot = async (p, name) => { if (out) await p.screenshot({ path: path.join(out, name + '.png') }); };
 
+/** Records, for every line in the speech box, whether its speaker was shown: the speaking mark over them, or
+ *  the edge badge pointing to them (src/ui.mjs). Alva's and Mira's pencils speak for them at the table. */
+const watchSpeakers = p => dbg(p, () => {
+    const seen = window.__a2Speakers = new Map();
+    const tick = () => {
+        const dlg = document.querySelector('.sk-dialogue.on');
+        if (dlg) {
+            const who = [...dlg.classList].find(c => c.startsWith('who-'))?.slice(4);
+            const key = `${who}: ${dlg.querySelector('.sk-dlg-text').textContent}`;
+            const s = seen.get(key) || { who, frames: 0, shown: 0 };
+            s.frames++;
+            if (document.querySelector('.sk-speaking.on, .sk-speaking-edge.on')) s.shown++;
+            seen.set(key, s);
+        }
+        requestAnimationFrame(tick);
+    };
+    tick();
+});
+const unseenSpeakers = p => dbg(p, () => [...window.__a2Speakers].filter(([, s]) => s.shown === 0).map(([line]) => line));
+
 /** Answers dialogue and drawing prompts until done() is true. */
-async function playThrough(p, done, { maxSeconds = 240, onDraw = null, label = '' } = {}) {
+async function playThrough(p, done, { maxSeconds = 240, onDraw = null, label = '', read = 380 } = {}) {
     const end = Date.now() + maxSeconds * 1000;
     while (Date.now() < end) {
         if (await done()) return;
@@ -60,7 +82,7 @@ async function playThrough(p, done, { maxSeconds = 240, onDraw = null, label = '
         } else if (await p.$('.sk-panel.on .sk-ending')) {
             await p.click('.sk-panel.on .sk-ending .sk-pbtn.primary', { timeout: 2000, force: true }).catch(() => {});
         } else if (await p.$('.sk-dialogue.on')) {
-            await p.waitForTimeout(380);
+            await p.waitForTimeout(read);
             await p.click('.sk-dialogue.on .sk-dlg-next', { timeout: 1000, force: true }).catch(() => {});
         }
         await p.waitForTimeout(150);
@@ -69,6 +91,7 @@ async function playThrough(p, done, { maxSeconds = 240, onDraw = null, label = '
 }
 
 async function check(name, fn) {
+    if (only && !name.includes(only)) return;
     try { await fn(); console.log('ok -', name); }
     catch (err) { failures++; console.log('not ok -', name, '\n  ', err.message.split('\n').join('\n   ')); }
 }
@@ -76,11 +99,34 @@ async function check(name, fn) {
 if (!quick) await check('the prologue at Alva\'s table leads to the nest (844×390)', async () => {
     const p = await page({ width: 844, height: 390 });
     await shot(p, 'a2-title-844x390');
+    // The sköldhäst that gallops in at the table must stand on its hooves. On 5 November its hooves reached for a
+    // ground at the page's top (groundAt 0 under y 500), so it galloped in with its legs in the air.
+    await dbg(p, () => {
+        const legs = window.__a2Legs = { frames: 0, upside: 0 };
+        const find = (n, test, found = []) => { if (test(n)) found.push(n); n.children?.forEach(c => find(c, test, found)); return found; };
+        const tick = () => {
+            const d = window.__skoldhast2?.debug, table = d && find(d.app.stage, n => n.label === 'a2-table')[0];
+            for (const hero of table ? find(table, n => n.label === 'hero' && n.alpha > 0.3) : []) {
+                const y = n => hero.toLocal(n.getGlobalPosition()).y;
+                const head = find(hero, n => n.label === 'head')[0], hooves = find(hero, n => /\.hoof$/.test(n.label || ''));
+                legs.frames++;
+                // standing or galloping, every hoof is far below the head (about 200 below it in the hero's frame)
+                if (!head || hooves.length !== 4 || hooves.some(h => y(h) < y(head) + 100)) legs.upside++;
+            }
+            requestAnimationFrame(tick);
+        };
+        tick();
+    });
+    await watchSpeakers(p);
     await p.click('.a2-title .sk-pbtn.primary');
     const drawn = [];
     await playThrough(p, () => dbg(p, () => { const d = window.__skoldhast2?.debug; return d?.mode === 'play' && !d.table.shown; }),
         { label: 'prologue', onDraw: async (prompt) => { drawn.push(prompt); await shot(p, `a2-draw${drawn.length}-844x390`); } });
     assert.ok(drawn.some(t => /Alva/.test(t)) && drawn.some(t => /Miras/.test(t)), 'the player draws with Alva\'s pencil (the first egg) and Mira\'s (the cloud): ' + drawn.join(' | '));
+    assert.deepEqual(await unseenSpeakers(p), [], 'every speaker at the table and at the nest is shown while speaking');
+    const legs = await dbg(p, () => window.__a2Legs);
+    assert.ok(legs.frames > 10, `the sköldhäst gallops in at the table (${legs.frames} frames)`);
+    assert.equal(legs.upside, 0, `the sköldhäst gallops in on its hooves (${legs.upside} of ${legs.frames} frames with a hoof up by its head)`);
     await playThrough(p, () => dbg(p, () => { const { G, story } = window.__skoldhast2.debug; return G.flags.has('b:arrive') && !story.running() && !G.busy; }), { label: 'arrival' });
     const st = await dbg(p, () => { const { G } = window.__skoldhast2.debug; return { scene: G.sceneId, tukan: G.actors.tukan?.visible, klo: G.actors.klo?.visible, clues: [...G.flags].filter(f => f.startsWith('clue_')) }; });
     assert.equal(st.scene, 'strand'); assert.ok(st.tukan && st.klo, 'Tukankrabban and Klo are at the nest');
@@ -114,8 +160,74 @@ await check('all four pages draw at phone portrait size (390×844)', async () =>
     await p.close();
 });
 
+await check('who speaks is seen on a phone held upright: the camera takes Klo in, or a badge points to him (390×844)', async () => {
+    const p = await page({ width: 390, height: 844 }, profile([...SEEN]));
+    await p.click('.a2-title .sk-pbtn.primary');
+    await p.waitForFunction(() => window.__skoldhast2?.debug?.mode === 'play', null, { timeout: 20000 });
+    await p.waitForFunction(() => { const { G, story } = window.__skoldhast2.debug; return !story.running() && !G.busy; }, null, { timeout: 20000 });
+    // Klo stands a little ahead, out of the picture, and speaks
+    const talk = (hl, line) => dbg(p, ([hl, line]) => {
+        const { G, ui } = window.__skoldhast2.debug;
+        Object.assign(G.actors.klo, { scene: G.sceneId, x: G.player.x + hl * 200, y: G.player.y, visible: true, follow: false, staged: true, pose: 'idle' });
+        ui.say([['klo', line]]);
+    }, [hl, line]);
+    const state = () => dbg(p, () => {
+        const { view } = window.__skoldhast2.debug, b = view.speakerBounds('klo'), hero = view.heroScreen();
+        return { klo: b && { x: (b.minX + b.maxX) / 2, y: b.minY }, hero: { x: hero.x, y: hero.y }, w: innerWidth, h: innerHeight,
+            mark: !!document.querySelector('.sk-speaking.on'), edge: !!document.querySelector('.sk-speaking-edge.on') };
+    });
+    const before = await state();
+    await talk(4, 'Hit!');
+    await p.waitForFunction(() => document.querySelector('.sk-speaking.on'), null, { timeout: 10000 }).catch(() => {});
+    const near = await state();
+    await shot(p, 'a2-speaker-near-390x844');
+    assert.ok(near.klo.x > 0 && near.klo.x < near.w, `the camera takes Klo in (${Math.round(near.klo.x)} of ${near.w})`);
+    assert.ok(near.hero.x > 0 && near.hero.x < near.w, 'and keeps the sköldhäst');
+    assert.ok(near.mark, 'the speaking mark is over Klo');
+    await p.click('.sk-dialogue.on .sk-dlg-next', { force: true });
+    await p.waitForTimeout(400);
+    await talk(22, 'Här borta!');
+    await p.waitForFunction(() => document.querySelector('.sk-speaking-edge.on'), null, { timeout: 10000 }).catch(() => {});
+    const far = await state();
+    await shot(p, 'a2-speaker-far-390x844');
+    assert.ok(far.hero.x > 0 && far.hero.x < far.w, 'too far to take in: the sköldhäst stays in the picture');
+    assert.ok(far.klo.x > far.w && far.edge, 'a badge with his face at the right edge points to him');
+    await p.click('.sk-dialogue.on .sk-dlg-next', { force: true });
+    await p.waitForTimeout(1500);
+    const after = await state();
+    assert.ok(!after.edge && !after.mark && Math.abs(after.hero.x - before.hero.x) < 40, 'the camera returns when the talk ends');
+    assert.deepEqual(p.errors, []);
+    await p.close();
+});
+
+await check('what the lines are about is in the picture: Miras streckade bro at Klyftan (390×844)', async () => {
+    const p = await page({ width: 390, height: 844 }, profile(SEEN.filter(f => f !== 'b:klyft')));
+    await p.click('.a2-title .sk-pbtn.primary');
+    await p.waitForFunction(() => window.__skoldhast2?.debug?.mode === 'play', null, { timeout: 20000 });
+    await p.waitForFunction(() => { const { G, story } = window.__skoldhast2.debug; return !story.running() && !G.busy; }, null, { timeout: 20000 });
+    // walk the last steps into Klyftan with the real keyboard
+    await dbg(p, () => { const { G, view } = window.__skoldhast2.debug; G.goto('strand', { x: 10.6 * 200, y: -0.6 * 200, facing: -1 }); view.cam.snap = true; });
+    await p.keyboard.down('ArrowLeft');
+    await p.waitForFunction(() => window.__skoldhast2.debug.story.running(), null, { timeout: 15000 });
+    await p.keyboard.up('ArrowLeft');
+    await p.waitForSelector('.sk-dialogue.on', { timeout: 15000 });
+    await p.waitForTimeout(1500);
+    const seen = await dbg(p, () => {
+        const { view } = window.__skoldhast2.debug, hero = view.heroScreen();
+        const a = view.toScreen(1.5 * 200, -0.6 * 200), b = view.toScreen(6.5 * 200, -0.6 * 200);
+        return { a: a.x, b: b.x, y: a.y, hero: hero.x, w: innerWidth, h: innerHeight, text: document.querySelector('.sk-dlg-text').textContent };
+    });
+    await shot(p, 'a2-klyft-bridge-390x844');
+    assert.match(seen.text, /streckad/);
+    assert.ok(seen.a >= 0 && seen.b <= seen.w && seen.y > 0 && seen.y < seen.h, `the whole dashed bridge is in the picture (${Math.round(seen.a)}–${Math.round(seen.b)} of ${seen.w})`);
+    assert.ok(seen.hero > 0 && seen.hero < seen.w, 'and so is the sköldhäst');
+    assert.deepEqual(p.errors, []);
+    await p.close();
+});
+
 await check('the finale: ten eggs in the nest, Mira\'s moon, the hatching, the table, completion saved (1440×900)', async () => {
     const p = await page({ width: 1440, height: 900 }, profile([...SEEN, ...EGGS, 'p2_bridge', 'p7_vine', 'p4_lit', 'cloud_met', 'coin_got', 'coin_given', 'clue_cloudCries', 'clue_afraid']));
+    await watchSpeakers(p);
     await p.click('.a2-title .sk-pbtn.primary');
     await p.waitForFunction(() => window.__skoldhast2?.debug?.mode === 'play', null, { timeout: 20000 });
     const before = await dbg(p, () => window.__skoldhast2.debug.story.objective().id);
@@ -131,8 +243,10 @@ await check('the finale: ten eggs in the nest, Mira\'s moon, the hatching, the t
         if (s.hatched && !sawHatch) { sawHatch = true; await shot(p, 'a2-hatched-1440x900'); }
         if (s.table && !sawTable) { sawTable = true; await p.waitForTimeout(1500); await shot(p, 'a2-epilogue-1440x900'); }
         return s.ended && !s.table && !(await p.$('.sk-panel.on')) && !(await p.$('.sk-dialogue.on')) && (await dbg(p, () => !window.__skoldhast2.debug.story.running()));
-    }, { label: 'finale', maxSeconds: 480, onDraw: async (prompt) => { traced.push(prompt); await shot(p, `a2-finale-draw${traced.length}-1440x900`); } });
+        // read each line long enough for the camera to reach its speaker, as a reader would
+    }, { label: 'finale', maxSeconds: 480, read: 1000, onDraw: async (prompt) => { traced.push(prompt); await shot(p, `a2-finale-draw${traced.length}-1440x900`); } });
     assert.ok(/Mira/.test(traced[0]) && /Alva/.test(traced[1]), 'Mira traces the moon, then Alva the stars: ' + traced.join(' | '));
+    assert.deepEqual(await unseenSpeakers(p), [], 'every speaker in the finale and at the table is shown while speaking');
     assert.ok(sawHatch && sawTable, 'the eggs hatch and the table shows the page');
     await p.waitForTimeout(1500);
     await shot(p, 'a2-moonlit-1440x900');
@@ -142,6 +256,74 @@ await check('the finale: ten eggs in the nest, Mira\'s moon, the hatching, the t
     const st = await dbg(p, () => { const { G } = window.__skoldhast2.debug; return { storm: G.storm, obj: window.__skoldhast2.debug.story.objective().id }; });
     assert.equal(st.storm, 0); assert.equal(st.obj, 'free');
     assert.deepEqual(p.errors, []);
+    await p.close();
+});
+
+// Seen, not just placed: the moon is drawn once without it and once with it, and the pixels inside its
+// disc must change. Åsktoppen (portrait) and the forest (landscape) used to cover half of it or more.
+await check('Mira\'s moon and Alva\'s stars are seen in the sky on phones (844×390, 390×844)', async () => {
+    for (const vp of [{ width: 844, height: 390 }, { width: 390, height: 844 }]) {
+        const p = await page(vp, profile([...SEEN, ...EGGS, 'p2_bridge', 'p7_vine', 'p4_lit', 'cloud_met', 'coin_got', 'coin_given',
+            'eggs_in_nest', 'moon', 'alva_stars', 'hatched', 'watch_given', 'skata_gift', 'ended'], 'nest'));
+        await p.click('.a2-title .sk-pbtn.primary');
+        await p.waitForFunction(() => window.__skoldhast2?.debug?.mode === 'play', null, { timeout: 20000 });
+        // the finale's camera (cloudArrive), once the moon has risen
+        await dbg(p, () => { const { G } = window.__skoldhast2.debug, c = G.sceneDef.spots.cloudSky; G.camHint = { x: c.x, y: c.y + 2.2 * 200, zoom: 0.85 }; });
+        await p.waitForFunction(() => window.__skoldhast2.debug.view.moonParts().rise > 0.995, null, { timeout: 20000 });
+        await p.waitForTimeout(1500);
+        const seen = await dbg(p, () => {
+            const { view, app } = window.__skoldhast2.debug, { moon, stars } = view.moonParts();
+            const Rect = app.screen.constructor; // a PIXI.Rectangle, which extract needs for its frame
+            const grab = (x, y, w, hgt) => app.renderer.extract.pixels({ target: app.stage, frame: new Rect(x, y, w, hgt) }).pixels;
+            const changed = (part, x, y, w, hgt) => {
+                part.visible = false; app.render(); const off = grab(x, y, w, hgt);
+                part.visible = true; app.render(); const on = grab(x, y, w, hgt);
+                return (i) => Math.abs(on[i] - off[i]) + Math.abs(on[i + 1] - off[i + 1]) + Math.abs(on[i + 2] - off[i + 2]);
+            };
+            const c = moon.getGlobalPosition(), r = Math.round(moon.scale.x * 60 * 0.8), x0 = Math.round(c.x - r), y0 = Math.round(c.y - r);
+            const d = changed(moon, x0, y0, 2 * r, 2 * r);
+            let inside = 0, differs = 0;
+            for (let y = 0; y < 2 * r; y++) for (let x = 0; x < 2 * r; x++) {
+                if ((x - r) ** 2 + (y - r) ** 2 > r * r) continue;
+                inside++; if (d((y * 2 * r + x) * 4) > 30) differs++;
+            }
+            let starsSeen = 0;
+            for (const s of stars.children) {
+                const g = s.getGlobalPosition(), sx = Math.round(g.x - 3), sy = Math.round(g.y - 3);
+                const ds = changed(s, sx, sy, 6, 6);
+                let best = 0; for (let i = 0; i < 36; i++) best = Math.max(best, ds(i * 4));
+                if (best > 40) starsSeen++;
+            }
+            return { moon: differs / inside, stars: starsSeen, of: stars.children.length, at: [Math.round(c.x), Math.round(c.y), r] };
+        });
+        assert.ok(seen.moon > 0.85, `${vp.width}×${vp.height}: the moon's disc is seen (${Math.round(seen.moon * 100)} % of it, at ${seen.at})`);
+        assert.ok(seen.stars >= seen.of - 1, `${vp.width}×${vp.height}: Alva's stars are seen (${seen.stars} of ${seen.of})`);
+        await shot(p, `a2-moon-sky-${vp.width}x${vp.height}`);
+        await p.close();
+    }
+});
+
+// K1's bridge lies over the chasm, under the pit's dark layer (L.fore over L.terrain): once the plates
+// ring, that dark must sink below the deck, or the crystal bridge reads as a dark band.
+await check('the crystal bridge over the lit chasm is seen, not under the pit\'s dark (844×390)', async () => {
+    const flags = ['b:arrive', 'b:firstEgg', 'egg_e1', 'p2_bridge', 'p4_lit', 'lantern', 'storm_source', 'visited_kristall', 'b:kristall',
+        'b:plates', 'cave_reached', 'k1_a', 'k1_b', 'k1_c', 'k1_lit', 'k1_bridge', 'b:k1Done'];
+    const p = await page({ width: 844, height: 390 }, profile(flags, 'kristall'));
+    await p.click('.a2-title .sk-pbtn.primary');
+    await p.waitForFunction(() => window.__skoldhast2?.debug?.mode === 'play', null, { timeout: 20000 });
+    for (let t = 0; t < 60; t++) { if (await dbg(p, () => { const { story, ui } = window.__skoldhast2.debug; if (ui.dialogueOpen()) ui.advance(); return !story.running(); })) break; await p.waitForTimeout(150); }
+    await dbg(p, () => { const { G } = window.__skoldhast2.debug; G.goto('kristall', { x: 13.4 * 200, y: -0.3 * 200 }); });
+    await p.waitForTimeout(3500); // the dark eases away
+    const r = await dbg(p, () => {
+        const { view, app } = window.__skoldhast2.debug;
+        const find = (c) => { for (const ch of c.children || []) { if (ch.label === 'chasm-pit') return ch; const f = find(ch); if (f) return f; } return null; };
+        const pit = find(app.stage), deck = view.toScreen(16.2 * 200, -0.2 * 200);
+        const Rect = app.screen.constructor, frame = new Rect(Math.round(deck.x - 20), Math.round(deck.y - 2), 40, 6);
+        const lum = () => { app.render(); const px = app.renderer.extract.pixels({ target: app.stage, frame }).pixels; let s = 0; for (let i = 0; i < px.length; i += 4) s += px[i] + px[i + 1] + px[i + 2]; return s / (px.length / 4) / 3; };
+        const shown = lum(); pit.visible = false; const bare = lum(); pit.visible = true;
+        return { shown, bare };
+    });
+    assert.ok(r.shown > r.bare * 0.9, `the deck keeps its light under the lit chasm (${Math.round(r.shown)} of ${Math.round(r.bare)})`);
     await p.close();
 });
 

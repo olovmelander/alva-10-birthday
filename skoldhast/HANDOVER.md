@@ -1,5 +1,225 @@
 # Sköldhästen – handover
 
+## Nobody is cut off mid-sentence (5 November)
+
+Pappa: when the sköldhäst says something and then Klo, or someone else, says something about the story, the first
+voice stops abruptly mid-sentence.
+
+The cause: a speech box (`say`) silenced anything else at once. That included a thought or hint still being said
+(`aside`), which the story's next beat cut off.
+- `ui.say` now waits for that thought or hint to end its sentence, up to 6 s (`voice.asideEnd`), before the box opens
+  with its own voice. Text and voice stay together. The thought bubble stays on screen while it is being said.
+- A voice that is stopped, for example when the reader taps on, fades out over 0.12 s instead of being cut. Each
+  clip has its own gain node.
+- Tapping on still stops the line being read, by design: the reader chose to move on.
+- Checks:
+  - `tests/skoldhast-voice.test.mjs` covers the wait and the fade.
+  - `tests/browser/skoldhast-voice.mjs`: while the sköldhäst thinks aloud, a box for Klo must open only after the
+    thought has ended, and then speak.
+
+## You can see who is speaking, everywhere; Äventyr 2's sköldhäst gallops in on its hooves (5 November)
+
+Pappa saw two things in Äventyr 2's opening:
+- The sköldhäst galloped onto the table's page with its legs in the air.
+- Some speakers could not be seen: Mira and Alva talk over an empty page, and on a phone held upright Klo spoke
+  from out of the picture.
+
+He asked that the speakers be visible in every part of the game, "på något smart sätt".
+
+- **The legs.** The table's hand-made hero state put the sköldhäst at page y 500 and its ground at 0, so the hooves
+  reached for the top of the page. Ground and body now share the same line. The pair also stops beside Tukankrabban
+  instead of in front of her legs. `skoldhast-a2` checks every frame of the gallop-in: each hoof must stay far below
+  the head. Without the fix, 88 frames fail. Shots: `docs/skoldhast/shots/visual-sweep/a2-table-gallop*.webp`.
+- **Speakers are shown in three ways:**
+  - **The pencil mark** (already there) sits over a speaker who is in the picture.
+  - **A badge at the edge of the screen**, new in `src/ui.mjs`, for both adventures. If a speaker is drawn on the page
+    but out of the picture, their face appears in a round paper badge at that edge, with a rust-coloured point toward
+    them. It slides past the speech box and the round buttons.
+  - **In Äventyr 2 the camera takes the speaker in** (`frameSpeaker` in `adventures/adventure-2/view.mjs`). While
+    someone speaks, the camera slides over until they and the sköldhäst both fit, and steps back to at most 75 % of
+    the usual zoom. If the speaker is further away than that, the sköldhäst stays in the picture and the badge points
+    to them. A story view of something far away (an egg, the cave) keeps its own frame. A view staged around the
+    sköldhäst, such as the conversation at the nest, still takes in the speaker.
+- **Mira and Alva are still never drawn: their pencils speak for them.**
+  - At Äventyr 2's table, while one of them speaks, her own pencil rests on her side of the page and bobs as she
+    talks: Mira's purple one on the left, Alva's (with the sleeve) on the right. It is the same pencil that draws.
+    The speaking mark sits on it.
+  - The name tab's picture is now that same pencil in both adventures. Alva's used to be a green pencil that matched
+    nothing on the page. Äventyr 1's one exchange between them, at the epilogue, now has the pencils in the tab too.
+  - Away from the table's page, for example in the finale where Mira asks for the moon and Alva draws the stars,
+    each speaks from her side of the table. Her pencil shows in the badge at that edge: Mira's on the left, Alva's on
+    the right.
+- **The mark moves beside the head when the speech box is above it.** In the finale Molnet floats just under the
+  box at 1440×900. The mark used to vanish there, and now sits beside the cloud.
+- **Checks in `skoldhast-a2`:**
+  - Every line in the prologue at the table, at the nest, in the finale and in the epilogue must show its speaker,
+    with the mark or the badge.
+  - A new check, "who speaks is seen on a phone held upright", stages Klo 4 HL ahead: the camera must take him in,
+    with the mark over him. At 22 HL the badge must point to him while the sköldhäst stays in the picture.
+  - New option `--only <words in a check's name>`.
+- **Not changed:** Äventyr 1's camera does not slide to a speaker. Its conversations are staged with `s.cam`, and at the
+  opening table every line had its mark at 390×844. A speaker out of the picture there now gets the badge.
+- **Frågor till Pappa:** is the badge clear enough on Alva's phone? It is about 50 px, with a gentle pulse that
+  "Mindre rörelse" turns off.
+
+### What the lines are about is in the picture (Äventyr 2)
+
+Pappa: sometimes the thing being talked about cannot be seen, which makes the story hard to follow.
+- `about(box, fn)` in `adventures/adventure-2/story.mjs` sets `G.camLook` (a box in world units) while its lines are
+  said.
+- The camera (`frameSpeaker` in `view.mjs`) keeps three things in the picture: that box (with half a horse length of
+  room), the sköldhäst and the speaker. It steps back to at most 70 % of the usual zoom. If they cannot all fit, what
+  is talked about comes first, as near the sköldhäst as it allows.
+- Seven conversations already had their own `fx('focus')`: the grove, the falls, Skatan, the forest's first egg, the
+  leap, the crystal lake and Blixtbron. Eleven had nothing, and now name their subject:
+  - Miras streckade bro over Klyftan;
+  - the passage behind the falls;
+  - Tordyveln's ball;
+  - Skatan's nest and the branch steps;
+  - the moonflower seeds;
+  - the ravine and the vine;
+  - Jätteträdet's branches;
+  - the ringing crystals and the dark chasm;
+  - the gate and the pond's plates;
+  - the spring;
+  - the end of the path on Åsktoppen.
+- Not given a subject:
+  - Mira's river line (she stands at it);
+  - Kristallgrottan's arrival (the glitter is all round);
+  - Åsktoppen's arrival (the storm is in the sky).
+- `skoldhast-a2` walks into Klyftan at 390×844 and requires the whole dashed bridge and the sköldhäst to be in the
+  picture while it is talked about. Shot: `docs/skoldhast/shots/visual-sweep/a2-klyft-bridge-390x844.webp`.
+
+### The same in Äventyr 1
+
+Äventyr 1's conversations are directed with `s.cam`, `landLook`, vistas and the map overlay. A read of all 54 beats
+found most of them framed. Two were fixed:
+- **k3_line:** "Hovarna lagar strecken på bryggan" was said before the wide look along the pier. That look now comes
+  first and holds while Klo speaks.
+- **after_signe:** before "Kapplöpning till pölen?", the camera frames the pool (the race's finish) with Signe.
+
+**Left as candidates**, with a frame in HL. These are remarks made while playing, where moving the camera would get
+in the way:
+- `k2_kelp_freed` "Nu når strömmen ända upp till vecket": the hook is about 5 HL behind the hero. Frame
+  [33.8, 42.2, 7.4, 11.9], or keep the hook in P6's frame for a few seconds.
+- `k1_boardwalk` "…och upp går flaggan!": the flag (91.8, −2.1) leaves the picture while the bubble is read.
+- The Guida mig `chains` hint at Kartväktarens brygga: the lower chain ends out of the picture.
+- `k1_p1` "Bron håller!": falls behind a galloping hero.
+- `k1_note` (default help) "Där borta finns havets spår": the wave marks are 47 HL away. Reword it rather than frame
+  it.
+
+## A sweep for silent visual faults like the lighthouse's (5 November)
+
+Pappa asked whether there were more visual bugs like the lighthouse that no longer mirrored. That one was a silent
+regression: a later change hid it, and its check measured only where the lamp was, not whether it could be seen.
+Two sweeps looked for more.
+- An independent read of the rendering code in both adventures looked for objects reused in another view, masks and
+  dark layers that can hide something completely, and checks that test position instead of visibility.
+- Every browser check not run that day was run one by one.
+
+Each finding was confirmed in screenshots before it was fixed. Each fix has a check that fails without it. Before and
+after shots are in `docs/skoldhast/shots/visual-sweep/`.
+
+- **Äventyr 2, the finale: Mira's moon was half hidden on phones.** On 4 November it moved below the drawing pad's
+  prompt, which put it behind Åsktoppen in portrait and behind the treetops in landscape. Half of Alva's stars were
+  hidden with it.
+  - The moon and the stars now have their own layer, in front of the distant forest and the mountain.
+  - Once Alva's stars are drawn, the moon rises into the open sky in landscape.
+  - The tracing dots are unchanged.
+  - `skoldhast-a2` draws the picture without and with the moon and requires its disc to change. It does the same for
+    the stars.
+- **Äventyr 2, Kristallgrottan: the crystal bridge lay under the chasm's dark.** It read as a dark band, and so did the
+  dashed bridge that "syns" when the plates ring.
+  - Lit, the dark now sinks below the deck.
+  - `skoldhast-a2` checks that the deck keeps its light.
+- **Äventyr 1, the table at the unfold and the epilogue: a dark seam ran down her picture.** The live screen's air
+  (added 4 November) was baked into the snapshot, laid out for the phone.
+  - The snapshot leaves it out.
+  - New check `skoldhast-table-picture`: the picture must be the same at 844×390 and 390×844.
+- **Checks that could not run, with the game right in each:**
+  - `skoldhast-collection` never pressed Hoppa and pressed Space for the context button. A real hop on the
+    driftwood perch does take the kite pencil.
+  - `skoldhast-context` looked for the dashed bridge by a texture that has not drawn it since 1 October.
+  - Both pass now; the pencil check passes with keyboard and with touch.
+- **Kept as designed, with one question for Pappa:** in Spegelviken the islet's rock hides the lighthouse's
+  reflection in the playable view, and the reflection is shown by the postcard the first time the player hides on
+  the pier. After that, hiding there again shows nothing, though Klo's help still talks about comparing with the
+  reflection.
+- **Low, not changed:**
+  - The moon's path on the river can lie off screen at moonrise.
+  - The fold demo freezes a patch of beach while it runs.
+  - After the cloud ride, the lantern draws behind the hero.
+- **Seven more checks had fallen behind the game's design since 30 September and 1 October.** Each was rerun alone,
+  and in each the game was right:
+  - `skoldhast-map-props` collected the sea's paper with the wrong flag and name. P6 uses `mark_sea` and labels it
+    `p6-fragment`.
+  - `skoldhast-vista-loading` held all seven bay files. That used up Chromium's six connections to the local
+    HTTP/1.1 server, so the land never got its own art. It now holds the bay's two atlas descriptions. GitHub Pages
+    serves HTTP/2.
+  - `skoldhast-journey` reuses the node robot's chapter3, which checks effect order. It now logs `view.fx`.
+  - `skoldhast-guide`:
+    - Control tips show only on touch, since 30 September.
+    - The first refusal at an unfinished line shows the world-rule thought (`STORY.k1.thinRule`), since
+      1 October.
+  - `skoldhast-land-focus`:
+    - The land route (P1, P3) belongs to Kapitel 2 since 30 September, so the check stages `LAND_ROUTE`, now
+      exported from `save.mjs`.
+    - A sköldhäst that arrives in a gallop glides 0.16 HL after the inspection. That slide is allowed; a jump is
+      not.
+  - `skoldhast-water-alignment`:
+    - Klo opens Kapitel 2 at the cave mouth (`k2_open`).
+    - Each air rect is drawn twice (colour, then hatch).
+  - `skoldhast-geography` timed out taking screenshots while other runs shared the machine. Its run alone is in
+    "Checks run" below.
+- **Running two browser checks at once makes the slow ones time out under software WebGL.** Run them one at a time.
+- **`skoldhast-geography`:** the held lighthouse at 1440×900 drew about a hundred renders, and SwiftShader took more
+  than 30 s to show the next frame. That happened on the code from before today too. The screenshot now waits up to
+  150 s.
+- **Checks run alone before the merge on 5 November, all passing:**
+  - Äventyr 2: `skoldhast-a2` (every check, including the new speaker, Klyftan, legs, moon and bridge checks) and
+    `skoldhast-voice`.
+  - Dialogue and companions: `skoldhast-dialogue`, `skoldhast-companion`, `skoldhast-klo`, `skoldhast-notes`.
+  - The checks fixed today: `skoldhast-guide`, `skoldhast-water-alignment`, `skoldhast-land-focus`,
+    `skoldhast-map-props`, `skoldhast-vista-loading`, `skoldhast-journey`, `skoldhast-finale`,
+    `skoldhast-story-thread`, `skoldhast-guardian`.
+  - `skoldhast-geography`: all nine cases. Two of them (sea and portal at 1440×900) were run on their own after a run
+    shared the machine.
+  - `npm test`: 428 of 428.
+- **Frågor till Pappa:** should hiding on Spegelviken's pier show the lighthouse's reflection again, briefly and
+  without Klo's words, until the lamp is lit? It is a small change; recommended.
+
+## The lighthouse mirrors again; Klo's notebook stays open; the Klo check runs (5 November)
+
+Pappa found that the lighthouse no longer mirrors in the water in Äventyr 1. He also asked for the failing
+`skoldhast-klo` check to be fixed.
+
+- **The lighthouse's reflection was gone from its two views.** These are the view from Klippudden ("Se hur den
+  speglar sig i vattnet" / "Fyren lyser – men bara i spegelbilden") and P7's mirror on the pier.
+  - Both build a postcard from the bay's tower and reflection (`lighthouseVista` in `view.mjs`).
+  - On 1 October the bay's reflection mask was changed to cover only water, so that it would not draw over the
+    islet's stone. The islet lies right under the tower, so the postcard, which reused that mask, showed nothing:
+    no reflected tower and no lit lamp.
+  - The postcard now has its own mask over its whole sea, as in the 29 September shots. The playable bay keeps its
+    mask.
+  - `skoldhast-mirror-vista` now checks that the reflected lamp is inside the mask. It fails without the fix.
+  - It also accepts the line Klo actually says. In ordinary help that is his own observation, not the guided line,
+    and the check used to hang there waiting for it.
+  - New shots: `docs/skoldhast/shots/k3/mirror-fix/`.
+- **Klo's notebook could close the moment it opened.**
+  - A tap on Klo opens the notebook on its pointerup. The browser's click for the same tap could land on the
+    notebook's backdrop once it was shown, and close it at once. On a slow phone that is a notebook that only
+    flickers.
+  - Now only a tap that began on the backdrop closes it (`klo-ui.mjs`).
+- **`skoldhast-klo` (the companion check) crashed before reaching Klo.**
+  - Its keyboard steps put the on-screen controls away, as they do for a player, so it found no stick zone.
+  - It now touches an empty part of the picture first, as a player would.
+  - Its quick taps carry their own times, so a slow software-rendered frame cannot turn them into presses.
+  - It passed five runs in a row at 844×390.
+- **Checked:**
+  - `npm test` passes (427).
+  - `skoldhast-mirror-vista` passes at both phone sizes.
+  - `skoldhast-klo` passes.
+
 ## Voices: every line is recorded and plays in both adventures (5 November)
 
 Pappa answered the three questions and allowed his own voice, the narrator, to be public on the site. Every line is now
@@ -41,8 +261,8 @@ recorded and played in the game. How it works, and how to record after a text ch
     - `skoldhast-opening`: every size, cancellation and reopen.
     - `skoldhast-notes`: Alva's note, now read aloud, takes 61 s at 844×390; tap-to-hurry and skip still work.
     - `skoldhast-launch`, `skoldhast-a2` and `skoldhast-finale`.
-  - `skoldhast-klo` fails at its first step. It looks for the stick zone and finds none, and it fails the same way on
-    the commit before the voices, so it is a fault in the check, not the game. It is not fixed.
+  - `skoldhast-klo` failed at its first step, looking for a stick zone it could not find, and it failed the same way
+    on the commit before the voices. It is fixed in the section above.
 - **After any text change,** record what is missing and prune what is left over (commands in the audit). The voice test
   fails until you do.
 - **Not heard yet by a person:** every clip passed speech-to-text, but nobody has listened to the whole game. Pappa

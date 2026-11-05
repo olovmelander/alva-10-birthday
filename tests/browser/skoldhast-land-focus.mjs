@@ -2,12 +2,14 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import { serve, launch } from '../../scripts/skoldhast-shot.mjs';
-import { CODE_RESTORE } from '../../skoldhast/src/save.mjs';
+import { CODE_RESTORE, LAND_ROUTE } from '../../skoldhast/src/save.mjs';
 
 const out = 'docs/skoldhast/shots/puzzle-audit/after/land';
 fs.mkdirSync(out, { recursive: true });
 const server = await serve(), browser = await launch(), results = [];
-const stageFlags = [...CODE_RESTORE[1].flags, 'b:k2_open'];
+// Since 30 September the land route (P1 and P3) belongs to Kapitel 2, so the end of Kapitel 1 no longer
+// carries it; each shot below removes what its own discovery needs.
+const stageFlags = [...CODE_RESTORE[1].flags, 'b:k2_open', ...LAND_ROUTE];
 try {
     for (const [width, height, lessMotion] of [[844, 390, false], [390, 844, true]]) {
         const ctx = await browser.newContext({ viewport: { width, height }, hasTouch: true, isMobile: true });
@@ -31,8 +33,8 @@ try {
             { name: 'p1-bridge-purpose', id: 'bridge', x: 81, y: -.65, remove: ['b:k1_note', 'note1_read', 'p1_inked'], line: 'Kartväktaren igen' },
             { name: 'p2-pool-purpose', id: 'pool', x: 104.1, y: -.42, remove: ['p2_seen', 'p2_stone', 'p2_plank', 'p2_open', 'b:k1_mirror', 'b:k1_arch'], line: 'Vattenporten är stängd' },
             { name: 'p2-visible-mirror', id: 'pool', x: 104.1, y: -.42, remove: ['p2_seen', 'p2_stone', 'p2_plank', 'p2_open', 'b:k1_mirror', 'b:k1_arch'], add: ['b:k1_pool_purpose'], hide: true, line: 'Pölen visar' },
-            { name: 'p3-seed-and-ramp', id: 'ramp', x: 48, y: -.82, remove: ['p3_t1', 'p3_t2', 'p3_t3', 'p3_done', 'b:k1_branten', 'b:k1_p3'], line: 'Havets spår' },
-            { name: 'p3-wave-evidence', id: 'waveMarks', x: 35, y: -4, remove: ['p3_done', 'b:k1_p3'], line: 'Spåren leder' },
+            { name: 'p3-seed-and-ramp', id: 'ramp', x: 50, y: -.82, remove: ['p3_t1', 'p3_t2', 'p3_t3', 'p3_done', 'b:k1_branten', 'b:k1_p3'], line: 'Stigen' },
+            { name: 'p3-wave-evidence', id: 'waveMarks', x: 35, y: -4, remove: ['p3_done', 'b:k1_p3'], line: 'Vågmärken' },
             { name: 'p4-gap-and-map', id: 'leap', x: 14.4, y: -4, remove: [], line: 'Där ute' },
             { name: 'p4-earned-landing', id: 'landmark', x: 30, y: -5.5, remove: [], add: ['b:k2_leap_purpose'], gallop: true, line: 'Fem hästlängder' }
         ];
@@ -100,7 +102,12 @@ try {
             }
             await settle();
             const returned = await pg.evaluate(() => { const { G, view } = window.__skoldhast.debug; return { position: [G.player.x, G.player.y], focus: view.landFocus, hint: G.camHint }; });
-            assert.deepEqual(returned.position, shown.position, 'inspection never teleports the player');
+            // Arriving in a gallop, the sköldhäst keeps its speed through the inspection and glides to a stop
+            // after it (0.16 HL at Fem hästlängder): a short slide in its own direction, never a jump.
+            const slide = returned.position[0] - shown.position[0];
+            if (shot.gallop) assert.ok(slide <= 0 && slide > -100 && Math.abs(returned.position[1] - shown.position[1]) < 10,
+                `inspection never teleports the galloping player (slid ${slide.toFixed(1)})`);
+            else assert.deepEqual(returned.position, shown.position, 'inspection never teleports the player');
             assert.equal(returned.focus, null); assert.equal(returned.hint, null);
             results.push({ viewport: `${width}x${height}`, lessMotion, ...shown });
         }

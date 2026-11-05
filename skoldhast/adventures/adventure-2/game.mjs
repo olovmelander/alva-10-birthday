@@ -33,6 +33,7 @@ export function createGame() {
         checkpoint: 'start',
         story: null,
         camHint: null,
+        camLook: null, // what the lines being said are about: the camera keeps it in the picture (story.mjs about)
         context: null,
         lastEvents: [],
         storm: 1,            // 1 = the full storm, 0 = moonlit calm (the view and audio read it)

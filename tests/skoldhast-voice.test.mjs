@@ -82,6 +82,32 @@ test('asides only in silence, and a repeated thought is shown but not said again
     assert.ok(voice.play(...T, 'aside'), 'and is said again after a while');
 });
 
+test('nobody is cut off mid-sentence: a box can wait for a thought, and a stopped voice fades', async () => {
+    const T = ['horse', 'Ett ofärdigt streck …'], S = ['klo', 'Hej!'];
+    const { voice, sources, audio } = rig(clipsFor(T, S));
+    await voice.ready;
+    let waited = false;
+    await voice.asideEnd(6).then(() => { waited = true; });
+    assert.ok(waited, 'with nothing said, there is nothing to wait for');
+    voice.play(...T, 'aside');
+    await tick(); await tick();
+    let ended = false; voice.asideEnd(6).then(() => { ended = true; });
+    await tick();
+    assert.equal(ended, false, 'the thought is still being said');
+    sources[0].onended(); await tick(); await tick();
+    assert.ok(ended, 'the box may open once the thought has ended');
+    // with a real context the voice runs through its own gain and fades when stopped
+    const ramps = [];
+    audio.ctx.currentTime = 10;
+    audio.ctx.createGain = () => ({ connect() {}, gain: { setTargetAtTime: (v, t) => ramps.push([v, t]) } });
+    voice.play(...S);
+    await tick(); await tick();
+    let stoppedAt = null; sources[1].stop = (t) => { stoppedAt = t; };
+    voice.stop();
+    assert.deepEqual(ramps, [[0, 10]], 'it fades to silence from now');
+    assert.ok(stoppedAt > 10 && stoppedAt < 10.3, 'and stops a moment later, not at once');
+});
+
 test('voices off: nothing is fetched or played, and what was playing stops', async () => {
     const A = ['klo', 'Första.'];
     const { voice, sources } = rig(clipsFor(A));

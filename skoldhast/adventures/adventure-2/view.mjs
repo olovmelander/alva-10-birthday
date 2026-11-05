@@ -58,10 +58,13 @@ export function createView(PIXI, app, { assets, G, heroFactory }) {
     app.stage.addChild(root);
     const skyLayer = new PIXI.Container();
     const farLayer = new PIXI.Container();
+    // Mira's moon and Alva's stars: in front of the distant forest and Åsktoppen, which hid them on
+    // phones (the mountain in portrait, the forest bands in landscape), but behind the air and the world
+    const moonLayer = new PIXI.Container(); moonLayer.label = 'moon-layer';
     const world = new PIXI.Container(); world.label = 'world';
     const overlay = new PIXI.Container();
     const atmoBack = new RAW.Container(), atmoFront = new RAW.Container();
-    root.addChild(skyLayer, farLayer, atmoBack, world, atmoFront, overlay);
+    root.addChild(skyLayer, farLayer, moonLayer, atmoBack, world, atmoFront, overlay);
     const atmo = createAir(RAW, app, { back: atmoBack, front: atmoFront });
     const L = {};
     for (const name of ['back', 'water', 'terrain', 'mid', 'objects', 'actors', 'hero', 'waterFront', 'fore', 'fx']) {
@@ -134,7 +137,7 @@ export function createView(PIXI, app, { assets, G, heroFactory }) {
         s.position.set(hash(i, 1), hash(i, 2) * 0.55); s.scale.set(0.25 + hash(i, 3) * 0.5); s._tw = hash(i, 4) * 6;
         stars.addChild(s);
     }
-    const moon = new PIXI.Container(); moon.label = 'moon'; skyLayer.addChild(moon);
+    const moon = new PIXI.Container(); moon.label = 'moon'; moonLayer.addChild(moon);
     const moonGlow = new RAW.Sprite(TX.mote); moonGlow.anchor.set(0.5); moonGlow.scale.set(9); moonGlow.alpha = 0.55; moonGlow.tint = 0xfff2c4;
     const moonG = new PIXI.Graphics();
     moonG.circle(0, 0, 60).fill(pen.fill(0xf8ebb4)).stroke(pen.line(0xb79a4a, 3));
@@ -142,9 +145,9 @@ export function createView(PIXI, app, { assets, G, heroFactory }) {
     moonG.moveTo(-40, 30).quadraticCurveTo(-10, 52, 30, 44).stroke(pen.line(0xc9b064, 2, 0.6));
     moon.addChild(moonGlow, moonG);
     moon.visible = false;
-    const moonState = { shown: 0, target: 0 };
+    const moonState = { shown: 0, target: 0, rise: 0 };
     // the stars Alva draws round Mira's moon
-    const alvaStars = new RAW.Container(); alvaStars.visible = false; skyLayer.addChild(alvaStars);
+    const alvaStars = new RAW.Container(); alvaStars.visible = false; moonLayer.addChild(alvaStars);
     const ALVA_STARS = [[-2.6, 0.3, 1.9], [-1.4, -0.9, 1.1], [1.5, -0.7, 1.3], [2.3, 0.6, 1.0], [-3.6, -0.6, 0.9], [0.4, 1.7, 0.8]];
     for (const [dx, dy, k] of ALVA_STARS) { const s = new RAW.Sprite(TX.star); s.anchor.set(0.5); s._d = [dx, dy, k]; alvaStars.addChild(s); }
     const starsState = { shown: 0 };
@@ -999,6 +1002,7 @@ export function createView(PIXI, app, { assets, G, heroFactory }) {
         ravine(back, h(12), h(18), h(-0.4), h(-0.4));
         // the air over it goes clear once lit; the pit itself stays deep
         const dark = softDark('down', h(11.9), h(-2.9), h(18.1), h(-0.38), { alpha: 0.95 }), pit = softDark('solid', h(11.95), h(-0.45), h(18.05), h(4.2), { alpha: 0.92 });
+        pit.label = 'chasm-pit';
         L.fore.addChild(dark, pit); S.chasmDark = dark; S.chasmPit = pit;
         S.chasmGlow = glowAt(h(15), h(-0.3), 7, 0x9fd8ff, 0, L.back);
 
@@ -1563,6 +1567,10 @@ export function createView(PIXI, app, { assets, G, heroFactory }) {
             const lit = F.has('k1_lit');
             S.chasmDark.alpha = lerp(S.chasmDark.alpha, lit ? 0 : 1, 1 - Math.exp(-1.4 * dt));
             S.chasmPit.alpha = lerp(S.chasmPit.alpha, lit ? 0.5 : 1, 1 - Math.exp(-1.4 * dt));
+            // lit, the pit's dark sinks below the bridge's deck: the dashed bridge "syns", and the crystal
+            // bridge drawn over it is crystal, not a dark band (the deck lies in L.terrain, under L.fore)
+            const top = lerp(S.chasmPit.y, lit ? h(-0.03) : h(-0.45), 1 - Math.exp(-1.4 * dt));
+            S.chasmPit.y = top; S.chasmPit.height = h(4.2) - top;
             S.chasmGlow.alpha = lerp(S.chasmGlow.alpha, lit && !F.has('k1_bridge') ? 0.45 + 0.15 * Math.sin(t * 2) : lit ? 0.2 : 0, 1 - Math.exp(-2 * dt));
         }
         if (S.shimmer) for (const sh of S.shimmer) sh.alpha = rm ? 0.8 : 0.65 + 0.35 * Math.sin(t * 2.6);
@@ -1793,7 +1801,11 @@ export function createView(PIXI, app, { assets, G, heroFactory }) {
         // the moon, where Mira drew it
         moonState.shown = lerp(moonState.shown, G.flags.has('moon') ? 1 : moonState.target, 1 - Math.exp(-1.6 * dt));
         moon.visible = moonState.shown > 0.01 && kind !== 'cave';
-        const mp = moonScreen(W, H);
+        // once Alva's stars are drawn, the moon and its stars rise into the open sky
+        const riseTo = G.flags.has('alva_stars') ? 1 : 0;
+        // it glides only while seen (the finale); a moon that fades in after a reload is already up
+        moonState.rise = G.lessMotion || moonState.shown < 0.02 ? riseTo : lerp(moonState.rise, riseTo, 1 - Math.exp(-0.9 * dt));
+        const mp = moonScreen(W, H, moonState.rise);
         moon.position.set(mp.x, mp.y); moon.scale.set(mp.r / 60); moon.alpha = moonState.shown;
         starsState.shown = lerp(starsState.shown, G.flags.has('alva_stars') ? 1 : 0, 1 - Math.exp(-2 * dt));
         alvaStars.visible = starsState.shown > 0.01 && kind !== 'cave';
@@ -1810,10 +1822,43 @@ export function createView(PIXI, app, { assets, G, heroFactory }) {
             c.c.alpha = 0.15 + 0.85 * stormShown;
         }
     }
-    function moonScreen(W = app.screen.width, H = app.screen.height) {
-        // below the drawing pad's prompt, so the dots to trace are never under it
+    function moonScreen(W = app.screen.width, H = app.screen.height, rise = 0) {
+        // While Mira and Alva draw: below the drawing pad's prompt, so the dots to trace are never under it.
+        // Risen: in landscape, up in the open sky above the treetops, which crossed it there. In portrait
+        // the speech boxes are at the top, so it stays (and the mountain is behind it, see moonLayer).
         const r = Math.max(34, Math.min(W, H) * 0.09);
-        return { x: W * 0.7, y: Math.max(r + 170, H * 0.27), r };
+        const drawn = Math.max(r + 170, H * 0.27), sky = W > H ? Math.max(r + 62, H * 0.17) : drawn;
+        const e = rise * rise * (3 - 2 * rise);
+        return { x: W * 0.7, y: drawn + (sky - drawn) * e, r };
+    }
+
+    /** In a conversation the camera keeps three things in the picture: the sköldhäst, the one speaking, and what
+     *  the lines are about (G.camLook, set by story.mjs about()). It slides over and steps back a little (to 75 %
+     *  of the usual zoom, 70 % for a thing talked about) until they fit. If they cannot all fit, what is talked
+     *  about comes first; a speaker too far away is shown by the edge badge (ui.mjs) and the sköldhäst stays. */
+    function frameSpeaker(tx, ty, zoom, W, H) {
+        const who = G.speaker, a = who && who !== 'horse' ? G.actors[who] : null, p = G.player, look = G.camLook;
+        const speaker = a && a.scene === S.id && a.visible !== false ? a : null;
+        if ((!speaker && !look) || G.hideHero) return { tx, ty, zoom };
+        // a little air round what is talked about, so its ends are not on the screen's edge
+        const boxes = look ? [{ x0: look.x0 - h(0.5), x1: look.x1 + h(0.5), y0: look.y0 - h(0.3), y1: look.y1 + h(0.2) }] : [];
+        if (speaker) {
+            const head = who === 'moln' ? h(0.6) : who === 'klo' ? h(0.45) : h(1.1);
+            const side = Math.min(h(1.1), W / zoom * 0.16);
+            boxes.push({ x0: speaker.x - side, x1: speaker.x + side, y0: speaker.y - head - h(0.35), y1: speaker.y + h(0.2) });
+        }
+        const union = bs => ({ x0: Math.min(...bs.map(b => b.x0)), x1: Math.max(...bs.map(b => b.x1)),
+            y0: Math.min(...bs.map(b => b.y0)), y1: Math.max(...bs.map(b => b.y1)) });
+        const them = union(boxes), all = union([{ x0: p.x - h(0.7), x1: p.x + h(0.7), y0: p.y - h(1.6), y1: p.y + h(0.2) }, ...boxes]);
+        zoom = Math.max(zoom * (look ? 0.7 : 0.75), Math.min(zoom, W / (all.x1 - all.x0), H / (all.y1 - all.y0)));
+        const vw = W / zoom, vh = H / zoom;
+        if (all.x1 - all.x0 <= vw) tx = clamp(tx, all.x1 - vw / 2, all.x0 + vw / 2);
+        // what is talked about first, as near the sköldhäst as it allows
+        else if (look) tx = them.x1 - them.x0 <= vw ? clamp(p.x, them.x1 - vw / 2, them.x0 + vw / 2) : (them.x0 + them.x1) / 2;
+        else tx = p.x + Math.sign(speaker.x - p.x) * (vw / 2 - h(0.9)); // as far toward them as keeps the sköldhäst in
+        if (all.y1 - all.y0 <= vh) ty = clamp(ty, all.y1 - vh / 2, all.y0 + vh / 2);
+        else if (look) ty = them.y1 - them.y0 <= vh ? clamp(p.y, them.y1 - vh / 2, them.y0 + vh / 2) : (them.y0 + them.y1) / 2;
+        return { tx, ty, zoom };
     }
 
     function updateCamera(dt, snap, W, H) {
@@ -1828,6 +1873,9 @@ export function createView(PIXI, app, { assets, G, heroFactory }) {
         let tx = snap.x + (snap.facing || 1) * Math.min(h(1.6), W / zoom * 0.12), ty = snap.y - (p.mode === 'swim' ? h(0.2) : lift);
         const hint = G.camHint;
         if (hint) { tx = hint.x; ty = hint.y; zoom *= hint.zoom || 1; }
+        // a story's view that shows something far away keeps its frame; one around the sköldhäst
+        // (a conversation staged at the nest) still takes in the speaker
+        if (!hint || Math.abs(hint.x - snap.x) < W / zoom * 0.45) ({ tx, ty, zoom } = frameSpeaker(tx, ty, zoom, W, H));
         const vw = W / zoom, vh = H / zoom;
         tx = vw >= b.x1 - b.x0 ? (b.x0 + b.x1) / 2 : clamp(tx, b.x0 + vw / 2, b.x1 - vw / 2);
         ty = vh >= b.y1 - b.y0 ? (b.y0 + b.y1) / 2 : clamp(ty, b.y0 + vh / 2, b.y1 - vh / 2);
@@ -1982,6 +2030,8 @@ export function createView(PIXI, app, { assets, G, heroFactory }) {
         setCloudTexture(tex) { cloudTexture = tex; },
         render, fx, lightning, emit,
         moonScreen: () => moonScreen(),
+        /** For checks: Mira's moon and Alva's stars, and how far the moon has risen. */
+        moonParts: () => ({ moon, stars: alvaStars, rise: moonState.rise }),
         fadeNow(v) { fade = fadeTarget = v; },
         heroScreen() {
             const p = hero.view;
