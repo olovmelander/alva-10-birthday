@@ -138,7 +138,7 @@ export const STORY = {
         'Där var du ju, lilla ägg.', 'Snart är ni alla samlade.'
     ],
     allEggs: [['tukan', 'Tio! Alla tio! Nu behöver de bara en måne.']],
-    allEggsHome: [['horse', 'Alla tio ägg! Nu går vi till boet – molnet väntar där.']],
+    allEggsHome: [['horse', 'Då går vi hem till boet. Molnet väntar där!']],
 
     // Klo is in love (after eggs 2, 4, 6 and 8)
     love: {
@@ -552,7 +552,7 @@ export const HINTS = {
         'Göm dig i skalet bredvid månskensblommorna och vänta en stund.'],
     p5: ['Bollen är gjord av jord. Vad tvättar bort jord?', 'Floden ligger precis nedanför backen.',
         'Ställ dig på andra sidan bollen och knuffa den mot floden.'],
-    coin: ['Skatan vill ha något som glänser mer än pärlor. Tukankrabbans guldmynt?', 'Myntet ligger på botten av Djuphålan. Virveln snurrar bort den som simmar.',
+    coin: ['Skatan vill ha något som glänser mer än pärlor. Guldmyntet kanske?', 'Myntet ligger på botten av Djuphålan. Virveln snurrar bort den som simmar.',
         'Göm dig rakt ovanför virveln. Ett tungt skal snurrar ner mot mitten.'],
     trade: ['Nu har du myntet. Skatan bor högt upp i trädet.', 'Grenarna sitter som trappsteg. Hoppa från gren till gren.',
         'Ställ dig under nästa gren och hoppa rakt upp. Ge sedan myntet till Skatan.'],

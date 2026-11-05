@@ -192,7 +192,7 @@ export const STORY = {
             ['klo', 'Se backsippans fjun och den lilla tuvan vid vikningen. Här finns något att pröva.']
         ],
         brantenMapIntro: [
-            ['klo', 'Från branten kan vi spana efter kartbiten. Men stigen ligger vikt här.'],
+            ['klo', 'Stigen upp till branten ligger vikt. Hur ska vi komma upp och spana?'],
             ['horse', 'En backsippa och en liten tuva! Fjunen darrar när jag springer förbi.']
         ],
         pinSeen: ['klo', 'Stenen ligger på nästa vikta stigbit. Ser du hur den klämmer fast kanten?'],
@@ -200,7 +200,7 @@ export const STORY = {
         seedWaiting: ['horse', 'Fjunet har slagit rot, men stenen håller fortfarande kanten nere.'],
         upperFlowerSeen: ['klo', 'Sista backsippan står en avsats högre. Vi behöver få med galoppvinden ända hit!'],
         wavemarks: ['klo', 'Vågmärken och snäckor här uppe! Hur hamnade havets spår så högt över stranden?'],
-        wavemarksMap: ['klo', 'Vågmärken och snäckor här uppe! Från höjden kan vi fortsätta spana efter kartbiten.'],
+        wavemarksMap: ['klo', 'Vågmärken och snäckor här uppe! Hur hamnade havets spår så högt?'],
         wavesToPool: 'Nu har vi spåret på land. Pölen vid stranden kan visa vägen under vattnet.',
         wavesToSea: 'Vi har spåret på land och en väg under vattnet. Nu kan vi följa vecket i havet!',
         wavesToCliff: 'Stigen är hel upp till toppen! Fortsätt över Galoppbacken mot Klippudden.',
@@ -275,7 +275,7 @@ export const STORY = {
         ],
         kelpFreed: ['klo', 'Kelpen lossnade! Nu når strömmen ända upp till vecket.'],
         foldFlat: ['klo', 'Vecket är platt! Kartbiten flyter fritt där borta. Kom fram och simma till den.'],
-        cornerFlat: ['klo', 'Vecket är platt och kartbiten är fri! Titta på den rivna kanten.'],
+        cornerFlat: ['klo', 'Kartbiten är fri! Titta på den rivna kanten.'],
         half: ['klo', 'Nu saknas bara kartbiten på land. Tillbaka till stranden – sedan letar vi på Stäppen!'],
         halfSea: ['klo', 'Nu saknas bara kartbiten i djupet. Med den kan vi laga vägen till fyren.'],
         halfSeaEarly: ['klo', 'En bit till vår karta! Vi behöver också undersöka vecket under den frusna vågen.'],
@@ -283,7 +283,7 @@ export const STORY = {
         bothHalves: ['klo', 'Kartan är hel – och då är strömmen hel! Den går in under vecket, till havet mellan sidorna och fyren.'],
         outflow: ['klo', 'Bottnen stiger här. Strömmen följer den ända fram till Veckmuren – och in under vecket!'],
         // the irony, planted before the meeting: his own fold tore his map
-        torn: ['klo', 'Titta på rivkanterna! Kartan gick sönder precis där sidan veks.'],
+        torn: ['klo', 'Och se: kartan gick sönder precis där sidan veks.'],
         mapAssemble: 'Kartbitarna passar ihop',
         end: ['klo', 'Där är figuren med linjalen! Han smällde igen luckan. Vad är han så rädd för?'],
         lyktHint: 'Vi behöver ljus för att följa strömstrecket genom valvet. Göm dig i strömmen, så vågar lyktfiskarna följa med!',
@@ -326,6 +326,7 @@ export const STORY = {
         waveReady: ['klo', 'Nu är glappet lagat. Titta – en liten våg kan ta sig förbi!'],
         chains: 'Tre kedjor går från luckorna: en ner till botten, en till repet på galleriet och en till bryggan.',
         shutterOpened: ['klo', 'Där öppnades en av fyrens luckor!'],
+        shutterOpenedNext: ['klo', 'En lucka till! Nu är bara en kvar.'],
         ropeHint: 'Repet sitter i samma kedja som luckan. Dra, så öppnas den.',
         drumHint: 'Som på Spången vid stranden! Hovslagen driver hjulet som öppnar luckan. Galoppera på bryggan!',
         drumFirstHint: 'Hjulet sitter ihop med bryggan och luckans kedja. Galoppera här, så driver hovslagen hjulet!',

@@ -828,7 +828,9 @@ export function createStory(G, io) {
             if (F.has('lamp_lit')) return;
             const L = G.sceneDef.lamp;
             await s.cam({ x: L.x, y: L.y - h(.3), zoom: .95, t: .65, hold: .8 });
-            await s.say(STORY.k3.shutterOpened);
+            // the second shutter gets its own words: recorded speech makes a repeat stand out
+            const open = ['shutter1', 'shutter2', 'shutter3'].filter(f => F.has(f)).length;
+            await s.say(open >= 2 ? STORY.k3.shutterOpenedNext : STORY.k3.shutterOpened);
             s.camFree();
         }
     });
