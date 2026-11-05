@@ -25,7 +25,10 @@ faults on phones, and he asked for both to be fixed.
   - After: 0 at every size, and the count is clear with both the egg goal and the longer mountain goal.
   - No page errors.
 
-  `npm test` passes (419).
+  `npm test` passes (419). In a real browser, `skoldhast-a2` (prologue, the four pages in portrait, the finale),
+  `skoldhast-adventures` and `skoldhast-launch` (all five) pass. The adventures check rewrites its own shots under
+  `docs/skoldhast/shots/adventures/` on every run (the pencil jitter differs); they were put back, since nothing in
+  them changed.
 - **Contact sheets:** `docs/skoldhast/shots/a2/table-layout-*.webp` (before and after) and `eggs-goal-390x844.webp`.
 - **Still open (Pappa):**
   - Frame rate and play time on Alva's real device (`?debug` shows fps).
