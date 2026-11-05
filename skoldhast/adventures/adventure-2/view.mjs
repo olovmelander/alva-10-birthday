@@ -400,6 +400,14 @@ export function createView(PIXI, app, { assets, G, heroFactory, eggTarget = null
         for (const w of def.waters || []) {
             const wb = w.kind === 'pipe' ? w.bottom : bottom; // the spring's column ends in its pool
             const gw = new PIXI.Graphics();
+            if (w.kind === 'pipe') {
+                // the spring's column: water with wavering sides, not a ruled box (5 November)
+                const side = (x, ph) => { const pts = []; for (let y = w.top; y <= wb; y += h(0.2)) pts.push([x + Math.sin(y / HL * 4.1 + ph) * 5 + Math.sin(y / HL * 9.3 + ph) * 2.5, y]); return pts; };
+                const body = [...side(w.x0, 0), ...side(w.x1, 1.7).reverse()];
+                poly(gw, body).fill({ color: 0x3f6f8e, alpha: 0.85 });
+                poly(gw, body).fill(pen.material('mat-water', 0.35, 0x5d8eaa));
+                L.water.addChild(gw);
+            } else {
             gw.rect(w.x0, w.top, w.x1 - w.x0, wb - w.top).fill(material('wetsand', 0));
             gw.rect(w.x0, w.top, w.x1 - w.x0, wb - w.top).fill({ color: 0x3f6f8e, alpha: 0.85 });
             gw.rect(w.x0, w.top, w.x1 - w.x0, wb - w.top).fill(pen.material('mat-water', 0.35, 0x5d8eaa));
@@ -407,6 +415,7 @@ export function createView(PIXI, app, { assets, G, heroFactory, eggTarget = null
             for (let k = 0; k < 9; k++) gw.rect(w.x0, w.top + h(0.45) * (k + 1), w.x1 - w.x0, wb - w.top - h(0.45) * (k + 1)).fill({ color: 0x0f2436, alpha: 0.07 });
             gw.rect(w.x0, w.top, w.x1 - w.x0, h(0.35)).fill({ color: 0x9cc8de, alpha: 0.16 }); // the lit skin of the water
             L.water.addChild(gw);
+            }
             // the surface: a pencil line and its light
             const surf = new PIXI.Graphics();
             // a gentle wave you can see at play zoom (at 4 units it read as a ruled line, 5 November)
@@ -429,7 +438,10 @@ export function createView(PIXI, app, { assets, G, heroFactory, eggTarget = null
                 }
             }
             const front = new PIXI.Graphics();
-            if (w.kind === 'pipe') front.rect(w.x0, w.top + 6, w.x1 - w.x0, wb - w.top).fill({ color: 0x3d6d8f, alpha: 0.28 });
+            if (w.kind === 'pipe') {
+                const side = (x, ph) => { const pts = []; for (let y = w.top + 6; y <= wb; y += h(0.2)) pts.push([x + Math.sin(y / HL * 4.1 + ph) * 5 + Math.sin(y / HL * 9.3 + ph) * 2.5, y]); return pts; };
+                poly(front, [...side(w.x0, 0), ...side(w.x1, 1.7).reverse()]).fill({ color: 0x3d6d8f, alpha: 0.28 });
+            }
             else {
                 // only over the water itself: down to its bed, never over the banks
                 // where solid ground stands above the water's surface (a bank, a rock wall inside the water's
@@ -537,6 +549,9 @@ export function createView(PIXI, app, { assets, G, heroFactory, eggTarget = null
                 poly(gr, deep).fill(material(under));
                 poly(gr, thin).fill(material(under, 0.45));
                 poly(gr, deep).fill({ color: under === 'earth' ? 0x5a3f2a : 0x6b6256, alpha: 0.18 });
+                // inside the mountain the rock's skin lies in the cave's purple dusk, a little lighter than the rock under
+                // it (lit from the crystals) but not a pale block against the dark (5 November)
+                if (def.underground) { poly(gr, deep).fill({ color: 0x1d1830, alpha: 0.42 }); poly(gr, thin).fill({ color: 0x1d1830, alpha: 0.3 }); }
                 // darker just under the surface, lighter deeper down: the ground has a skin
                 poly(gr, [...top, ...offset(top, h(0.45)).reverse()]).fill({ color: 0x2a1c12, alpha: under === 'earth' ? 0.16 : 0.1 });
                 // layers in the soil, drawn as long uneven pencil lines
@@ -1259,8 +1274,19 @@ export function createView(PIXI, app, { assets, G, heroFactory, eggTarget = null
         const vent = new PIXI.Graphics(); vent.ellipse(def.spots.spring.x, def.spots.spring.y + 22, h(0.7), 16).fill({ color: 0x0b0a14, alpha: 0.85 }); L.objects.addChild(vent);
         const sp = def.waters.find(w => w.kind === 'pipe');
         if (sp) {
-            const edges = new PIXI.Graphics();
-            for (const x of [sp.x0 + 8, sp.x1 - 8]) edges.moveTo(x, sp.top).lineTo(x, h(0)).stroke(pen.line(0xe8f4fa, 3, 0.65));
+            // its sides waver like falling water and long strokes of it rise in the middle (they were two ruled
+            // lines down a blue box, 5 November)
+            const edges = new PIXI.Graphics(), wy = (y, ph) => Math.sin(y / HL * 4.1 + ph) * 5 + Math.sin(y / HL * 9.3 + ph) * 2.5;
+            for (let k = 0; k < 7; k++) {
+                const x = lerp(sp.x0, sp.x1, 0.2 + k * 0.1), pts = [];
+                for (let y = sp.top + 10; y <= h(0); y += h(0.25)) pts.push([x + wy(y, k * 1.3) * 0.8, y]);
+                lineAlong(edges, pts).stroke(pen.line(k % 3 ? 0x9cc3dc : 0xe8f4fa, 1.6 + (k % 2), k % 3 ? 0.3 : 0.4));
+            }
+            for (const [x, ph] of [[sp.x0 + 6, 0], [sp.x1 - 6, 1.7]]) {
+                const pts = [];
+                for (let y = sp.top; y <= h(0); y += h(0.2)) pts.push([x + wy(y, ph), y]);
+                lineAlong(edges, pts).stroke(pen.line(0xe8f4fa, 3, 0.7));
+            }
             L.waterFront.addChild(edges);
             for (let k = 0; k < 8; k++) {
                 const st = new PIXI.Graphics(), x = k % 2 ? sp.x0 + 14 + hash(k, 121) * 10 : sp.x1 - 14 - hash(k, 121) * 10;
