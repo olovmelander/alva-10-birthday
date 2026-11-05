@@ -548,6 +548,8 @@ export const GOALS = {
 };
 
 export const HINTS = {
+    // once a puzzle has freed its egg but it has not been picked up yet
+    pickup: ['Nu ligger ägget fritt – spring och hämta det!'],
     dig: ['Något glimmar i sanden nära boet.', 'Ställ dig där det glimmar.', 'Gräv där det glimmar.'],
     p1: ['Ägget sitter för högt. Kan man få hela trädet att skaka?', 'Stocken under trädet är ihålig. Den låter som en trumma.',
         'Galoppera fram och tillbaka över stocken – hovarna trummar på rötterna.'],

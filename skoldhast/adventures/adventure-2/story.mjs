@@ -45,6 +45,8 @@ const PUZZLES = [
     { id: 't3', scene: 'topp', areas: ['t-gap'], solved: F => F.has('gap_crossed'), needs: 't2_bridge', seen: 'b:medvind' },
     { id: 'summit', scene: 'topp', areas: ['t-climb', 't-summit'], solved: F => F.has('cloud_met'), needs: 't2_bridge' }
 ];
+// the flag that frees each of these puzzles' eggs before it is picked up
+const FREED = { p1: 'p1_fallen', p5: 'p5_washed', p4: 'p4_lit' };
 const EGG_PUZZLES = ['dig', 'p1', 'p5', 'coin', 'trade', 'p2', 'mush', 'p4', 'p7', 'k2', 'k3', 'summit'];
 const IN_MOUNTAIN = new Set(['k2', 'k3', 'summit']);
 const PEAK_PATH = ['k1', 'k2', 'k3', 'spring', 't1', 't2', 't3', 'summit'];
@@ -276,6 +278,8 @@ export function createStory(G, io) {
     function nextHint() {
         if (F.has('ended')) return { puzzle: null, text: null };
         const pz = activePuzzle() || peakStep();
+        // the puzzle is done and its egg lies free: say so, not how to solve it again (5 November)
+        if (pz && FREED[pz.id] && F.has(FREED[pz.id])) return { puzzle: pz.id, level: 0, text: HINTS.pickup[0] };
         if (pz) return ladder(pz.id);
         if (F.has('cloud_met') && eggsFound(G) >= EGG_TOTAL) return ladder('nest');
         const next = nextEggPuzzle();
