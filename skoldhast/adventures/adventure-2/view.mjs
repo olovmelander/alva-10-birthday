@@ -355,6 +355,8 @@ export function createView(PIXI, app, { assets, G, heroFactory, eggTarget = null
 
     function clearScene() {
         if (!S) return;
+        // a coin still flying lives in L.fx, which is about to be destroyed: end its flight (and its waiting beat) first
+        if (coinFlight) { const c = coinFlight; coinFlight = null; c.done?.(); }
         // every scene display (and its actors) lives in these layers; the hero is kept
         for (const l of Object.values(L)) if (l !== L.hero) l.removeChildren().forEach(c => c.destroy({ children: true }));
         parts.length = 0;
@@ -1912,7 +1914,8 @@ export function createView(PIXI, app, { assets, G, heroFactory, eggTarget = null
      *  of the usual zoom, 70 % for a thing talked about) until they fit. If they cannot all fit, what is talked
      *  about comes first; a speaker too far away is shown by the edge badge (ui.mjs) and the sköldhäst stays. */
     function frameSpeaker(tx, ty, zoom, W, H) {
-        const who = G.speaker, a = who && who !== 'horse' ? G.actors[who] : null, p = G.player, look = G.camLook;
+        const who = G.speaker, a = who && who !== 'horse' ? G.actors[who] : null, p = G.player;
+        const look = G.camLook && (!G.camLook.scene || G.camLook.scene === S.id) ? G.camLook : null; // only on its own page
         const speaker = a && a.scene === S.id && a.visible !== false ? a : null;
         if ((!speaker && !look) || G.hideHero) return { tx, ty, zoom };
         // a little air round what is talked about, so its ends are not on the screen's edge

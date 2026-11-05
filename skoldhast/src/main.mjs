@@ -849,7 +849,7 @@ export function createGame({ host = document.body, assetBase = './skoldhast/', r
         settings.help = normalizeKloHelpMode(settings.help);
         if (G) { G.helpLevel = settings.help; G.lessMotion = !!settings.lessMotion; }
         audio?.setVolumes({ music: settings.music, sfx: settings.sfx, voice: settings.voice });
-        voice?.setEnabled(settings.voice > 0);
+        voice?.setEnabled(settings.voice > 0 && !paused); // a change made in the pause menu speaks again on resume
         ui?.setBigText(settings.bigText);
         ui?.root.classList.toggle('less-motion', !!settings.lessMotion);
     }
@@ -933,7 +933,8 @@ export function createGame({ host = document.body, assetBase = './skoldhast/', r
 
     // A paused game is silent: a panel, the pause menu or a hidden tab stops the voice, as it stops time
     // (and checks that step the game faster than real time pause it first, so no voice is waited for)
-    function pause() { companion?.cancel({ restore: true }); presses.clear(); paused = true; input?.release(); kloUI?.availability({ visible: false, enabled: false }); voice?.setEnabled(false); }
+    // (turning the phone pauses for a moment too, but the line being spoken goes on: nobody is cut off mid-sentence)
+    function pause({ reason } = {}) { companion?.cancel({ restore: true }); presses.clear(); paused = true; input?.release(); kloUI?.availability({ visible: false, enabled: false }); if (reason !== 'orientation') voice?.setEnabled(false); }
     function resume() {
         if (state !== 'open') return;
         if (ui?.panelOpen()) return;

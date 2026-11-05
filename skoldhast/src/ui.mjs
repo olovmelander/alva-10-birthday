@@ -276,7 +276,7 @@ export function createUI(host, { assetBase, handlers, voice = null }) {
         const now = performance.now();
         if (now >= measureAt || markWho !== who) {
             const origin = root.getBoundingClientRect();
-            obstacles = [...root.querySelectorAll('.sk-dialogue.on, .sk-hintbubble.on, .sk-think.on, .sk-goal:not(.empty), .sk-hud:not(.off) .sk-round')]
+            obstacles = [...root.querySelectorAll('.sk-dialogue.on, .sk-hintbubble.on, .sk-think.on, .sk-goal:not(.empty), .sk-hud:not(.off) .sk-round, .sk-hud:not(.off) .a2-eggs, .sk-hud:not(.off) .sk-pencils, .sk-klo-call:not([hidden])')]
                 .filter(n => !n.closest('.sk-guide.off')).map(n => {
                     const r = n.getBoundingClientRect();
                     return { left: r.left - origin.left, right: r.right - origin.left, top: r.top - origin.top - (n === dlg ? 38 : 0), bottom: r.bottom - origin.top };
