@@ -349,7 +349,10 @@ export function createStory(G, io) {
     beat('k1_clouds', {
         when: () => inScene('land') && F.has('rule_demo') && G.sceneTime > 6 && P().x < h(100) && P().x > h(84) && !done('k1_clouds'),
         lock: false,
-        async run(s) { await s.remark(STORY.k1.clouds); }
+        async run(s) {
+            const colored = G.userStrokes?.cloud?.length && G.userStrokes.cloudColor !== 'paper';
+            await s.remark(colored ? STORY.k1.clouds : STORY.k1.cloudsWhite);
+        }
     });
 
     beat('k1_note', {
@@ -828,7 +831,9 @@ export function createStory(G, io) {
             if (F.has('lamp_lit')) return;
             const L = G.sceneDef.lamp;
             await s.cam({ x: L.x, y: L.y - h(.3), zoom: .95, t: .65, hold: .8 });
-            await s.say(STORY.k3.shutterOpened);
+            // the second shutter gets its own words: recorded speech makes a repeat stand out
+            const open = ['shutter1', 'shutter2', 'shutter3'].filter(f => F.has(f)).length;
+            await s.say(open >= 2 ? STORY.k3.shutterOpenedNext : STORY.k3.shutterOpened);
             s.camFree();
         }
     });
@@ -1363,7 +1368,6 @@ export function createStory(G, io) {
     const balks = { key: '', n: 0, t: 0 };
     G.on('balk', (e) => {
         if (!guided()) return;
-        if (e.reason === 'thin' && !F.has('p1_inked')) hintOnce('thin', STORY.k1.firstThin);
         if (['slow', 'runup'].includes(e.reason) && e.id === 'sprang-p4') hintOnce('leap', STORY.k2.leapHint);
         if (e.id === 'klipp-edge' && F.has('p4_leap') && !F.has('p4_plank')) hintOnce('rope', STORY.k2.ropeHint);
         const key = e.reason + ':' + (e.id || '');

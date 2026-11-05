@@ -10,6 +10,7 @@ test('the cloud question and reply stay in order until the reader finishes each 
     let finish, changeSpeaker, cleared = 0;
     for (const f of ['intro_done', 'b:k1_enter', 'b:k1_stopwatch', 'b:k1_mapcorner', 'klo_hidden', 'klo_ja', 'rule_demo']) G.flags.add(f);
     G.goto('land', { x: 90 * HL, y: 0 }); G.sceneTime = 7;
+    G.userStrokes = { cloud: [[0, 0], [1, -1], [2, 0]], cloudColor: 'sky' }; // a coloured cloud from the prologue
     G.story = createStory(G, {
         ui: { say(lines, { onSpeaker }) { spoken.push(lines); changeSpeaker = onSpeaker; return new Promise(r => { finish = r; }); } },
         guide: { hint: t => hints.push(t), think: t => thoughts.push(t), clear: () => cleared++, goal() {}, tip() {} }, save() {}
@@ -29,4 +30,19 @@ test('the cloud question and reply stay in order until the reader finishes each 
     finish(); await new Promise(r => setImmediate(r));
     assert.equal(G.actors.kv.talking, false, 'the final gesture ends with the dialogue');
     assert.ok(G.has('b:k1_clouds'));
+});
+
+test('a white paper cloud gets its own exchange: no coloured cloud to compare with', async () => {
+    for (const cloudColor of ['paper', null]) {
+        const G = createGame(), spoken = [];
+        for (const f of ['intro_done', 'b:k1_enter', 'b:k1_stopwatch', 'b:k1_mapcorner', 'klo_hidden', 'klo_ja', 'rule_demo']) G.flags.add(f);
+        G.goto('land', { x: 90 * HL, y: 0 }); G.sceneTime = 7;
+        if (cloudColor) G.userStrokes = { cloud: [[0, 0], [1, -1], [2, 0]], cloudColor };
+        G.story = createStory(G, {
+            ui: { say(lines) { spoken.push(lines); return Promise.resolve(); } },
+            guide: { hint() {}, think() {}, clear() {}, goal() {}, tip() {} }, save() {}
+        });
+        G.step({}); await new Promise(r => setImmediate(r));
+        assert.deepEqual(spoken, [STORY.k1.cloudsWhite], `cloud colour: ${cloudColor}`);
+    }
 });

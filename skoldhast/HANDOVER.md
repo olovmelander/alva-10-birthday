@@ -1,5 +1,108 @@
 # Sköldhästen – handover
 
+## Voices: every line is recorded and plays in both adventures (5 November)
+
+Pappa answered the three questions and allowed his own voice, the narrator, to be public on the site. Every line is now
+recorded and played in the game. How it works, and how to record after a text change, is in
+`docs/skoldhast/voice-audit.md` ("Recording and playback").
+
+- **His decisions:**
+  - Kartväktaren's notes are read in Kartväktaren's own voice.
+  - Alva's printed sentences are read by Pappa as the narrator: her field note sentence by sentence as her pencil
+    writes it, her hope as a caption, and her question on the last note.
+  - Klo's guided-help bubbles stay text.
+- **The recordings:** 891 clips, about 68 minutes and 26 MB, in `skoldhast/voice/`. They are made by
+  `scripts/skoldhast-voice.mjs` with Eleven v4.
+  - Each clip was read back with speech-to-text.
+  - Two were heard below 80 %, and both are false alarms: "fyrtiotvå komma sju" comes back as digits, and "äh" is
+    dropped.
+  - The 21 clips under 90 % were retaken up to five times, and the better take kept.
+  - "Tordyveln" came out as "tordyven" until its three lines were retaken until the name was heard.
+  - The whole recording cost about 26,000 ElevenLabs credits. About 54,000 are left until the reset on 11 November.
+- **Playback** (`src/voice.mjs`, through the audio engine's existing voice input and the "Röster" slider):
+  - Clips are fetched only as a line is shown, never in the first download.
+  - One voice at a time. A box's tap silences it, the narrator's captions are waited for, and thoughts and hints
+    speak only in silence, the same one at most every 20 s.
+  - The music is lowered under speech.
+  - A voice never holds the game up: nothing is said before the first tap, and a clip is skipped if it has not
+    loaded in 4 s.
+  - The table scenes and Äventyr 1's prologue and ending were retimed to let each reading finish.
+  - Klo's notebook reads his answers aloud.
+- **Tests:**
+  - `tests/skoldhast-voice.test.mjs` checks the player's rules and the script's choices. It also checks that every
+    line is recorded and no clip is left over.
+  - The three robots fail if they hear a line that is not in the voice script.
+  - The browser check `tests/browser/skoldhast-voice.mjs` plays Äventyr 2's table with taps. It checks that the
+    narrator, Mira and Alva are fetched clip by clip, and that the prologue still reaches the nest.
+- **Checked:**
+  - `npm test` passes (427).
+  - In a real browser, all of these pass:
+    - `skoldhast-voice`: 17 clips fetched at the table, and the prologue reaches the nest.
+    - `skoldhast-opening`: every size, cancellation and reopen.
+    - `skoldhast-notes`: Alva's note, now read aloud, takes 61 s at 844×390; tap-to-hurry and skip still work.
+    - `skoldhast-launch`, `skoldhast-a2` and `skoldhast-finale`.
+  - `skoldhast-klo` fails at its first step. It looks for the stick zone and finds none, and it fails the same way on
+    the commit before the voices, so it is a fault in the check, not the game. It is not fixed.
+- **After any text change,** record what is missing and prune what is left over (commands in the audit). The voice test
+  fails until you do.
+- **Not heard yet by a person:** every clip passed speech-to-text, but nobody has listened to the whole game. Pappa
+  should listen to the first scenes on a phone. Words to listen for: "Snyft", "Hmpf", "J-ja", "Pling, plong", and the
+  stutter in "P-p-professor".
+
+## Voices: the cast is chosen and the script is checked before recording (5 November)
+
+Pappa listened to samples and chose a voice for every role, the sköldhäst included. It keeps the pronoun "den", with a
+voice that sounds female. Before recording, he asked for a final check of the story, every conversation and the
+narration. All of it is in `docs/skoldhast/voice-audit.md`. In short:
+
+- **The cast** is saved in his ElevenLabs account as "Sköldhästen – <roll>". The narrator is his own voice. Model:
+  Eleven v4.
+- **What gets a voice:**
+  - Speech boxes.
+  - Klo's story hints and his notebook.
+  - The sköldhäst's thoughts.
+  - Story captions, read by the narrator.
+  - Äventyr 2's companion talk, in both Klo's and Tukankrabban's voices.
+
+  Buttons, toasts, goals, the journal, Äventyr 1's guided help, control tips and sound captions stay text. The script
+  is about 960 clips and 51,000 characters.
+- **The red thread, fixed:**
+  - Äventyr 1:
+    - "tornet" is now "fyren", and Kapitel 2 no longer depends on the prologue choice or gives the torn map away early.
+    - The land-first route keeps the map-is-the-world rule.
+    - The small-wave trial has its reason again: "Blöt om hovarna varje dag – och ändå hel!"
+    - The hero does not ask what it has already said.
+    - The cloud joke fits a white cloud.
+  - Äventyr 2:
+    - Every hypothesis is put forward before it is confirmed, in both orders. Number two is confirmed by name on the
+      summit, and number three by Klo's wind measurement.
+    - The seed rule no longer contradicts the lantern.
+    - The mountain-first lines fit that order.
+- **Spoken aloud:**
+  - "Här står ”Kartväktaren”" became "Och ett namn: Kartväktaren".
+  - "man" (mane) became "manen".
+  - Nobody names themselves in the third person.
+  - Repeats that a recording would make obvious were taken out. The second shutter has its own line, and "spana
+    efter kartbiten" is no longer said four times.
+- **Tests:**
+  - The robots now fail if a line is said twice in one playthrough.
+  - The Äventyr 2 robots fail if a hypothesis is confirmed before it is put forward.
+  - A white paper cloud has its own test.
+- **Checked:**
+  - `npm test` passes (420).
+  - In a real browser, `skoldhast-map-scenes` (844×390), `skoldhast-launch`, `skoldhast-adventures` and
+    `skoldhast-a2` pass.
+- **Next, the recording step.** Its rules are in the audit:
+  - One clip at a time; captions and thoughts do not wait today.
+  - Repeated feedback thoughts are voiced at most every ~20 s.
+  - "/Kartväktaren" is spoken without the slash, and capitals are lowercased.
+  - Clips are looked up by speaker and text.
+  - Listen first to "Snyft", "Hmpf" and "J-ja".
+- **Frågor till Pappa** (answered the same day; see the section above):
+  - Kartväktaren's notes: his own voice.
+  - Alva's own printed sentences: Pappa's voice, as narrator.
+  - Klo's guided-help bubbles: text only.
+
 ## Äventyr 2 on phones: the table's caption and the egg count (5 November)
 
 Pappa asked whether Äventyr 2 is done. A fresh check found the story, puzzles and finale sound. It found two layout

@@ -7,6 +7,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { createRobot } from './skoldhast-robot.mjs';
 import { kelpFragment } from './skoldhast-kelp-route.mjs';
+import { unvoiced } from './skoldhast-voice-coverage.mjs';
 export { kelpFragment };
 
 export async function meetKlo(R) {
@@ -287,6 +288,10 @@ if (!process.env.NO_TEST) {
         assert.ok(R.G.time / 60 < 60);
         assert.ok(R.has('conclusion') && R.has('unfolded'));
         assert.equal(R.G.puz.tally, 0, "Klo's signs stay even until the finale");
+        // every line is going to be recorded speech: none is heard twice in one playthrough
+        const texts = R.log.filter(l => l.kind === 'say').flatMap(l => l.lines.map(([, text]) => text)).filter(Boolean);
+        assert.deepEqual(texts.filter((x, i) => texts.indexOf(x) !== i), [], 'no line is said twice');
+        assert.deepEqual(unvoiced(R.log), [], 'every line heard is in the voice script');
         // after the ending: a gentle walk can still beat Signe's turtle pace (O8)
         await R.flag('signe_met', {}, 20);
         await R.settle();

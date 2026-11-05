@@ -23,6 +23,7 @@ import { createGame as createLogic } from './game.mjs';
 import { createStory } from './story.mjs';
 import { createView } from './view.mjs';
 import { createA2UI } from './ui.mjs';
+import { createVoice } from '../../src/voice.mjs';
 import { createTable } from './table.mjs';
 import { WORDS } from './content/sv.mjs';
 import { CHECKPOINTS, EGG_TOTAL } from './content/world.mjs';
@@ -36,7 +37,7 @@ const REMIND_AFTER = 45;
 export function createGame({ host = document.body, assetBase = './skoldhast/', saver: sharedSaver, adventureId = ADVENTURE_ID, slotId,
     onChooseAdventure, onSlotChange, onRestart, onClose, preview = false } = {}) {
     let state = 'closed';
-    let el = null, app = null, assets = null, G = null, view = null, ui = null, input = null, audio = null, story = null, table = null;
+    let el = null, app = null, assets = null, G = null, view = null, ui = null, input = null, audio = null, story = null, table = null, voice = null;
     let raf = 0, last = 0, acc = 0, paused = false, mode = 'title';
     let slot = { id: 'alva', label: BOOK.slotAlva };
     let settings = { ...DEFAULT_SETTINGS, lessMotion: !!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches };
@@ -120,7 +121,9 @@ export function createGame({ host = document.body, assetBase = './skoldhast/', s
 
         G = createLogic();
         G.lessMotion = !!settings.lessMotion;
-        ui = createA2UI(el, { assetBase, handlers: uiHandlers() });
+        voice = createVoice({ audio: () => audio });
+        voice.setEnabled(settings.voice > 0);
+        ui = createA2UI(el, { assetBase, handlers: uiHandlers(), voice });
         const heroFactory = await loadHeroFactory();
         view = createView(PIXI, app, { assets, G, heroFactory });
         setDevice(window.matchMedia?.('(pointer: coarse)').matches ? 'touch' : 'keys');
@@ -332,7 +335,7 @@ export function createGame({ host = document.body, assetBase = './skoldhast/', s
     async function runFx(name, data = {}) {
         if (state !== 'open' || !view) return new Promise(() => {});
         switch (name) {
-            case 'caption': ui.caption(data.text, 2600); await G.wait(1.0); return;
+            case 'caption': await Promise.all([ui.caption(data.text, 2600), G.wait(1.0)]); return;
             case 'cloudRide':
                 // the cloud carries everyone home: a little picture of the ride, then the beach
                 await view.fx('cloudRide');
@@ -586,7 +589,8 @@ export function createGame({ host = document.body, assetBase = './skoldhast/', s
             chooseAdventure: () => chooseAdventure(),
             getSettings: () => settings,
             setSetting: (k, v) => { settings[k] = v; applySettings(); saveNow(); },
-            onSay: (who) => audio?.sfx(who === 'klo' || who === 'tukan' ? 'crabvoice' : 'write'),
+            // a recorded line is its own sound; the chirp and the pencil are for silent lines
+            onSay: (who, text, voiced) => { if (!voiced) audio?.sfx(who === 'klo' || who === 'tukan' ? 'crabvoice' : 'write'); },
             onPencil: (len) => audio?.sfx('pencil', { len })
         };
     }
@@ -594,6 +598,7 @@ export function createGame({ host = document.body, assetBase = './skoldhast/', s
         if (!['ask', 'remind', 'guided'].includes(settings.help)) settings.help = 'ask';
         if (G) G.lessMotion = !!settings.lessMotion;
         audio?.setVolumes({ music: settings.music, sfx: settings.sfx, voice: settings.voice });
+        voice?.setEnabled(settings.voice > 0);
         ui?.setBigText(settings.bigText);
         ui?.root.classList.toggle('less-motion', !!settings.lessMotion);
     }
@@ -666,6 +671,7 @@ export function createGame({ host = document.body, assetBase = './skoldhast/', s
             listeners?.abort();
             story?.destroy();
             input?.destroy();
+            voice?.stop();
             ui?.destroy();
             try { audio?.dispose(); } catch { /* ignore */ }
             try { table?.destroy(); } catch { /* ignore */ }
@@ -674,7 +680,7 @@ export function createGame({ host = document.body, assetBase = './skoldhast/', s
             try { app?.destroy(true, { children: true }); } catch { /* ignore */ }
             el?.remove();
             restoreHost();
-            app = null; view = null; ui = null; input = null; audio = null; story = null; table = null; G = null; assets = null;
+            app = null; view = null; ui = null; input = null; audio = null; story = null; table = null; G = null; assets = null; voice = null;
             state = 'closed';
         })();
         const done = closing;

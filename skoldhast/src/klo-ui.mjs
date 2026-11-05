@@ -22,7 +22,7 @@ const drawnIcon = name => {
 /** A persistent call control and a compact, accessible conversation slip.
  * Unknown/undefined model fields are ignored, so update() can patch a visit.
  */
-export function createKloUI(root, { words, portrait, onCall, onChoice, onClose, lessMotion = () => false } = {}) {
+export function createKloUI(root, { words, portrait, onCall, onChoice, onClose, lessMotion = () => false, voice = null } = {}) {
     const doc = root.ownerDocument;
     const uid = `sk-klo-${++nextId}`;
     const listeners = [];
@@ -31,6 +31,12 @@ export function createKloUI(root, { words, portrait, onCall, onChoice, onClose, 
         listeners.push(() => node.removeEventListener(type, fn, options));
     };
     let open = false, destroyed = false, returnFocus = null;
+    // Klo reads his answer aloud when it is recorded (voice.mjs); a new answer replaces the last
+    let spokenText = '';
+    const speak = () => {
+        const text = open && !model.arriving ? response.textContent : '';
+        if (text && text !== spokenText) { spokenText = text; voice?.play('klo', text, 'say'); }
+    };
     let model = { place: '', greeting: '', text: '', topic: 'welcome', level: 0, arriving: false, side: 'right', kind: '' };
     let peeking = false;
     let available = { visible: false, enabled: true };
@@ -211,6 +217,7 @@ export function createKloUI(root, { words, portrait, onCall, onChoice, onClose, 
         }
         if (previousResponse !== response.textContent) answer.scrollTop = 0;
         if (open && wasArriving && !model.arriving) focus(firstChoice());
+        speak();
     }
 
     function show(patch = {}) {
@@ -224,11 +231,14 @@ export function createKloUI(root, { words, portrait, onCall, onChoice, onClose, 
         button.classList.remove('inviting');
         button.setAttribute('aria-expanded', 'true');
         if (!wasOpen) focus(firstChoice());
+        speak();
     }
 
     function hide() {
         if (!open) return;
         open = false;
+        spokenText = '';
+        voice?.stop('say');
         layer.hidden = true;
         root.classList.remove('sk-klo-open');
         button.setAttribute('aria-expanded', 'false');
