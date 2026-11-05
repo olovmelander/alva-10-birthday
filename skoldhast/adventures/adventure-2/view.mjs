@@ -456,9 +456,10 @@ export function createView(PIXI, app, { assets, G, heroFactory, eggTarget = null
             const top = resampleX(s.pts, 24);
             const body = [...top, [top.at(-1)[0], bottom], [top[0][0], bottom]];
             const under = s.mat === 'grass' ? (s.edgeMat || 'earth') : s.mat === 'bark' ? 'earth' : s.mat;
-            if (s.underwater) {
-                poly(gr, body).fill(material(under));
-            } else {
+            // the bed under the water thins out into the paper just like the ground beside it (it used to be filled
+            // to the bottom of the page, so where a bank ran on under a river a ruled light/dark seam went down the
+            // page, 5 November)
+            {
                 // paper below; the soil's colour thins out about one and a half lengths down
                 if (def.underground) {
                     // inside the mountain the rock goes on down: no paper under a cave
@@ -549,7 +550,10 @@ export function createView(PIXI, app, { assets, G, heroFactory, eggTarget = null
                 gr.ellipse(ex, ey + h(0.27), h(0.13), h(0.27)).fill(pen.fill(0xc9a271)).stroke(pen.line(0x5b3c22, 2));
                 for (const r of [0.18, 0.1]) gr.ellipse(ex, ey + h(0.27), h(0.13 * r / 0.2), h(r)).stroke(pen.line(0x8a6a45, 1.4, 0.8));
             }
-            if (s.underwater) poly(gr, body).fill({ color: 0x2e5470, alpha: 0.32 });
+            // under the water the soil is tinted by it; deeper down, in the paper, it is the same page as beside it
+            if (s.underwater) {
+                for (const d of [0.8, 1.35, 1.9]) poly(gr, [...top, ...offset(top, h(d)).reverse()]).fill({ color: 0x2e5470, alpha: 0.07 });
+            }
             lineAlong(gr, s.pts).stroke(pen.line(s.underwater ? 0x2f4f5f : INK, 2.6, 0.9));
             L.terrain.addChild(gr);
             S.surfaces.set(s.id, gr);
@@ -563,6 +567,16 @@ export function createView(PIXI, app, { assets, G, heroFactory, eggTarget = null
             const ca = (MAT[UNDER(a)] || [null, 0x8a6a4a])[1], cb = (MAT[UNDER(b)] || [null, 0x8a6a4a])[1];
             L.terrain.addChild(softDark('side', xb, yb + h(0.3), xb + h(2), yb + h(2.9), { color: ca, alpha: 0.62 }));
             L.terrain.addChild(softDark('side', xb - h(2), yb + h(0.3), xb, yb + h(2.9), { color: cb, alpha: 0.62, mirror: true }));
+        }
+        // the same where a bank runs on under the water (the river, the cave's islands): the two soils run into each
+        // other a little way instead of meeting in a ruled line down the page (5 November)
+        const beds = def.surfaces.filter(q => !q.thin && !q.hidden && q.underwater);
+        for (const a of [...solids, ...beds]) for (const b of [...solids, ...beds]) {
+            if (a === b || !!a.underwater === !!b.underwater || Math.abs(a.pts.at(-1)[0] - b.pts[0][0]) > 2) continue;
+            const xb = b.pts[0][0], yb = b.pts[0][1];
+            const ca = (MAT[UNDER(a)] || [null, 0x8a6a4a])[1], cb = (MAT[UNDER(b)] || [null, 0x8a6a4a])[1];
+            L.terrain.addChild(softDark('side', xb, yb + h(0.1), xb + h(1.8), yb + h(2.4), { color: ca, alpha: 0.5 }));
+            L.terrain.addChild(softDark('side', xb - h(1.8), yb + h(0.1), xb, yb + h(2.4), { color: cb, alpha: 0.5, mirror: true }));
         }
         // the puzzle drawings and places
         if (def.dashed) for (const d of def.dashed) buildDashed(d);
@@ -1070,7 +1084,10 @@ export function createView(PIXI, app, { assets, G, heroFactory, eggTarget = null
         // the air over it goes clear once lit; the pit itself stays deep
         const dark = softDark('down', h(11.9), h(-2.9), h(18.1), h(-0.38), { alpha: 0.95 }), pit = softDark('solid', h(11.95), h(-0.45), h(18.05), h(4.2), { alpha: 0.92 });
         pit.label = 'chasm-pit';
-        L.fore.addChild(dark, pit); S.chasmDark = dark; S.chasmPit = pit;
+        // the pit's dark lies behind the chasm's walls (in front of them it hid the walls in a black box)
+        L.fore.addChild(dark);
+        if (back.parent) back.parent.addChildAt(pit, back.parent.getChildIndex(back)); else L.back.addChild(pit);
+        S.chasmDark = dark; S.chasmPit = pit;
         S.chasmGlow = glowAt(h(15), h(-0.3), 7, 0x9fd8ff, 0, L.back);
 
         // K2: the rock wall that comes down into the lake
@@ -1230,13 +1247,26 @@ export function createView(PIXI, app, { assets, G, heroFactory, eggTarget = null
 
     // a gap in the ground: its two rock walls going down into the dark, the far forest above
     function ravine(gr, x0, x1, y0, y1) {
-        const depth = h(3.2);
+        // A gap you can see the inside of (5 November: it read as a black box with ruled sides): jagged rock walls
+        // with ledges, shaded darker as they go down and lost in the dark, roots or crystals at the lips
+        const depth = h(4.2), cave = !!S?.def.underground;
         const dk = softDark('down', x0 - h(0.1), Math.min(y0, y1) + h(0.1), x1 + h(0.1), Math.max(y0, y1) + depth + h(0.8), { color: 0x14121d, alpha: 0.92 });
         if (gr.parent) gr.parent.addChildAt(dk, gr.parent.getChildIndex(gr)); else L.back.addChild(dk);
         for (const [x, y, dir] of [[x0, y0, 1], [x1, y1, -1]]) {
-            const wall = [[x, y], [x + dir * h(0.35), y + h(0.6)], [x + dir * h(0.2), y + h(1.4)], [x + dir * h(0.45), y + h(2.2)], [x + dir * h(0.25), y + depth], [x, y + depth]];
-            poly(gr, wall).fill(material('rock')); poly(gr, wall).fill({ color: 0x2a2433, alpha: 0.45 });
-            lineAlong(gr, wall.slice(0, 5)).stroke(pen.line(INK, 2, 0.8));
+            const wall = [[x, y]];
+            for (let k = 1; k <= 9; k++) wall.push([x + dir * h(0.18 + hash(x + k, 141) * 0.42 + (k % 3 === 1 ? 0.12 : 0)), y + depth * k / 9]);
+            wall.push([x, y + depth]);
+            poly(gr, wall).fill(material('rock')); poly(gr, wall).fill({ color: 0x2a2433, alpha: 0.4 });
+            // ledges catching a little light, then the wall goes into the dark
+            for (let k = 1; k <= 6; k += 2) { const [wx, wy] = wall[k]; gr.moveTo(x, wy).lineTo(wx, wy).stroke(pen.line(0x8d88a0, 2, 0.35 * (1 - k / 9))); }
+            lineAlong(gr, wall.slice(0, 9)).stroke(pen.line(INK, 2, 0.8));
+            const fade = softDark('down', Math.min(x, wall[3][0]) - 4, y + h(0.8), Math.max(x, wall[3][0]) + h(0.5), y + depth, { color: 0x0e0c16, alpha: 0.8 });
+            if (gr.parent) gr.parent.addChildAt(fade, gr.parent.getChildIndex(gr) + 1); else L.back.addChild(fade);
+            if (cave) crystalCluster(gr, x + dir * h(0.22), y + h(1.1), { dir: -1, size: 0.3, color: dir > 0 ? 0x8fc9f0 : 0xb79be6, n: 3, seed: 17 });
+            else for (let k = 0; k < 3; k++) {
+                const rx = x + dir * h(0.05 + k * 0.12), ry = y + h(0.15 + k * 0.08);
+                gr.moveTo(rx, ry).quadraticCurveTo(rx + dir * h(0.3), ry + h(0.4), rx + dir * h(0.15), ry + h(0.75 + k * 0.2)).stroke(pen.line(0x5a3b20, 2.4, 0.8));
+            }
         }
     }
     function createCoinShape(gr, x, y) {
