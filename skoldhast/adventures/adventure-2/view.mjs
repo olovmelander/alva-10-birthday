@@ -1840,7 +1840,8 @@ export function createView(PIXI, app, { assets, G, heroFactory }) {
         const who = G.speaker, a = who && who !== 'horse' ? G.actors[who] : null, p = G.player, look = G.camLook;
         const speaker = a && a.scene === S.id && a.visible !== false ? a : null;
         if ((!speaker && !look) || G.hideHero) return { tx, ty, zoom };
-        const boxes = look ? [look] : [];
+        // a little air round what is talked about, so its ends are not on the screen's edge
+        const boxes = look ? [{ x0: look.x0 - h(0.5), x1: look.x1 + h(0.5), y0: look.y0 - h(0.3), y1: look.y1 + h(0.2) }] : [];
         if (speaker) {
             const head = who === 'moln' ? h(0.6) : who === 'klo' ? h(0.45) : h(1.1);
             const side = Math.min(h(1.1), W / zoom * 0.16);
@@ -1853,10 +1854,10 @@ export function createView(PIXI, app, { assets, G, heroFactory }) {
         const vw = W / zoom, vh = H / zoom;
         if (all.x1 - all.x0 <= vw) tx = clamp(tx, all.x1 - vw / 2, all.x0 + vw / 2);
         // what is talked about first, as near the sköldhäst as it allows
-        else if (look) tx = them.x1 - them.x0 <= vw ? clamp(p.x, them.x1 - vw / 2, them.x0 + vw / 2) : (look.x0 + look.x1) / 2;
+        else if (look) tx = them.x1 - them.x0 <= vw ? clamp(p.x, them.x1 - vw / 2, them.x0 + vw / 2) : (them.x0 + them.x1) / 2;
         else tx = p.x + Math.sign(speaker.x - p.x) * (vw / 2 - h(0.9)); // as far toward them as keeps the sköldhäst in
         if (all.y1 - all.y0 <= vh) ty = clamp(ty, all.y1 - vh / 2, all.y0 + vh / 2);
-        else if (look) ty = them.y1 - them.y0 <= vh ? clamp(p.y, them.y1 - vh / 2, them.y0 + vh / 2) : (look.y0 + look.y1) / 2;
+        else if (look) ty = them.y1 - them.y0 <= vh ? clamp(p.y, them.y1 - vh / 2, them.y0 + vh / 2) : (them.y0 + them.y1) / 2;
         return { tx, ty, zoom };
     }
 
