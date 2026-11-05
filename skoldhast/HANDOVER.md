@@ -1,5 +1,25 @@
 # Sköldhästen – handover
 
+## Äventyr 1, Branten: no stutter as the roots lift the grass strips (5 November)
+
+Pappa's phone stuttered when the roots lifted the folded grass paths into ramps ("Rötterna lyfter den vikta
+grässtigen till en ramp!").
+- **Cause:** while a ramp rose, `Terrain.advance()` refreshed the terrain on every simulation step. The view saw a
+  new `revision` and rebuilt the whole page's ground every frame: every fill, turf band, blend, lip, root and
+  waterline rope of Äventyr 1's longest page.
+- **Measured in Chromium at 390×844:**
+  - before: 14 ms of view work + 87 ms to draw per frame during the rise (4 + 12 ms while the roots grew);
+  - after: 5 + 13 ms.
+- **The fix:**
+  - `Terrain.layout` changes when the set of surfaces changes, and when a ramp starts and finishes rising, but not
+    for each step in between. The view rebuilds the ground on `layout`. The hill strip (`hill-scene.mjs`) draws the
+    movement.
+  - Collision still follows `revision`, so the player is lifted with the ramp as before.
+  - The hill strip redraws its sheet only when the sheet moves. While only the roots grow, it redraws the roots, in
+    1/40 steps.
+- **Check:** `skoldhast-hills` counts the ground rebuilds (`view.groundBuilds`) while ramp1 rises and requires at
+  most two.
+
 ## Äventyr 2: eggs and the gold coin you can see; a white cloud; Tukankrabban is sad (5 November)
 
 Pappa asked:
