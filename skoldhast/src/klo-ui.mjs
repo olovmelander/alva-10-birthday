@@ -158,7 +158,12 @@ export function createKloUI(root, { words, portrait, onCall, onChoice, onClose, 
     const requestClose = () => { if (open) { if (onClose) onClose(); else hide(); } };
     listen(button, 'click', () => { if (!button.disabled) onCall?.(); });
     listen(close, 'click', requestClose);
-    listen(backdrop, 'click', requestClose);
+    // Only a tap that began on the backdrop closes the notebook. The tap that called Klo opens it on
+    // its pointerup, and the browser's click for that same tap can arrive after the notebook is
+    // shown, landing on the backdrop: it must not close the notebook it just opened.
+    let backdropPressed = false;
+    listen(backdrop, 'pointerdown', () => { backdropPressed = true; });
+    listen(backdrop, 'click', () => { const pressed = backdropPressed; backdropPressed = false; if (pressed) requestClose(); });
     // Keep pointer events in the notebook out of the world's gesture listeners.
     for (const type of ['pointerdown', 'pointerup', 'click']) listen(layer, type, e => e.stopPropagation());
     listen(doc, 'keydown', e => {
