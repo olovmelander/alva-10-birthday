@@ -1,5 +1,52 @@
 # Sköldhästen – handover
 
+## Äventyr 2: eggs and the gold coin you can see; a white cloud; Tukankrabban is sad (5 November)
+
+Pappa asked:
+- for a check that all egg puzzles and the gold coin hold up and look good, with good animations;
+- for a white cloud instead of the last cloud colour, which looked see-through and empty in the game;
+- that Tukankrabban look sad when the eggs blow away.
+
+- **The puzzles work.** The node robot (`tests/skoldhast-a2-playthrough.test.mjs`) plays every egg and the coin
+  through the real simulation, and it passes.
+- **How the moments were checked.** Each was filmed in Chromium with Playwright's clock: time paused, 0.1 s a frame,
+  contact sheets reviewed. The moments were the dug egg, the cocoa egg falling, the ball washed in the river, the coin
+  in Djuphålan, the trade with Skatan, and an egg found by touch.
+- **What changed:**
+  - **A found egg flies into the count.** It pops up where it was, growing to a size worth seeing, then flies in an
+    arc into the egg count in the corner. The count counts it as it lands (`view.eggsArriving`, which main
+    subtracts). This works for all ten eggs. With Mindre rörelse it goes straight there, quickly. Before, the egg
+    simply vanished.
+  - **Eggs in the world are half as big again** (`EGG_SCALE` 1.5). On a phone they were 8–9 px. Eggs waiting to be
+    found have a soft warm light. Dark ones, before the seeds light Rotgrottan, do not.
+  - The cocoa egg lands with a bounce and a puff of sand.
+  - **The gold coin is bigger.**
+    - It flies from the whirlpool's eye up to the sköldhäst.
+    - In the trade it flies to Skatan's beak (`fx('coinGive')`) before she speaks.
+    - Before, it jumped from place to place.
+  - The camera keeps the beetle's ball in the picture as it rolls into the river and the river washes the egg free
+    (`BALL_LOOK`).
+- **The white cloud.** The `paper` pencil keeps its id, so old saves still work, and is now called "Vit". It fills
+  the cloud white with a soft graphite shade under it. Before, it drew only an outline, so Molnet looked empty in
+  the sky. The user-cloud test requires every colour to be filled and white to be white.
+- **Tukankrabban's sad pose** (`pose: 'sad'` in `characters.mjs`):
+  - heavy lids, lower at the outer side, and eyes looking down;
+  - eye stalks leaning out;
+  - both toucan heads hanging, beaks shut;
+  - Alva's curved line on the shell turned down;
+  - a tear running down the shell.
+  - At the table she reaches for the eggs, then watches them go, sad. She is sad again at the empty nest.
+- **Checks:** in `skoldhast-a2`, a dug egg must fly while the count waits, and be counted on landing. Shots are in
+  `docs/skoldhast/shots/visual-sweep/`:
+  - `a2-egg-to-count`
+  - `a2-trade`
+  - `a2-tukan-sad`
+  - `a2-white-cloud`
+- **Not filmed one by one:** eggs e3, e9, e4 and e8 are found by touch like e10. Molnet's egg (e5) is handed over
+  like Skatan's. Both use the same flight.
+- **Watch for:** in the trade, if the sköldhäst walks right up to x 68.6 it stands in front of Skatan. The give
+  button already shows from 69.5.
+
 ## Nobody is cut off mid-sentence (5 November)
 
 Pappa: when the sköldhäst says something and then Klo, or someone else, says something about the story, the first
