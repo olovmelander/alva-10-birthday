@@ -1,5 +1,36 @@
 # Sköldhästen – handover
 
+## Äventyr 2 on phones: the table's caption and the egg count (5 November)
+
+Pappa asked whether Äventyr 2 is done. A fresh check found the story, puzzles and finale sound. It found two layout
+faults on phones, and he asked for both to be fixed.
+
+- **Alva's table now uses Äventyr 1's table mode.** Before, Äventyr 2's table never set `table-mode`, so its caption
+  sat at the bottom with the speech boxes and the drawing card's buttons:
+  - "Alva ritar en orange krabba …" showed behind "Rita om" and "Rita åt mig" for about 2 s, at every size.
+  - On a landscape phone, "… och nio ägg till. Tio små ägg i sanden." was hidden entirely behind Alva's speech box.
+
+  `table.mjs` now sets `table-mode` in `show()` and clears it in `hide()`: speech at the bottom, the caption on a paper
+  slip at the top, as in Äventyr 1. Alva's crab caption is told while she draws, so it has gone before the egg's card
+  opens; the prologue takes no longer than before. A caption still fading out is hidden under an open drawing
+  card (`a2.css`, `.sk-ui.a2:has(.sk-draw.on)`), because the card's prompt covers the top.
+- **The egg count stays in view.** On a phone held upright, the goal note lay over "0 av 10". The count stayed hidden
+  for the whole climb, because the mountain goals do not repeat it.
+  - The note now stops short of the count. This only matters under about 730 px wide.
+  - In portrait up to 720 px wide, the note goes under the row of buttons and gets the full width.
+
+  Only `a2.css` changed; Äventyr 1 is untouched.
+- **Checked:** a probe played the prologue like a reader (about 2 s a box) at 844×390, 390×844, 1440×900 and 667×375.
+  - Before: 2, 0 and 1 overlap moments, with the count covered in portrait.
+  - After: 0 at every size, and the count is clear with both the egg goal and the longer mountain goal.
+  - No page errors.
+
+  `npm test` passes (419).
+- **Contact sheets:** `docs/skoldhast/shots/a2/table-layout-*.webp` (before and after) and `eggs-goal-390x844.webp`.
+- **Still open (Pappa):**
+  - Frame rate and play time on Alva's real device (`?debug` shows fps).
+  - Whether T3's gust is too easy.
+
 ## Äventyr 2 after a critic's read: the logic, the start, the mountain top and the view (4 November, night)
 
 Pappa asked how the adventure holds. The answer named four weaknesses, and he asked for all four to be fixed. The table
