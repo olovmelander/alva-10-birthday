@@ -126,7 +126,8 @@ try {
                     if (Math.abs(iy) < .95 && pulse >= Math.abs(iy)) y = 0;
                 }
                 if (x !== kx) { if (kx) key(kx < 0 ? 'ArrowLeft' : 'ArrowRight', false); if (x) key(x < 0 ? 'ArrowLeft' : 'ArrowRight', true); kx = x; }
-                if (y !== ky) { if (ky) key(ky < 0 ? 'ArrowUp' : 'x', false); if (y) key(y < 0 ? 'ArrowUp' : 'x', true); ky = y; }
+                // under water ↓ dives and ↑ swims up (input.mjs, since 1 October; X did nothing any more)
+                if (y !== ky) { if (ky) key(ky < 0 ? 'ArrowUp' : 'ArrowDown', false); if (y) key(y < 0 ? 'ArrowUp' : 'ArrowDown', true); ky = y; }
             }
         }
         drive.pulse = 0;

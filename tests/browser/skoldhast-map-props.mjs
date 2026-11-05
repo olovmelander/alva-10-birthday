@@ -61,7 +61,8 @@ try {
                 }
                 view.setScene(targetScene); view.cam.snap = true;
                 for (let i = 0; i < 3; i++) view.render(snapshot(G.player, 1, G.terrain, G.time), 1 / 60);
-                const fragment = name === 'land' || name === 'sea' ? find(view.root, `map-fragment-${name}`) : null;
+                // the sea's piece lies in the kelp puzzle, which names it for P6 (kelp-scene.mjs)
+                const fragment = name === 'land' ? find(view.root, 'map-fragment-land') : name === 'sea' ? find(view.root, 'p6-fragment') : null;
                 if (name === 'sea') {
                     // The freed paper rests on the seabed below the vortex eye.
                     G.player.x = fragment.x - 230; G.player.y = fragment.y - 30;

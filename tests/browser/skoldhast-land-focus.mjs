@@ -31,8 +31,8 @@ try {
             { name: 'p1-bridge-purpose', id: 'bridge', x: 81, y: -.65, remove: ['b:k1_note', 'note1_read', 'p1_inked'], line: 'Kartväktaren igen' },
             { name: 'p2-pool-purpose', id: 'pool', x: 104.1, y: -.42, remove: ['p2_seen', 'p2_stone', 'p2_plank', 'p2_open', 'b:k1_mirror', 'b:k1_arch'], line: 'Vattenporten är stängd' },
             { name: 'p2-visible-mirror', id: 'pool', x: 104.1, y: -.42, remove: ['p2_seen', 'p2_stone', 'p2_plank', 'p2_open', 'b:k1_mirror', 'b:k1_arch'], add: ['b:k1_pool_purpose'], hide: true, line: 'Pölen visar' },
-            { name: 'p3-seed-and-ramp', id: 'ramp', x: 48, y: -.82, remove: ['p3_t1', 'p3_t2', 'p3_t3', 'p3_done', 'b:k1_branten', 'b:k1_p3'], line: 'Havets spår' },
-            { name: 'p3-wave-evidence', id: 'waveMarks', x: 35, y: -4, remove: ['p3_done', 'b:k1_p3'], line: 'Spåren leder' },
+            { name: 'p3-seed-and-ramp', id: 'ramp', x: 50, y: -.82, remove: ['p3_t1', 'p3_t2', 'p3_t3', 'p3_done', 'b:k1_branten', 'b:k1_p3'], line: 'Stigen' },
+            { name: 'p3-wave-evidence', id: 'waveMarks', x: 35, y: -4, remove: ['p3_done', 'b:k1_p3'], line: 'Vågmärken' },
             { name: 'p4-gap-and-map', id: 'leap', x: 14.4, y: -4, remove: [], line: 'Där ute' },
             { name: 'p4-earned-landing', id: 'landmark', x: 30, y: -5.5, remove: [], add: ['b:k2_leap_purpose'], gallop: true, line: 'Fem hästlängder' }
         ];
