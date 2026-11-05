@@ -996,7 +996,7 @@ export const KLO_COMPANION = {
         ended: 'Hör du plasket? Jag tänker aldrig tröttna på den mätningen.'
     },
     story: {
-        note: ['klo', 'Kartväktaren igen! Bron är bara streckad – som om någon slutade rita mitt i. Där borta finns havets spår.'],
+        note: ['klo', 'Kartväktaren igen! Bron är bara streckad – som om någon slutade rita mitt i. Bortom bron finns havets spår.'],
         noteMap: ['klo', 'Kartväktaren igen! Bron är bara streckad – som om någon slutade rita mitt i. Kartbiten flög över Stäppen.'],
         branten: ['klo', 'Stigen har vikt sig vid branten. Bredvid kanten finns en tuva och en backsippa.'],
         brantenMap: ['klo', 'Den vikta stigen hindrar vägen till utsikten. Bredvid kanten står en backsippa.'],

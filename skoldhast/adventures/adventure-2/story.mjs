@@ -199,6 +199,30 @@ export function createStory(G, io) {
 
     const BALL_LOOK = { x0: 55.6 * HL, x1: 61.4 * HL, y0: -1.8 * HL, y1: 0.8 * HL };
 
+    /** Skatan keeps clear of the sköldhäst on her branch: if it comes right up to her, she hops along the branch
+     *  to the side with more room, so she is never hidden behind it (the trade happens wherever she stands). */
+    let skataRest = 0;
+    function skataAside(dt) {
+        const sk = G.actors.skata, mp = G.scenes.strand.magpie, p = G.player;
+        if (!sk?.visible || sk.scene !== 'strand' || G.sceneId !== 'strand' || F.has('eggs_in_nest')) return;
+        skataRest = Math.max(0, skataRest - dt);
+        if (!sk.hop && !skataRest && p.surface?.id === mp.surface && Math.abs(p.x - sk.x) < 0.7 * HL) {
+            const branch = G.scenes.strand.surfaces.find(s => s.id === mp.surface).pts;
+            const lo = branch[0][0] + 0.25 * HL, hi = branch.at(-1)[0] - 0.25 * HL;
+            // to whichever end of the branch will be furthest from where the sköldhäst is going
+            const soon = p.x + (p.vx || 0) * 0.6, cl = x => Math.max(lo, Math.min(hi, x));
+            const to = [cl(p.x - 1.0 * HL), cl(p.x + 1.0 * HL)].sort((a, b) => Math.abs(b - soon) - Math.abs(a - soon))[0];
+            if (to !== null) sk.hop = { from: sk.x, to, t: 0 };
+        }
+        if (!sk.hop) return;
+        sk.hop.t = Math.min(1, sk.hop.t + dt / 0.45);
+        const u = sk.hop.t;
+        sk.x = sk.hop.from + (sk.hop.to - sk.hop.from) * u;
+        sk.y = mp.y - Math.sin(u * Math.PI) * 0.5 * HL;
+        sk.facing = Math.sign(p.x - sk.x) || -1;
+        if (u >= 1) { sk.y = mp.y; sk.hop = null; skataRest = 0.6; }
+    }
+
     function stage() {
         const p = G.player;
         for (const [who, off] of [['klo', 1.5], ['tukan', 2.6]]) {
@@ -704,6 +728,7 @@ export function createStory(G, io) {
                 if (a.scene !== G.sceneId || !a.visible) continue;
                 if (a.id === 'klo' || a.id === 'tukan') a.lookAt = G.player.x;
             }
+            skataAside(dt);
         },
         running: () => !!current || queue.length > 0,
         objective,

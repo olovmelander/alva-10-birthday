@@ -1309,7 +1309,7 @@ export function createView(PIXI, app, { assets, G, heroFactory, eggTarget = null
         L.actors.addChild(klo.container);
         const hearts = createHearts(PIXI, pen); L.actors.addChild(hearts.view);
         const tukan = createTukan(PIXI, pen); L.actors.addChild(tukan.view);
-        const skata = createMagpie(PIXI, pen); skata.view.scale.set(1.5); L.actors.addChild(skata.view);
+        const skata = createMagpie(PIXI, pen); skata.view.scale.set(2); L.actors.addChild(skata.view);
         const dyvel = createBeetle(PIXI, pen); dyvel.view.scale.set(1.5); L.actors.addChild(dyvel.view);
         const moln = createCloud(PIXI, pen, { texture: cloudTexture }); moln.view.scale.set(1.5); L.objects.addChild(moln.view);
         S.A = { klo, hearts, tukan, skata, dyvel, moln };

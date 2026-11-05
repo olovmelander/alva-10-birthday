@@ -35,6 +35,7 @@ export function createGame({ released = RELEASED_CHAPTER } = {}) {
         freeze: false,     // time stopped (prologue/final), for effects
         evening: false,
         camHint: null,     // { x, y, zoom, t } a camera target set by the story
+        camLook: null,     // { scene, x0, x1, y0, y1 } what a passing remark is about (story.mjs lookAt)
         worldInspection: null, // transient read-held world view; never serialized
         journey: false,        // transient: the crossing round the headland is being drawn on the map
         lastEvents: [],

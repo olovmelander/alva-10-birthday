@@ -213,6 +213,10 @@ export function createTukan(PIXI, pen) {
 // ---------------------------------------------------------------------------------------
 export function createMagpie(PIXI, pen) {
     const view = new PIXI.Container(); view.label = 'skata';
+    // a pale glow behind her: a black bird among dark leaves in the storm could not be seen at all (5 November)
+    const glow = g(PIXI);
+    for (const [rx, ry, a] of [[52, 34, 0.08], [42, 27, 0.1], [32, 21, 0.13]]) glow.ellipse(4, -24, rx, ry).fill({ color: 0xf2ecd8, alpha: a });
+    view.addChild(glow);
     const flip = new PIXI.Container(); view.addChild(flip);
     const tail = g(PIXI);
     tail.moveTo(-10, -20).lineTo(-56, -6).lineTo(-58, 0).lineTo(-12, -12).closePath().fill(pen.fill(PAL.magpie)).stroke(pen.line(INK, 1.4));
@@ -220,6 +224,7 @@ export function createMagpie(PIXI, pen) {
     flip.addChild(tail);
     const bodyC = new PIXI.Container(); flip.addChild(bodyC);
     const body = g(PIXI);
+    body.ellipse(0, -24, 23.5, 15.5).stroke(pen.line(0xf2ecd8, 2.4, 0.75));
     body.ellipse(0, -24, 22, 14).fill(pen.fill(PAL.magpie)).stroke(pen.line(INK, 2));
     body.ellipse(4, -19, 14, 8).fill(pen.fill(PAL.white));
     body.ellipse(-6, -28, 12, 5).fill(pen.fill(PAL.white, 0.95));
@@ -228,6 +233,7 @@ export function createMagpie(PIXI, pen) {
     bodyC.addChild(body);
     const head = new PIXI.Container(); head.position.set(18, -36);
     const hg = g(PIXI);
+    hg.circle(0, 0, 11.5).stroke(pen.line(0xf2ecd8, 2.2, 0.75));
     hg.circle(0, 0, 10).fill(pen.fill(PAL.magpie)).stroke(pen.line(INK, 1.6));
     hg.circle(4, -2, 2.4).fill({ color: 0xffffff }); hg.circle(4.6, -2, 1.3).fill({ color: 0x111111 });
     hg.moveTo(8, 0).lineTo(20, 2).lineTo(8, 4).closePath().fill(pen.fill(0x1a1a1a)).stroke(pen.line(INK, 1));
