@@ -29,6 +29,8 @@ The runtime contract and release steps are in plan §8.6, "Adventure series".
 - The game still plays from the ticket page (`index.html`) and from `dev/play.html`.
 - `npm test` passes. If you changed the world, the robot in `tests/skoldhast-playthrough.test.mjs`
   still finishes (adjust its route only when the design changed on purpose).
+- If you changed a spoken line, record it and prune what is left over (`scripts/skoldhast-voice.mjs`, see its header);
+  `tests/skoldhast-voice.test.mjs` fails until you do.
 - Update `HANDOVER.md`: done, next, decisions, known bugs, "Frågor till Pappa".
 - Contact sheets (WebP at 390×844, 844×390 and 1440×900) go under `docs/skoldhast/shots/<chapter>/`.
   `scripts/skoldhast-shot.mjs` takes screenshots in headless Chromium (usage in its header comment).
@@ -49,6 +51,7 @@ The runtime contract and release steps are in plan §8.6, "Adventure series".
 | Adventure 1 runtime, loop, host glue | `src/main.mjs` |
 | Äventyr 2: Den magiska skogen (world, story, puzzles, view, runtime) | `adventures/adventure-2/` (design: `docs/skoldhast/adventure-2.md`; preview: `dev/play.html?adventure=2`) |
 | Synthesized audio | `src/audio.mjs` |
+| Recorded voices: the clips, the player, the recording script | `voice/`, `src/voice.mjs`, `scripts/skoldhast-voice.mjs` (what is voiced and why: `docs/skoldhast/voice-audit.md`) |
 | All art | drawn in code in `scripts/skoldhast-art/`, built by `npm run build:skoldhast` |
 
 `scripts/build-skoldhast-assets.mjs` packs the atlases into `assets/`, writes `assets/manifest.json`

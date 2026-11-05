@@ -1531,6 +1531,7 @@ function silentAudio() {
         sfx: noop,
         phrase: () => 0,
         note: noop,
+        duckSpeech: noop,
         dispose: noop
     };
 }
@@ -2706,6 +2707,12 @@ export function createAudio({ ctx: givenCtx, seed, lifecycle = false, warm = tru
         },
         /** Connect recorded voice lines here (they follow the voice volume). */
         voiceInput: voiceVol,
+        /** A recorded line is playing for `seconds`: lower the music under it. */
+        duckSpeech(seconds) {
+            if (disposed || !(seconds > 0)) return;
+            const t = ctx.currentTime;
+            duckFor(0.45, t, t + seconds, 0.15, 0.7);
+        },
         resume,
         suspend,
         setVolumes,

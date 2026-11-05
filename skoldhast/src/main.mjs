@@ -31,6 +31,7 @@ import { CHECKPOINTS } from './content/world.mjs';
 import { createUserCloud, cloudColor, cloudPoints } from './user-cloud.mjs';
 import { createKloCompanion, normalizeKloHelpMode } from './klo-companion.mjs';
 import { createKloUI } from './klo-ui.mjs';
+import { createVoice } from './voice.mjs';
 
 // the art bundle each scene draws from (boot holds the hero, Klo, the table and the UI)
 const SCENE_BUNDLES = { land: ['land'], kelp: ['sea', 'bay'], viken: ['bay', 'sea'] };
@@ -42,7 +43,7 @@ const DEFAULT_SETTINGS = { help: 'ask', holdGallop: false, followFinger: false, 
 export function createGame({ host = document.body, assetBase = './skoldhast/', released, onClose,
     saver: sharedSaver, adventureId = FIRST_ADVENTURE, slotId, onChooseAdventure, onSlotChange, onRestart } = {}) {
     let state = 'closed';
-    let el = null, app = null, assets = null, G = null, view = null, ui = null, input = null, audio = null, story = null, table = null, guide = null;
+    let el = null, app = null, assets = null, G = null, view = null, ui = null, input = null, audio = null, story = null, table = null, guide = null, voice = null;
     let raf = 0, last = 0, acc = 0, paused = false, mode = 'title';
     let glLostAt = 0, glPrompt = null;
     let audioTheme = null;
@@ -157,9 +158,11 @@ export function createGame({ host = document.body, assetBase = './skoldhast/', r
 
         G = createLogic({ released });
         G.helpLevel = settings.help;
-        ui = createUI(el, { assetBase, handlers: uiHandlers() });
+        voice = createVoice({ audio: () => audio });
+        voice.setEnabled(settings.voice > 0);
+        ui = createUI(el, { assetBase, handlers: uiHandlers(), voice });
         const img = (name) => new URL(`${assetBase}assets/${name}.webp`, document.baseURI).href;
-        guide = createGuide(ui.root, { img, portrait: ui.portrait, heroScreen: () => heroScreen(), onGoalTap: () => openJournal(), onDismissHelp: () => companion?.dismissHelp() });
+        guide = createGuide(ui.root, { img, portrait: ui.portrait, heroScreen: () => heroScreen(), onGoalTap: () => openJournal(), onDismissHelp: () => companion?.dismissHelp(), voice });
         guide.show(false);
         const heroFactory = await loadHeroFactory();
         view = createView(PIXI, app, { assets, G, heroFactory, onFx: (name, data) => (name === 'epilogue' ? runEpilogue(data) : name === 'unfoldPage' ? runUnfold(data) : name === 'sfx' ? audio?.sfx(data) : null) });
@@ -222,7 +225,7 @@ export function createGame({ host = document.body, assetBase = './skoldhast/', r
         });
         G.story = story;
         kloUI = createKloUI(ui.root, {
-            words: KLO_COMPANION.ui, portrait: ui.portrait, lessMotion: () => settings.lessMotion,
+            words: KLO_COMPANION.ui, portrait: ui.portrait, lessMotion: () => settings.lessMotion, voice,
             onCall: () => companion?.call(), onChoice: topic => companion?.choose(topic), onClose: () => companion?.close()
         });
         companion = createKloCompanion(G, {
@@ -837,7 +840,8 @@ export function createGame({ host = document.body, assetBase = './skoldhast/', r
             setSetting: (k, v) => { settings[k] = v; applySettings(); saveNow(); },
             setNote: (v) => { note = v.slice(0, 200); saveNow(); },
             nextChapterOpen: (n) => (G.released || 3) > n,
-            onSay: (who) => audio?.sfx(who === 'klo' ? 'crabvoice' : 'write'),
+            // a recorded line is its own sound; the crab's chirp and the pencil are for silent lines
+            onSay: (who, text, voiced) => { if (!voiced) audio?.sfx(who === 'klo' ? 'crabvoice' : 'write'); },
             onPencil: (len) => audio?.sfx('pencil', { len })
         };
     }
@@ -845,6 +849,7 @@ export function createGame({ host = document.body, assetBase = './skoldhast/', r
         settings.help = normalizeKloHelpMode(settings.help);
         if (G) { G.helpLevel = settings.help; G.lessMotion = !!settings.lessMotion; }
         audio?.setVolumes({ music: settings.music, sfx: settings.sfx, voice: settings.voice });
+        voice?.setEnabled(settings.voice > 0);
         ui?.setBigText(settings.bigText);
         ui?.root.classList.toggle('less-motion', !!settings.lessMotion);
     }
@@ -952,6 +957,7 @@ export function createGame({ host = document.body, assetBase = './skoldhast/', r
             listeners?.abort();
             companion?.destroy(); kloUI?.destroy(); companion = null; kloUI = null;
             input?.destroy();
+            voice?.stop();
             ui?.destroy(); // drawing input/timers must stop before a slow asset unload
             try { audio?.dispose(); } catch { /* ignore */ }
             try { table?.destroy(); } catch { /* ignore */ }
@@ -961,7 +967,7 @@ export function createGame({ host = document.body, assetBase = './skoldhast/', r
             guide?.destroy();
             el?.remove();
             restoreHost();
-            app = null; view = null; ui = null; input = null; audio = null; story = null; table = null; G = null; assets = null; guide = null;
+            app = null; view = null; ui = null; input = null; audio = null; story = null; table = null; G = null; assets = null; guide = null; voice = null;
             glLostAt = 0; glPrompt = null;
             state = 'closed';
         })();

@@ -4,7 +4,8 @@ Pappa listened to voice samples and chose a voice for every role. Before any lin
 check of the story, every conversation, the narration and everything that will have a voice, so that the red thread
 holds. This is what will be voiced, what the check found and changed, and the rules for the recording step.
 
-The samples and the recordings themselves stay out of the repository: the narrator is Pappa's own voice.
+The listening samples stayed out of the repository. The recordings are in `skoldhast/voice/`: Pappa decided on
+5 November that his own voice, the narrator, may be public on the site.
 
 ## The cast
 
@@ -128,24 +129,56 @@ is confirmed, in both orders. With the old shutter line the check fails.
   - The egg that "glimmar som en pärla". It sets up Skatan's pearl.
   - Molnet's question "Då blir det ljust på riktigt?". The moon answers it.
 
-## Rules for the recording step
+## Recording and playback (5 November)
 
-1. **One voice at a time.** Captions, thoughts and remarks do not wait for each other today, and the table's timings
-   were set for reading. A clip must wait for the one before it, and those timings must follow the clip lengths.
-2. **Feedback thoughts that repeat** (`BALK`, `thinSlow`, `runup`, `storm`, `crystalWait`, `forsPushed`, `whirl`,
-   `rush`, `springFall`, tasting): voice each at most once per about 20 seconds. The bubble can still show.
-3. **Spoken text is the shown text, with two exceptions.** The signature "/Kartväktaren" is spoken without the slash,
-   which is otherwise read as "snedstreck". Words in all capitals are lowercased.
-4. **Look clips up by speaker and text.** A line kept under two keys is then recorded once.
-5. **Pronunciation list:** Tukankrabban, Sköldhästen, Åsktoppen, Djuphålan, Tordyveln, Glimmerfloden, månskensfrö, and
-   Klo (the name) beside klo (a claw: "Ta min klo").
-6. **Listen first to:** "Snyft", "Hmpf", "J-ja", "Pling, plong", "Schhh", "Manen och hovarna", "Sköldhästens" stress.
+**Recording.** `scripts/skoldhast-voice.mjs` builds the voice script from both `sv.mjs` files with the rules above.
+- It records every line that has no clip yet: Eleven v4, Swedish, 24 kHz mono, MP3 48 kbit/s.
+- It reads each clip back with speech-to-text and records it again, up to three times, if fewer than 80 % of the
+  words come back.
+- It writes `skoldhast/voice/<key>.mp3` and `manifest.json`, which holds each clip's length.
+- The key is who speaks plus what is shown (`src/voice-key.mjs`). A line kept under two keys is recorded once.
 
-## Questions for Pappa
+Spoken text is the shown text, with two exceptions. The signature "/Kartväktaren" is read without the slash, which is
+otherwise read as "snedstreck". Words in capitals are read as words.
 
-1. Kartväktaren's paper notes: in his own voice, or the narrator's? His own voice is recommended, because the player
-   then hears him before meeting him at the fyren.
-2. Alva's own printed sentences (the prologue caption and the last note): read by you as the narrator, or by Alva's
-   character voice? They stay word for word either way.
-3. Klo's guided-help bubbles carry key names. Should they stay text only (recommended), or be rewritten in Klo's own
-   words and voiced too? That is several dozen lines.
+**After any text change**, record what is missing and remove what no line uses:
+
+```sh
+NODE_USE_ENV_PROXY=1 ELEVENLABS_API_KEY=… SKOLDHAST_NARRATOR_VOICE=<id> node scripts/skoldhast-voice.mjs --record
+node scripts/skoldhast-voice.mjs --prune
+```
+
+`tests/skoldhast-voice.test.mjs` fails until every line is recorded and no clip is left over. The robots fail if they
+hear a line that is not in the voice script.
+
+**Playback** (`src/voice.mjs`, the same in both adventures).
+- **What plays:** a line plays only if it has a clip. Everything else is silent, so the script alone decides what is
+  voiced.
+- **Download:** clips are fetched only as a line is shown, never in the first download. They play through the audio
+  engine's voice input, so the "Röster" slider sets their volume and 0 turns them off. The music is lowered under
+  speech. A voiced box has no crab chirp or pencil sound.
+- **One voice at a time:**
+  - A speech box silences what came before, and its tap silences itself.
+  - A caption is the narrator. The table scenes and the prologue wait for its reading before the next line, and a
+    caption stays up as long as it is read.
+  - Thoughts, hint bubbles and Klo's tap jokes speak only in silence. The same one is said at most once every 20
+    seconds, while the bubble still shows each time.
+- **Never in the way:** a voice never holds the game up.
+  - Before the first tap, or in a hidden tab, nothing is said.
+  - A clip that has not loaded within 4 seconds is skipped.
+  - A clip that does not report its end is let go 1.5 seconds after its length.
+- **Klo's notebook** reads his answer aloud and stops when it closes.
+- **Alva's field note** in Äventyr 1's prologue is read by Pappa sentence by sentence as her pencil writes it. Each
+  sentence is heard to its end unless the reader taps to hurry, and "Hoppa över" stops it.
+
+## Decided by Pappa (5 November)
+
+1. Kartväktaren's paper notes are read in his own voice, so the player hears him before meeting him at the fyren.
+2. Alva's own printed sentences are read by Pappa as the narrator:
+   - her field note, as it is written;
+   - her hope, as a caption;
+   - her question, on the last note.
+
+   They stay word for word.
+3. Klo's guided-help bubbles, which carry key names, stay text.
+4. His own voice may be public: the narrator's clips are on the site with the rest.

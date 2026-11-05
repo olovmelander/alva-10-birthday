@@ -242,16 +242,16 @@ export function createTable({ PIXI, app, assets, ui, audio, G, heroFactory }) {
         D.forest.visible = false; D.alva.visible = false;
         audio?.setArea?.('table');
         await wait(0.6);
-        ui.caption(TABLE.newPage, 2600);
-        await wait(1.2);
+        // the narrator reads each caption to its end before the next voice (voice.mjs)
+        await Promise.all([ui.caption(TABLE.newPage, 2600), wait(1.2)]);
         await ui.say([TABLE.ask, TABLE.yes]);
         // Alva draws the tukankrabba and her nest; the player draws the first egg with Alva's pencil
         for (const { e } of D.eggs) e.view.visible = false;
         D.alva.visible = true;
         // told while she draws, so it has gone before the egg's drawing card opens
-        ui.caption(TABLE.alvaDraws, 3200);
+        const drawsTold = ui.caption(TABLE.alvaDraws, 3200);
         await drawIn(D.alva, 'alva', 2.6);
-        await wait(1.2);
+        await Promise.all([drawsTold, wait(1.2)]);
         const eggGeometry = () => {
             const [cx, cy] = toCss(660, 380), rx = Math.max(38, 64 * pageScale), ry = rx * 1.3;
             const anchors = [];
@@ -261,14 +261,13 @@ export function createTable({ PIXI, app, assets, ui, audio, G, heroFactory }) {
         await ui.draw({ prompt: WORDS.drawEgg, ...eggGeometry(), getGeometry: eggGeometry, color: '#4f7c3c', width: 5, dotRadius: 13 });
         audio?.sfx?.('sparkle');
         for (let i = 0; i < D.eggs.length; i++) { D.eggs[i].e.view.visible = true; await wait(0.12); }
-        ui.caption(TABLE.tenEggs, 2600);
+        await ui.caption(TABLE.tenEggs, 2600);
         await ui.say([TABLE.alvaFacts]);
         // Mira draws the forest, the river and the bridge
         D.forest.visible = true;
         await drawIn(D.forest, 'mira', 3.0);
         await ui.say([TABLE.miraTrees]);
-        ui.caption(TABLE.miraBridge, 3000);
-        await wait(1.4);
+        await Promise.all([ui.caption(TABLE.miraBridge, 3000), wait(1.4)]);
         await ui.say([TABLE.miraCloud]);
         // the player draws Mira's little cloud, with her pencils
         const geometry = () => ({ ghost: ghostCloud(), bounds: { x: pageX + 600 * pageScale, y: pageY + 60 * pageScale, width: 320 * pageScale, height: 190 * pageScale } });
@@ -289,14 +288,16 @@ export function createTable({ PIXI, app, assets, ui, audio, G, heroFactory }) {
         await ui.say([TABLE.cool, TABLE.evening, TABLE.busy]);
         // the page grows dark, and the little cloud is afraid
         D.cloudActor.pose = 'sad';
-        ui.caption(TABLE.dark, 3000);
+        const darkTold = ui.caption(TABLE.dark, 3000);
         await tween(1.6, u => { D.night.alpha = ease(u) * 0.55; D.storm = ease(u); });
+        await darkTold;
         lightning();
-        ui.caption(TABLE.cloudFlees, 3200);
+        const fleesTold = ui.caption(TABLE.cloudFlees, 3200);
         // the frightened cloud drifts off to the mountains on the page's far edge
         await tween(1.8, u => { D.cloudActor.x = 770 + ease(u) * 330; D.cloudActor.y = 150 - ease(u) * 60; });
         D.cloudActor.visible = false;
-        ui.caption(TABLE.storm, 3000);
+        await fleesTold;
+        const stormTold = ui.caption(TABLE.storm, 3000);
         audio?.sfx?.('wind');
         await wait(0.6);
         // ten eggs blow away like sparks
@@ -315,6 +316,7 @@ export function createTable({ PIXI, app, assets, ui, audio, G, heroFactory }) {
                 f.e.view.rotation = v * 8; f.e.view.alpha = 1 - Math.max(0, v - 0.7) / 0.3;
             });
         });
+        await stormTold;
         lightning();
         await ui.say([TABLE.eggsAway]);
         // the sköldhäst gallops in with Klo
@@ -329,7 +331,7 @@ export function createTable({ PIXI, app, assets, ui, audio, G, heroFactory }) {
         D.actors.addChild(klo.container);
         D.kloRig = klo; D.kloActor = { visible: true, x: -40, y: 500, facing: 1, vx: 0, distance: 0, pose: 'idle' };
         hero.view.alpha = 0; klo.container.alpha = 0;
-        ui.caption(TABLE.gallopIn, 3200);
+        const inTold = ui.caption(TABLE.gallopIn, 3200);
         audio?.sfx?.('hoof', { surface: 'grass', speed01: 1 });
         await tween(2.2, u => {
             const e = ease(u);
@@ -340,7 +342,7 @@ export function createTable({ PIXI, app, assets, ui, audio, G, heroFactory }) {
             hero.view.alpha = clamp((D.heroState.x - 20) / 70, 0, 1); klo.container.alpha = clamp((kx + 10) / 70, 0, 1);
         });
         D.heroState.gait = 'stand'; D.heroState.speed = D.heroState.vx = 0; D.kloActor.vx = 0;
-        await wait(0.5);
+        await Promise.all([inTold, wait(0.5)]);
         // into the page
         await diveInto(540, 480);
         const result = { cloud };
@@ -400,12 +402,10 @@ export function createTable({ PIXI, app, assets, ui, audio, G, heroFactory }) {
         audio?.setArea?.('table');
         await tween(1.0, u => { veilAlpha = 1 - ease(u); });
         veilAlpha = 0;
-        ui.caption(TABLE.table, 2600);
-        await wait(1.0);
+        await Promise.all([ui.caption(TABLE.table, 2600), wait(1.0)]);
         await ui.say([TABLE.miraMoon, TABLE.alvaTeam]);
         await ui.say([TABLE.marry, TABLE.research]);
-        ui.caption(TABLE.end, 3600);
-        await wait(2.4);
+        await Promise.all([ui.caption(TABLE.end, 3600), wait(2.4)]);
         await tween(0.9, u => { veilAlpha = ease(u); });
         fadingToWorld = true;
         page.visible = false; desk.visible = false; windowArt.visible = false; pencils.visible = false;

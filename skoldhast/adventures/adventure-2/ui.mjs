@@ -43,8 +43,9 @@ const FACES = {
 };
 const EGG_ICON = '<svg viewBox="0 0 24 30" aria-hidden="true"><ellipse cx="12" cy="16" rx="9.5" ry="12.5" fill="#f7f1e3" stroke="#8d8068" stroke-width="1.6"/><ellipse cx="9" cy="18" rx="4" ry="6" fill="#f3d6dc" opacity=".8"/><ellipse cx="8.5" cy="10" rx="2" ry="3.2" fill="#fff"/></svg>';
 
-export function createA2UI(host, { assetBase, handlers }) {
+export function createA2UI(host, { assetBase, handlers, voice = null }) {
     const ui = createNotebookUI(host, {
+        voice,
         assetBase,
         handlers: {
             ...handlers,
@@ -60,7 +61,7 @@ export function createA2UI(host, { assetBase, handlers }) {
     const root = ui.root;
     root.classList.add('a2');
     const img = (name) => new URL(`${assetBase}assets/${name}.webp`, document.baseURI).href;
-    const guide = createGuide(root, { img, portrait: ui.portrait, heroScreen: () => handlers.heroScreen?.(), onGoalTap: () => handlers.openJournal() });
+    const guide = createGuide(root, { img, portrait: ui.portrait, heroScreen: () => handlers.heroScreen?.(), onGoalTap: () => handlers.openJournal(), voice });
     guide.show(false);
 
     // the egg count in the HUD, where Adventure 1 counts her pencils

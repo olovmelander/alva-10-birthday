@@ -402,7 +402,8 @@ export function createTable({ PIXI, app, view, G, ui, audio, assets, makeHero })
         // behind the horse: her question, and her hope that a researcher will come.
         const capText = HER_TEXT.hope ? `”${HER_TEXT.hope}”` : STORY.prolog.captionFallback;
         const capMs = Math.round(1000 * Math.min(10, Math.max(4.2, 1.2 + .055 * capText.length)));
-        ui.caption(capText, capMs);
+        // read by Pappa, the narrator; Klo's first words wait for her hope to be heard
+        const hopeTold = ui.caption(capText, capMs);
         const lead = Math.max(1.2, capMs / 1000 - 2.8);
         if (G.lessMotion) { kloFrame = 1; layout(); await wait(lead); }
         else await tween(lead, u => { kloFrame = u * u * (3 - 2 * u); layout(); });
@@ -434,6 +435,7 @@ export function createTable({ PIXI, app, view, G, ui, audio, assets, makeHero })
         });
         worldSpeed = 1; focus.k = 0; layout();
         setPhase('klo-wonder');
+        await hopeTold;
         await ui.say([STORY.prolog.kloWonder]);
         // "A turtle?!" The horse tosses its head; one of Klo's eyes follows the mane.
         setPhase('klo-take');
@@ -629,7 +631,7 @@ export function createTable({ PIXI, app, view, G, ui, audio, assets, makeHero })
         const pause = (s) => { let t0 = 0; hold.hurry = false; return run((dt) => { t0 += dt; return t0 >= s || hold.hurry || hold.skip; }).then(() => { hold.hurry = false; }); };
 
         // 1. Into her head: the room fades, a thought, her notebook.
-        ui.caption(STORY.prolog.thinking, 2600);
+        const thinkingTold = ui.caption(STORY.prolog.thinking, 2600);
         await span(less() ? .3 : 1.2, (u) => notes.setDim(u));
         await pause(less() ? .6 : 1.1);
         ui.root.append(skipBtn);
@@ -671,8 +673,13 @@ export function createTable({ PIXI, app, view, G, ui, audio, assets, makeHero })
         const fired = new Set();
         const fire = (n) => { for (const c of notes.cues) if (c.at <= n && !fired.has(c.cue)) { fired.add(c.cue); actions[c.cue]?.(); } };
         const CPS = 22, PAUSES = [1.3, 2.4, 2.2, 2.4];
+        // wait for a reading, or for the reader to move on; the frame loop ends with either
+        const heard = (p, stop) => { let over = false; return Promise.race([Promise.resolve(p).then(() => { over = true; }), run(() => over || stop())]).then(() => { over = true; }); };
+        await heard(thinkingTold, () => hold.skip);
         for (let i = 0; i < notes.sentences.length && !hold.skip; i++) {
             if (i === 1) await seaReady;
+            // Pappa reads her words as her pencil writes them, one sentence at a time
+            const read = ui.voice?.play('caption', notes.sentences[i], 'narration') || null;
             const from = i ? notes.sentenceEnds[i - 1] + 1 : 0, to = notes.sentenceEnds[i];
             setPhase('notes');
             table.notesSentence = i;
@@ -690,7 +697,10 @@ export function createTable({ PIXI, app, view, G, ui, audio, assets, makeHero })
             notes.setWriting(false);
             if (hold.skip) break;
             await pause((less() ? 1.3 : 1) * (PAUSES[i] ?? 2));
+            // the sentence is heard to its end, unless the reader hurries on
+            if (read) await heard(read, () => hold.hurry || hold.skip);
         }
+        if (hold.skip) ui.voice?.stop('narration');
 
         // 3. Out of her head, into her picture: exactly as she imagines it.
         setPhase('notes-end');
@@ -704,12 +714,12 @@ export function createTable({ PIXI, app, view, G, ui, audio, assets, makeHero })
         audio?.stinger('discovery');
         await span(less() ? .3 : .9, (u) => { notes.setPencil(1 - u); notes.setCard(1 - u); notes.setDim(1 - u); });
         // "exactly as she imagines it": read while the camera goes into her picture
-        ui.caption(STORY.prolog.wakeCaption, 3600);
+        const wakeTold = ui.caption(STORY.prolog.wakeCaption, 3600);
         if (less()) { notesFrame = 0; layout(); }
         else await span(1.5, (u) => { notesFrame = 1 - ease(u); layout(); });
         notes.destroy(); notes = null; notesFrame = 0; layout();
         table.notesSentence = undefined;
-        await wait(less() ? .8 : 1.2);
+        await Promise.all([wakeTold, wait(less() ? .8 : 1.2)]);
         return true;
     }
     /** A few grains of sand hop where Klo is still asleep. */
@@ -821,7 +831,7 @@ export function createTable({ PIXI, app, view, G, ui, audio, assets, makeHero })
             ruler.scale.set(G.lessMotion ? 1 : lerp(.08, 1, e));
             ruler.alpha = e;
         });
-        ui.caption(STORY.prolog.foldCaption);
+        const foldTold = ui.caption(STORY.prolog.foldCaption);
         audio?.sfx('rustle');
         setPhase('folding');
         await tween(G.lessMotion ? .6 : 2.1, (u) => {
@@ -842,9 +852,10 @@ export function createTable({ PIXI, app, view, G, ui, audio, assets, makeHero })
         ruler.destroy();
         // the pencil pressed where the fold interrupted it
         shore.circle(...endpoint, 2.6).fill({ color: 0x244f8f, alpha: .9 });
-        ui.caption(STORY.prolog.afterFreezeCaption);
+        await foldTold;
+        const freezeTold = ui.caption(STORY.prolog.afterFreezeCaption);
         setPhase('folded');
-        await wait(.7);
+        await Promise.all([freezeTold, wait(.7)]);
     }
 
     /** Her sheet as it lies now, flat: the painted face a folding corner carries. */
@@ -980,8 +991,7 @@ export function createTable({ PIXI, app, view, G, ui, audio, assets, makeHero })
         await tween(0.8, (u) => { hp.alpha = u; });
         audio?.sfx('drip');
         // the splash reached her real paper, and nothing tore
-        ui.caption(STORY.final.wet, 3600);
-        await wait(1.6);
+        await Promise.all([ui.caption(STORY.final.wet, 3600), wait(1.6)]);
         picHero._action = 'lookdown'; picHero._actionT = 0;
         const note = HER_TEXT.question ? `${HER_TEXT.question} Forskningen fortsätter.` : STORY.final.noteFallback;
         await ui.say([['note', note]]);

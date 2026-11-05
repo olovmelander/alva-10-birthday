@@ -504,8 +504,10 @@ export function createStory(G, io) {
     }
     /** The cloud carries everyone home to the nest (also after a reload on the peak). */
     async function ride() {
-        ui().caption?.(STORY.rideCaption, 3600);
+        // the narrator reads over the picture; the next line waits for the reading
+        const told = ui().caption?.(STORY.rideCaption, 3600);
         await fx('cloudRide', {});
+        await told;
         G.goto('strand', 'start');
         G.setCheckpoint('nest');
         setupActors();
@@ -544,12 +546,14 @@ export function createStory(G, io) {
         G.flag('alva_stars');
         await fx('starsShine', {});
         await say(STORY.moonUp);
-        ui().caption?.(STORY.moonCaption, 3200);
+        const moonTold = ui().caption?.(STORY.moonCaption, 3200);
         await fx('hatch', {});
+        await moonTold;
         G.flag('hatched');
         await say(STORY.hatch);
-        ui().caption?.(STORY.watchCaption, 2600);
+        const watchTold = ui().caption?.(STORY.watchCaption, 2600);
         await fx('gift', {});
+        await watchTold;
         G.flag('watch_given');
         await say(STORY.gift);
         if (G.actors.klo) G.actors.klo.pose = 'faint';

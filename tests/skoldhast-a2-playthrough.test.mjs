@@ -11,6 +11,7 @@ import { createGame } from '../skoldhast/adventures/adventure-2/game.mjs';
 import { SCENES, CHECKPOINTS, EGG_IDS, EGG_TOTAL } from '../skoldhast/adventures/adventure-2/content/world.mjs';
 import { STORY, TABLE, HINTS, GOALS } from '../skoldhast/adventures/adventure-2/content/sv.mjs';
 import { heightOn } from '../skoldhast/src/sim.mjs';
+import { unvoiced } from './skoldhast-voice-coverage.mjs';
 
 async function begin(R) {
     R.G.goto('strand', 'start');
@@ -320,6 +321,7 @@ test('Äventyr 2: a robot plays the whole adventure over four pages, to the moon
     // every line is going to be recorded speech: none is heard twice in one playthrough
     const texts = lines.map(([, text]) => text);
     assert.deepEqual(texts.filter((x, i) => texts.indexOf(x) !== i), [], 'no line is said twice');
+    assert.deepEqual(unvoiced(R.log), [], 'every line, thought and caption heard is in the voice script');
     // the research thread: each hypothesis is put forward before it is confirmed
     const at = (line) => texts.indexOf(line[1]);
     const h1 = texts.findIndex(x => x.includes('Hypotes nummer ett: stormen kommer någonstans ifrån'));

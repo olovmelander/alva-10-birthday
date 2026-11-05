@@ -41,7 +41,7 @@ const doodle = (name, cls) => icon(name, 'sk-doodle ' + cls);
 // the journal's tabs: one icon for each page
 const TAB_ICONS = ['shell', 'pencil', 'bulb', 'watch', 'lens', 'report', 'note'];
 
-export function createUI(host, { assetBase, handlers }) {
+export function createUI(host, { assetBase, handlers, voice = null }) {
     const root = el('div', 'sk-ui');
     host.appendChild(root);
     wantFont();
@@ -198,6 +198,7 @@ export function createUI(host, { assetBase, handlers }) {
     dlgNext.addEventListener('click', (e) => { e.stopPropagation(); advance(); });
 
     async function say(lines, { onSpeaker } = {}) {
+        voice?.prefetch(lines);
         for (const [who, text] of lines) {
             if (!text) continue;
             speaker = who;
@@ -207,9 +208,11 @@ export function createUI(host, { assetBase, handlers }) {
             if (face) dlgName.prepend(face);
             dlgText.textContent = text;
             onSpeaker?.(who);
-            handlers.onSay?.(who, text);
+            const voiced = !!voice?.play(who, text, 'say');
+            handlers.onSay?.(who, text, voiced);
             dlgReadyAt = performance.now() + 350;
             await new Promise((r) => { dlgResolve = r; });
+            voice?.stop('say'); // the reader moved on: so does the voice
         }
         speaker = null;
         onSpeaker?.(null);
@@ -276,12 +279,16 @@ export function createUI(host, { assetBase, handlers }) {
         setTimeout(() => { t.classList.remove('on'); setTimeout(() => t.remove(), 500); }, ms);
     }
     let capTimer = 0;
+    /** A caption; the narrator reads it if it is recorded. Resolves when the reading ends. */
     function captionShow(text, ms = 1600) {
-        if (!text) return;
+        if (!text) return Promise.resolve();
         caption.textContent = text;
         caption.classList.add('on');
         clearTimeout(capTimer);
-        capTimer = setTimeout(() => caption.classList.remove('on'), ms);
+        const read = voice?.play('caption', text, 'narration');
+        const seconds = read ? voice.seconds('caption', text) : 0;
+        capTimer = setTimeout(() => caption.classList.remove('on'), Math.max(ms, seconds * 1000 + 600));
+        return read || Promise.resolve();
     }
 
     function pulse(which) {
@@ -917,7 +924,7 @@ export function createUI(host, { assetBase, handlers }) {
     return {
         root, hud, controls, stickZone, stickBase, stickKnob, hopBtn, actBtn, hideBtn, portrait, updateSpeaker,
         say, choice, toast, caption: captionShow, pulse, report, ending, journal, pauseMenu, settings, title, adventurePicker, slotPicker, draw,
-        closePanel,
+        closePanel, voice,
         // the notebook's own pieces, for another adventure's panels
         openPanel, button: btn, art, tape, icon,
         panelOpen: () => panel.classList.contains('on'),

@@ -14,6 +14,7 @@ const { createRobot, HL } = await import('./skoldhast-a2-robot.mjs');
 const P = await import('./skoldhast-a2-playthrough.test.mjs');
 const { STORY, HINTS, GOALS } = await import('../skoldhast/adventures/adventure-2/content/sv.mjs');
 const { collectEgg } = await import('../skoldhast/adventures/adventure-2/puzzles.mjs');
+const { unvoiced } = await import('./skoldhast-voice-coverage.mjs');
 
 const lineOf = (entry) => entry[1];
 const said = (R) => R.log.filter(l => l.kind === 'say').flatMap(l => l.lines.map(lineOf));
@@ -128,6 +129,7 @@ test('any order: the lantern, straight up to the cloud, then back for all the re
     assert.ok(!all.includes(lineOf(STORY.washed[1])));
     // recorded speech: no line twice in one playthrough, and hypothesis one is confirmed on the top it reached first
     assert.deepEqual(all.filter((x, i) => all.indexOf(x) !== i), [], 'no line is said twice');
+    assert.deepEqual(unvoiced(R.log), [], 'every line, thought and caption heard is in the voice script');
     assert.ok(all.includes(lineOf(STORY.toppFirst[1])), 'the top before the crown confirms hypothesis one');
     assert.ok(!all.includes(lineOf(STORY.topp[1])));
 });
