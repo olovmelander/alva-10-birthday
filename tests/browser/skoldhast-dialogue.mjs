@@ -90,7 +90,8 @@ try {
             G.actors.klo.x += 10000;
             void ui.say([['klo', 'Jag antecknar!']]);
         });
-        await page.waitForTimeout(450);
+        // the next frames move the mark off (a fixed 450 ms was too short for a loaded machine)
+        await page.waitForFunction(() => !document.querySelector('.sk-speaking.on'), null, { timeout: 5000 });
         assert.equal(await page.locator('.sk-speaking.on').count(), 0);
         assert.equal(await page.locator('.sk-dlg-name .face-klo').count(), 1);
         await next(page);

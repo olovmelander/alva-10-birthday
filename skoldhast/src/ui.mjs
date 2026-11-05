@@ -295,7 +295,8 @@ export function createUI(host, { assetBase, handlers, voice = null }) {
         // above the head first; if the speech box or a button is there (Molnet just under the box), beside the head
         const fits = ([l, t]) => l >= 4 && l + 36 <= W - 4 && t >= 4 && t + 30 <= H - 4 &&
             !obstacles.some(r => l < r.right + 4 && l + 36 > r.left - 4 && t < r.bottom + 4 && t + 30 > r.top - 4);
-        const spot = [[left, top], [bounds.maxX + 2, y + 14], [bounds.minX - 38, y + 14]].find(fits);
+        // (under the speaker last: a head just under the speech box at 1440×900, as in Äventyr 2's finale)
+        const spot = [[left, top], [bounds.maxX + 2, y + 14], [bounds.minX - 38, y + 14], [left, bounds.maxY + 6]].find(fits);
         speaking.classList.toggle('on', !!spot);
         speaking.dataset.speaker = who;
         if (spot) speaking.style.transform = `translate(${Math.round(spot[0])}px, ${Math.round(spot[1])}px)`;

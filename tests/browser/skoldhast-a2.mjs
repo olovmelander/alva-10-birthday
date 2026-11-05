@@ -31,8 +31,11 @@ const SEEN = ['arrive', 'firstEgg', 'grove', 'klyft', 'fors', 'beetle', 'magpie'
     'love2', 'love4', 'love6', 'love8', 'climb', 'crown', 'allEggs'].map(b => 'b:' + b);
 let failures = 0;
 
+// A check that fails before closing its page would leave a busy WebGL page running and slow every check after it.
+const openPages = new Set();
 async function page(viewport, save) {
     const p = await browser.newPage({ viewport });
+    openPages.add(p); p.on('close', () => openPages.delete(p));
     p.errors = [];
     p.on('pageerror', e => p.errors.push('pageerror: ' + e.message));
     p.on('console', m => { if (m.type() === 'error') p.errors.push(m.text()); });
@@ -94,6 +97,7 @@ async function check(name, fn) {
     if (only && !name.includes(only)) return;
     try { await fn(); console.log('ok -', name); }
     catch (err) { failures++; console.log('not ok -', name, '\n  ', err.message.split('\n').join('\n   ')); }
+    finally { for (const p of [...openPages]) await p.close().catch(() => {}); }
 }
 
 if (!quick) await check('the prologue at Alva\'s table leads to the nest (844×390)', async () => {
