@@ -647,10 +647,12 @@ export function createGame({ host = document.body, assetBase = './skoldhast/', s
         for (const t of ['pointerdown', 'pointerup', 'keydown']) el.addEventListener(t, unlock, sig);
     }
 
-    function pause() { presses.clear(); paused = true; input?.release(); }
+    // a paused game is silent, as in Äventyr 1 (src/main.mjs)
+    function pause() { presses.clear(); paused = true; input?.release(); voice?.setEnabled(false); }
     function resume() {
         if (state !== 'open' || ui?.panelOpen()) return;
         presses.clear(); input?.release();
+        voice?.setEnabled(settings.voice > 0);
         paused = false; last = performance.now(); acc = 0;
         if (!document.hidden) resumeAudio();
     }
