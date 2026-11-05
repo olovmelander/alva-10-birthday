@@ -760,7 +760,7 @@ export const CONTEXT_LABELS = { talk: 'Prata', read: 'Läs', swimIn: 'Simma in',
 // Drawing actions remain available without a precise trace or a keyboard.
 export const DRAWING = {
     paletteLabel: name => `Molnfärg: ${name}`,
-    cloudColors: { sky: 'Himmelsblå', lavender: 'Lavendel', peach: 'Persika', rose: 'Rosa', paper: 'Pappersvit' },
+    cloudColors: { sky: 'Himmelsblå', lavender: 'Lavendel', peach: 'Persika', rose: 'Rosa', paper: 'Vit' },
     freeHint: 'Rita med fingret eller musen. Du bestämmer formen.',
     traceHint: 'Följ prickarna med fingret eller musen.',
     previewHint: 'Vill du behålla teckningen eller rita om?',

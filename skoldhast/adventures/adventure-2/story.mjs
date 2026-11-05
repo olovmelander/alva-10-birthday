@@ -197,6 +197,8 @@ export function createStory(G, io) {
         try { return await fn(); } finally { if (G.camLook === look) G.camLook = null; }
     }
 
+    const BALL_LOOK = { x0: 55.6 * HL, x1: 61.4 * HL, y0: -1.8 * HL, y1: 0.8 * HL };
+
     function stage() {
         const p = G.player;
         for (const [who, off] of [['klo', 1.5], ['tukan', 2.6]]) {
@@ -323,6 +325,8 @@ export function createStory(G, io) {
             G.hideHero = false;
             const k0 = G.actors.klo; k0.visible = true; k0.y = kloAt.y;
             await fx('focus', { x: sp.nest.x, y: sp.nest.y, zoom: 1.15 });
+            // "Stormen tog alla mina tio ägg": she is sad until they promise to help
+            G.actors.tukan.pose = 'sad';
             await say(STORY.arrive);
             G.actors.klo.pose = 'love';
             await say(STORY.arrive2);
@@ -630,11 +634,16 @@ export function createStory(G, io) {
         G.on('undertowIn', () => think(STORY.undertow, { gap: 20 })),
         G.on('pushWrong', () => think(STORY.pushWrong, { gap: 0 })),
         G.on('push', () => io.audio?.sfx?.('push')),
-        G.on('ballRoll', () => think(STORY.ballRoll, { gap: 0 })),
-        G.on('ballWashed', () => beat('washed', () => say(F.has('k3_ball') ? [STORY.washed[0], ...STORY.washedLate] : STORY.washed))),
+        // the camera keeps the ball in the picture as it rolls into the river and the river washes the egg free
+        G.on('ballRoll', () => { think(STORY.ballRoll, { gap: 0 }); G.camLook = BALL_LOOK; }),
+        G.on('ballWashed', () => {
+            G.wait(2.5).then(() => { if (G.camLook === BALL_LOOK) G.camLook = null; });
+            beat('washed', () => say(F.has('k3_ball') ? [STORY.washed[0], ...STORY.washedLate] : STORY.washed));
+        }),
         G.on('seedsLit', () => beat('seedsLit', async () => { await say(STORY.seedsLit); await say(STORY.alvaSeeds); await say(STORY.seedsLit2); clue('lantern'); })),
         G.on('coin', () => { io.audio?.sfx?.('coin'); beat('coin', () => say(F.has('b:magpie') ? STORY.coin : STORY.coinEarly)); }),
         G.on('trade', () => beat('trade', async () => {
+            await fx('coinGive', {}); // the coin flies from the sköldhäst to Skatan's beak
             if (G.actors.skata) G.actors.skata.pose = 'coin';
             await say(STORY.trade.slice(0, 2));
             await fx('eggsDrop', { ids: ['e7'] });

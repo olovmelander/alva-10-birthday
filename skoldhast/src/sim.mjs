@@ -130,8 +130,12 @@ export class Terrain {
         this.flags = flags;
         this.refresh();
     }
-    refresh() {
+    /** growing: called by advance() while a ramp is still rising. The drawn ground (view.mjs) follows `layout`,
+     *  which changes only when the set of surfaces does, so it is not rebuilt for every step of a rising ramp
+     *  (the hill strip draws that movement); collision follows `revision`, which changes every time. */
+    refresh({ growing = false } = {}) {
         this.revision = (this.revision || 0) + 1;
+        if (!growing) this.layout = (this.layout || 0) + 1;
         this.dirty = false;
         const s = this.scene, f = this.flags, previous = this.surfaces || [];
         this.rampAddedAt ||= new Map();
@@ -162,13 +166,14 @@ export class Terrain {
     /** Called only by the fixed simulation step; rendering reads these same active points. */
     advance(dt) {
         if (!this.rampGrowth.size) return false;
+        let finished = false;
         for (const [id, growth] of this.rampGrowth) {
             growth.elapsed = Math.min(growth.duration, growth.elapsed + dt);
             const t = growth.elapsed / growth.duration, eased = t * t * (3 - 2 * t);
             for (let i = 0; i < growth.surface.pts.length; i++) growth.surface.pts[i][1] = growth.base[i] + (growth.target[i] - growth.base[i]) * eased;
-            if (t === 1) this.rampGrowth.delete(id);
+            if (t === 1) { this.rampGrowth.delete(id); finished = true; }
         }
-        this.refresh();
+        this.refresh({ growing: !finished });
         return true;
     }
     /** Topmost surface at x whose height is at or below `yFeet - up` (i.e. not higher than a step above the feet). */

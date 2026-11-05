@@ -931,11 +931,14 @@ export function createGame({ host = document.body, assetBase = './skoldhast/', r
         for (const t of ['pointerdown', 'pointerup', 'keydown']) el.addEventListener(t, unlock, sig);
     }
 
-    function pause() { companion?.cancel({ restore: true }); presses.clear(); paused = true; input?.release(); kloUI?.availability({ visible: false, enabled: false }); }
+    // A paused game is silent: a panel, the pause menu or a hidden tab stops the voice, as it stops time
+    // (and checks that step the game faster than real time pause it first, so no voice is waited for)
+    function pause() { companion?.cancel({ restore: true }); presses.clear(); paused = true; input?.release(); kloUI?.availability({ visible: false, enabled: false }); voice?.setEnabled(false); }
     function resume() {
         if (state !== 'open') return;
         if (ui?.panelOpen()) return;
         presses.clear(); input?.release();
+        voice?.setEnabled(settings.voice > 0);
         paused = false; last = performance.now(); acc = 0;
         if (!document.hidden) resumeAudio();
     }

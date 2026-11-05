@@ -419,7 +419,9 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
         }
         L.terrainBack.addChild(ground, groundTop, groundLines);
         d.ground = ground; d.groundTop = groundTop; d.groundLines = groundLines;
+        d.groundBuilds = 0;
         d.rebuildGround = () => {
+            d.groundBuilds++;
             ground.clear(); groundTop.clear();
             for (const child of groundLines.removeChildren()) child.destroy({ children: true });
             const active = G.terrain?.scene === def ? G.terrain.surfaces : def.surfaces.filter(s => cond(s.when, G.flags));
@@ -491,7 +493,7 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
                 const blue = clipX(pts, wl.x0, wl.x1);
                 if (blue.length > 1) { const r = rope('stroke-blue', resamplePts(blue, 50), { color: 0x244f8f, width: 4 }); r.label = 'her-waterline'; groundLines.addChild(r); }
             }
-            d.groundRevision = G.terrain.revision;
+            d.groundRevision = G.terrain.layout;
             d.groundTerrain = G.terrain;
         };
         d.rebuildGround();
@@ -2050,7 +2052,9 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
         S.seaFold?.extendTo(cam.x + W / cam.zoom / 2 + h(.75));
         const expanded = Object.keys(coverage).some(key => coverage[key] !== S.landscapeCoverage[key]);
         if (expanded) S.landscapeCoverage = coverage;
-        if (expanded || G.terrain !== S.groundTerrain || G.terrain.revision !== S.groundRevision) S.rebuildGround();
+        // the whole page's ground is rebuilt when its surfaces change, not for each step of a rising ramp
+        // (that rebuilt every frame and made the phone stutter as Branten's strips rose, 5 November)
+        if (expanded || G.terrain !== S.groundTerrain || G.terrain.layout !== S.groundRevision) S.rebuildGround();
         // kelp sway
         const gardenLeft = cam.x - W / cam.zoom / 2 - h(1.5), gardenRight = cam.x + W / cam.zoom / 2 + h(1.5);
         const gardenTop = cam.y - H / cam.zoom / 2 - 40, gardenBottom = cam.y + H / cam.zoom / 2 + 40;
@@ -3175,6 +3179,8 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
             return who === 'signe' && o.signe.visible ? o.signe.getBounds() : null;
         },
         built(id) { return S?.id === id && S.placeholders === 0; },
+        /** For checks: how many times this page's whole ground has been rebuilt. */
+        get groundBuilds() { return S?.groundBuilds || 0; },
         replaceHero(newHero) { L.hero.removeChild(hero.view); hero.destroy?.(); hero = newHero; L.hero.addChild(hero.view); },
         world, root, layers: L,
         /** Render the current scene into a texture with a given camera (the prologue picture). */

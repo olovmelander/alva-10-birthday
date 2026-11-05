@@ -15,7 +15,8 @@ test('every saved cloud pencil has deterministic, distinct pigment inside the pl
         const first = render(id), again = render(id);
         assert.deepEqual(first.pixels, again.pixels, `${id} survives texture reconstruction exactly`);
         const center = (50 * 180 + 80) * 4;
-        assert.equal(first.pixels[center + 3] > 0, id !== 'paper', 'old paper clouds remain outline-only');
+        assert.ok(first.pixels[center + 3] > 0, `${id}: the cloud is filled (the white one too, since 5 November)`);
+        if (id === 'paper') assert.ok(first.pixels[center] > 230 && first.pixels[center + 3] > 200, 'the white cloud is white, not see-through');
         assert.equal(first.pixels[(90 * 180 + 170) * 4 + 3], 0, 'pigment stays inside the drawn silhouette');
         outputs.add(first.canvas.toBuffer('image/png').toString('base64'));
     }
