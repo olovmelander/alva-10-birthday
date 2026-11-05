@@ -7,7 +7,7 @@
  * finale from a saved game with all ten eggs: Mira's moon traced, Alva's stars,
  * the hatching, the epilogue and the ending card, with the completion saved.
  *
- *   node tests/browser/skoldhast-a2.mjs [--out dir] [--quick]
+ *   node tests/browser/skoldhast-a2.mjs [--out dir] [--quick] [--only <words in a check's name>]
  *
  * --quick skips the prologue (the slowest part under software WebGL).
  */
@@ -20,6 +20,8 @@ const args = process.argv.slice(2);
 const outArg = args.indexOf('--out');
 const out = outArg >= 0 ? args[outArg + 1] : null;
 const quick = args.includes('--quick');
+const onlyArg = args.indexOf('--only');
+const only = onlyArg >= 0 ? args[onlyArg + 1] : null;
 if (out) fs.mkdirSync(out, { recursive: true });
 
 const server = await serve(), browser = await launch();
@@ -69,6 +71,7 @@ async function playThrough(p, done, { maxSeconds = 240, onDraw = null, label = '
 }
 
 async function check(name, fn) {
+    if (only && !name.includes(only)) return;
     try { await fn(); console.log('ok -', name); }
     catch (err) { failures++; console.log('not ok -', name, '\n  ', err.message.split('\n').join('\n   ')); }
 }
@@ -76,11 +79,32 @@ async function check(name, fn) {
 if (!quick) await check('the prologue at Alva\'s table leads to the nest (844×390)', async () => {
     const p = await page({ width: 844, height: 390 });
     await shot(p, 'a2-title-844x390');
+    // The sköldhäst that gallops in at the table must stand on its hooves. On 5 November its hooves reached for a
+    // ground at the page's top (groundAt 0 under y 500), so it galloped in with its legs in the air.
+    await dbg(p, () => {
+        const legs = window.__a2Legs = { frames: 0, upside: 0 };
+        const find = (n, test, found = []) => { if (test(n)) found.push(n); n.children?.forEach(c => find(c, test, found)); return found; };
+        const tick = () => {
+            const d = window.__skoldhast2?.debug, table = d && find(d.app.stage, n => n.label === 'a2-table')[0];
+            for (const hero of table ? find(table, n => n.label === 'hero' && n.alpha > 0.3) : []) {
+                const y = n => hero.toLocal(n.getGlobalPosition()).y;
+                const head = find(hero, n => n.label === 'head')[0], hooves = find(hero, n => /\.hoof$/.test(n.label || ''));
+                legs.frames++;
+                // standing or galloping, every hoof is far below the head (about 200 below it in the hero's frame)
+                if (!head || hooves.length !== 4 || hooves.some(h => y(h) < y(head) + 100)) legs.upside++;
+            }
+            requestAnimationFrame(tick);
+        };
+        tick();
+    });
     await p.click('.a2-title .sk-pbtn.primary');
     const drawn = [];
     await playThrough(p, () => dbg(p, () => { const d = window.__skoldhast2?.debug; return d?.mode === 'play' && !d.table.shown; }),
         { label: 'prologue', onDraw: async (prompt) => { drawn.push(prompt); await shot(p, `a2-draw${drawn.length}-844x390`); } });
     assert.ok(drawn.some(t => /Alva/.test(t)) && drawn.some(t => /Miras/.test(t)), 'the player draws with Alva\'s pencil (the first egg) and Mira\'s (the cloud): ' + drawn.join(' | '));
+    const legs = await dbg(p, () => window.__a2Legs);
+    assert.ok(legs.frames > 10, `the sköldhäst gallops in at the table (${legs.frames} frames)`);
+    assert.equal(legs.upside, 0, `the sköldhäst gallops in on its hooves (${legs.upside} of ${legs.frames} frames with a hoof up by its head)`);
     await playThrough(p, () => dbg(p, () => { const { G, story } = window.__skoldhast2.debug; return G.flags.has('b:arrive') && !story.running() && !G.busy; }), { label: 'arrival' });
     const st = await dbg(p, () => { const { G } = window.__skoldhast2.debug; return { scene: G.sceneId, tukan: G.actors.tukan?.visible, klo: G.actors.klo?.visible, clues: [...G.flags].filter(f => f.startsWith('clue_')) }; });
     assert.equal(st.scene, 'strand'); assert.ok(st.tukan && st.klo, 'Tukankrabban and Klo are at the nest');

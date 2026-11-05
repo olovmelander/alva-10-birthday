@@ -324,8 +324,10 @@ export function createTable({ PIXI, app, assets, ui, audio, G, heroFactory }) {
         hero.view.scale.set(0.42);
         D.actors.addChild(hero.view);
         D.hero = hero;
-        D.heroState = { x: 20, y: 500, facing: 1, gait: 'gallop', speed: 1200, mode: 'ground', gaitPhase: 0, groundAngle: 0, airT: 0, vx: 1200, vy: 0,
-            groundAt: () => 0, submerge: 0, waterY: null, wet: 0, hide: 0, hiddenMode: false, action: null, actionT: 0, time: 0 };
+        // groundAt is in the same page units as y: the hooves reach for this line (at 0 they reached up to the page's top)
+        const groundY = 500;
+        D.heroState = { x: 20, y: groundY, facing: 1, gait: 'gallop', speed: 1200, mode: 'ground', gaitPhase: 0, groundAngle: 0, airT: 0, vx: 1200, vy: 0,
+            groundAt: () => groundY, submerge: 0, waterY: null, wet: 0, hide: 0, hiddenMode: false, action: null, actionT: 0, time: 0 };
         const klo = createKlo(PIXI, { texture: T });
         klo.container.scale.set(0.5);
         D.actors.addChild(klo.container);
@@ -336,9 +338,10 @@ export function createTable({ PIXI, app, assets, ui, audio, G, heroFactory }) {
         await tween(2.2, u => {
             const e = ease(u);
             // out of the edge of the page, as if from the page before: they fade in as they cross it
-            D.heroState.x = 20 + e * 300; D.heroState.gaitPhase = (D.heroState.gaitPhase + 0.035) % 1;
+            // they stop beside Tukankrabban (x 410, her legs reach to about 285), not in front of her
+            D.heroState.x = 20 + e * 225; D.heroState.gaitPhase = (D.heroState.gaitPhase + 0.035) % 1;
             D.heroState.speed = D.heroState.vx = u > 0.85 ? 400 : 1200; D.heroState.gait = u > 0.85 ? 'trot' : 'gallop';
-            const kx = -40 + e * 270; D.kloActor.distance += Math.abs(kx - D.kloActor.x); D.kloActor.vx = 300; D.kloActor.x = kx;
+            const kx = -40 + e * 190; D.kloActor.distance += Math.abs(kx - D.kloActor.x); D.kloActor.vx = 300; D.kloActor.x = kx;
             hero.view.alpha = clamp((D.heroState.x - 20) / 70, 0, 1); klo.container.alpha = clamp((kx + 10) / 70, 0, 1);
         });
         D.heroState.gait = 'stand'; D.heroState.speed = D.heroState.vx = 0; D.kloActor.vx = 0;
