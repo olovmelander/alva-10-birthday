@@ -1,5 +1,37 @@
 # Sköldhästen – handover
 
+## The lighthouse mirrors again; Klo's notebook stays open; the Klo check runs (5 November)
+
+Pappa found that the lighthouse no longer mirrors in the water in Äventyr 1. He also asked for the failing
+`skoldhast-klo` check to be fixed.
+
+- **The lighthouse's reflection was gone from its two views.** These are the view from Klippudden ("Se hur den
+  speglar sig i vattnet" / "Fyren lyser – men bara i spegelbilden") and P7's mirror on the pier.
+  - Both build a postcard from the bay's tower and reflection (`lighthouseVista` in `view.mjs`).
+  - On 1 October the bay's reflection mask was changed to cover only water, so that it would not draw over the
+    islet's stone. The islet lies right under the tower, so the postcard, which reused that mask, showed nothing:
+    no reflected tower and no lit lamp.
+  - The postcard now has its own mask over its whole sea, as in the 29 September shots. The playable bay keeps its
+    mask.
+  - `skoldhast-mirror-vista` now checks that the reflected lamp is inside the mask. It fails without the fix.
+  - It also accepts the line Klo actually says. In ordinary help that is his own observation, not the guided line,
+    and the check used to hang there waiting for it.
+  - New shots: `docs/skoldhast/shots/k3/mirror-fix/`.
+- **Klo's notebook could close the moment it opened.**
+  - A tap on Klo opens the notebook on its pointerup. The browser's click for the same tap could land on the
+    notebook's backdrop once it was shown, and close it at once. On a slow phone that is a notebook that only
+    flickers.
+  - Now only a tap that began on the backdrop closes it (`klo-ui.mjs`).
+- **`skoldhast-klo` (the companion check) crashed before reaching Klo.**
+  - Its keyboard steps put the on-screen controls away, as they do for a player, so it found no stick zone.
+  - It now touches an empty part of the picture first, as a player would.
+  - Its quick taps carry their own times, so a slow software-rendered frame cannot turn them into presses.
+  - It passed five runs in a row at 844×390.
+- **Checked:**
+  - `npm test` passes (427).
+  - `skoldhast-mirror-vista` passes at both phone sizes.
+  - `skoldhast-klo` passes.
+
 ## Voices: every line is recorded and plays in both adventures (5 November)
 
 Pappa answered the three questions and allowed his own voice, the narrator, to be public on the site. Every line is now
@@ -41,8 +73,8 @@ recorded and played in the game. How it works, and how to record after a text ch
     - `skoldhast-opening`: every size, cancellation and reopen.
     - `skoldhast-notes`: Alva's note, now read aloud, takes 61 s at 844×390; tap-to-hurry and skip still work.
     - `skoldhast-launch`, `skoldhast-a2` and `skoldhast-finale`.
-  - `skoldhast-klo` fails at its first step. It looks for the stick zone and finds none, and it fails the same way on
-    the commit before the voices, so it is a fault in the check, not the game. It is not fixed.
+  - `skoldhast-klo` failed at its first step, looking for a stick zone it could not find, and it failed the same way
+    on the commit before the voices. It is fixed in the section above.
 - **After any text change,** record what is missing and prune what is left over (commands in the audit). The voice test
   fails until you do.
 - **Not heard yet by a person:** every clip passed speech-to-text, but nobody has listened to the whole game. Pappa

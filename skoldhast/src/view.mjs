@@ -1721,7 +1721,14 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
         // The lens is only a few pixels wide in the landscape postcard. Keep the
         // familiar pencil halo readable without filters or a separate distant asset.
         O.lamp.scale.set(1.7); bay.refl._lamp.scale.set(1.7);
-        bay.refl.mask.height = h(10.4);
+        // The postcard's sea surrounds its small island, so the whole reflection shows in it. The
+        // playable bay's mask keeps the reflection off the islet's stone, which lies right under
+        // the tower: reused here, it hid the reflected tower and its lit lamp completely.
+        const bayMask = bay.refl.mask;
+        const seaMask = new PIXI.Graphics().rect(x - h(100), y + 4, h(200), h(10.4)).fill({ color: 0xffffff });
+        bay.refl.addChild(seaMask);
+        bay.refl.mask = seaMask;
+        bayMask?.destroy();
         O.lamp.alpha = G.flags.has('lamp_lit') ? 1 : 0;
         S.vista = { c, tower, lamp: O.lamp, reflection: bay.refl, phase: 'entering' };
         return { x0: x - h(6), x1: x + h(6), y0: y - h(10.4), y1: y + h(10.4) };
