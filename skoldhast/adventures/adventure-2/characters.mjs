@@ -104,11 +104,21 @@ export function createTukan(PIXI, pen) {
         eg.circle(0, 0, r * 0.86).stroke(pen.line(0xb9c6d2, 1.2, 0.7));
         const pupil = g(PIXI); pupil.circle(0, 0, r * 0.42).fill({ color: TUKAN.pupil }); pupil.circle(-r * 0.12, -r * 0.16, r * 0.12).fill({ color: 0xffffff });
         const lid = g(PIXI); lid.circle(0, 0, r + 1).fill(pen.fill(TUKAN.body)); lid.visible = false;
-        eye.addChild(eg, pupil, lid);
+        // sad: a heavy lid over the top of the eye, lower at its outer side (the stalks lean outward)
+        const out = x1 < 0 ? -1 : 1, sadLid = g(PIXI), pts = [];
+        const a0 = out > 0 ? -2.75 : -0.39, a1 = out > 0 ? 0.25 : -Math.PI - 0.25; // inner end higher, outer end lower
+        for (let i = 0; i <= 14; i++) { const a = a0 + (a1 - a0) * i / 14 + (out > 0 ? 0 : 0); pts.push(Math.cos(a) * (r + 1), Math.sin(a) * (r + 1)); }
+        sadLid.poly(pts).fill(pen.fill(TUKAN.body)).stroke(pen.line(TUKAN.edge, 1.6));
+        sadLid.visible = false;
+        eye.addChild(eg, pupil, lid, sadLid);
         c.addChild(sg, eye);
         body.addChild(c);
-        return { c, eye, pupil, lid, r };
+        return { c, eye, pupil, lid, sadLid, out, r };
     });
+    // a tear that runs down from the outer eye when she is sad
+    const tear = g(PIXI);
+    tear.moveTo(0, -5).quadraticCurveTo(4.5, 1, 0, 4.5).quadraticCurveTo(-4.5, 1, 0, -5).fill({ color: 0x9fd3f0, alpha: 0.95 }).stroke(pen.line(0x4f86b0, 1.2));
+    tear.visible = false;
     // the back claw: a toucan head held high
     const backArm = new PIXI.Container(); backArm.position.set(-36, -54);
     const ba = g(PIXI);
@@ -124,8 +134,11 @@ export function createTukan(PIXI, pen) {
         .fill(pen.fill(TUKAN.body)).stroke(pen.line(TUKAN.edge, 2.4));
     shell.ellipse(-12, -64, 26, 9).fill(pen.hatch(TUKAN.bodyHi, 0.95));
     shell.moveTo(-44, -34).quadraticCurveTo(0, -24, 44, -34).stroke(pen.line(TUKAN.bodyLo, 2, 0.6));
-    shell.moveTo(-12, -50).quadraticCurveTo(2, -40, 16, -50).stroke(pen.line(0x8a4f12, 2.4));
     body.addChild(shell);
+    // Alva's curved line on the shell is her smile; when she is sad it turns down
+    const smile = g(PIXI); smile.moveTo(-12, -50).quadraticCurveTo(2, -40, 16, -50).stroke(pen.line(0x8a4f12, 2.4));
+    const frown = g(PIXI); frown.moveTo(-12, -42).quadraticCurveTo(2, -52, 16, -42).stroke(pen.line(0x8a4f12, 2.4)); frown.visible = false;
+    body.addChild(smile, frown);
     // the front claw: a toucan head held forward, beak ready to pinch
     const frontArm = new PIXI.Container(); frontArm.position.set(40, -46);
     const fa = g(PIXI);
@@ -138,6 +151,7 @@ export function createTukan(PIXI, pen) {
     // a sparkle when she sees something that shines
     const spark = starShape(g(PIXI), pen, 10, 0xfff6c8); spark.position.set(40, -120); spark.visible = false;
     view.addChild(spark);
+    body.addChild(tear);
 
     let facing = 1, blinkAt = 2.3, open = 0;
     return {
@@ -156,21 +170,33 @@ export function createTukan(PIXI, pen) {
                 l.c.rotation = sw * 0.3;
                 l.c.y = -30 - (moving ? Math.max(0, sw) * 4 : 0);
             }
-            const dig = a.pose === 'dig', happy = a.pose === 'happy' || a.pose === 'shine';
-            const bob = reducedMotion ? 0 : (moving ? -Math.abs(Math.sin(phase)) * 3 : Math.sin(t * 2.2) * 1.4);
-            body.y = bob + (dig ? 6 : 0);
+            const dig = a.pose === 'dig', happy = a.pose === 'happy' || a.pose === 'shine', sad = a.pose === 'sad';
+            const bob = reducedMotion ? 0 : (moving ? -Math.abs(Math.sin(phase)) * 3 : sad ? Math.sin(t * 1.2) * 0.8 : Math.sin(t * 2.2) * 1.4);
+            body.y = bob + (dig ? 6 : sad ? 7 : 0);
             body.rotation = dig ? 0.12 : 0;
             // the toucan heads talk: their beaks open and shut like pincers
             const talking = !!a.talking;
-            open = damp(open, talking ? 0.5 + 0.5 * Math.sin(t * 16) : happy ? 0.35 : 0.08, 16, Math.min(dt, 0.1));
+            open = damp(open, talking ? 0.5 + 0.5 * Math.sin(t * 16) : happy ? 0.35 : sad ? 0 : 0.08, 16, Math.min(dt, 0.1));
             front.lowerC.rotation = open * 0.55;
             back.lowerC.rotation = (talking ? 0.5 + 0.5 * Math.sin(t * 16 + 1.4) : open) * 0.5;
-            frontArm.rotation = dig ? 0.9 + (reducedMotion ? 0 : Math.sin(t * 12) * 0.35) : talking ? Math.sin(t * 4) * 0.12 : Math.sin(t * 1.1) * 0.04;
-            backArm.rotation = dig ? 0.6 + (reducedMotion ? 0 : Math.cos(t * 12) * 0.3) : happy && !reducedMotion ? Math.sin(t * 8) * 0.25 : Math.sin(t * 0.8 + 1) * 0.05;
+            // sad: both toucan heads hang down, beaks shut
+            frontArm.rotation = dig ? 0.9 + (reducedMotion ? 0 : Math.sin(t * 12) * 0.35) : sad ? 0.75 : talking ? Math.sin(t * 4) * 0.12 : Math.sin(t * 1.1) * 0.04;
+            backArm.rotation = dig ? 0.6 + (reducedMotion ? 0 : Math.cos(t * 12) * 0.3) : sad ? -1.3 : happy && !reducedMotion ? Math.sin(t * 8) * 0.25 : Math.sin(t * 0.8 + 1) * 0.05;
             for (const [i, st] of stalks.entries()) {
-                st.c.rotation = reducedMotion ? 0 : Math.sin(t * 1.3 + i * 2) * 0.04;
+                // sad: the eye stalks droop outward, the eyes look down under heavy lids
+                st.c.rotation = (reducedMotion ? 0 : Math.sin(t * 1.3 + i * 2) * 0.04) + (sad ? st.out * 0.16 : 0);
                 const look = a.lookAt !== undefined ? clamp((a.lookAt - a.x) * Math.sign(facing || 1) / 400, -1, 1) : 0.4;
-                st.pupil.position.set(look * st.r * 0.35, (dig ? 0.3 : -0.05) * st.r);
+                st.pupil.position.set((sad ? 0 : look) * st.r * 0.35, (dig ? 0.3 : sad ? 0.42 : -0.05) * st.r);
+                st.sadLid.visible = sad;
+            }
+            smile.visible = !sad; frown.visible = sad;
+            // the tear runs from the outer eye down the shell, and starts again
+            tear.visible = sad;
+            if (sad) {
+                const st = stalks[1], u = reducedMotion ? 0.35 : (t * 0.45) % 1;
+                const ex = st.eye.x + st.r * 0.5, ey = st.eye.y + st.r * 0.9;
+                tear.position.set(ex + u * 6, ey + u * 46);
+                tear.alpha = reducedMotion ? 1 : Math.min(1, (1 - u) * 3);
             }
             if (t > blinkAt) { for (const st of stalks) st.lid.visible = true; if (t > blinkAt + 0.12) { for (const st of stalks) st.lid.visible = false; blinkAt = t + 2.6 + ((a.x || 0) % 7) * 0.3; } }
             spark.visible = a.pose === 'shine' && (reducedMotion || Math.sin(t * 9) > 0);

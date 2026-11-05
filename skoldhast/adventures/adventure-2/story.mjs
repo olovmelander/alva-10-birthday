@@ -323,6 +323,8 @@ export function createStory(G, io) {
             G.hideHero = false;
             const k0 = G.actors.klo; k0.visible = true; k0.y = kloAt.y;
             await fx('focus', { x: sp.nest.x, y: sp.nest.y, zoom: 1.15 });
+            // "Stormen tog alla mina tio ägg": she is sad until they promise to help
+            G.actors.tukan.pose = 'sad';
             await say(STORY.arrive);
             G.actors.klo.pose = 'love';
             await say(STORY.arrive2);

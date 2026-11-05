@@ -325,7 +325,7 @@ export function createTable({ PIXI, app, assets, ui, audio, G, heroFactory }) {
         const stormTold = ui.caption(TABLE.storm, 3000);
         audio?.sfx?.('wind');
         await wait(0.6);
-        // ten eggs blow away like sparks
+        // ten eggs blow away like sparks: she reaches for them, then watches them go, sad
         D.tukanActor.pose = 'dig';
         const flights = D.eggs.map(({ e }, i) => {
             const from = e.view.getGlobalPosition(); void from;
@@ -335,6 +335,7 @@ export function createTable({ PIXI, app, assets, ui, audio, G, heroFactory }) {
             return { e, sx, sy, tx: sx + Math.cos(ang) * dist, ty: sy + Math.sin(ang) * dist * 0.6 - 80 };
         });
         await tween(1.6, u => {
+            if (u > 0.35) D.tukanActor.pose = 'sad';
             flights.forEach((f, i) => {
                 const v = clamp(u * 1.4 - i * 0.04, 0, 1);
                 f.e.view.position.set(f.sx + (f.tx - f.sx) * v, f.sy + (f.ty - f.sy) * v - Math.sin(v * Math.PI) * 120);
