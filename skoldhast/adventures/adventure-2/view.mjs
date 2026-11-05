@@ -495,12 +495,12 @@ export function createView(PIXI, app, { assets, G, heroFactory, eggTarget = null
                         life.moveTo(bx + h(0.2), by - h(0.18)).lineTo(bx + h(0.5), by - h(0.55)).stroke(pen.line(0x4e3a24, 5, 0.9));
                     }
                     for (let k = 0; k < 4; k++) {
-                        const fish = new PIXI.Graphics(), col = [0xc98a4b, 0x9ab0c0, 0xd9b46a, 0x8fa88a][k];
+                        const fish = new PIXI.Graphics(), col = [0xe0a15a, 0xc6dbe8, 0xf0cd78, 0xb4d2a8][k];
                         fish.ellipse(0, 0, 16, 7).fill(pen.fill(col, 0.95)).stroke(pen.line(0x2e3a40, 1.4, 0.8));
                         fish.poly([-14, 0, -26, -8, -26, 8]).fill(pen.fill(col, 0.95)).stroke(pen.line(0x2e3a40, 1.2, 0.8));
                         fish.circle(8, -2, 1.8).fill({ color: 0x1a1a1a });
                         const fx = lerp(w.x0, w.x1, 0.2 + k * 0.18), fy = w.top + h(0.8 + hash(k, 166) * 1.6);
-                        fish.position.set(fx, fy); L.water.addChild(fish);
+                        fish.position.set(fx, fy); fish.scale.y = 1.9; fish._s = 1.9; L.water.addChild(fish);
                         S.anim.push({ kind: 'fish', c: fish, x0: fx, y0: fy, r: h(1.2 + hash(k, 167) * 1.5), o: hash(k, 168) * 6, v: 0.25 + hash(k, 169) * 0.2 });
                     }
                 }
@@ -1591,7 +1591,7 @@ export function createView(PIXI, app, { assets, G, heroFactory, eggTarget = null
                 // a slow figure of eight, turning to face the way it swims
                 const ph = t * a.v * (rm ? 0.4 : 1) + a.o, nx = a.x0 + Math.sin(ph) * a.r, ny = a.y0 + Math.sin(ph * 2) * h(0.25);
                 const dir = Math.cos(ph) >= 0 ? 1 : -1;
-                a.c.position.set(nx, ny); a.c.scale.x = dir; a.c.rotation = rm ? 0 : Math.cos(ph * 2) * 0.12 * dir;
+                a.c.position.set(nx, ny); a.c.scale.x = dir * (a.c._s || 1); a.c.rotation = rm ? 0 : Math.cos(ph * 2) * 0.12 * dir;
             }
             else if (a.kind === 'along') {
                 const d = ((t * a.speed * (rm ? 0.5 : 1) / a.len + a.o) % 1) * a.len;
