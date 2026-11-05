@@ -24,6 +24,7 @@ import { EGG_TOTAL } from './content/world.mjs';
 
 const h = (v) => v * HL;
 const clamp = (v, a, b) => (v < a ? a : v > b ? b : v);
+const EGG_SCALE = 1.5; // eggs in the world (the nest's are smaller)
 const lerp = (a, b, t) => a + (b - a) * t;
 const mixColor = (a, b, t) => {
     const ar = a >> 16 & 255, ag = a >> 8 & 255, ab = a & 255, br = b >> 16 & 255, bg = b >> 8 & 255, bb = b & 255;
@@ -48,7 +49,7 @@ const DASH_TONE = {
     light: { dash: 0xf3c94a, glow: 0xfff0b0, ink: 0xffe27a, edge: 0xb8862c }
 };
 
-export function createView(PIXI, app, { assets, G, heroFactory }) {
+export function createView(PIXI, app, { assets, G, heroFactory, eggTarget = null }) {
     const T = (name) => assets.tex(name);
     const pen = pencilStyle(T);
     const RAW = PIXI;
@@ -1270,14 +1271,15 @@ export function createView(PIXI, app, { assets, G, heroFactory }) {
 
     function buildObjects(def) {
         for (const egg of def.eggs || []) {
-            const e = createEgg(PIXI, pen); L.objects.addChild(e.view);
+            // an egg in the world is drawn half as big again as at first (on a phone it was a few pixels)
+            const e = createEgg(PIXI, pen, EGG_SCALE); L.objects.addChild(e.view);
             const mound = new PIXI.Graphics();
             if (egg.how === 'dig') { mound.ellipse(0, -4, 30, 10).fill(material('sand')); mound.ellipse(0, -4, 30, 10).stroke(pen.line(0x9a8460, 1.4, 0.8)); mound.position.set(egg.x, egg.y); L.objects.addChild(mound); }
             S.eggs.set(egg.id, { egg, e, mound });
         }
         if (def.ball) { S.ball = createBall(PIXI, pen); L.objects.addChild(S.ball.view); }
         if (def.id === 'strand') {
-            S.coin = createCoin(PIXI, pen, 1.2); S.coin.view.position.set(def.spots.coin.x, def.spots.coin.y - 12); L.objects.addChild(S.coin.view);
+            S.coin = createCoin(PIXI, pen, 1.8); S.coin.view.position.set(def.spots.coin.x, def.spots.coin.y - 16); L.objects.addChild(S.coin.view);
             S.whirl = new PIXI.Container(); S.whirl.position.set(h(43), h(4.2)); L.water.addChild(S.whirl);
             const wg = new PIXI.Graphics();
             for (let k = 0; k < 3; k++) {
@@ -1298,7 +1300,7 @@ export function createView(PIXI, app, { assets, G, heroFactory }) {
                 S.hatchlings.push({ k, home: def.nest.x - h(1.2) + i * h(0.26), t: 0 });
             }
         }
-        S.carryCoin = createCoin(PIXI, pen, 0.7); S.carryCoin.view.visible = false; L.fx.addChild(S.carryCoin.view);
+        S.carryCoin = createCoin(PIXI, pen, 1.2); S.carryCoin.view.visible = false; L.fx.addChild(S.carryCoin.view);
         S.flying = []; // eggs on their way somewhere (staged moments)
     }
 
@@ -1414,8 +1416,19 @@ export function createView(PIXI, app, { assets, G, heroFactory }) {
         stepNewPages(dt, t, F, rm, snap);
         if (S.whirl) { S.whirl.visible = !F.has('coin_got'); S.whirl.rotation += dt * (rm ? 0.6 : 2.2); }
         if (S.coin) { S.coin.view.visible = !F.has('coin_got'); S.coin.update(dt, t); }
-        S.carryCoin.view.visible = F.has('coin_got') && !F.has('coin_given');
-        if (S.carryCoin.view.visible) { S.carryCoin.view.position.set(snap.x - (snap.facing || 1) * 40, snap.y - h(0.8) + Math.sin(t * 3) * 4); S.carryCoin.update(dt, t); }
+        const carryAt = { x: snap.x - (snap.facing || 1) * 40, y: snap.y - h(0.8) + Math.sin(t * 3) * 4 };
+        S.carryCoin.view.visible = F.has('coin_got') && !F.has('coin_given') && !coinFlight;
+        if (S.carryCoin.view.visible) { S.carryCoin.view.position.set(carryAt.x, carryAt.y); S.carryCoin.update(dt, t); }
+        // the coin flies: up from the whirlpool's eye to the sköldhäst, or from the sköldhäst to Skatan's beak
+        if (coinFlight) {
+            const c = coinFlight;
+            c.t += dt / c.dur;
+            const u = clamp(c.t, 0, 1), e = u * u * (3 - 2 * u), to = c.to === 'carry' ? carryAt : c.to;
+            c.coin.view.position.set(lerp(c.from.x, to.x, e), lerp(c.from.y, to.y, e) - Math.sin(u * Math.PI) * c.arc);
+            c.coin.view.scale.set(lerp(c.s0, c.s1, e));
+            c.coin.update(dt, t * 3);
+            if (u >= 1) { c.coin.view.destroy({ children: true }); coinFlight = null; c.done?.(); }
+        }
 
         // the cocoa tree shakes while the hooves drum
         if (S.cocoa) {
@@ -1448,7 +1461,8 @@ export function createView(PIXI, app, { assets, G, heroFactory }) {
             if (!vis) continue;
             e.view.position.set(st.x, st.y + (st.state === 'buried' ? 16 : 0));
             e.view.alpha = st.state === 'dark' ? 0.25 : 1;
-            e.update(dt, t, { glow: st.state === 'buried' ? 1.4 : 1, wobble: st.state === 'tree' && (G.puz.drum || 0) > 0 ? 1 : 0 });
+            e.update(dt, t, { glow: st.state === 'buried' ? 1.4 : 1, wobble: st.state === 'tree' && (G.puz.drum || 0) > 0 ? 1 : 0,
+                lit: st.state === 'dark' ? 0 : 1 });
         }
         if (S.ball) S.ball.update(dt, ballPose(G), t);
         if (S.nestEggs) {
@@ -1474,6 +1488,21 @@ export function createView(PIXI, app, { assets, G, heroFactory }) {
             f.e.view.position.set(lerp(f.from.x, f.to.x, u), lerp(f.from.y, f.to.y, u) - arc);
             f.e.update(dt, t, {});
             if (f.t >= 1) { f.e.destroy(); S.flying.splice(i, 1); f.done?.(); }
+        }
+        stepPickups(dt, t, W, H, rm);
+        // the egg that falls from the cocoa tree lands with a little bounce and a puff of sand
+        for (const [id, rec] of S.eggs) {
+            const st = eggState(G, rec.egg).state;
+            if (rec.was === 'falling' && st === 'loose') { rec.bounce = 0; emit('dust', rec.egg.x, rec.egg.y, 8, { speed: 160, gravity: 400, tint: 0xe6d2a2 }); cam.shake = Math.max(cam.shake, 3); }
+            rec.was = st;
+            if (rec.bounce !== undefined && rec.e.view.visible) {
+                rec.bounce += dt;
+                const b = rm ? 0 : Math.max(0, 1 - rec.bounce / 0.45);
+                rec.e.view.y -= Math.abs(Math.sin(rec.bounce * 14)) * 14 * b;
+                rec.e.view.scale.set(EGG_SCALE * (1 + 0.12 * b * Math.cos(rec.bounce * 28)), EGG_SCALE * (1 - 0.1 * b * Math.cos(rec.bounce * 28)));
+                if (rec.bounce > 0.45) { rec.e.view.scale.set(EGG_SCALE); delete rec.bounce; }
+            }
+            void id;
         }
 
         // actors
@@ -1920,10 +1949,19 @@ export function createView(PIXI, app, { assets, G, heroFactory }) {
                 const from = { x: S.def.magpie.x, y: S.def.magpie.y - 10 };
                 const ids = data.ids || [];
                 await Promise.all(ids.map((id, i) => new Promise(done => {
-                    const e = createEgg(PIXI, pen); L.fx.addChild(e.view);
+                    const e = createEgg(PIXI, pen, EGG_SCALE); L.fx.addChild(e.view);
                     S.flying.push({ id, e, from: { x: from.x + i * 24, y: from.y }, to: { x: G.player.x, y: G.player.y - h(0.6) }, t: -i * 0.3, dur: rm ? 0.4 : 0.9, arc: h(0.8), done });
                 })));
                 emit('star', G.player.x, G.player.y - h(0.7), 10, { speed: 180, gravity: 60, life: 0.9 });
+                return;
+            }
+            case 'coinGive': {
+                // the sköldhäst holds out the coin and it flies to Skatan's beak
+                const sk = G.actors.skata, p = G.player;
+                if (!sk) return;
+                const from = { x: p.x - (p.facing || 1) * 40, y: p.y - h(0.8) };
+                await new Promise(done => flyCoin(from, { x: sk.x + (sk.facing || -1) * 24, y: sk.y - h(0.55) }, { dur: rm ? 0.3 : 0.8, arc: rm ? 0 : h(0.7), s0: 1.2, s1: 0.8, done }));
+                emit('star', sk.x, sk.y - h(0.6), 6, { speed: 140, gravity: 40, life: 0.7 });
                 return;
             }
             case 'eggsToNest': {
@@ -1997,8 +2035,58 @@ export function createView(PIXI, app, { assets, G, heroFactory }) {
         }
     }
 
+    // --- an egg picked up flies into the egg count ---------------------------------------------
+    // It pops up where it was, then flies in an arc into the count in the corner (eggTarget, from main),
+    // which counts it as it lands (eggsArriving). In "Mindre rörelse" it goes straight there, quickly.
+    const pickups = [];
+    let coinFlight = null;
+    function startPickup(id) {
+        const rec = S?.eggs.get(id), p = G.player;
+        const near = rec?.e.view.visible && Math.hypot(rec.e.view.x - p.x, rec.e.view.y - p.y) < h(4);
+        const from = near ? { x: rec.e.view.x, y: rec.e.view.y } : { x: p.x, y: p.y - h(0.7) };
+        const e = createEgg(PIXI, pen); overlay.addChild(e.view);
+        pickups.push({ id, e, from, t: 0 });
+    }
+    function stepPickups(dt, t, W, H, rm) {
+        for (let i = pickups.length - 1; i >= 0; i--) {
+            const k = pickups[i];
+            k.t += dt;
+            const pop = rm ? 0 : 0.32, fly = rm ? 0.35 : 0.75;
+            const start = { x: world.position.x + k.from.x * cam.zoom, y: world.position.y + k.from.y * cam.zoom };
+            const goal = eggTarget?.() || { x: W - 120, y: 40 };
+            const size = cam.zoom * EGG_SCALE; // the egg's own size in the picture
+            if (k.t < pop) {
+                // up out of the sand or off the branch, a little bigger
+                const u = k.t / pop, e = 1 - (1 - u) * (1 - u);
+                // it grows to a size worth seeing (on a phone the egg in the picture is only a few pixels)
+                k.e.view.position.set(start.x, start.y - e * 60);
+                k.e.view.scale.set(lerp(size, Math.max(1.5, size * 1.4), e));
+                k.e.view.rotation = Math.sin(u * Math.PI) * 0.25;
+                k.at = { x: k.e.view.x, y: k.e.view.y, s: k.e.view.scale.x };
+            } else {
+                const a = k.at || { x: start.x, y: start.y, s: size };
+                const u = Math.min(1, (k.t - pop) / fly), e = u * u * (3 - 2 * u);
+                // an arc, but its top stays on the screen (the count sits near the top edge)
+                // (the egg is drawn upward from its foot, about 30 px per unit of scale)
+                const arc = rm ? 0 : Math.sin(u * Math.PI) * Math.max(0, Math.min(120, Math.hypot(goal.x - a.x, goal.y - a.y) * 0.25, (a.y + goal.y) / 2 - 16 - 30 * a.s));
+                k.e.view.position.set(lerp(a.x, goal.x, e), lerp(a.y, goal.y + 12, e) - arc);
+                k.e.view.scale.set(lerp(a.s, 0.8, e));
+                k.e.view.rotation = (1 - e) * 0.25 + e * Math.PI * 2 * (rm ? 0 : 1);
+                if (u >= 1) { k.e.destroy(); pickups.splice(i, 1); continue; }
+            }
+            k.e.update(dt, t, { glow: 1.3 });
+        }
+    }
+    function flyCoin(from, to, { dur, arc, s0 = 1.2, s1 = 0.7, done } = {}) {
+        if (coinFlight) { coinFlight.coin.view.destroy({ children: true }); coinFlight.done?.(); }
+        const coin = createCoin(PIXI, pen, 1); L.fx.addChild(coin.view);
+        coinFlight = { coin, from, to, t: 0, dur, arc, s0, s1, done };
+    }
+
     // --- events for little effects ----------------------------------------------------------
     const offs = [
+        G.on('egg', ({ id }) => startPickup(id)),
+        G.on('coin', () => { if (S?.def.spots.coin) flyCoin({ x: S.def.spots.coin.x, y: S.def.spots.coin.y - 16 }, 'carry', { dur: G.lessMotion ? 0.3 : 0.9, arc: G.lessMotion ? 0 : h(0.9), s0: 1.8, s1: 1.2 }); }),
         G.on('flash', ({ on }) => { if (on && S?.def.sky === 'peak') lightning(0.85); }),
         G.on('crystalRing', ({ id }) => { const cp = S?.crystalPlates?.find(q => q.id === id); if (cp) emit('star', cp.cx, cp.cy - 10, 5, { speed: 180, gravity: 60, life: 0.7, tint: 0xcfeaff }); }),
         G.on('crystalLit', () => { if (S?.crystalPlates) for (const cp of S.crystalPlates) emit('star', cp.cx, cp.cy - 10, 4, { speed: 160, gravity: 30, life: 1 }); }),
@@ -2032,6 +2120,8 @@ export function createView(PIXI, app, { assets, G, heroFactory }) {
         moonScreen: () => moonScreen(),
         /** For checks: Mira's moon and Alva's stars, and how far the moon has risen. */
         moonParts: () => ({ moon, stars: alvaStars, rise: moonState.rise }),
+        /** Eggs picked up but still flying to the count (main shows the count without them until they land). */
+        get eggsArriving() { return pickups.length; },
         fadeNow(v) { fade = fadeTarget = v; },
         heroScreen() {
             const p = hero.view;

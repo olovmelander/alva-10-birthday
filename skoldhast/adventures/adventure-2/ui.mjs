@@ -198,6 +198,13 @@ export function createA2UI(host, { assetBase, handlers, voice = null }) {
     const destroyBook = ui.destroy;
     return Object.assign(ui, {
         guide, setEggs, title, journal, ending, names: NAMES,
+        /** Where a picked-up egg flies to: the count's egg, in the canvas's own units (view.mjs startPickup). */
+        eggTarget(canvas, screen) {
+            const r = eggIcon.getBoundingClientRect(), c = canvas?.getBoundingClientRect();
+            if (!r.width || !c?.width) return null;
+            const kx = (screen?.width || c.width) / c.width, ky = (screen?.height || c.height) / c.height;
+            return { x: (r.left + r.width / 2 - c.left) * kx, y: (r.top + r.height / 2 - c.top) * ky };
+        },
         think: (text) => guide.think(text),
         destroy() { guide.destroy(); destroyBook(); }
     });

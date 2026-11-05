@@ -225,6 +225,26 @@ await check('what the lines are about is in the picture: Miras streckade bro at 
     await p.close();
 });
 
+await check('a found egg flies into the egg count, which counts it as it lands (844×390)', async () => {
+    const p = await page({ width: 844, height: 390 }, profile(SEEN));
+    await p.click('.a2-title .sk-pbtn.primary');
+    await p.waitForFunction(() => window.__skoldhast2?.debug?.mode === 'play', null, { timeout: 20000 });
+    await p.waitForFunction(() => { const { G, story } = window.__skoldhast2.debug; return !story.running() && !G.busy; }, null, { timeout: 20000 });
+    await dbg(p, () => { const { G, view } = window.__skoldhast2.debug; G.goto('strand', { x: 30.1 * 200, y: -0.4 * 200, facing: 1 }); view.cam.snap = true; });
+    await p.waitForFunction(() => window.__skoldhast2.debug.G.context?.id === 'dig', null, { timeout: 15000 });
+    await p.keyboard.press('e'); // dig where the sand glimmers
+    await p.waitForFunction(() => window.__skoldhast2.debug.view.eggsArriving > 0, null, { timeout: 5000 });
+    const flying = await dbg(p, () => ({ found: window.__skoldhast2.debug.G.eggs(), shown: document.querySelector('.a2-egg-text').textContent }));
+    await shot(p, 'a2-egg-flight-844x390');
+    assert.equal(flying.found, 1, 'the egg is found');
+    assert.match(flying.shown, /^0 av 10/, 'while it flies, the count waits for it');
+    await p.waitForFunction(() => window.__skoldhast2.debug.view.eggsArriving === 0, null, { timeout: 10000 });
+    await p.waitForTimeout(200);
+    assert.match(await p.textContent('.a2-egg-text'), /^1 av 10/, 'it is counted as it lands');
+    assert.deepEqual(p.errors, []);
+    await p.close();
+});
+
 await check('the finale: ten eggs in the nest, Mira\'s moon, the hatching, the table, completion saved (1440×900)', async () => {
     const p = await page({ width: 1440, height: 900 }, profile([...SEEN, ...EGGS, 'p2_bridge', 'p7_vine', 'p4_lit', 'cloud_met', 'coin_got', 'coin_given', 'clue_cloudCries', 'clue_afraid']));
     await watchSpeakers(p);

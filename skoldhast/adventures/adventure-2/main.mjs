@@ -125,7 +125,7 @@ export function createGame({ host = document.body, assetBase = './skoldhast/', s
         voice.setEnabled(settings.voice > 0);
         ui = createA2UI(el, { assetBase, handlers: uiHandlers(), voice });
         const heroFactory = await loadHeroFactory();
-        view = createView(PIXI, app, { assets, G, heroFactory });
+        view = createView(PIXI, app, { assets, G, heroFactory, eggTarget: () => ui?.eggTarget?.(app.canvas, app.screen) });
         setDevice(window.matchMedia?.('(pointer: coarse)').matches ? 'touch' : 'keys');
         input = createInput(el, ui, {
             canvas: app.canvas,
@@ -462,7 +462,8 @@ export function createGame({ host = document.body, assetBase = './skoldhast/', s
             else ui.guide.goal(obj?.why || '', obj?.text || null);
             remind(free);
             ui.guide.update();
-            ui.setEggs(G.eggs(), EGG_TOTAL);
+            // an egg still flying to the count is counted when it lands there (view.mjs)
+            ui.setEggs(G.eggs() - (view?.eggsArriving || 0), EGG_TOTAL);
             if (audio) {
                 const p = G.player;
                 audio.setMotion({ speed01: Math.min(1, Math.abs(p.vx) / 1200), underwater: p.mode === 'swim' && p.submerge > 0.7, hidden: p.hidden });

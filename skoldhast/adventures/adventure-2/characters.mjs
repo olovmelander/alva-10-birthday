@@ -397,6 +397,10 @@ export function createCloud(PIXI, pen, { texture = null } = {}) {
 // ---------------------------------------------------------------------------------------
 export function createEgg(PIXI, pen, scale = 1) {
     const view = new PIXI.Container(); view.label = 'egg';
+    // a soft warm light round an egg that waits to be found, so it is seen in the storm's dark on a phone
+    const halo = g(PIXI);
+    for (const [r, a] of [[34, 0.07], [27, 0.09], [20, 0.12]]) halo.circle(0, -15, r).fill({ color: 0xfff1b8, alpha: a });
+    halo.alpha = 0; view.addChild(halo);
     const body = new PIXI.Container(); view.addChild(body);
     const eg = g(PIXI);
     eg.ellipse(0, -15, 11.5, 15).fill(pen.fill(PAL.egg)).stroke(pen.line(0x8d8068, 1.6));
@@ -412,8 +416,10 @@ export function createEgg(PIXI, pen, scale = 1) {
     const seed = Math.random() * 10;
     return {
         view,
-        update(dt, t, { glow = 1, wobble = 0, cracked = false } = {}) {
+        update(dt, t, { glow = 1, wobble = 0, cracked = false, lit = 0 } = {}) {
             const tw = Math.max(0, Math.sin(t * 2.4 + seed)) ** 6;
+            halo.alpha = lit * (0.75 + 0.25 * Math.sin(t * 2 + seed));
+            halo.scale.set(1 + 0.08 * Math.sin(t * 2 + seed));
             glint.alpha = glow * (0.25 + 0.75 * tw);
             glint.scale.set(0.6 + tw * 0.6);
             body.rotation = wobble ? Math.sin(t * 22 + seed) * 0.12 * wobble : 0;
