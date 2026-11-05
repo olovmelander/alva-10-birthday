@@ -903,7 +903,8 @@ export function createView(PIXI, app, { assets, G, heroFactory, eggTarget = null
             // moonlight on the right-hand edge, moss at the foot, and knots where old limbs broke off
             const lit = []; for (let i = 0; i <= 12; i++) { const u = i / 12; lit.push([h(edgeAt(u, 1)) - 6, h(-0.5 - u * 13)]); }
             lineAlong(back, lit).stroke(pen.line(0xd8d4e8, 5, 0.22));
-            const moss = []; for (let i = 0; i <= 16; i++) { const x = lerp(13.4, 21.4, i / 16); moss.push([h(x), h(-0.55 - 0.9 - Math.sin(i * 1.9) * 0.25)]); }
+            // moss creeping up the foot, its top edge uneven (a regular zigzag read as distant hills)
+            const moss = []; for (let i = 0; i <= 28; i++) { const x = lerp(13.4, 21.4, i / 28); moss.push([h(x), h(-0.55 - 0.55 - hash(i, 67) * 0.75 - (i % 5 === 2 ? 0.35 : 0))]); }
             poly(back, [...moss, [h(21.6), h(-0.5)], [h(13.2), h(-0.5)]]).fill(pen.fill(0x4f6e3e, 0.75));
             poly(back, [...moss, [h(21.6), h(-0.5)], [h(13.2), h(-0.5)]]).fill(pen.hatch(0x7f9c5a, 0.6));
             for (const [kx, ky, kr] of [[15.6, -3.4, 0.32], [19.1, -8.8, 0.28], [16.4, -10.9, 0.24]]) {

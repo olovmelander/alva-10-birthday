@@ -136,7 +136,9 @@ export function createStory(G, io) {
         const gathered = F.has('eggs_in_nest');
         if (sc === 'strand') {
             const nest = G.sceneDef.nest;
-            actor('skata', gathered ? { scene: 'strand', visible: true, x: nest.x + 2.4 * HL, y: -0.36 * HL, facing: -1, pose: F.has('skata_gift') ? 'idle' : 'coin' }
+            // at the nest, between Tordyveln and Tukankrabban (at nest + 2.4 HL she stood on the sköldhäst's own
+            // start spot and was hidden inside it in the finale, 5 November)
+            actor('skata', gathered ? { scene: 'strand', visible: true, x: nest.x - 2.3 * HL, y: -0.47 * HL, facing: 1, pose: F.has('skata_gift') ? 'idle' : 'coin' }
                 : { scene: 'strand', x: sp.magpie.x + 0.5 * HL, y: sp.magpie.y, visible: true, facing: -1, pose: F.has('coin_given') ? 'coin' : 'idle' });
             actor('dyvel', gathered ? { scene: 'strand', visible: true, x: nest.x - 3.7 * HL, y: -0.48 * HL, facing: 1 }
                 : { scene: 'strand', x: sp.beetle.x, y: sp.beetle.y, visible: true, facing: -1 });
