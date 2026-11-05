@@ -20,6 +20,19 @@ grässtigen till en ramp!").
 - **Check:** `skoldhast-hills` counts the ground rebuilds (`view.groundBuilds`) while ramp1 rises and requires at
   most two.
 
+**A paused game is silent.** A speech box waits, in real time, for a thought still being said. Because of that,
+`skoldhast-hill-depth`, which steps the game faster than real time, ran out of time. Pausing now silences the
+voice in both adventures, and resuming turns it back on as the setting says. This covers a panel, the pause menu,
+the adventure picker, the ending card and a hidden tab. Checks that step the game pause it first.
+
+**Checks run alone before the merge, all passing:**
+- Äventyr 1: `skoldhast-hills`, `skoldhast-hill-depth`, `skoldhast-land-focus`, `skoldhast-journey`,
+  `skoldhast-audit-land-capture`, `skoldhast-notes`, `skoldhast-prologue-lifecycle`, `skoldhast-dialogue`,
+  `skoldhast-cloud-color`, `skoldhast-cloud-sky`.
+- Äventyr 2: `skoldhast-voice` and `skoldhast-a2`. In one full run of `skoldhast-a2`, three checks timed out under
+  load. Each passed when rerun alone.
+- `npm test`: 428 of 428.
+
 ## Äventyr 2: eggs and the gold coin you can see; a white cloud; Tukankrabban is sad (5 November)
 
 Pappa asked:
