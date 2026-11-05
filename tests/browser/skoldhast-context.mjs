@@ -59,8 +59,9 @@ try {
             flags: [...G.flags].sort(), prints: JSON.stringify(G.prints || [])
         });
         window.__inkPixels = () => {
-            const bridge = view.layers.objects.children.find((c) => c.children?.some((s) => s.texture === assets.tex('stroke-dash')));
-            const ink = bridge?.children.at(-1);
+            // the bridge's unfinished pencil dashes and, over them, the ink its gallop draws (view.mjs, dashed lines)
+            const bridge = view.layers.objects.children.find((c) => c.children?.some((s) => s.label === 'unfinished-p1-arch'));
+            const ink = bridge?.children.find((s) => s.texture === assets.tex('stroke-graphite'));
             // Extract the containing node so Pixi applies the mesh's parent transform.
             const show = bridge.children.map(s => s.visible);
             bridge.children.forEach(s => { s.visible = s === ink; });

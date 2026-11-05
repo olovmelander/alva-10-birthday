@@ -93,9 +93,11 @@ try {
         async function step(i = {}) {
             while (ui.dialogueOpen()) { render(); app.render(); await sleep(365); ui.advance(); }
             drive(i.x || 0, i.y || 0);
-            if (i.act) button(ui.actBtn, ' ');
+            // the real buttons: Hoppa is Space and the context button is E on a keyboard (input.mjs)
+            if (i.act) button(ui.actBtn, 'e');
+            if (i.hop) button(ui.hopBtn, ' ');
             const cont = input.state(), e = input.consume();
-            G.step({ ...cont, act: e.act, hide: e.hide, tapHero: e.tapHero || e.neigh });
+            G.step({ ...cont, hop: e.hop, act: e.act, hide: e.hide, tapHero: e.tapHero || e.neigh });
             await Promise.resolve();
             if (++steps % 24 === 0) render();
             if (steps % 600 === 0) await sleep(0);
