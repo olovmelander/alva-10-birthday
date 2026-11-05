@@ -173,7 +173,7 @@ try {
             });
             await page.waitForFunction(() => window.__skoldhast.debug.G.context?.id === 'exit');
             await capture('land-cave-mouth');
-            await page.keyboard.press('Space');
+            await page.keyboard.press('e'); // "Simma in" is the context button: E (Space is Hoppa since 1 October)
             await settledScene(page, 'kelp');
             const entry = await page.evaluate(() => window.__waterEntrance);
             assert.equal(entry.mode, 'swim', 'Simma in starts swimming');
