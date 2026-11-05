@@ -45,6 +45,34 @@ He asked that the speakers be visible in every part of the game, "på något sma
 - **Frågor till Pappa:** is the badge clear enough on Alva's phone? It is about 50 px, with a gentle pulse that
   "Mindre rörelse" turns off.
 
+### What the lines are about is in the picture (Äventyr 2)
+
+Pappa: sometimes the thing being talked about cannot be seen, which makes the story hard to follow.
+- `about(box, fn)` in `adventures/adventure-2/story.mjs` sets `G.camLook` (a box in world units) while its lines are
+  said.
+- The camera (`frameSpeaker` in `view.mjs`) keeps three things in the picture: that box (with half a horse length of
+  room), the sköldhäst and the speaker. It steps back to at most 70 % of the usual zoom. If they cannot all fit, what
+  is talked about comes first, as near the sköldhäst as it allows.
+- Seven conversations already had their own `fx('focus')`: the grove, the falls, Skatan, the forest's first egg, the
+  leap, the crystal lake and Blixtbron. Eleven had nothing, and now name their subject:
+  - Miras streckade bro over Klyftan;
+  - the passage behind the falls;
+  - Tordyveln's ball;
+  - Skatan's nest and the branch steps;
+  - the moonflower seeds;
+  - the ravine and the vine;
+  - Jätteträdet's branches;
+  - the ringing crystals and the dark chasm;
+  - the gate and the pond's plates;
+  - the spring;
+  - the end of the path on Åsktoppen.
+- Not given a subject:
+  - Mira's river line (she stands at it);
+  - Kristallgrottan's arrival (the glitter is all round);
+  - Åsktoppen's arrival (the storm is in the sky).
+- `skoldhast-a2` walks into Klyftan at 390×844 and requires the whole dashed bridge and the sköldhäst to be in the
+  picture while it is talked about. Shot: `docs/skoldhast/shots/visual-sweep/a2-klyft-bridge-390x844.webp`.
+
 ## A sweep for silent visual faults like the lighthouse's (5 November)
 
 Pappa asked whether there were more visual bugs like the lighthouse that no longer mirrored. That one was a silent
@@ -86,7 +114,29 @@ after shots are in `docs/skoldhast/shots/visual-sweep/`.
   - The moon's path on the river can lie off screen at moonrise.
   - The fold demo freezes a patch of beach while it runs.
   - After the cloud ride, the lantern draws behind the hero.
-- **Checks that timed out while two browser runs shared the machine, rerun alone:** see the end of this section.
+- **Seven more checks had fallen behind the game's design since 30 September and 1 October.** Each was rerun alone,
+  and in each the game was right:
+  - `skoldhast-map-props` collected the sea's paper with the wrong flag and name. P6 uses `mark_sea` and labels it
+    `p6-fragment`.
+  - `skoldhast-vista-loading` held all seven bay files. That used up Chromium's six connections to the local
+    HTTP/1.1 server, so the land never got its own art. It now holds the bay's two atlas descriptions. GitHub Pages
+    serves HTTP/2.
+  - `skoldhast-journey` reuses the node robot's chapter3, which checks effect order. It now logs `view.fx`.
+  - `skoldhast-guide`:
+    - Control tips show only on touch, since 30 September.
+    - The first refusal at an unfinished line shows the world-rule thought (`STORY.k1.thinRule`), since
+      1 October.
+  - `skoldhast-land-focus`:
+    - The land route (P1, P3) belongs to Kapitel 2 since 30 September, so the check stages `LAND_ROUTE`, now
+      exported from `save.mjs`.
+    - A sköldhäst that arrives in a gallop glides 0.16 HL after the inspection. That slide is allowed; a jump is
+      not.
+  - `skoldhast-water-alignment`:
+    - Klo opens Kapitel 2 at the cave mouth (`k2_open`).
+    - Each air rect is drawn twice (colour, then hatch).
+  - `skoldhast-geography` timed out taking screenshots while other runs shared the machine. Its run alone is in
+    "Checks run" below.
+- **Running two browser checks at once makes the slow ones time out under software WebGL.** Run them one at a time.
 - **Frågor till Pappa:** should hiding on Spegelviken's pier show the lighthouse's reflection again, briefly and
   without Klo's words, until the lamp is lit? It is a small change; recommended.
 
