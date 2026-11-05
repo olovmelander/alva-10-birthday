@@ -207,7 +207,7 @@ export function createView(PIXI, app, { assets, G, heroFactory, eggTarget = null
         const W = 4200, step = kind === 'cave' ? 70 : 140, ridge = [[0, 0]];
         for (let x = 0; x <= W; x += step) {
             const r = hash(x, seed);
-            if (kind === 'cave') ridge.push([x, -baseH * (0.35 + r * 0.5)], [x + step * 0.5, -baseH * (0.1 + r * 0.2)]);
+            if (kind === 'cave') ridge.push([x + (hash(x, seed + 5) - 0.5) * step * 0.5, -baseH * (0.3 + r * 0.6)], [x + step * (0.35 + hash(x, seed + 6) * 0.3), -baseH * (0.08 + r * 0.2)]);
             else ridge.push([x, -baseH * (0.4 + r * 0.7)], [x + step * 0.45, -baseH * (0.2 + hash(x, seed + 1) * 0.3)]);
         }
         poly(c, [...ridge, [W, 0], [W, 900], [0, 900]]).fill(pen.fill(color));
@@ -216,9 +216,26 @@ export function createView(PIXI, app, { assets, G, heroFactory, eggTarget = null
             const y = -baseH * (0.4 + hash(x, seed) * 0.7);
             c.moveTo(x - 18, y + 22).lineTo(x, y).lineTo(x + 16, y + 20).stroke(pen.line(0xd9dcec, 3, 0.55));
         }
-        if (kind === 'cave') for (let k = 0; k < 60; k++) {
-            const x = hash(k, seed + 3) * W, y = -baseH * (0.1 + hash(k, seed + 4) * 0.4);
-            c.poly([x, y, x + 5, y - 11, x + 10, y]).fill({ color: 0x9fd8ff, alpha: 0.55 });
+        if (kind === 'cave') {
+            // The far wall is crystal, not a row of fir trees (5 November): each spike gets a pale facet down one
+            // side and a darker one down the other; some catch the light at their tips, in the cave's three colours
+            const tints = [0xb79be6, 0x8fc9f0, 0xe6a6d8];
+            for (let i = 1; i < ridge.length - 1; i += 2) {
+                const [px, py] = ridge[i - 1], [tx, ty] = ridge[i], [nx, ny] = ridge[i + 1];
+                const midL = [(px + tx) / 2, (py + ty) / 2 + baseH * 0.08], midR = [(tx + nx) / 2, (ty + ny) / 2 + baseH * 0.08];
+                c.poly([px, py, tx, ty, ...midL]).fill({ color: 0xffffff, alpha: 0.1 });
+                c.poly([tx, ty, nx, ny, ...midR]).fill({ color: 0x05040a, alpha: 0.18 });
+                c.moveTo(tx, ty).lineTo((tx + midL[0]) / 2 + 4, (ty + midL[1]) / 2 + 10).stroke(pen.line(0xe8e4ff, 1.4, 0.35));
+                if (hash(tx, seed + 7) > 0.72) {
+                    const col = tints[Math.floor(hash(tx, seed + 8) * 3)];
+                    c.poly([tx, ty, tx - 7, ty + 22, tx + 7, ty + 22]).fill({ color: col, alpha: 0.6 });
+                    for (let r = 3; r >= 1; r--) c.circle(tx, ty + 8, 6 + r * 6).fill({ color: col, alpha: 0.05 });
+                }
+            }
+            for (let k = 0; k < 60; k++) {
+                const x = hash(k, seed + 3) * W, y = -baseH * (0.1 + hash(k, seed + 4) * 0.4);
+                c.poly([x, y, x + 5, y - 11, x + 10, y]).fill({ color: 0x9fd8ff, alpha: 0.55 });
+            }
         }
         return { c, W };
     }
@@ -453,6 +470,39 @@ export function createView(PIXI, app, { assets, G, heroFactory, eggTarget = null
                     c.moveTo(0, 0).quadraticCurveTo(h(0.4), -8, h(0.8), 0).stroke(pen.line(0x9cc3d8, 2, 0.5));
                     c.position.set(w.x0 + (w.x1 - w.x0) * hash(k, 21), w.top + h(0.4 + hash(k, 22) * 1.2));
                     cur.addChild(c); S.anim.push({ kind: 'current', c, x0: w.x0, x1: w.x1, v: 60 + hash(k, 23) * 40 });
+                }
+                // life on the river's bed (the deep river was an empty blue field over bare sand, 5 November):
+                // weed swaying in the current, pebbles, a sunken branch, and a few small fish
+                const bed = def.surfaces.find(q => q.underwater && q.pts[0][0] < w.x1 && q.pts.at(-1)[0] > w.x0);
+                if (bed) {
+                    const life = new PIXI.Graphics(); L.water.addChild(life);
+                    const at = (x) => heightOn(bed.pts, x);
+                    for (let x = bed.pts[0][0] + h(1.2); x < bed.pts.at(-1)[0] - h(1.2); x += h(0.6) + hash(x, 161) * h(1.1)) {
+                        const y = at(x); if (y === null || y < w.top + h(0.9)) continue;
+                        if (hash(x, 162) > 0.55) { // a pebble or two
+                            for (let k = 0; k < 2; k++) life.ellipse(x + k * 16, y - 4, 9 + hash(x + k, 163) * 8, 6).fill(pen.fill(k ? 0x7d7a6e : 0x948f80, 0.95)).stroke(pen.line(0x3e3c36, 1.2, 0.7));
+                            continue;
+                        }
+                        const weed = new PIXI.Graphics(), tall = h(0.5 + hash(x, 164) * 0.9);
+                        for (let k = 0; k < 3; k++) weed.moveTo((k - 1) * 6, 0).bezierCurveTo((k - 1) * 10 + 8, -tall * 0.35, (k - 1) * 4 - 8, -tall * 0.7, (k - 1) * 8 + 4, -tall).stroke(pen.line(k % 2 ? 0x4f7d55 : 0x3d6646, 3.2, 0.8));
+                        weed.position.set(x, y); L.water.addChild(weed);
+                        S.anim.push({ kind: 'sway', c: weed, o: hash(x, 165) * 6 });
+                    }
+                    // a sunken branch lying across the slope
+                    const bx = lerp(bed.pts[0][0], bed.pts.at(-1)[0], 0.68), by = at(bx);
+                    if (by !== null) {
+                        life.moveTo(bx - h(0.9), by - 6).quadraticCurveTo(bx, by - h(0.35), bx + h(1.1), by - 10).stroke(pen.line(0x4e3a24, 9, 0.9));
+                        life.moveTo(bx + h(0.2), by - h(0.18)).lineTo(bx + h(0.5), by - h(0.55)).stroke(pen.line(0x4e3a24, 5, 0.9));
+                    }
+                    for (let k = 0; k < 4; k++) {
+                        const fish = new PIXI.Graphics(), col = [0xc98a4b, 0x9ab0c0, 0xd9b46a, 0x8fa88a][k];
+                        fish.ellipse(0, 0, 16, 7).fill(pen.fill(col, 0.95)).stroke(pen.line(0x2e3a40, 1.4, 0.8));
+                        fish.poly([-14, 0, -26, -8, -26, 8]).fill(pen.fill(col, 0.95)).stroke(pen.line(0x2e3a40, 1.2, 0.8));
+                        fish.circle(8, -2, 1.8).fill({ color: 0x1a1a1a });
+                        const fx = lerp(w.x0, w.x1, 0.2 + k * 0.18), fy = w.top + h(0.8 + hash(k, 166) * 1.6);
+                        fish.position.set(fx, fy); L.water.addChild(fish);
+                        S.anim.push({ kind: 'fish', c: fish, x0: fx, y0: fy, r: h(1.2 + hash(k, 167) * 1.5), o: hash(k, 168) * 6, v: 0.25 + hash(k, 169) * 0.2 });
+                    }
                 }
             }
         }
@@ -1082,7 +1132,7 @@ export function createView(PIXI, app, { assets, G, heroFactory, eggTarget = null
             for (let k = 2; k < edge.length - 2; k += 2 + Math.floor(hash(k, line.length) * 3)) {
                 const [x, y] = edge[k];
                 if (x > h(43.2) && x < h(47)) continue;
-                if (hash(x, 103) > 0.72) { crystalCluster(fore, x, y - 4, { dir: 1, size: 0.6 + hash(x, 104) * 0.5, color: [0xb79be6, 0x8fc9f0, 0xe6a6d8][k % 3], n: 3, seed: 7 }); twinkleAt(x, y + 40, 0.4, 0xdff2ff, L.fore); continue; }
+                if (hash(x, 103) > 0.52) { crystalCluster(fore, x, y - 4, { dir: 1, size: 0.6 + hash(x, 104) * 0.5, color: [0xb79be6, 0x8fc9f0, 0xe6a6d8][k % 3], n: 3, seed: 7 }); twinkleAt(x, y + 40, 0.4, 0xdff2ff, L.fore); continue; }
                 const len = h(0.2 + hash(x, 105) * 0.45), w = 10 + hash(x, 106) * 12;
                 fore.poly([x - w, y - 4, x + w, y - 4, x + hash(x, 107) * 6, y + len]).fill(material('rock')).stroke(pen.line(0x2a2638, 1.6, 0.8));
                 fore.poly([x - w, y - 4, x - w * 0.2, y - 4, x + hash(x, 107) * 6, y + len]).fill({ color: 0x14121d, alpha: 0.35 });
@@ -1537,6 +1587,12 @@ export function createView(PIXI, app, { assets, G, heroFactory, eggTarget = null
             else if (a.kind === 'foam' && !rm && Math.random() < dt * 14) emit('drop', a.x + (Math.random() - 0.5) * h(1.4), a.y, 1, { speed: 260, cone: 1.2, life: 0.6 });
             else if (a.kind === 'mist') { a.s.x = a.x0 + Math.sin(t * 0.05 + a.o) * h(1.2) * (rm ? 0.2 : 1); a.s.alpha = (a.base ?? 0.26) + 0.08 * Math.sin(t * 0.2 + a.o); }
             else if (a.kind === 'sway') a.c.rotation = rm ? 0 : Math.sin(t * 0.9 + a.o) * 0.025 + (stormShown > 0.5 ? Math.sin(t * 2.1 + a.o) * 0.02 : 0);
+            else if (a.kind === 'fish') {
+                // a slow figure of eight, turning to face the way it swims
+                const ph = t * a.v * (rm ? 0.4 : 1) + a.o, nx = a.x0 + Math.sin(ph) * a.r, ny = a.y0 + Math.sin(ph * 2) * h(0.25);
+                const dir = Math.cos(ph) >= 0 ? 1 : -1;
+                a.c.position.set(nx, ny); a.c.scale.x = dir; a.c.rotation = rm ? 0 : Math.cos(ph * 2) * 0.12 * dir;
+            }
             else if (a.kind === 'along') {
                 const d = ((t * a.speed * (rm ? 0.5 : 1) / a.len + a.o) % 1) * a.len;
                 let i = 1; while (i < a.acc.length - 1 && a.acc[i] < d) i++;
