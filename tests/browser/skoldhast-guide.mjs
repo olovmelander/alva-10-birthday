@@ -7,13 +7,13 @@
  *     story.mjs shows control tips only on touch, where they can point at the stick);
  *   - Klo's hint bubble speaks up by itself;
  *   - after the stopwatch the goal turns to hiding, and hiding by the hole makes Klo say Ja;
- *   - a refusal shows a thought bubble.
+ *   - a refusal shows a thought bubble (the first teaches the unfinished-line rule).
  *
  *   node tests/browser/skoldhast-guide.mjs [--out <dir>]   (screenshots of each step with --out)
  */
 import assert from 'node:assert/strict';
 import { serve, launch } from '../../scripts/skoldhast-shot.mjs';
-import { GOALS, STORY, BALK } from '../../skoldhast/src/content/sv.mjs';
+import { GOALS, STORY } from '../../skoldhast/src/content/sv.mjs';
 
 const outIdx = process.argv.indexOf('--out');
 const OUT = outIdx > 0 ? process.argv[outIdx + 1] : null;
@@ -89,10 +89,11 @@ for (let i = 0; i < 300; i++) {
 }
 assert.ok(await D(() => window.__skoldhast.debug.G.flags.has('klo_ja')), 'hiding by the hole makes Klo come out and say Ja');
 
-// a refusal shows a thought bubble with the reason
+// a refusal shows a thought bubble with the reason: the first unfinished line teaches the world rule
+// (main.mjs, since 1 October); BALK.thin follows on later refusals
 await D(() => { const { G } = window.__skoldhast.debug; G.emit('balk', { reason: 'thin', id: 'test' }); });
 await pg.waitForFunction(() => document.querySelector('.sk-think.on'), null, { timeout: 5000 });
-assert.equal(await text('.sk-think-text'), BALK.thin);
+assert.equal(await text('.sk-think-text'), STORY.k1.thinRule);
 await shot('3-think');
 
 assert.deepEqual(errors, []);

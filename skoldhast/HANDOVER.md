@@ -29,6 +29,11 @@ He asked that the speakers be visible in every part of the game, "på något sma
     The speaking mark sits on it.
   - The name tab's picture is now that same pencil in both adventures. Alva's used to be a green pencil that matched
     nothing on the page. Äventyr 1's one exchange between them, at the epilogue, now has the pencils in the tab too.
+  - Away from the table's page, for example in the finale where Mira asks for the moon and Alva draws the stars,
+    each speaks from her side of the table. Her pencil shows in the badge at that edge: Mira's on the left, Alva's on
+    the right.
+- **The mark moves beside the head when the speech box is above it.** In the finale Molnet floats just under the
+  box at 1440×900. The mark used to vanish there, and now sits beside the cloud.
 - **Checks in `skoldhast-a2`:**
   - Every line in the prologue at the table, at the nest, in the finale and in the epilogue must show its speaker,
     with the mark or the badge.

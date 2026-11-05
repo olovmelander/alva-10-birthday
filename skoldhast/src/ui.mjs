@@ -263,8 +263,12 @@ export function createUI(host, { assetBase, handlers, voice = null }) {
     }
     let obstacles = [], measureAt = 0, markWho = null;
     function updateSpeaker(who, bounds) {
-        if (!who || !bounds || panel.classList.contains('on')) { speaking.classList.remove('on'); edge.classList.remove('on'); markWho = null; return; }
+        // Alva and Mira are never drawn. Away from the table's page (in the world, where they draw the moon and the
+        // stars), each speaks from her side of the table, beyond the edge of the page: her pencil in the badge.
+        const girl = !bounds && (who === 'alva' || who === 'mira');
+        if (!who || (!bounds && !girl) || panel.classList.contains('on')) { speaking.classList.remove('on'); edge.classList.remove('on'); markWho = null; return; }
         const W = root.clientWidth, H = root.clientHeight;
+        if (girl) bounds = who === 'alva' ? { minX: W + 300, maxX: W + 300, minY: H * .32, maxY: H * .32 } : { minX: -300, maxX: -300, minY: H * .32, maxY: H * .32 };
         const x = (bounds.minX + bounds.maxX) / 2, y = bounds.minY;
         const now = performance.now();
         if (now >= measureAt || markWho !== who) {
@@ -285,11 +289,13 @@ export function createUI(host, { assetBase, handlers, voice = null }) {
             return;
         }
         edge.classList.remove('on');
-        const clear = top >= 4 && top + 30 <= H - 4 &&
-            !obstacles.some(r => left < r.right + 4 && left + 36 > r.left - 4 && top < r.bottom + 4 && top + 30 > r.top - 4);
-        speaking.classList.toggle('on', clear);
+        // above the head first; if the speech box or a button is there (Molnet just under the box), beside the head
+        const fits = ([l, t]) => l >= 4 && l + 36 <= W - 4 && t >= 4 && t + 30 <= H - 4 &&
+            !obstacles.some(r => l < r.right + 4 && l + 36 > r.left - 4 && t < r.bottom + 4 && t + 30 > r.top - 4);
+        const spot = [[left, top], [bounds.maxX + 2, y + 14], [bounds.minX - 38, y + 14]].find(fits);
+        speaking.classList.toggle('on', !!spot);
         speaking.dataset.speaker = who;
-        speaking.style.transform = `translate(${Math.round(left)}px, ${Math.round(top)}px)`;
+        if (spot) speaking.style.transform = `translate(${Math.round(spot[0])}px, ${Math.round(spot[1])}px)`;
     }
 
     // choices (the prologue)

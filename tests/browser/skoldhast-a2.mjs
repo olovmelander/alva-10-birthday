@@ -70,7 +70,7 @@ const watchSpeakers = p => dbg(p, () => {
 const unseenSpeakers = p => dbg(p, () => [...window.__a2Speakers].filter(([, s]) => s.shown === 0).map(([line]) => line));
 
 /** Answers dialogue and drawing prompts until done() is true. */
-async function playThrough(p, done, { maxSeconds = 240, onDraw = null, label = '' } = {}) {
+async function playThrough(p, done, { maxSeconds = 240, onDraw = null, label = '', read = 380 } = {}) {
     const end = Date.now() + maxSeconds * 1000;
     while (Date.now() < end) {
         if (await done()) return;
@@ -82,7 +82,7 @@ async function playThrough(p, done, { maxSeconds = 240, onDraw = null, label = '
         } else if (await p.$('.sk-panel.on .sk-ending')) {
             await p.click('.sk-panel.on .sk-ending .sk-pbtn.primary', { timeout: 2000, force: true }).catch(() => {});
         } else if (await p.$('.sk-dialogue.on')) {
-            await p.waitForTimeout(380);
+            await p.waitForTimeout(read);
             await p.click('.sk-dialogue.on .sk-dlg-next', { timeout: 1000, force: true }).catch(() => {});
         }
         await p.waitForTimeout(150);
@@ -218,7 +218,8 @@ await check('the finale: ten eggs in the nest, Mira\'s moon, the hatching, the t
         if (s.hatched && !sawHatch) { sawHatch = true; await shot(p, 'a2-hatched-1440x900'); }
         if (s.table && !sawTable) { sawTable = true; await p.waitForTimeout(1500); await shot(p, 'a2-epilogue-1440x900'); }
         return s.ended && !s.table && !(await p.$('.sk-panel.on')) && !(await p.$('.sk-dialogue.on')) && (await dbg(p, () => !window.__skoldhast2.debug.story.running()));
-    }, { label: 'finale', maxSeconds: 480, onDraw: async (prompt) => { traced.push(prompt); await shot(p, `a2-finale-draw${traced.length}-1440x900`); } });
+        // read each line long enough for the camera to reach its speaker, as a reader would
+    }, { label: 'finale', maxSeconds: 480, read: 1000, onDraw: async (prompt) => { traced.push(prompt); await shot(p, `a2-finale-draw${traced.length}-1440x900`); } });
     assert.ok(/Mira/.test(traced[0]) && /Alva/.test(traced[1]), 'Mira traces the moon, then Alva the stars: ' + traced.join(' | '));
     assert.deepEqual(await unseenSpeakers(p), [], 'every speaker in the finale and at the table is shown while speaking');
     assert.ok(sawHatch && sawTable, 'the eggs hatch and the table shows the page');

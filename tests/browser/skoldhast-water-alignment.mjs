@@ -34,8 +34,9 @@ async function inspect(page) {
         const { G, view, app } = window.__skoldhast.debug, p = G.player;
         const ropes = view.layers.waterFront.children.filter(c => c._pts);
         const air = view.layers.far.children.find(c => c.label === 'water-air');
-        const airRects = air?.context.instructions.flatMap(i => i.data.path?.instructions || [])
-            .filter(i => i.action === 'rect').map(i => i.data.slice(0, 4)) || [];
+        // each air rect is drawn twice since 1 October (the colour, then the pencil hatch): count each once
+        const airRects = [...new Map((air?.context.instructions.flatMap(i => i.data.path?.instructions || [])
+            .filter(i => i.action === 'rect').map(i => i.data.slice(0, 4)) || []).map(r => [r.join(','), r])).values()];
         // the highest solid ground at x (thin planks and drawn-only tails excluded)
         const ground = x => {
             let best = null;

@@ -102,7 +102,12 @@ try {
             }
             await settle();
             const returned = await pg.evaluate(() => { const { G, view } = window.__skoldhast.debug; return { position: [G.player.x, G.player.y], focus: view.landFocus, hint: G.camHint }; });
-            assert.deepEqual(returned.position, shown.position, 'inspection never teleports the player');
+            // Arriving in a gallop, the sköldhäst keeps its speed through the inspection and glides to a stop
+            // after it (0.16 HL at Fem hästlängder): a short slide in its own direction, never a jump.
+            const slide = returned.position[0] - shown.position[0];
+            if (shot.gallop) assert.ok(slide <= 0 && slide > -100 && Math.abs(returned.position[1] - shown.position[1]) < 10,
+                `inspection never teleports the galloping player (slid ${slide.toFixed(1)})`);
+            else assert.deepEqual(returned.position, shown.position, 'inspection never teleports the player');
             assert.equal(returned.focus, null); assert.equal(returned.hint, null);
             results.push({ viewport: `${width}x${height}`, lessMotion, ...shown });
         }
