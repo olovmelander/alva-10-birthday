@@ -8,7 +8,9 @@
  *
  * One voice at a time, three kinds:
  *   'say'       a speech box the reader moves on from: it starts at once, silencing anything else;
- *               the box's tap stops it (ui.mjs).
+ *               the box's tap stops it (ui.mjs). A box waits for a thought or hint that is still
+ *               being said to end (asideEnd, up to 6 s), so nobody is cut off mid-sentence.
+ * Whatever is stopped fades out over FADE seconds rather than being cut.
  *   'narration' a caption: the same, and the caller may wait for it (`await ui.caption(…)`).
  *   'aside'     a thought, a hint bubble, a joke: only when nobody is speaking, and the same line at
  *               most once every ASIDE_GAP seconds, so feedback that repeats is shown, not nagged.
@@ -22,6 +24,8 @@ const CACHE = 48;
 // A voice never holds the game up: a clip that has not loaded by then is skipped, and one
 // that does not report its end (a suspended page) is let go a little after its length.
 const LOAD_WAIT = 4, END_SLACK = 1.5;
+// a stopped voice fades out this quickly: soft, not a click, and too short to talk over the next one
+const FADE = 0.12;
 
 /**
  * @param {object} o
@@ -62,8 +66,17 @@ export function createVoice({ audio = () => null, base = BASE, fetch: get = glob
         if (!cur || (kind && cur.kind !== kind)) return;
         const c = cur;
         cur = null;
-        try { c.node?.stop(); } catch { /* not started */ }
+        const t = audio()?.ctx?.currentTime;
+        try {
+            if (c.gain && typeof t === 'number') { c.gain.gain.setTargetAtTime(0, t, FADE / 3); c.node.stop(t + FADE); }
+            else c.node?.stop();
+        } catch { /* not started */ }
         c.finish();
+    }
+    /** Settles when no thought or hint is being said any more (at once if none is), or after max seconds. */
+    function asideEnd(max = 6) {
+        if (cur?.kind !== 'aside') return Promise.resolve();
+        return Promise.race([cur.done, new Promise(r => setTimeout(r, max * 1000))]);
     }
     /**
      * Speak a shown line. Returns a promise that settles when the clip has ended or been stopped,
@@ -90,7 +103,9 @@ export function createVoice({ audio = () => null, base = BASE, fetch: get = glob
             if (!buf) { cur = null; me.finish(); return; }
             const src = a.ctx.createBufferSource();
             src.buffer = buf;
-            src.connect(a.voiceInput);
+            // through its own gain, so that stop() can fade it
+            const gain = a.ctx.createGain?.();
+            if (gain) { src.connect(gain); gain.connect(a.voiceInput); me.gain = gain; } else src.connect(a.voiceInput);
             src.onended = () => { if (cur === me) cur = null; me.finish(); };
             me.node = src;
             src.start();
@@ -100,7 +115,7 @@ export function createVoice({ audio = () => null, base = BASE, fetch: get = glob
         return me.done;
     }
     return {
-        play, stop, seconds, prefetch, ready,
+        play, stop, asideEnd, seconds, prefetch, ready,
         setEnabled(on) { enabled = !!on; if (!enabled) stop(); },
         get speaking() { return cur?.kind || null; }
     };

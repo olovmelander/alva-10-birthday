@@ -206,6 +206,9 @@ export function createUI(host, { assetBase, handlers, voice = null }) {
 
     async function say(lines, { onSpeaker } = {}) {
         voice?.prefetch(lines);
+        // a thought or a hint still being said ends its sentence first (up to 6 s): the box then opens
+        // with its own voice, rather than cutting the other off mid-sentence
+        if (voice?.speaking === 'aside') await voice.asideEnd?.(6);
         for (const [who, text] of lines) {
             if (!text) continue;
             speaker = who;
