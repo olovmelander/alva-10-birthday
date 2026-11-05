@@ -216,8 +216,11 @@ export function createTable({ PIXI, app, assets, ui, audio, G, heroFactory }) {
         t = 0; zoom.s = 1; zoom.ox = zoom.oy = 0; veilAlpha = 0; fadingToWorld = false;
         buildPage(); layout();
         D.tukanActor = { visible: true, x: 410, y: 506, facing: 1, pose: 'idle', vx: 0, distance: 0 };
+        // like Äventyr 1's table: speech at the bottom, the caption at the top, so neither covers the other
+        ui.root?.classList.add('table-mode');
     }
     function hide() {
+        ui.root?.classList.remove('table-mode');
         shown = false; root.visible = false; opaque = false;
         tweens.forEach(tw => tw.resolve()); tweens = [];
         page.removeChildren().forEach(c => c.destroy({ children: true }));
@@ -245,8 +248,9 @@ export function createTable({ PIXI, app, assets, ui, audio, G, heroFactory }) {
         // Alva draws the tukankrabba and her nest; the player draws the first egg with Alva's pencil
         for (const { e } of D.eggs) e.view.visible = false;
         D.alva.visible = true;
-        await drawIn(D.alva, 'alva', 2.6);
+        // told while she draws, so it has gone before the egg's drawing card opens
         ui.caption(TABLE.alvaDraws, 3200);
+        await drawIn(D.alva, 'alva', 2.6);
         await wait(1.2);
         const eggGeometry = () => {
             const [cx, cy] = toCss(660, 380), rx = Math.max(38, 64 * pageScale), ry = rx * 1.3;
