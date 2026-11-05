@@ -31,6 +31,13 @@ export function createStory(G, io) {
     const hintState = { key: null, t: 0, level: 0, said: 0, reminded: false };
     const guided = () => G.helpLevel === 'guided';
     const discovery = (full, observation) => guided() ? full : KLO_COMPANION.story[observation];
+    /** Keeps what a passing remark is about in the picture with the sköldhäst for a while, without taking
+     *  the controls (view.mjs updateCamera). box: [x0, x1, y0, y1] in horse lengths. */
+    const lookAt = (box, seconds = 4) => {
+        const look = { scene: G.sceneId, x0: h(box[0]), x1: h(box[1]), y0: h(box[2]), y1: h(box[3]) };
+        G.camLook = look;
+        G.later(seconds, () => { if (G.camLook === look) G.camLook = null; });
+    };
     const landLook = async (s, id, inspect, frame) => {
         const before = G.worldInspection, hold = { player: G.player };
         G.worldInspection = hold;
@@ -379,13 +386,14 @@ export function createStory(G, io) {
         async run(s) {
             s.stinger('aha'); s.checkpoint('steppe');
             if (!F.has('hint_teach')) { F.add('hint_teach'); s.remark(['horse', STORY.k1.teachStreck]); }
+            lookAt([75.3, 82.4, -2.15, 0.65], 4); // "Bron håller!": the bridge, which a galloping hero leaves behind
             await s.remark(F.has('ch2_open') ? STORY.k1.bridgeMapDone : STORY.k1.bridgeDone);
         }
     });
     beat('k1_boardwalk', {
         on: 'latch', filter: (e) => e.flag === 'spangen_flag',
         lock: false,
-        async run(s) { await s.remark(STORY.k1.boardwalkLesson); }
+        async run(s) { lookAt([88.5, 92.8, -3.2, 0], 4.5); await s.remark(STORY.k1.boardwalkLesson); } // the wheel and the flag going up
     });
 
     beat('k1_glimpse', {
@@ -654,7 +662,8 @@ export function createStory(G, io) {
     // The same frond, current, fold and loose fragment explain each next action.
     beat('k2_kelp_freed', {
         on: 'kelpFreed', lock: false,
-        async run(s) { io.save(); s.stinger('aha'); await s.remark(STORY.k2.kelpFreed); }
+        // "Nu når strömmen ända upp till vecket": the hook and the fold, about 5 HL behind the sköldhäst
+        async run(s) { io.save(); s.stinger('aha'); lookAt([33.8, 42.2, 7.4, 11.9], 4.5); await s.remark(STORY.k2.kelpFreed); }
     });
     beat('k2_fold_flat', {
         on: 'flattened', filter: (e) => e.id === 'corner', lock: false,
@@ -799,6 +808,8 @@ export function createStory(G, io) {
             }, { x0: tower.x - h(6.2), x1: tower.x + h(4), y0: gallery.y - h(3.5), y1: tower.y + h(1.5) });
             s.camFree();
             s.checkpoint('viken');
+            // the three chains from the shutters: to the bottom, the gallery's rope and the pier
+            if (guided() && !F.has('hint_chains')) lookAt([11.5, 33.8, -10.8, 7.6], 6);
             hintOnce('chains', STORY.k3.chains);
         }
     });
@@ -818,6 +829,20 @@ export function createStory(G, io) {
             await s.fx('vista', { scene: 'viken', lighthouse: true, comparison: true,
                 whileVisible: () => s.say(discovery(STORY.k3.mirror, 'bayReflection')), hold: 0.6 });
             s.checkpoint('pier');
+        }
+    });
+
+    // Hiding on the pier again shows the lighthouse in the water again, briefly and without words, until the
+    // lamp is lit: Klo's help still speaks of comparing with the reflection (5 November)
+    let mirrorAgainAt = -Infinity;
+    beat('k3_mirror_again', {
+        on: 'still', repeat: true,
+        filter: (e) => e.id === 'bay' && inScene('viken') && done('k3_mirror') && !F.has('lamp_lit') && G.time - mirrorAgainAt > 8,
+        async run(s) {
+            mirrorAgainAt = G.time;
+            await s.wait(0.5);
+            if (!P().hidden || F.has('lamp_lit')) return;
+            await s.fx('vista', { scene: 'viken', lighthouse: true, comparison: true, whileVisible: () => s.wait(2.4), hold: 0.3 });
         }
     });
 

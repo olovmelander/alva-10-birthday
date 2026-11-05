@@ -199,6 +199,24 @@ export function createStory(G, io) {
 
     const BALL_LOOK = { x0: 55.6 * HL, x1: 61.4 * HL, y0: -1.8 * HL, y1: 0.8 * HL };
 
+    /** Skatan keeps clear of the sköldhäst on her branch: if it comes right up to her, she hops over her nest
+     *  to its other side, so she is never hidden behind it (the trade is at the nest, wherever she stands). */
+    function skataAside(dt) {
+        const sk = G.actors.skata, mp = G.scenes.strand.magpie, p = G.player;
+        if (!sk?.visible || sk.scene !== 'strand' || G.sceneId !== 'strand' || F.has('eggs_in_nest')) return;
+        if (!sk.hop && p.surface?.id === mp.surface && Math.abs(p.x - sk.x) < 0.6 * HL) {
+            const to = sk.x > mp.x ? mp.x - 0.6 * HL : mp.x + 0.5 * HL;
+            if (Math.abs(p.x - to) > 0.8 * HL) sk.hop = { from: sk.x, to, t: 0 };
+        }
+        if (!sk.hop) return;
+        sk.hop.t = Math.min(1, sk.hop.t + dt / 0.45);
+        const u = sk.hop.t;
+        sk.x = sk.hop.from + (sk.hop.to - sk.hop.from) * u;
+        sk.y = mp.y - Math.sin(u * Math.PI) * 0.5 * HL;
+        sk.facing = Math.sign(p.x - sk.x) || -1;
+        if (u >= 1) { sk.y = mp.y; sk.hop = null; }
+    }
+
     function stage() {
         const p = G.player;
         for (const [who, off] of [['klo', 1.5], ['tukan', 2.6]]) {
@@ -704,6 +722,7 @@ export function createStory(G, io) {
                 if (a.scene !== G.sceneId || !a.visible) continue;
                 if (a.id === 'klo' || a.id === 'tukan') a.lookAt = G.player.x;
             }
+            skataAside(dt);
         },
         running: () => !!current || queue.length > 0,
         objective,

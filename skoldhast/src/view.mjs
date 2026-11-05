@@ -2640,6 +2640,22 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
                 cam.snap = false; return;
             }
         }
+        // What a passing remark is about comes into the picture with the sköldhäst while it is read (G.camLook, set
+        // by story.mjs lookAt): the camera slides and steps back to at most 70 % of its zoom. The player keeps the
+        // controls, so the sköldhäst always stays in the picture: if both cannot fit, the camera goes as far toward
+        // the subject as that allows (5 November).
+        const look = !hint && !landFocus && !mapAssembly && G.camLook?.scene === S.id ? G.camLook : null;
+        if (look) {
+            const pad = { x0: look.x0 - h(.5), x1: look.x1 + h(.5), y0: look.y0 - h(.3), y1: look.y1 + h(.2) };
+            const me = { x0: snap.x - h(.7), x1: snap.x + h(.7), y0: snap.y - h(1.6), y1: snap.y + h(.2) };
+            const all = { x0: Math.min(pad.x0, me.x0), x1: Math.max(pad.x1, me.x1), y0: Math.min(pad.y0, me.y0), y1: Math.max(pad.y1, me.y1) };
+            zoom = Math.max(zoom * .7, Math.min(zoom, W / (all.x1 - all.x0), H / (all.y1 - all.y0)));
+            const vw = W / zoom, vh = H / zoom;
+            if (all.x1 - all.x0 <= vw) tx = clamp(tx, all.x1 - vw / 2, all.x0 + vw / 2);
+            else tx = clamp((pad.x0 + pad.x1) / 2, me.x1 - vw / 2, me.x0 + vw / 2);
+            if (all.y1 - all.y0 <= vh) ty = clamp(ty, all.y1 - vh / 2, all.y0 + vh / 2);
+            else ty = clamp((pad.y0 + pad.y1) / 2, me.y1 - vh / 2, me.y0 + vh / 2);
+        }
         // keep inside the scene
         const b = S.def.bounds;
         const hw = W / zoom / 2, hh = H / zoom / 2;
