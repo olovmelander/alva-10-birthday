@@ -1832,6 +1832,25 @@ export function createView(PIXI, app, { assets, G, heroFactory }) {
         return { x: W * 0.7, y: drawn + (sky - drawn) * e, r };
     }
 
+    /** In a conversation the one speaking comes into the picture with the sköldhäst: the camera slides
+     *  over (and on a narrow screen steps back a little) until both fit. Someone too far away for that
+     *  is shown by the edge badge (ui.mjs) instead, and the sköldhäst stays in the picture. */
+    function frameSpeaker(tx, ty, zoom, W, H) {
+        const who = G.speaker, a = who && who !== 'horse' ? G.actors[who] : null, p = G.player;
+        if (!a || a.scene !== S.id || a.visible === false || G.hideHero) return { tx, ty, zoom };
+        const head = who === 'moln' ? h(0.6) : who === 'klo' ? h(0.45) : h(1.1);
+        const side = Math.min(h(1.1), W / zoom * 0.16);
+        let x0 = Math.min(p.x - h(0.7), a.x - side), x1 = Math.max(p.x + h(0.7), a.x + side);
+        const y0 = Math.min(p.y - h(1.6), a.y - head - h(0.35)), y1 = Math.max(p.y + h(0.2), a.y + h(0.2));
+        // never further out than three quarters of the usual picture
+        zoom = Math.max(zoom * 0.75, Math.min(zoom, W / (x1 - x0), H / (y1 - y0)));
+        const vw = W / zoom, vh = H / zoom;
+        if (x1 - x0 <= vw) tx = clamp(tx, x1 - vw / 2, x0 + vw / 2);
+        else tx = p.x + Math.sign(a.x - p.x) * (vw / 2 - h(0.9)); // as far toward them as keeps the sköldhäst in
+        if (y1 - y0 <= vh) ty = clamp(ty, y1 - vh / 2, y0 + vh / 2);
+        return { tx, ty, zoom };
+    }
+
     function updateCamera(dt, snap, W, H) {
         const def = S.def, b = def.bounds;
         let zoom = Math.min(W / h(11), H / h(6.2));
@@ -1844,6 +1863,9 @@ export function createView(PIXI, app, { assets, G, heroFactory }) {
         let tx = snap.x + (snap.facing || 1) * Math.min(h(1.6), W / zoom * 0.12), ty = snap.y - (p.mode === 'swim' ? h(0.2) : lift);
         const hint = G.camHint;
         if (hint) { tx = hint.x; ty = hint.y; zoom *= hint.zoom || 1; }
+        // a story's view that shows something far away keeps its frame; one around the sköldhäst
+        // (a conversation staged at the nest) still takes in the speaker
+        if (!hint || Math.abs(hint.x - snap.x) < W / zoom * 0.45) ({ tx, ty, zoom } = frameSpeaker(tx, ty, zoom, W, H));
         const vw = W / zoom, vh = H / zoom;
         tx = vw >= b.x1 - b.x0 ? (b.x0 + b.x1) / 2 : clamp(tx, b.x0 + vw / 2, b.x1 - vw / 2);
         ty = vh >= b.y1 - b.y0 ? (b.y0 + b.y1) / 2 : clamp(ty, b.y0 + vh / 2, b.y1 - vh / 2);

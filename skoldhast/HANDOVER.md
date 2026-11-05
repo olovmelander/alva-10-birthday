@@ -1,5 +1,45 @@
 # Sköldhästen – handover
 
+## You can see who is speaking, everywhere; Äventyr 2's sköldhäst gallops in on its hooves (5 November)
+
+Pappa saw two things in Äventyr 2's opening:
+- The sköldhäst galloped onto the table's page with its legs in the air.
+- Some speakers could not be seen: Mira and Alva talk over an empty page, and on a phone held upright Klo spoke
+  from out of the picture.
+
+He asked that the speakers be visible in every part of the game, "på något smart sätt".
+
+- **The legs.** The table's hand-made hero state put the sköldhäst at page y 500 and its ground at 0, so the hooves
+  reached for the top of the page. Ground and body now share the same line. The pair also stops beside Tukankrabban
+  instead of in front of her legs. `skoldhast-a2` checks every frame of the gallop-in: each hoof must stay far below
+  the head. Without the fix, 88 frames fail. Shots: `docs/skoldhast/shots/visual-sweep/a2-table-gallop*.webp`.
+- **Speakers are shown in three ways:**
+  - **The pencil mark** (already there) sits over a speaker who is in the picture.
+  - **A badge at the edge of the screen**, new in `src/ui.mjs`, for both adventures. If a speaker is drawn on the page
+    but out of the picture, their face appears in a round paper badge at that edge, with a rust-coloured point toward
+    them. It slides past the speech box and the round buttons.
+  - **In Äventyr 2 the camera takes the speaker in** (`frameSpeaker` in `adventures/adventure-2/view.mjs`). While
+    someone speaks, the camera slides over until they and the sköldhäst both fit, and steps back to at most 75 % of
+    the usual zoom. If the speaker is further away than that, the sköldhäst stays in the picture and the badge points
+    to them. A story view of something far away (an egg, the cave) keeps its own frame. A view staged around the
+    sköldhäst, such as the conversation at the nest, still takes in the speaker.
+- **Mira and Alva are still never drawn: their pencils speak for them.**
+  - At Äventyr 2's table, while one of them speaks, her own pencil rests on her side of the page and bobs as she
+    talks: Mira's purple one on the left, Alva's (with the sleeve) on the right. It is the same pencil that draws.
+    The speaking mark sits on it.
+  - The name tab's picture is now that same pencil in both adventures. Alva's used to be a green pencil that matched
+    nothing on the page. Äventyr 1's one exchange between them, at the epilogue, now has the pencils in the tab too.
+- **Checks in `skoldhast-a2`:**
+  - Every line in the prologue at the table, at the nest, in the finale and in the epilogue must show its speaker,
+    with the mark or the badge.
+  - A new check, "who speaks is seen on a phone held upright", stages Klo 4 HL ahead: the camera must take him in,
+    with the mark over him. At 22 HL the badge must point to him while the sköldhäst stays in the picture.
+  - New option `--only <words in a check's name>`.
+- **Not changed:** Äventyr 1's camera does not slide to a speaker. Its conversations are staged with `s.cam`, and at the
+  opening table every line had its mark at 390×844. A speaker out of the picture there now gets the badge.
+- **Frågor till Pappa:** is the badge clear enough on Alva's phone? It is about 50 px, with a gentle pulse that
+  "Mindre rörelse" turns off.
+
 ## A sweep for silent visual faults like the lighthouse's (5 November)
 
 Pappa asked whether there were more visual bugs like the lighthouse that no longer mirrored. That one was a silent

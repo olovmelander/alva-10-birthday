@@ -49,6 +49,26 @@ const profile = (flags, checkpoint = 'start') => ({ v: 2, contentVersion: 1, lab
 const dbg = (p, fn, arg) => p.evaluate(fn, arg);
 const shot = async (p, name) => { if (out) await p.screenshot({ path: path.join(out, name + '.png') }); };
 
+/** Records, for every line in the speech box, whether its speaker was shown: the speaking mark over them, or
+ *  the edge badge pointing to them (src/ui.mjs). Alva's and Mira's pencils speak for them at the table. */
+const watchSpeakers = p => dbg(p, () => {
+    const seen = window.__a2Speakers = new Map();
+    const tick = () => {
+        const dlg = document.querySelector('.sk-dialogue.on');
+        if (dlg) {
+            const who = [...dlg.classList].find(c => c.startsWith('who-'))?.slice(4);
+            const key = `${who}: ${dlg.querySelector('.sk-dlg-text').textContent}`;
+            const s = seen.get(key) || { who, frames: 0, shown: 0 };
+            s.frames++;
+            if (document.querySelector('.sk-speaking.on, .sk-speaking-edge.on')) s.shown++;
+            seen.set(key, s);
+        }
+        requestAnimationFrame(tick);
+    };
+    tick();
+});
+const unseenSpeakers = p => dbg(p, () => [...window.__a2Speakers].filter(([, s]) => s.shown === 0).map(([line]) => line));
+
 /** Answers dialogue and drawing prompts until done() is true. */
 async function playThrough(p, done, { maxSeconds = 240, onDraw = null, label = '' } = {}) {
     const end = Date.now() + maxSeconds * 1000;
@@ -97,11 +117,13 @@ if (!quick) await check('the prologue at Alva\'s table leads to the nest (844×3
         };
         tick();
     });
+    await watchSpeakers(p);
     await p.click('.a2-title .sk-pbtn.primary');
     const drawn = [];
     await playThrough(p, () => dbg(p, () => { const d = window.__skoldhast2?.debug; return d?.mode === 'play' && !d.table.shown; }),
         { label: 'prologue', onDraw: async (prompt) => { drawn.push(prompt); await shot(p, `a2-draw${drawn.length}-844x390`); } });
     assert.ok(drawn.some(t => /Alva/.test(t)) && drawn.some(t => /Miras/.test(t)), 'the player draws with Alva\'s pencil (the first egg) and Mira\'s (the cloud): ' + drawn.join(' | '));
+    assert.deepEqual(await unseenSpeakers(p), [], 'every speaker at the table and at the nest is shown while speaking');
     const legs = await dbg(p, () => window.__a2Legs);
     assert.ok(legs.frames > 10, `the sköldhäst gallops in at the table (${legs.frames} frames)`);
     assert.equal(legs.upside, 0, `the sköldhäst gallops in on its hooves (${legs.upside} of ${legs.frames} frames with a hoof up by its head)`);
@@ -138,8 +160,49 @@ await check('all four pages draw at phone portrait size (390×844)', async () =>
     await p.close();
 });
 
+await check('who speaks is seen on a phone held upright: the camera takes Klo in, or a badge points to him (390×844)', async () => {
+    const p = await page({ width: 390, height: 844 }, profile([...SEEN]));
+    await p.click('.a2-title .sk-pbtn.primary');
+    await p.waitForFunction(() => window.__skoldhast2?.debug?.mode === 'play', null, { timeout: 20000 });
+    await p.waitForFunction(() => { const { G, story } = window.__skoldhast2.debug; return !story.running() && !G.busy; }, null, { timeout: 20000 });
+    // Klo stands a little ahead, out of the picture, and speaks
+    const talk = (hl, line) => dbg(p, ([hl, line]) => {
+        const { G, ui } = window.__skoldhast2.debug;
+        Object.assign(G.actors.klo, { scene: G.sceneId, x: G.player.x + hl * 200, y: G.player.y, visible: true, follow: false, staged: true, pose: 'idle' });
+        ui.say([['klo', line]]);
+    }, [hl, line]);
+    const state = () => dbg(p, () => {
+        const { view } = window.__skoldhast2.debug, b = view.speakerBounds('klo'), hero = view.heroScreen();
+        return { klo: b && { x: (b.minX + b.maxX) / 2, y: b.minY }, hero: { x: hero.x, y: hero.y }, w: innerWidth, h: innerHeight,
+            mark: !!document.querySelector('.sk-speaking.on'), edge: !!document.querySelector('.sk-speaking-edge.on') };
+    });
+    const before = await state();
+    await talk(4, 'Hit!');
+    await p.waitForFunction(() => document.querySelector('.sk-speaking.on'), null, { timeout: 10000 }).catch(() => {});
+    const near = await state();
+    await shot(p, 'a2-speaker-near-390x844');
+    assert.ok(near.klo.x > 0 && near.klo.x < near.w, `the camera takes Klo in (${Math.round(near.klo.x)} of ${near.w})`);
+    assert.ok(near.hero.x > 0 && near.hero.x < near.w, 'and keeps the sköldhäst');
+    assert.ok(near.mark, 'the speaking mark is over Klo');
+    await p.click('.sk-dialogue.on .sk-dlg-next', { force: true });
+    await p.waitForTimeout(400);
+    await talk(22, 'Här borta!');
+    await p.waitForFunction(() => document.querySelector('.sk-speaking-edge.on'), null, { timeout: 10000 }).catch(() => {});
+    const far = await state();
+    await shot(p, 'a2-speaker-far-390x844');
+    assert.ok(far.hero.x > 0 && far.hero.x < far.w, 'too far to take in: the sköldhäst stays in the picture');
+    assert.ok(far.klo.x > far.w && far.edge, 'a badge with his face at the right edge points to him');
+    await p.click('.sk-dialogue.on .sk-dlg-next', { force: true });
+    await p.waitForTimeout(1500);
+    const after = await state();
+    assert.ok(!after.edge && !after.mark && Math.abs(after.hero.x - before.hero.x) < 40, 'the camera returns when the talk ends');
+    assert.deepEqual(p.errors, []);
+    await p.close();
+});
+
 await check('the finale: ten eggs in the nest, Mira\'s moon, the hatching, the table, completion saved (1440×900)', async () => {
     const p = await page({ width: 1440, height: 900 }, profile([...SEEN, ...EGGS, 'p2_bridge', 'p7_vine', 'p4_lit', 'cloud_met', 'coin_got', 'coin_given', 'clue_cloudCries', 'clue_afraid']));
+    await watchSpeakers(p);
     await p.click('.a2-title .sk-pbtn.primary');
     await p.waitForFunction(() => window.__skoldhast2?.debug?.mode === 'play', null, { timeout: 20000 });
     const before = await dbg(p, () => window.__skoldhast2.debug.story.objective().id);
@@ -157,6 +220,7 @@ await check('the finale: ten eggs in the nest, Mira\'s moon, the hatching, the t
         return s.ended && !s.table && !(await p.$('.sk-panel.on')) && !(await p.$('.sk-dialogue.on')) && (await dbg(p, () => !window.__skoldhast2.debug.story.running()));
     }, { label: 'finale', maxSeconds: 480, onDraw: async (prompt) => { traced.push(prompt); await shot(p, `a2-finale-draw${traced.length}-1440x900`); } });
     assert.ok(/Mira/.test(traced[0]) && /Alva/.test(traced[1]), 'Mira traces the moon, then Alva the stars: ' + traced.join(' | '));
+    assert.deepEqual(await unseenSpeakers(p), [], 'every speaker in the finale and at the table is shown while speaking');
     assert.ok(sawHatch && sawTable, 'the eggs hatch and the table shows the page');
     await p.waitForTimeout(1500);
     await shot(p, 'a2-moonlit-1440x900');

@@ -145,20 +145,44 @@ export function createTable({ PIXI, app, assets, ui, audio, G, heroFactory }) {
     function pencilAt(which, x, y) {
         const p = which === 'alva' ? D.alvaPencil : D.miraPencil;
         D.alvaPencil.visible = which === 'alva'; D.miraPencil.visible = which === 'mira';
-        p.position.set(x, y);
+        p.position.set(x, y); p.rotation = 0;
     }
     function hidePencils() { D.alvaPencil.visible = D.miraPencil.visible = false; }
+    let drawing = 0;
     async function drawIn(node, who, sec, { y = null } = {}) {
         const r = revealer(node);
         const b = r.bounds;
         audio?.sfx?.('pencil', { len: Math.min(1.2, sec) });
-        await tween(sec, (u) => {
-            r.set(u);
-            const x = node.x + (b.x + b.width * u) * node.scale.x;
-            const yy = y ?? node.y + (b.y + b.height * (0.35 + 0.3 * Math.sin(u * 18))) * node.scale.y;
-            pencilAt(who, x, yy);
-        });
+        drawing++;
+        try {
+            await tween(sec, (u) => {
+                r.set(u);
+                const x = node.x + (b.x + b.width * u) * node.scale.x;
+                const yy = y ?? node.y + (b.y + b.height * (0.35 + 0.3 * Math.sin(u * 18))) * node.scale.y;
+                pencilAt(who, x, yy);
+            });
+        } finally { drawing--; }
         r.done(); hidePencils();
+    }
+
+    // Alva and Mira are heard, never seen. While one of them speaks, her own pencil rests on her side of the
+    // page (Alva's on the right, Mira's on the left), bobbing as she talks, and the speaking mark sits on it.
+    const TALK_REST = { alva: { x: 640, y: 652 }, mira: { x: 70, y: 652 } };
+    let talkPencil = null;
+    function stepTalkPencil(dt, rm) {
+        const who = G.speaker === 'alva' || G.speaker === 'mira' ? G.speaker : null;
+        if (drawing) { talkPencil = null; return; }
+        if (!who) { if (talkPencil) { hidePencils(); talkPencil = null; } return; }
+        const p = who === 'alva' ? D.alvaPencil : D.miraPencil, rest = TALK_REST[who];
+        if (talkPencil?.who !== who) {
+            // it comes up from below the page, the way a hand brings a pencil to the paper
+            talkPencil = { who, x: rest.x + 30, y: rest.y + 90, t: 0 };
+            D.alvaPencil.visible = who === 'alva'; D.miraPencil.visible = who === 'mira';
+        }
+        const k = rm ? 1 : 1 - Math.exp(-7 * dt);
+        talkPencil.x += (rest.x - talkPencil.x) * k; talkPencil.y += (rest.y - talkPencil.y) * k; talkPencil.t += dt;
+        p.position.set(talkPencil.x, talkPencil.y + (rm ? 0 : Math.sin(talkPencil.t * 8) * 5));
+        p.rotation = rm ? 0 : Math.sin(talkPencil.t * 5.5) * 0.04;
     }
 
     function toCss(x, y) { return [pageX + x * pageScale, pageY + y * pageScale]; }
@@ -185,6 +209,7 @@ export function createTable({ PIXI, app, assets, ui, audio, G, heroFactory }) {
         }
         if (!D) return;
         const rm = !!G.lessMotion;
+        stepTalkPencil(dt, rm);
         D.tukan.update(dt, D.tukanActor, t, { reducedMotion: rm });
         D.eggs.forEach(({ e }) => e.update(dt, t, {}));
         D.hatch.forEach((k, i) => k.update(dt, t, { facing: Math.sin(t * 0.7 + i) > 0 ? 1 : -1, reducedMotion: rm }));
@@ -224,7 +249,7 @@ export function createTable({ PIXI, app, assets, ui, audio, G, heroFactory }) {
         shown = false; root.visible = false; opaque = false;
         tweens.forEach(tw => tw.resolve()); tweens = [];
         page.removeChildren().forEach(c => c.destroy({ children: true }));
-        D = null;
+        D = null; talkPencil = null;
     }
 
     function lightning() {
@@ -425,6 +450,9 @@ export function createTable({ PIXI, app, assets, ui, audio, G, heroFactory }) {
             if (!D) return null;
             if (who === 'tukan') return D.tukan.view.getBounds();
             if (who === 'klo' && D.kloRig) return D.kloRig.headBounds();
+            if (who === 'horse' && D.hero && D.hero.view.alpha > 0.5) return D.hero.headBounds();
+            if (who === 'alva' && D.alvaPencil.visible) return D.alvaPencil.getBounds();
+            if (who === 'mira' && D.miraPencil.visible) return D.miraPencil.getBounds();
             return null;
         },
         destroy() { hide(); root.destroy({ children: true }); }

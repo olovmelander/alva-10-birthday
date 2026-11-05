@@ -36,10 +36,6 @@ const FACES = {
     moln: `<svg viewBox="0 0 64 48" aria-hidden="true"><g fill="#b3aecb" stroke="#5f587e" stroke-width="2"><circle cx="18" cy="28" r="11"/><circle cx="30" cy="20" r="14"/>
         <circle cx="44" cy="24" r="12"/><circle cx="32" cy="32" r="12"/></g><g fill="#b3aecb"><circle cx="30" cy="26" r="12"/></g>
         <circle cx="26" cy="26" r="2.4" fill="#2b2840"/><circle cx="38" cy="26" r="2.4" fill="#2b2840"/><path d="M28 34 Q32 31 36 34" stroke="#2b2840" stroke-width="2" fill="none"/></svg>`,
-    mira: `<svg viewBox="0 0 64 48" aria-hidden="true"><path d="M8 40 L44 8 L52 14 L16 46 Z" fill="#a98ad0" stroke="#5e4a7d" stroke-width="2"/>
-        <path d="M8 40 L4 47 L16 46 Z" fill="#f3e3c4" stroke="#5e4a7d" stroke-width="1.5"/><path d="M4 47 L7 43" stroke="#3b3530" stroke-width="2"/></svg>`,
-    alva: `<svg viewBox="0 0 64 48" aria-hidden="true"><path d="M8 40 L44 8 L52 14 L16 46 Z" fill="#6c9a5a" stroke="#3f5f33" stroke-width="2"/>
-        <path d="M8 40 L4 47 L16 46 Z" fill="#f3e3c4" stroke="#3f5f33" stroke-width="1.5"/><path d="M4 47 L7 43" stroke="#3b3530" stroke-width="2"/></svg>`
 };
 const EGG_ICON = '<svg viewBox="0 0 24 30" aria-hidden="true"><ellipse cx="12" cy="16" rx="9.5" ry="12.5" fill="#f7f1e3" stroke="#8d8068" stroke-width="1.6"/><ellipse cx="9" cy="18" rx="4" ry="6" fill="#f3d6dc" opacity=".8"/><ellipse cx="8.5" cy="10" rx="2" ry="3.2" fill="#fff"/></svg>';
 
