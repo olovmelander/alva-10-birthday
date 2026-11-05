@@ -912,7 +912,29 @@ export function createView(PIXI, app, { assets, G, heroFactory, eggTarget = null
             poly(fore, cliff).fill(material('rock')); poly(fore, cliff).fill({ color: 0x2d2a36, alpha: 0.3 });
             for (let k = 0; k < 9; k++) { const y = h(-7 + k * 0.62); fore.moveTo(h(89.4), y).lineTo(h(96.8), y + h(0.12) * Math.sin(k)).stroke(pen.line(0x5a5668, 1.6, 0.45)); }
             for (let k = 0; k < 6; k++) fore.circle(h(90 + k * 1.2), h(-7.5) + 6, h(0.3 + hash(k, 55) * 0.2)).fill(pen.fill(0x3d6a45));
+            // the overhang above the cave was one plain grey slab (5 November): moss along its lip, ferns in its
+            // cracks, and water dripping from the edge where the falls keep it wet
+            const lip = cliff.slice(2, 11);
+            for (let i = 0; i < lip.length - 1; i++) {
+                const [x0, y0] = lip[i], [x1, y1] = lip[i + 1];
+                for (let k = 0; k < 3; k++) {
+                    const u = (k + 0.5) / 3, x = lerp(x0, x1, u), y = lerp(y0, y1, u);
+                    fore.ellipse(x, y - 4, h(0.18 + hash(x, 171) * 0.14), h(0.07)).fill(pen.fill(k % 2 ? 0x4f7a4a : 0x3d6646, 0.9));
+                    if (hash(x, 172) > 0.6) fore.moveTo(x, y).quadraticCurveTo(x + 6, y + h(0.25), x - 2, y + h(0.45 + hash(x, 173) * 0.4)).stroke(pen.line(0x4f7a4a, 2.4, 0.8)); // hanging moss
+                }
+            }
+            for (const [fx, fy] of [[h(91.2), h(-4.4)], [h(94.6), h(-5.9)], [h(97.8), h(-3.6)]]) {
+                fore.moveTo(fx - 30, fy + 6).lineTo(fx + 34, fy - 4).stroke(pen.line(0x2a2633, 2, 0.55)); // a crack
+                for (let k = 0; k < 4; k++) fore.moveTo(fx + k * 6, fy).quadraticCurveTo(fx + k * 6 - 18 + k * 10, fy - 26, fx + k * 6 - 26 + k * 16, fy - 34).stroke(pen.line(k % 2 ? 0x5f8a55 : 0x4a7444, 2.6, 0.85));
+            }
             lineAlong(fore, cliff.slice(2).concat([cliff[0]])).stroke(pen.line(INK, 2.4));
+            for (const dx of [89.6, 91.8, 93.5, 95.9, 97.2]) {
+                const d = new PIXI.Graphics();
+                d.moveTo(0, -5).quadraticCurveTo(3.5, 1, 0, 4).quadraticCurveTo(-3.5, 1, 0, -5).fill({ color: 0xcfe6f2, alpha: 0.9 });
+                const x = h(dx), y0 = heightOn(cliff.slice(2, 11).map(([px, py]) => [px, py]).sort((a, b) => a[0] - b[0]), x) ?? h(-1.7);
+                d.position.set(x, y0); L.fore.addChild(d);
+                S.anim.push({ kind: 'drip', c: d, y0, y1: y0 + h(1.5), o: hash(dx, 174) });
+            }
             const falls = new PIXI.Container(); L.waterFront.addChild(falls);
             const fg = new PIXI.Graphics();
             // the sheet of water: its edges waver as falling water does, fuller at the lip (5 November: it was a ruled
@@ -1587,6 +1609,7 @@ export function createView(PIXI, app, { assets, G, heroFactory, eggTarget = null
             else if (a.kind === 'foam' && !rm && Math.random() < dt * 14) emit('drop', a.x + (Math.random() - 0.5) * h(1.4), a.y, 1, { speed: 260, cone: 1.2, life: 0.6 });
             else if (a.kind === 'mist') { a.s.x = a.x0 + Math.sin(t * 0.05 + a.o) * h(1.2) * (rm ? 0.2 : 1); a.s.alpha = (a.base ?? 0.26) + 0.08 * Math.sin(t * 0.2 + a.o); }
             else if (a.kind === 'sway') a.c.rotation = rm ? 0 : Math.sin(t * 0.9 + a.o) * 0.025 + (stormShown > 0.5 ? Math.sin(t * 2.1 + a.o) * 0.02 : 0);
+            else if (a.kind === 'drip') { const u = rm ? 0.05 : (t * 0.55 + a.o) % 1; a.c.y = lerp(a.y0, a.y1, u * u); a.c.alpha = u < 0.85 ? 0.9 : (1 - u) * 6; }
             else if (a.kind === 'fish') {
                 // a slow figure of eight, turning to face the way it swims
                 const ph = t * a.v * (rm ? 0.4 : 1) + a.o, nx = a.x0 + Math.sin(ph) * a.r, ny = a.y0 + Math.sin(ph * 2) * h(0.25);
