@@ -380,7 +380,8 @@ export function createView(PIXI, app, { assets, G, heroFactory, eggTarget = null
             L.water.addChild(gw);
             // the surface: a pencil line and its light
             const surf = new PIXI.Graphics();
-            const wave = resampleX([[w.x0, w.top], [w.x1, w.top]], 40).map(([x, y], i) => [x, y + Math.sin(i * 0.9) * 4]);
+            // a gentle wave you can see at play zoom (at 4 units it read as a ruled line, 5 November)
+            const wave = resampleX([[w.x0, w.top], [w.x1, w.top]], 40).map(([x, y], i) => [x, y + Math.sin(i * 0.9) * 7 + Math.sin(i * 0.37) * 4]);
             lineAlong(surf, wave).stroke(pen.line(0x2c5776, 3, 0.9));
             lineAlong(surf, offset(wave, 7)).stroke(pen.line(0xb7d6e6, 2, 0.5));
             L.waterFront.addChild(surf);
@@ -402,20 +403,38 @@ export function createView(PIXI, app, { assets, G, heroFactory, eggTarget = null
             if (w.kind === 'pipe') front.rect(w.x0, w.top + 6, w.x1 - w.x0, wb - w.top).fill({ color: 0x3d6d8f, alpha: 0.28 });
             else {
                 // only over the water itself: down to its bed, never over the banks
+                // where solid ground stands above the water's surface (a bank, a rock wall inside the water's
+                // span) there is no water: the veil stops at the surface (it used to run down over the rock as a
+                // pale ruled strip, 5 November)
                 const bedAt = (x) => {
                     let best = wb;
                     for (const q of def.surfaces) {
                         if (q.thin || q.hidden || x < q.pts[0][0] || x > q.pts.at(-1)[0]) continue;
                         const y = heightOn(q.pts, x);
-                        if (y > w.top && y < best) best = y;
+                        if (y === null) continue;
+                        if (y <= w.top + 6) return w.top + 2;
+                        if (y < best) best = y;
                     }
                     return best;
                 };
                 const xs = resampleX([[w.x0, 0], [w.x1, 0]], 24).map(([x]) => x);
-                const veil = [...xs.map(x => [x, w.top + 6]), ...xs.slice().reverse().map(x => [x, Math.max(w.top + 6, bedAt(x) + 4)])];
+                const veil = [...xs.map(x => [x, w.top + 6]), ...xs.slice().reverse().map(x => { const b = bedAt(x); return [x, b <= w.top + 2 ? w.top + 6 : Math.max(w.top + 6, b + 4)]; })];
                 poly(front, veil).fill({ color: 0x3d6d8f, alpha: 0.28 });
             }
             L.waterFront.addChildAt(front, 0);
+            // In Kristallgrottan the lit cave water: soft shafts of crystal light slanting down from the surface,
+            // and specks drifting in them (before, the lake was one flat blue box)
+            if (def.underground && w.kind !== 'pipe' && w.x1 - w.x0 > h(4)) {
+                const rays = new PIXI.Graphics();
+                const n = Math.max(3, Math.round((w.x1 - w.x0) / h(3.2)));
+                for (let k = 0; k < n; k++) {
+                    const x = lerp(w.x0, w.x1, (k + 0.5) / n) + (hash(k, w.x0) - 0.5) * h(1.2), wTop = h(0.35 + hash(k, 31) * 0.35), len = h(2.6 + hash(k, 32) * 1.6);
+                    rays.poly([x - wTop, w.top + 8, x + wTop, w.top + 8, x + wTop * 1.9 + h(0.7), w.top + len, x - wTop * 0.6 + h(0.7), w.top + len]).fill({ color: 0xcfeaff, alpha: 0.07 });
+                }
+                rays.blendMode = 'add';
+                L.water.addChild(rays);
+                for (let k = 0; k < 10; k++) twinkleAt(lerp(w.x0, w.x1, hash(k, 41)), w.top + h(0.6 + hash(k, 42) * 2.2), 0.2 + hash(k, 43) * 0.2, 0xdff2ff, L.water);
+            }
             // gentle current marks in the river
             if (w.kind === 'river') {
                 const cur = new PIXI.Container(); L.water.addChild(cur);
@@ -846,12 +865,39 @@ export function createView(PIXI, app, { assets, G, heroFactory, eggTarget = null
             poly(back, trunk).fill(material('bark')); poly(back, trunk).fill(pen.hatch(0x3e2814, 0.55));
             poly(back, [[h(13.2), h(-0.5)], [h(14.6), h(-9)], [h(15.2), h(-13.5)], [h(16.2), h(-13.5)], [h(15.6), h(-9)], [h(14.6), h(-0.5)]]).fill({ color: 0x1d140c, alpha: 0.38 });
             poly(back, [[h(19.4), h(-0.5)], [h(19.0), h(-9)], [h(18.8), h(-13.5)], [h(19.4), h(-13.5)], [h(20.0), h(-9)], [h(20.6), h(-0.5)]]).fill({ color: 0xe8dcc0, alpha: 0.1 });
-            lineAlong(back, trunk).stroke(pen.line(0x2e1d0e, 3));
-            for (let k = 0; k < 26; k++) {
-                const x = h(14.4 + hash(k, 61) * 5.6), y = h(-0.8 - hash(k, 62) * 12.4);
-                back.moveTo(x, y).quadraticCurveTo(x + 10, y - 40, x + 4, y - 80).stroke(pen.line(0x4e331c, 2, 0.6));
+            // Bark you can read even in the storm's dark (5 November; before, the trunk was one flat brown wedge):
+            // long furrows, each a dark groove with a pale ridge beside it, following the trunk's taper
+            const edgeAt = (u, side) => { // the trunk's left (side 0) or right (1) edge at height u (0 foot, 1 top)
+                const a = side ? [[0, 21.6], [0.6, 20.4], [1, 19.8]] : [[0, 13.2], [0.6, 14.6], [1, 15.2]];
+                return u < 0.6 ? lerp(a[0][1], a[1][1], u / 0.6) : lerp(a[1][1], a[2][1], (u - 0.6) / 0.4);
+            };
+            for (let k = 0; k < 34; k++) {
+                const f = (k + 0.5) / 34 + (hash(k, 63) - 0.5) * 0.02, pts = [];
+                const u0 = hash(k, 64) * 0.25, u1 = 0.55 + hash(k, 65) * 0.45;
+                for (let i = 0; i <= 10; i++) {
+                    const u = lerp(u0, u1, i / 10), x0 = edgeAt(u, 0), x1 = edgeAt(u, 1);
+                    pts.push([h(lerp(x0, x1, f)) + Math.sin(u * 23 + k) * 5, h(-0.5 - u * 13)]);
+                }
+                lineAlong(back, pts).stroke(pen.line(0x24170c, 2.6 + hash(k, 66) * 1.6, 0.75));
+                lineAlong(back, pts.map(([x, y]) => [x + 4, y])).stroke(pen.line(0xa98a64, 1.3, 0.35 + 0.25 * (f > 0.6 ? 1 : 0)));
             }
+            // moonlight on the right-hand edge, moss at the foot, and knots where old limbs broke off
+            const lit = []; for (let i = 0; i <= 12; i++) { const u = i / 12; lit.push([h(edgeAt(u, 1)) - 6, h(-0.5 - u * 13)]); }
+            lineAlong(back, lit).stroke(pen.line(0xd8d4e8, 5, 0.22));
+            const moss = []; for (let i = 0; i <= 16; i++) { const x = lerp(13.4, 21.4, i / 16); moss.push([h(x), h(-0.55 - 0.9 - Math.sin(i * 1.9) * 0.25)]); }
+            poly(back, [...moss, [h(21.6), h(-0.5)], [h(13.2), h(-0.5)]]).fill(pen.fill(0x4f6e3e, 0.75));
+            poly(back, [...moss, [h(21.6), h(-0.5)], [h(13.2), h(-0.5)]]).fill(pen.hatch(0x7f9c5a, 0.6));
+            for (const [kx, ky, kr] of [[15.6, -3.4, 0.32], [19.1, -8.8, 0.28], [16.4, -10.9, 0.24]]) {
+                for (let r = 0; r < 3; r++) back.ellipse(h(kx), h(ky), h(kr) * (1 - r * 0.28), h(kr) * 1.3 * (1 - r * 0.28)).stroke(pen.line(r ? 0x6b4a2c : 0x24170c, r ? 1.6 : 2.6, 0.85));
+            }
+            // roots flaring out into the ground on both sides
+            for (const [x0, dir] of [[13.4, -1], [14.2, -1], [20.6, 1], [21.3, 1]]) {
+                back.moveTo(h(x0), h(-1.2)).quadraticCurveTo(h(x0 + dir * 0.5), h(-0.7), h(x0 + dir * 1.3), h(-0.45)).stroke(pen.line(0x3a2614, 14, 0.95));
+                back.moveTo(h(x0), h(-1.2)).quadraticCurveTo(h(x0 + dir * 0.5), h(-0.7), h(x0 + dir * 1.3), h(-0.45)).stroke(pen.line(0x7a5a38, 3, 0.5));
+            }
+            lineAlong(back, trunk).stroke(pen.line(0x2e1d0e, 3));
             back.ellipse(h(17.4), h(-6.2), h(0.5), h(0.7)).fill({ color: 0x1d140c, alpha: 0.9 }); // a hollow
+            back.ellipse(h(17.4), h(-6.2), h(0.56), h(0.77)).stroke(pen.line(0x8a6a44, 3, 0.7));
             for (const [cx, cy, cr] of [[11.6, -14.4, 2.3], [23.2, -14.4, 2.3], [14.2, -15.6, 2.7], [20.6, -15.6, 2.7], [17.4, -16.6, 3.0], [17.4, -14.2, 2.6]]) {
                 crownAt(back, h(cx), h(cy), h(cr), 0x2c5240, 0x5a8a5a, cx * 7.1);
             }

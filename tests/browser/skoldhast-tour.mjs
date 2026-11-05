@@ -67,8 +67,10 @@ await pg.fill('.sk-code-input', 'fyr fjun klo');
 await pg.locator('.sk-panel button', { hasText: 'Fortsätt' }).click();
 await pg.waitForFunction(() => window.__skoldhast.debug.G?.sceneId === 'viken', null, { timeout: 30000 });
 // let the arrival beat finish (tap through its lines)
-for (let i = 0; i < 40; i++) {
-    const busy = await pg.evaluate(() => { const d = window.__skoldhast.debug; if (d.ui.dialogueOpen()) d.ui.advance(); return d.G.busy; });
+// wait until the arrival's story has finished, not only until it stops holding the controls: Viken's arrival
+// frames the lighthouse with a camera hint that a teleport in the middle of it left pinned on every later stop
+for (let i = 0; i < 120; i++) {
+    const busy = await pg.evaluate(() => { const d = window.__skoldhast.debug; if (d.ui.dialogueOpen()) d.ui.advance(); return d.G.busy || d.story.running(); });
     if (!busy && i > 4) break;
     await pg.waitForTimeout(300);
 }
@@ -83,7 +85,7 @@ for (const [scene, name, x, y, mode] of STOPS) {
     await pg.waitForTimeout(900);
     // tap away anything a teleport set off (e.g. Klo's depth measurement)
     for (let i = 0; i < 12; i++) {
-        const open = await pg.evaluate(() => { const d = window.__skoldhast.debug; if (d.ui.dialogueOpen()) { d.ui.advance(); return true; } return !!d.G.busy; });
+        const open = await pg.evaluate(() => { const d = window.__skoldhast.debug; if (d.ui.dialogueOpen()) { d.ui.advance(); return true; } return !!d.G.busy || d.story.running(); });
         if (!open) break;
         await pg.waitForTimeout(350);
     }
