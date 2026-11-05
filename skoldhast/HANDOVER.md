@@ -36,8 +36,13 @@ recorded and played in the game. How it works, and how to record after a text ch
     narrator, Mira and Alva are fetched clip by clip, and that the prologue still reaches the nest.
 - **Checked:**
   - `npm test` passes (427).
-  - In a real browser, `skoldhast-voice` passes. The results of `skoldhast-opening`, `skoldhast-notes`,
-    `skoldhast-launch` and `skoldhast-a2` are below.
+  - In a real browser, all of these pass:
+    - `skoldhast-voice`: 17 clips fetched at the table, and the prologue reaches the nest.
+    - `skoldhast-opening`: every size, cancellation and reopen.
+    - `skoldhast-notes`: Alva's note, now read aloud, takes 61 s at 844×390; tap-to-hurry and skip still work.
+    - `skoldhast-launch`, `skoldhast-a2` and `skoldhast-finale`.
+  - `skoldhast-klo` fails at its first step. It looks for the stick zone and finds none, and it fails the same way on
+    the commit before the voices, so it is a fault in the check, not the game. It is not fixed.
 - **After any text change,** record what is missing and prune what is left over (commands in the audit). The voice test
   fails until you do.
 - **Not heard yet by a person:** every clip passed speech-to-text, but nobody has listened to the whole game. Pappa
