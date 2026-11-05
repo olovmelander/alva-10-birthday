@@ -58,10 +58,13 @@ export function createView(PIXI, app, { assets, G, heroFactory }) {
     app.stage.addChild(root);
     const skyLayer = new PIXI.Container();
     const farLayer = new PIXI.Container();
+    // Mira's moon and Alva's stars: in front of the distant forest and Åsktoppen, which hid them on
+    // phones (the mountain in portrait, the forest bands in landscape), but behind the air and the world
+    const moonLayer = new PIXI.Container(); moonLayer.label = 'moon-layer';
     const world = new PIXI.Container(); world.label = 'world';
     const overlay = new PIXI.Container();
     const atmoBack = new RAW.Container(), atmoFront = new RAW.Container();
-    root.addChild(skyLayer, farLayer, atmoBack, world, atmoFront, overlay);
+    root.addChild(skyLayer, farLayer, moonLayer, atmoBack, world, atmoFront, overlay);
     const atmo = createAir(RAW, app, { back: atmoBack, front: atmoFront });
     const L = {};
     for (const name of ['back', 'water', 'terrain', 'mid', 'objects', 'actors', 'hero', 'waterFront', 'fore', 'fx']) {
@@ -134,7 +137,7 @@ export function createView(PIXI, app, { assets, G, heroFactory }) {
         s.position.set(hash(i, 1), hash(i, 2) * 0.55); s.scale.set(0.25 + hash(i, 3) * 0.5); s._tw = hash(i, 4) * 6;
         stars.addChild(s);
     }
-    const moon = new PIXI.Container(); moon.label = 'moon'; skyLayer.addChild(moon);
+    const moon = new PIXI.Container(); moon.label = 'moon'; moonLayer.addChild(moon);
     const moonGlow = new RAW.Sprite(TX.mote); moonGlow.anchor.set(0.5); moonGlow.scale.set(9); moonGlow.alpha = 0.55; moonGlow.tint = 0xfff2c4;
     const moonG = new PIXI.Graphics();
     moonG.circle(0, 0, 60).fill(pen.fill(0xf8ebb4)).stroke(pen.line(0xb79a4a, 3));
@@ -142,9 +145,9 @@ export function createView(PIXI, app, { assets, G, heroFactory }) {
     moonG.moveTo(-40, 30).quadraticCurveTo(-10, 52, 30, 44).stroke(pen.line(0xc9b064, 2, 0.6));
     moon.addChild(moonGlow, moonG);
     moon.visible = false;
-    const moonState = { shown: 0, target: 0 };
+    const moonState = { shown: 0, target: 0, rise: 0 };
     // the stars Alva draws round Mira's moon
-    const alvaStars = new RAW.Container(); alvaStars.visible = false; skyLayer.addChild(alvaStars);
+    const alvaStars = new RAW.Container(); alvaStars.visible = false; moonLayer.addChild(alvaStars);
     const ALVA_STARS = [[-2.6, 0.3, 1.9], [-1.4, -0.9, 1.1], [1.5, -0.7, 1.3], [2.3, 0.6, 1.0], [-3.6, -0.6, 0.9], [0.4, 1.7, 0.8]];
     for (const [dx, dy, k] of ALVA_STARS) { const s = new RAW.Sprite(TX.star); s.anchor.set(0.5); s._d = [dx, dy, k]; alvaStars.addChild(s); }
     const starsState = { shown: 0 };
@@ -1793,7 +1796,11 @@ export function createView(PIXI, app, { assets, G, heroFactory }) {
         // the moon, where Mira drew it
         moonState.shown = lerp(moonState.shown, G.flags.has('moon') ? 1 : moonState.target, 1 - Math.exp(-1.6 * dt));
         moon.visible = moonState.shown > 0.01 && kind !== 'cave';
-        const mp = moonScreen(W, H);
+        // once Alva's stars are drawn, the moon and its stars rise into the open sky
+        const riseTo = G.flags.has('alva_stars') ? 1 : 0;
+        // it glides only while seen (the finale); a moon that fades in after a reload is already up
+        moonState.rise = G.lessMotion || moonState.shown < 0.02 ? riseTo : lerp(moonState.rise, riseTo, 1 - Math.exp(-0.9 * dt));
+        const mp = moonScreen(W, H, moonState.rise);
         moon.position.set(mp.x, mp.y); moon.scale.set(mp.r / 60); moon.alpha = moonState.shown;
         starsState.shown = lerp(starsState.shown, G.flags.has('alva_stars') ? 1 : 0, 1 - Math.exp(-2 * dt));
         alvaStars.visible = starsState.shown > 0.01 && kind !== 'cave';
@@ -1810,10 +1817,14 @@ export function createView(PIXI, app, { assets, G, heroFactory }) {
             c.c.alpha = 0.15 + 0.85 * stormShown;
         }
     }
-    function moonScreen(W = app.screen.width, H = app.screen.height) {
-        // below the drawing pad's prompt, so the dots to trace are never under it
+    function moonScreen(W = app.screen.width, H = app.screen.height, rise = 0) {
+        // While Mira and Alva draw: below the drawing pad's prompt, so the dots to trace are never under it.
+        // Risen: in landscape, up in the open sky above the treetops, which crossed it there. In portrait
+        // the speech boxes are at the top, so it stays (and the mountain is behind it, see moonLayer).
         const r = Math.max(34, Math.min(W, H) * 0.09);
-        return { x: W * 0.7, y: Math.max(r + 170, H * 0.27), r };
+        const drawn = Math.max(r + 170, H * 0.27), sky = W > H ? Math.max(r + 62, H * 0.17) : drawn;
+        const e = rise * rise * (3 - 2 * rise);
+        return { x: W * 0.7, y: drawn + (sky - drawn) * e, r };
     }
 
     function updateCamera(dt, snap, W, H) {
@@ -1982,6 +1993,8 @@ export function createView(PIXI, app, { assets, G, heroFactory }) {
         setCloudTexture(tex) { cloudTexture = tex; },
         render, fx, lightning, emit,
         moonScreen: () => moonScreen(),
+        /** For checks: Mira's moon and Alva's stars, and how far the moon has risen. */
+        moonParts: () => ({ moon, stars: alvaStars, rise: moonState.rise }),
         fadeNow(v) { fade = fadeTarget = v; },
         heroScreen() {
             const p = hero.view;

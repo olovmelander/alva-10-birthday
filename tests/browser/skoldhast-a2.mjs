@@ -145,6 +145,50 @@ await check('the finale: ten eggs in the nest, Mira\'s moon, the hatching, the t
     await p.close();
 });
 
+// Seen, not just placed: the moon is drawn once without it and once with it, and the pixels inside its
+// disc must change. Åsktoppen (portrait) and the forest (landscape) used to cover half of it or more.
+await check('Mira\'s moon and Alva\'s stars are seen in the sky on phones (844×390, 390×844)', async () => {
+    for (const vp of [{ width: 844, height: 390 }, { width: 390, height: 844 }]) {
+        const p = await page(vp, profile([...SEEN, ...EGGS, 'p2_bridge', 'p7_vine', 'p4_lit', 'cloud_met', 'coin_got', 'coin_given',
+            'eggs_in_nest', 'moon', 'alva_stars', 'hatched', 'watch_given', 'skata_gift', 'ended'], 'nest'));
+        await p.click('.a2-title .sk-pbtn.primary');
+        await p.waitForFunction(() => window.__skoldhast2?.debug?.mode === 'play', null, { timeout: 20000 });
+        // the finale's camera (cloudArrive), once the moon has risen
+        await dbg(p, () => { const { G } = window.__skoldhast2.debug, c = G.sceneDef.spots.cloudSky; G.camHint = { x: c.x, y: c.y + 2.2 * 200, zoom: 0.85 }; });
+        await p.waitForFunction(() => window.__skoldhast2.debug.view.moonParts().rise > 0.995, null, { timeout: 20000 });
+        await p.waitForTimeout(1500);
+        const seen = await dbg(p, () => {
+            const { view, app } = window.__skoldhast2.debug, { moon, stars } = view.moonParts();
+            const Rect = app.screen.constructor; // a PIXI.Rectangle, which extract needs for its frame
+            const grab = (x, y, w, hgt) => app.renderer.extract.pixels({ target: app.stage, frame: new Rect(x, y, w, hgt) }).pixels;
+            const changed = (part, x, y, w, hgt) => {
+                part.visible = false; app.render(); const off = grab(x, y, w, hgt);
+                part.visible = true; app.render(); const on = grab(x, y, w, hgt);
+                return (i) => Math.abs(on[i] - off[i]) + Math.abs(on[i + 1] - off[i + 1]) + Math.abs(on[i + 2] - off[i + 2]);
+            };
+            const c = moon.getGlobalPosition(), r = Math.round(moon.scale.x * 60 * 0.8), x0 = Math.round(c.x - r), y0 = Math.round(c.y - r);
+            const d = changed(moon, x0, y0, 2 * r, 2 * r);
+            let inside = 0, differs = 0;
+            for (let y = 0; y < 2 * r; y++) for (let x = 0; x < 2 * r; x++) {
+                if ((x - r) ** 2 + (y - r) ** 2 > r * r) continue;
+                inside++; if (d((y * 2 * r + x) * 4) > 30) differs++;
+            }
+            let starsSeen = 0;
+            for (const s of stars.children) {
+                const g = s.getGlobalPosition(), sx = Math.round(g.x - 3), sy = Math.round(g.y - 3);
+                const ds = changed(s, sx, sy, 6, 6);
+                let best = 0; for (let i = 0; i < 36; i++) best = Math.max(best, ds(i * 4));
+                if (best > 40) starsSeen++;
+            }
+            return { moon: differs / inside, stars: starsSeen, of: stars.children.length, at: [Math.round(c.x), Math.round(c.y), r] };
+        });
+        assert.ok(seen.moon > 0.85, `${vp.width}×${vp.height}: the moon's disc is seen (${Math.round(seen.moon * 100)} % of it, at ${seen.at})`);
+        assert.ok(seen.stars >= seen.of - 1, `${vp.width}×${vp.height}: Alva's stars are seen (${seen.stars} of ${seen.of})`);
+        await shot(p, `a2-moon-sky-${vp.width}x${vp.height}`);
+        await p.close();
+    }
+});
+
 await browser.close(); server.close();
 if (failures) { console.log(`${failures} check(s) failed`); process.exit(1); }
 console.log('all checks passed');
