@@ -1002,6 +1002,7 @@ export function createView(PIXI, app, { assets, G, heroFactory }) {
         ravine(back, h(12), h(18), h(-0.4), h(-0.4));
         // the air over it goes clear once lit; the pit itself stays deep
         const dark = softDark('down', h(11.9), h(-2.9), h(18.1), h(-0.38), { alpha: 0.95 }), pit = softDark('solid', h(11.95), h(-0.45), h(18.05), h(4.2), { alpha: 0.92 });
+        pit.label = 'chasm-pit';
         L.fore.addChild(dark, pit); S.chasmDark = dark; S.chasmPit = pit;
         S.chasmGlow = glowAt(h(15), h(-0.3), 7, 0x9fd8ff, 0, L.back);
 
@@ -1566,6 +1567,10 @@ export function createView(PIXI, app, { assets, G, heroFactory }) {
             const lit = F.has('k1_lit');
             S.chasmDark.alpha = lerp(S.chasmDark.alpha, lit ? 0 : 1, 1 - Math.exp(-1.4 * dt));
             S.chasmPit.alpha = lerp(S.chasmPit.alpha, lit ? 0.5 : 1, 1 - Math.exp(-1.4 * dt));
+            // lit, the pit's dark sinks below the bridge's deck: the dashed bridge "syns", and the crystal
+            // bridge drawn over it is crystal, not a dark band (the deck lies in L.terrain, under L.fore)
+            const top = lerp(S.chasmPit.y, lit ? h(-0.03) : h(-0.45), 1 - Math.exp(-1.4 * dt));
+            S.chasmPit.y = top; S.chasmPit.height = h(4.2) - top;
             S.chasmGlow.alpha = lerp(S.chasmGlow.alpha, lit && !F.has('k1_bridge') ? 0.45 + 0.15 * Math.sin(t * 2) : lit ? 0.2 : 0, 1 - Math.exp(-2 * dt));
         }
         if (S.shimmer) for (const sh of S.shimmer) sh.alpha = rm ? 0.8 : 0.65 + 0.35 * Math.sin(t * 2.6);

@@ -189,6 +189,30 @@ await check('Mira\'s moon and Alva\'s stars are seen in the sky on phones (844×
     }
 });
 
+// K1's bridge lies over the chasm, under the pit's dark layer (L.fore over L.terrain): once the plates
+// ring, that dark must sink below the deck, or the crystal bridge reads as a dark band.
+await check('the crystal bridge over the lit chasm is seen, not under the pit\'s dark (844×390)', async () => {
+    const flags = ['b:arrive', 'b:firstEgg', 'egg_e1', 'p2_bridge', 'p4_lit', 'lantern', 'storm_source', 'visited_kristall', 'b:kristall',
+        'b:plates', 'cave_reached', 'k1_a', 'k1_b', 'k1_c', 'k1_lit', 'k1_bridge', 'b:k1Done'];
+    const p = await page({ width: 844, height: 390 }, profile(flags, 'kristall'));
+    await p.click('.a2-title .sk-pbtn.primary');
+    await p.waitForFunction(() => window.__skoldhast2?.debug?.mode === 'play', null, { timeout: 20000 });
+    for (let t = 0; t < 60; t++) { if (await dbg(p, () => { const { story, ui } = window.__skoldhast2.debug; if (ui.dialogueOpen()) ui.advance(); return !story.running(); })) break; await p.waitForTimeout(150); }
+    await dbg(p, () => { const { G } = window.__skoldhast2.debug; G.goto('kristall', { x: 13.4 * 200, y: -0.3 * 200 }); });
+    await p.waitForTimeout(3500); // the dark eases away
+    const r = await dbg(p, () => {
+        const { view, app } = window.__skoldhast2.debug;
+        const find = (c) => { for (const ch of c.children || []) { if (ch.label === 'chasm-pit') return ch; const f = find(ch); if (f) return f; } return null; };
+        const pit = find(app.stage), deck = view.toScreen(16.2 * 200, -0.2 * 200);
+        const Rect = app.screen.constructor, frame = new Rect(Math.round(deck.x - 20), Math.round(deck.y - 2), 40, 6);
+        const lum = () => { app.render(); const px = app.renderer.extract.pixels({ target: app.stage, frame }).pixels; let s = 0; for (let i = 0; i < px.length; i += 4) s += px[i] + px[i + 1] + px[i + 2]; return s / (px.length / 4) / 3; };
+        const shown = lum(); pit.visible = false; const bare = lum(); pit.visible = true;
+        return { shown, bare };
+    });
+    assert.ok(r.shown > r.bare * 0.9, `the deck keeps its light under the lit chasm (${Math.round(r.shown)} of ${Math.round(r.bare)})`);
+    await p.close();
+});
+
 await browser.close(); server.close();
 if (failures) { console.log(`${failures} check(s) failed`); process.exit(1); }
 console.log('all checks passed');
