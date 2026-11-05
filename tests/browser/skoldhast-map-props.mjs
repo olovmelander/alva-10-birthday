@@ -95,9 +95,10 @@ try {
             const gone = await page.evaluate(name => {
                 const { G, view } = window.__skoldhast.debug;
                 const find = (node, label) => node.label === label ? node : node.children?.map(child => find(child, label)).find(Boolean);
-                G.flags.add(name === 'land' ? 'mark_land' : 'clue_mark_sea');
+                // the sea's paper is collected by P6 itself (kelp-puzzle.mjs sets mark_sea) and is labelled p6-fragment
+                G.flags.add(name === 'land' ? 'mark_land' : 'mark_sea');
                 view.render(window.__mapPropSim.snapshot(G.player, 1, G.terrain, G.time), 0);
-                return find(view.root, `map-fragment-${name}`).visible;
+                return find(view.root, name === 'land' ? 'map-fragment-land' : 'p6-fragment').visible;
             }, name);
             assert.equal(gone, false, `${name}: collection removes the displayed paper`);
         }
