@@ -77,8 +77,11 @@ Pappa asked:
   - `a2-white-cloud`
 - **Not filmed one by one:** eggs e3, e9, e4 and e8 are found by touch like e10. Molnet's egg (e5) is handed over
   like Skatan's. Both use the same flight.
-- **Watch for:** in the trade, if the sköldhäst walks right up to x 68.6 it stands in front of Skatan. The give
-  button already shows from 69.5.
+- **Skatan** (fixed the same evening): she was a black bird about 44 px across among dark leaves at night, and the
+  sköldhäst could stand in front of her.
+  - She is now a third bigger, with a soft pale glow and a pale pencil rim.
+  - If the sköldhäst comes within 0.7 HL on her branch, she hops to whichever end will be furthest from where it is
+    going (`skataAside` in `story.mjs`).
 
 ## Nobody is cut off mid-sentence (5 November)
 
@@ -178,15 +181,21 @@ found most of them framed. Two were fixed:
   first and holds while Klo speaks.
 - **after_signe:** before "Kapplöpning till pölen?", the camera frames the pool (the race's finish) with Signe.
 
-**Left as candidates**, with a frame in HL. These are remarks made while playing, where moving the camera would get
-in the way:
-- `k2_kelp_freed` "Nu når strömmen ända upp till vecket": the hook is about 5 HL behind the hero. Frame
-  [33.8, 42.2, 7.4, 11.9], or keep the hook in P6's frame for a few seconds.
-- `k1_boardwalk` "…och upp går flaggan!": the flag (91.8, −2.1) leaves the picture while the bubble is read.
-- The Guida mig `chains` hint at Kartväktarens brygga: the lower chain ends out of the picture.
-- `k1_p1` "Bron håller!": falls behind a galloping hero.
-- `k1_note` (default help) "Där borta finns havets spår": the wave marks are 47 HL away. Reword it rather than frame
-  it.
+**The candidates, fixed the same evening (Pappa: "Fixa allt som du rekommenderar").** These are remarks made
+while playing.
+- `lookAt(box, seconds)` in `story.mjs` sets `G.camLook` for a few seconds. `updateCamera` in `view.mjs` brings that
+  box into the picture by sliding and stepping back to at most 70 % of the zoom.
+- The player keeps the controls, so the sköldhäst always stays in the picture. If both cannot fit, the camera goes as
+  far toward the subject as that allows.
+- Each remark and the box it shows, in HL:
+  - `k1_p1` "Bron håller!": the bridge, [75.3, 82.4, −2.15, 0.65].
+  - `k1_boardwalk` "…och upp går flaggan!": the wheel and the flag, [88.5, 92.8, −3.2, 0].
+  - `k2_kelp_freed` "Nu når strömmen ända upp till vecket": the hook and the fold, [33.8, 42.2, 7.4, 11.9].
+  - The Guida mig `chains` hint: the three chains, [11.5, 33.8, −10.8, 7.6].
+- `KLO_COMPANION.story.note` used to say "Där borta finns havets spår" about wave marks 47 HL away. It now says
+  "Bortom bron finns havets spår".
+  - Recorded in Klo's voice; speech-to-text heard it exactly.
+  - The old clip is pruned.
 
 ## A sweep for silent visual faults like the lighthouse's (5 November)
 
@@ -221,10 +230,11 @@ after shots are in `docs/skoldhast/shots/visual-sweep/`.
     driftwood perch does take the kite pencil.
   - `skoldhast-context` looked for the dashed bridge by a texture that has not drawn it since 1 October.
   - Both pass now; the pencil check passes with keyboard and with touch.
-- **Kept as designed, with one question for Pappa:** in Spegelviken the islet's rock hides the lighthouse's
-  reflection in the playable view, and the reflection is shown by the postcard the first time the player hides on
-  the pier. After that, hiding there again shows nothing, though Klo's help still talks about comparing with the
-  reflection.
+- **Spegelviken's mirror (fixed the same evening):** the islet's rock hides the lighthouse's reflection in the
+  playable view. The postcard used to show it only the first time the player hid on the pier, though Klo's help still
+  speaks of comparing with the reflection.
+  - Now, until the lamp is lit, each time the bay goes still around the hidden shell on the pier, the postcard shows
+    the lighthouse and its reflection again for about 2.4 s, without words (`k3_mirror_again`, at most every 8 s).
 - **Low, not changed:**
   - The moon's path on the river can lie off screen at moonrise.
   - The fold demo freezes a patch of beach while it runs.
@@ -265,8 +275,8 @@ after shots are in `docs/skoldhast/shots/visual-sweep/`.
   - `skoldhast-geography`: all nine cases. Two of them (sea and portal at 1440×900) were run on their own after a run
     shared the machine.
   - `npm test`: 428 of 428.
-- **Frågor till Pappa:** should hiding on Spegelviken's pier show the lighthouse's reflection again, briefly and
-  without Klo's words, until the lamp is lit? It is a small change; recommended.
+- **Frågor till Pappa:** answered the same evening. The mirror shows again when he hides on the pier, until the lamp
+  is lit.
 
 ## The lighthouse mirrors again; Klo's notebook stays open; the Klo check runs (5 November)
 
