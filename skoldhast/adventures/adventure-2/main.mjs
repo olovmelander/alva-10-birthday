@@ -280,7 +280,7 @@ export function createGame({ host = document.body, assetBase = './skoldhast/', s
         G.flags.clear();
         Object.assign(G.puz, { drum: 0, softDrum: 0, fall: null, ball: null, roll: null, still: 0, pushed: {} });
         for (const k of Object.keys(G.actors)) delete G.actors[k];
-        G.checkpoint = 'start'; G.storm = 1; G.camHint = null; G.busy = 0;
+        G.checkpoint = 'start'; G.storm = 1; G.camHint = null; G.camLook = null; G.busy = 0;
         strokes = null; cloudTexture = null;
     }
 

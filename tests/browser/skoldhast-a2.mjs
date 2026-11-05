@@ -200,6 +200,31 @@ await check('who speaks is seen on a phone held upright: the camera takes Klo in
     await p.close();
 });
 
+await check('what the lines are about is in the picture: Miras streckade bro at Klyftan (390×844)', async () => {
+    const p = await page({ width: 390, height: 844 }, profile(SEEN.filter(f => f !== 'b:klyft')));
+    await p.click('.a2-title .sk-pbtn.primary');
+    await p.waitForFunction(() => window.__skoldhast2?.debug?.mode === 'play', null, { timeout: 20000 });
+    await p.waitForFunction(() => { const { G, story } = window.__skoldhast2.debug; return !story.running() && !G.busy; }, null, { timeout: 20000 });
+    // walk the last steps into Klyftan with the real keyboard
+    await dbg(p, () => { const { G, view } = window.__skoldhast2.debug; G.goto('strand', { x: 10.6 * 200, y: -0.6 * 200, facing: -1 }); view.cam.snap = true; });
+    await p.keyboard.down('ArrowLeft');
+    await p.waitForFunction(() => window.__skoldhast2.debug.story.running(), null, { timeout: 15000 });
+    await p.keyboard.up('ArrowLeft');
+    await p.waitForSelector('.sk-dialogue.on', { timeout: 15000 });
+    await p.waitForTimeout(1500);
+    const seen = await dbg(p, () => {
+        const { view } = window.__skoldhast2.debug, hero = view.heroScreen();
+        const a = view.toScreen(1.5 * 200, -0.6 * 200), b = view.toScreen(6.5 * 200, -0.6 * 200);
+        return { a: a.x, b: b.x, y: a.y, hero: hero.x, w: innerWidth, h: innerHeight, text: document.querySelector('.sk-dlg-text').textContent };
+    });
+    await shot(p, 'a2-klyft-bridge-390x844');
+    assert.match(seen.text, /streckad/);
+    assert.ok(seen.a >= 0 && seen.b <= seen.w && seen.y > 0 && seen.y < seen.h, `the whole dashed bridge is in the picture (${Math.round(seen.a)}–${Math.round(seen.b)} of ${seen.w})`);
+    assert.ok(seen.hero > 0 && seen.hero < seen.w, 'and so is the sköldhäst');
+    assert.deepEqual(p.errors, []);
+    await p.close();
+});
+
 await check('the finale: ten eggs in the nest, Mira\'s moon, the hatching, the table, completion saved (1440×900)', async () => {
     const p = await page({ width: 1440, height: 900 }, profile([...SEEN, ...EGGS, 'p2_bridge', 'p7_vine', 'p4_lit', 'cloud_met', 'coin_got', 'coin_given', 'clue_cloudCries', 'clue_afraid']));
     await watchSpeakers(p);

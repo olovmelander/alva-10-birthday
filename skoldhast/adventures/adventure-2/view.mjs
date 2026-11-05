@@ -1832,22 +1832,31 @@ export function createView(PIXI, app, { assets, G, heroFactory }) {
         return { x: W * 0.7, y: drawn + (sky - drawn) * e, r };
     }
 
-    /** In a conversation the one speaking comes into the picture with the sköldhäst: the camera slides
-     *  over (and on a narrow screen steps back a little) until both fit. Someone too far away for that
-     *  is shown by the edge badge (ui.mjs) instead, and the sköldhäst stays in the picture. */
+    /** In a conversation the camera keeps three things in the picture: the sköldhäst, the one speaking, and what
+     *  the lines are about (G.camLook, set by story.mjs about()). It slides over and steps back a little (to 75 %
+     *  of the usual zoom, 70 % for a thing talked about) until they fit. If they cannot all fit, what is talked
+     *  about comes first; a speaker too far away is shown by the edge badge (ui.mjs) and the sköldhäst stays. */
     function frameSpeaker(tx, ty, zoom, W, H) {
-        const who = G.speaker, a = who && who !== 'horse' ? G.actors[who] : null, p = G.player;
-        if (!a || a.scene !== S.id || a.visible === false || G.hideHero) return { tx, ty, zoom };
-        const head = who === 'moln' ? h(0.6) : who === 'klo' ? h(0.45) : h(1.1);
-        const side = Math.min(h(1.1), W / zoom * 0.16);
-        let x0 = Math.min(p.x - h(0.7), a.x - side), x1 = Math.max(p.x + h(0.7), a.x + side);
-        const y0 = Math.min(p.y - h(1.6), a.y - head - h(0.35)), y1 = Math.max(p.y + h(0.2), a.y + h(0.2));
-        // never further out than three quarters of the usual picture
-        zoom = Math.max(zoom * 0.75, Math.min(zoom, W / (x1 - x0), H / (y1 - y0)));
+        const who = G.speaker, a = who && who !== 'horse' ? G.actors[who] : null, p = G.player, look = G.camLook;
+        const speaker = a && a.scene === S.id && a.visible !== false ? a : null;
+        if ((!speaker && !look) || G.hideHero) return { tx, ty, zoom };
+        const boxes = look ? [look] : [];
+        if (speaker) {
+            const head = who === 'moln' ? h(0.6) : who === 'klo' ? h(0.45) : h(1.1);
+            const side = Math.min(h(1.1), W / zoom * 0.16);
+            boxes.push({ x0: speaker.x - side, x1: speaker.x + side, y0: speaker.y - head - h(0.35), y1: speaker.y + h(0.2) });
+        }
+        const union = bs => ({ x0: Math.min(...bs.map(b => b.x0)), x1: Math.max(...bs.map(b => b.x1)),
+            y0: Math.min(...bs.map(b => b.y0)), y1: Math.max(...bs.map(b => b.y1)) });
+        const them = union(boxes), all = union([{ x0: p.x - h(0.7), x1: p.x + h(0.7), y0: p.y - h(1.6), y1: p.y + h(0.2) }, ...boxes]);
+        zoom = Math.max(zoom * (look ? 0.7 : 0.75), Math.min(zoom, W / (all.x1 - all.x0), H / (all.y1 - all.y0)));
         const vw = W / zoom, vh = H / zoom;
-        if (x1 - x0 <= vw) tx = clamp(tx, x1 - vw / 2, x0 + vw / 2);
-        else tx = p.x + Math.sign(a.x - p.x) * (vw / 2 - h(0.9)); // as far toward them as keeps the sköldhäst in
-        if (y1 - y0 <= vh) ty = clamp(ty, y1 - vh / 2, y0 + vh / 2);
+        if (all.x1 - all.x0 <= vw) tx = clamp(tx, all.x1 - vw / 2, all.x0 + vw / 2);
+        // what is talked about first, as near the sköldhäst as it allows
+        else if (look) tx = them.x1 - them.x0 <= vw ? clamp(p.x, them.x1 - vw / 2, them.x0 + vw / 2) : (look.x0 + look.x1) / 2;
+        else tx = p.x + Math.sign(speaker.x - p.x) * (vw / 2 - h(0.9)); // as far toward them as keeps the sköldhäst in
+        if (all.y1 - all.y0 <= vh) ty = clamp(ty, all.y1 - vh / 2, all.y0 + vh / 2);
+        else if (look) ty = them.y1 - them.y0 <= vh ? clamp(p.y, them.y1 - vh / 2, them.y0 + vh / 2) : (look.y0 + look.y1) / 2;
         return { tx, ty, zoom };
     }
 
