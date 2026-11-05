@@ -38,6 +38,7 @@ export function createGame({ host = document.body, assetBase = './skoldhast/', s
     onChooseAdventure, onSlotChange, onRestart, onClose, preview = false } = {}) {
     let state = 'closed';
     let el = null, app = null, assets = null, G = null, view = null, ui = null, input = null, audio = null, story = null, table = null, voice = null;
+    let eggsLanded = 0; // eggs the view has flown into the count (a chime as each lands)
     let raf = 0, last = 0, acc = 0, paused = false, mode = 'title';
     let slot = { id: 'alva', label: BOOK.slotAlva };
     let settings = { ...DEFAULT_SETTINGS, lessMotion: !!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches };
@@ -125,6 +126,7 @@ export function createGame({ host = document.body, assetBase = './skoldhast/', s
         voice.setEnabled(settings.voice > 0);
         ui = createA2UI(el, { assetBase, handlers: uiHandlers(), voice });
         const heroFactory = await loadHeroFactory();
+        eggsLanded = 0;
         view = createView(PIXI, app, { assets, G, heroFactory, eggTarget: () => ui?.eggTarget?.(app.canvas, app.screen) });
         setDevice(window.matchMedia?.('(pointer: coarse)').matches ? 'touch' : 'keys');
         input = createInput(el, ui, {
@@ -464,6 +466,8 @@ export function createGame({ host = document.body, assetBase = './skoldhast/', s
             ui.guide.update();
             // an egg still flying to the count is counted when it lands there (view.mjs)
             ui.setEggs(G.eggs() - (view?.eggsArriving || 0), EGG_TOTAL);
+            // a small chime as a flying egg lands in the count, one note higher for each egg
+            if (view && view.eggsLanded > eggsLanded) { eggsLanded = view.eggsLanded; audio?.note?.(2 + (G.eggs() % 6), { inst: 'shell', vel: 0.5 }); }
             if (audio) {
                 const p = G.player;
                 audio.setMotion({ speed01: Math.min(1, Math.abs(p.vx) / 1200), underwater: p.mode === 'swim' && p.submerge > 0.7, hidden: p.hidden });

@@ -587,6 +587,31 @@ export function createView(PIXI, app, { assets, G, heroFactory, eggTarget = null
                         crystalCluster(gr, x, y + 4, { size: 0.32 + hash(x, 37) * 0.22, color: veinCol[Math.floor(hash(x, 38) * 3)], n: 3, seed: 11 });
                     }
                 }
+                // Åsktoppen's rock (under the turf, out in the weather): cracks running down from the top, a pale lit
+                // edge on each, and lichen in small pale patches, so the mountain reads as rock, not as layered paper
+                // (5 November)
+                if (under === 'rock' && !def.underground && !s.cave && top.length > 2) {
+                    // (drawn into the ground's own Graphics: a Graphics cannot hold children in PixiJS 8)
+                    const cracks = [];
+                    for (let x = top[0][0] + 60; x < top.at(-1)[0] - 60; x += h(1.0) + hash(x, 51) * h(1.5)) {
+                        let cx = x, cy = heightOn(s.pts, x) + h(0.3);
+                        const crack = [[cx, cy]], n = 3 + Math.floor(hash(x, 52) * 3);
+                        for (let k = 0; k < n; k++) { cx += (hash(x + k, 53) - 0.5) * 34; cy += h(0.14 + hash(x + k, 54) * 0.18); crack.push([cx, cy]); }
+                        cracks.push({ crack, branch: hash(x, 55) > 0.5 ? (hash(x, 56) > 0.5 ? 22 : -22) : 0 });
+                    }
+                    for (const { crack } of cracks) lineAlong(gr, crack.map(([px, py]) => [px + 2.5, py + 1]));
+                    gr.stroke(pen.line(0xb9b4c8, 1.4, 0.3));
+                    for (const { crack, branch } of cracks) {
+                        lineAlong(gr, crack);
+                        // a short branch off the crack
+                        if (branch) { const [bx, by] = crack[2]; gr.moveTo(bx, by).lineTo(bx + branch, by + h(0.12)); }
+                    }
+                    gr.stroke(pen.line(0x221d2c, 2.2, 0.55));
+                    for (let x = top[0][0] + 40; x < top.at(-1)[0] - 40; x += h(0.6) + hash(x, 57) * h(1.1)) {
+                        const y = heightOn(s.pts, x) + h(0.38 + hash(x, 58) * 0.7), col = hash(x, 59) > 0.5 ? 0xc8c98c : 0x9fb57e;
+                        for (let k = 0; k < 4; k++) gr.circle(x + (hash(x + k, 60) - 0.5) * 26, y + (hash(x + k, 61) - 0.5) * 12, 3 + hash(x + k, 62) * 4).fill(pen.fill(col, 0.5));
+                    }
+                }
                 // under grass, fine roots hang down from the turf
                 if (s.mat === 'grass') {
                     for (let x = top[0][0] + 10; x < top.at(-1)[0] - 10; x += 16 + hash(x, 26) * 26) {
@@ -2255,7 +2280,7 @@ export function createView(PIXI, app, { assets, G, heroFactory, eggTarget = null
     // It pops up where it was, then flies in an arc into the count in the corner (eggTarget, from main),
     // which counts it as it lands (eggsArriving). In "Mindre rörelse" it goes straight there, quickly.
     const pickups = [];
-    let coinFlight = null;
+    let coinFlight = null, eggsLanded = 0;
     function startPickup(id) {
         const rec = S?.eggs.get(id), p = G.player;
         const near = rec?.e.view.visible && Math.hypot(rec.e.view.x - p.x, rec.e.view.y - p.y) < h(4);
@@ -2288,7 +2313,7 @@ export function createView(PIXI, app, { assets, G, heroFactory, eggTarget = null
                 k.e.view.position.set(lerp(a.x, goal.x, e), lerp(a.y, goal.y + 12, e) - arc);
                 k.e.view.scale.set(lerp(a.s, 0.8, e));
                 k.e.view.rotation = (1 - e) * 0.25 + e * Math.PI * 2 * (rm ? 0 : 1);
-                if (u >= 1) { k.e.destroy(); pickups.splice(i, 1); continue; }
+                if (u >= 1) { k.e.destroy(); pickups.splice(i, 1); eggsLanded++; continue; }
             }
             k.e.update(dt, t, { glow: 1.3 });
         }
@@ -2338,6 +2363,7 @@ export function createView(PIXI, app, { assets, G, heroFactory, eggTarget = null
         moonParts: () => ({ moon, stars: alvaStars, rise: moonState.rise }),
         /** Eggs picked up but still flying to the count (main shows the count without them until they land). */
         get eggsArriving() { return pickups.length; },
+        get eggsLanded() { return eggsLanded; },
         fadeNow(v) { fade = fadeTarget = v; },
         heroScreen() {
             const p = hero.view;
