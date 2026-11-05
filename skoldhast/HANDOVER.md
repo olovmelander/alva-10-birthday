@@ -172,6 +172,19 @@ after shots are in `docs/skoldhast/shots/visual-sweep/`.
   - `skoldhast-geography` timed out taking screenshots while other runs shared the machine. Its run alone is in
     "Checks run" below.
 - **Running two browser checks at once makes the slow ones time out under software WebGL.** Run them one at a time.
+- **`skoldhast-geography`:** the held lighthouse at 1440×900 drew about a hundred renders, and SwiftShader took more
+  than 30 s to show the next frame. That happened on the code from before today too. The screenshot now waits up to
+  150 s.
+- **Checks run alone before the merge on 5 November, all passing:**
+  - Äventyr 2: `skoldhast-a2` (every check, including the new speaker, Klyftan, legs, moon and bridge checks) and
+    `skoldhast-voice`.
+  - Dialogue and companions: `skoldhast-dialogue`, `skoldhast-companion`, `skoldhast-klo`, `skoldhast-notes`.
+  - The checks fixed today: `skoldhast-guide`, `skoldhast-water-alignment`, `skoldhast-land-focus`,
+    `skoldhast-map-props`, `skoldhast-vista-loading`, `skoldhast-journey`, `skoldhast-finale`,
+    `skoldhast-story-thread`, `skoldhast-guardian`.
+  - `skoldhast-geography`: all nine cases. Two of them (sea and portal at 1440×900) were run on their own after a run
+    shared the machine.
+  - `npm test`: 428 of 428.
 - **Frågor till Pappa:** should hiding on Spegelviken's pier show the lighthouse's reflection again, briefly and
   without Klo's words, until the lamp is lit? It is a small change; recommended.
 
