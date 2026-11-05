@@ -73,6 +73,24 @@ Pappa: sometimes the thing being talked about cannot be seen, which makes the st
 - `skoldhast-a2` walks into Klyftan at 390×844 and requires the whole dashed bridge and the sköldhäst to be in the
   picture while it is talked about. Shot: `docs/skoldhast/shots/visual-sweep/a2-klyft-bridge-390x844.webp`.
 
+### The same in Äventyr 1
+
+Äventyr 1's conversations are directed with `s.cam`, `landLook`, vistas and the map overlay. A read of all 54 beats
+found most of them framed. Two were fixed:
+- **k3_line:** "Hovarna lagar strecken på bryggan" was said before the wide look along the pier. That look now comes
+  first and holds while Klo speaks.
+- **after_signe:** before "Kapplöpning till pölen?", the camera frames the pool (the race's finish) with Signe.
+
+**Left as candidates**, with a frame in HL. These are remarks made while playing, where moving the camera would get
+in the way:
+- `k2_kelp_freed` "Nu når strömmen ända upp till vecket": the hook is about 5 HL behind the hero. Frame
+  [33.8, 42.2, 7.4, 11.9], or keep the hook in P6's frame for a few seconds.
+- `k1_boardwalk` "…och upp går flaggan!": the flag (91.8, −2.1) leaves the picture while the bubble is read.
+- The Guida mig `chains` hint at Kartväktarens brygga: the lower chain ends out of the picture.
+- `k1_p1` "Bron håller!": falls behind a galloping hero.
+- `k1_note` (default help) "Där borta finns havets spår": the wave marks are 47 HL away. Reword it rather than frame
+  it.
+
 ## A sweep for silent visual faults like the lighthouse's (5 November)
 
 Pappa asked whether there were more visual bugs like the lighthouse that no longer mirrored. That one was a silent
