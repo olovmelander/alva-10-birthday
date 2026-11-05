@@ -509,6 +509,23 @@ export function createView(PIXI, app, { assets, G, heroFactory, eggTarget = null
                     gr.ellipse(x + r * 0.3, y - r * 0.3, r * 0.45, r * 0.22).fill({ color: 0xffffff, alpha: 0.22 });
                     poly(gr, [[x, y], ...pts.slice(2, 5)]).fill({ color: 0x1d1a20, alpha: 0.2 });
                 }
+                // Kristallgrottan's rock: veins of crystal running through it, and small crystals breaking out along its
+                // top, so a ledge in the cave reads as crystal rock, not a grey block (5 November)
+                if (def.underground && top.length > 2) {
+                    const veinCol = [0xb79be6, 0x8fc9f0, 0xe6a6d8];
+                    for (let x = top[0][0] + 40; x < top.at(-1)[0] - 40; x += h(1.1) + hash(x, 31) * h(1.6)) {
+                        const y0 = heightOn(s.pts, x) + h(0.5 + hash(x, 32) * 1.6), col = veinCol[Math.floor(hash(x, 33) * 3)];
+                        const vein = [[x, y0]];
+                        for (let k = 1; k <= 5; k++) vein.push([x + k * 22 + (hash(x + k, 34) - 0.5) * 16, y0 + (hash(x + k, 35) - 0.5) * 36]);
+                        lineAlong(gr, vein).stroke(pen.line(col, 2.2, 0.38));
+                        lineAlong(gr, vein).stroke(pen.line(0xffffff, 0.9, 0.25));
+                    }
+                    for (let x = top[0][0] + 60; x < top.at(-1)[0] - 60; x += h(1.6) + hash(x, 36) * h(2.4)) {
+                        const y = heightOn(s.pts, x);
+                        if (y === null || (def.waters || []).some(w => x > w.x0 - 30 && x < w.x1 + 30 && y > w.top - 10)) continue;
+                        crystalCluster(gr, x, y + 4, { size: 0.32 + hash(x, 37) * 0.22, color: veinCol[Math.floor(hash(x, 38) * 3)], n: 3, seed: 11 });
+                    }
+                }
                 // under grass, fine roots hang down from the turf
                 if (s.mat === 'grass') {
                     for (let x = top[0][0] + 10; x < top.at(-1)[0] - 10; x += 16 + hash(x, 26) * 26) {
