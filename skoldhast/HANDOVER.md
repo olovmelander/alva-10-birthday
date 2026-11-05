@@ -1,5 +1,50 @@
 # Sköldhästen – handover
 
+## A sweep for silent visual faults like the lighthouse's (5 November)
+
+Pappa asked whether there were more visual bugs like the lighthouse that no longer mirrored. That one was a silent
+regression: a later change hid it, and its check measured only where the lamp was, not whether it could be seen.
+Two sweeps looked for more.
+- An independent read of the rendering code in both adventures looked for objects reused in another view, masks and
+  dark layers that can hide something completely, and checks that test position instead of visibility.
+- Every browser check not run that day was run one by one.
+
+Each finding was confirmed in screenshots before it was fixed. Each fix has a check that fails without it. Before and
+after shots are in `docs/skoldhast/shots/visual-sweep/`.
+
+- **Äventyr 2, the finale: Mira's moon was half hidden on phones.** On 4 November it moved below the drawing pad's
+  prompt, which put it behind Åsktoppen in portrait and behind the treetops in landscape. Half of Alva's stars were
+  hidden with it.
+  - The moon and the stars now have their own layer, in front of the distant forest and the mountain.
+  - Once Alva's stars are drawn, the moon rises into the open sky in landscape.
+  - The tracing dots are unchanged.
+  - `skoldhast-a2` draws the picture without and with the moon and requires its disc to change. It does the same for
+    the stars.
+- **Äventyr 2, Kristallgrottan: the crystal bridge lay under the chasm's dark.** It read as a dark band, and so did the
+  dashed bridge that "syns" when the plates ring.
+  - Lit, the dark now sinks below the deck.
+  - `skoldhast-a2` checks that the deck keeps its light.
+- **Äventyr 1, the table at the unfold and the epilogue: a dark seam ran down her picture.** The live screen's air
+  (added 4 November) was baked into the snapshot, laid out for the phone.
+  - The snapshot leaves it out.
+  - New check `skoldhast-table-picture`: the picture must be the same at 844×390 and 390×844.
+- **Checks that could not run, with the game right in each:**
+  - `skoldhast-collection` never pressed Hoppa and pressed Space for the context button. A real hop on the
+    driftwood perch does take the kite pencil.
+  - `skoldhast-context` looked for the dashed bridge by a texture that has not drawn it since 1 October.
+  - Both pass now; the pencil check passes with keyboard and with touch.
+- **Kept as designed, with one question for Pappa:** in Spegelviken the islet's rock hides the lighthouse's
+  reflection in the playable view, and the reflection is shown by the postcard the first time the player hides on
+  the pier. After that, hiding there again shows nothing, though Klo's help still talks about comparing with the
+  reflection.
+- **Low, not changed:**
+  - The moon's path on the river can lie off screen at moonrise.
+  - The fold demo freezes a patch of beach while it runs.
+  - After the cloud ride, the lantern draws behind the hero.
+- **Checks that timed out while two browser runs shared the machine, rerun alone:** see the end of this section.
+- **Frågor till Pappa:** should hiding on Spegelviken's pier show the lighthouse's reflection again, briefly and
+  without Klo's words, until the lamp is lit? It is a small change; recommended.
+
 ## The lighthouse mirrors again; Klo's notebook stays open; the Klo check runs (5 November)
 
 Pappa found that the lighthouse no longer mirrors in the water in Äventyr 1. He also asked for the failing
