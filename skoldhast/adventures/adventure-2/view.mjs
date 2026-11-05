@@ -611,20 +611,21 @@ export function createView(PIXI, app, { assets, G, heroFactory, eggTarget = null
                     for (let x = top[0][0] + 60; x < top.at(-1)[0] - 60; x += h(1.0) + hash(x, 51) * h(1.5)) {
                         let cx = x, cy = heightOn(s.pts, x) + h(0.3);
                         const crack = [[cx, cy]], n = 3 + Math.floor(hash(x, 52) * 3);
-                        for (let k = 0; k < n; k++) { cx += (hash(x + k, 53) - 0.5) * 34; cy += h(0.14 + hash(x + k, 54) * 0.18); crack.push([cx, cy]); }
+                        for (let k = 0; k < n; k++) { cx += (hash(x + k, 53) - 0.5) * 70; cy += h(0.14 + hash(x + k, 54) * 0.18); crack.push([cx, cy]); }
                         cracks.push({ crack, branch: hash(x, 55) > 0.5 ? (hash(x, 56) > 0.5 ? 22 : -22) : 0 });
                     }
-                    for (const { crack } of cracks) lineAlong(gr, crack.map(([px, py]) => [px + 2.5, py + 1]));
-                    gr.stroke(pen.line(0xb9b4c8, 1.4, 0.3));
+                    // (thick enough to read at a phone's zoom)
+                    for (const { crack } of cracks) lineAlong(gr, crack.map(([px, py]) => [px + 5, py + 2]));
+                    gr.stroke(pen.line(0xb9b4c8, 3, 0.35));
                     for (const { crack, branch } of cracks) {
                         lineAlong(gr, crack);
                         // a short branch off the crack
-                        if (branch) { const [bx, by] = crack[2]; gr.moveTo(bx, by).lineTo(bx + branch, by + h(0.12)); }
+                        if (branch) { const [bx, by] = crack[2]; gr.moveTo(bx, by).lineTo(bx + branch * 2, by + h(0.15)); }
                     }
-                    gr.stroke(pen.line(0x221d2c, 2.2, 0.55));
+                    gr.stroke(pen.line(0x221d2c, 5, 0.6));
                     for (let x = top[0][0] + 40; x < top.at(-1)[0] - 40; x += h(0.6) + hash(x, 57) * h(1.1)) {
                         const y = heightOn(s.pts, x) + h(0.38 + hash(x, 58) * 0.7), col = hash(x, 59) > 0.5 ? 0xc8c98c : 0x9fb57e;
-                        for (let k = 0; k < 4; k++) gr.circle(x + (hash(x + k, 60) - 0.5) * 26, y + (hash(x + k, 61) - 0.5) * 12, 3 + hash(x + k, 62) * 4).fill(pen.fill(col, 0.5));
+                        for (let k = 0; k < 5; k++) gr.circle(x + (hash(x + k, 60) - 0.5) * 60, y + (hash(x + k, 61) - 0.5) * 26, 6 + hash(x + k, 62) * 8).fill(pen.fill(col, 0.5));
                     }
                 }
                 // under grass, fine roots hang down from the turf
@@ -968,6 +969,24 @@ export function createView(PIXI, app, { assets, G, heroFactory, eggTarget = null
             for (const [fx, fy] of [[h(91.2), h(-4.4)], [h(94.6), h(-5.9)], [h(97.8), h(-3.6)]]) {
                 fore.moveTo(fx - 30, fy + 6).lineTo(fx + 34, fy - 4).stroke(pen.line(0x2a2633, 2, 0.55)); // a crack
                 for (let k = 0; k < 4; k++) fore.moveTo(fx + k * 6, fy).quadraticCurveTo(fx + k * 6 - 18 + k * 10, fy - 26, fx + k * 6 - 26 + k * 16, fy - 34).stroke(pen.line(k % 2 ? 0x5f8a55 : 0x4a7444, 2.6, 0.85));
+            }
+            // cracks running down the face with a lit edge, and pale lichen, as on Åsktoppen: in a phone held upright
+            // the overhang fills half the screen and read as one flat grey slab (5 November)
+            const crs = [];
+            for (let k = 0; k < 7; k++) {
+                let cx = h(89.6 + k * 1.45 + hash(k, 175) * 0.6), cy = h(-7.3 + hash(k, 176) * 1.2);
+                const pts = [[cx, cy]], n = 4 + Math.floor(hash(k, 177) * 4);
+                for (let i = 0; i < n; i++) { cx += (hash(k + i, 178) - 0.5) * 90; cy += h(0.3 + hash(k + i, 179) * 0.3); if (cy > h(-2.4)) break; pts.push([cx, cy]); }
+                if (pts.length > 1) crs.push(pts);
+            }
+            // (thick enough to read at a phone's zoom, where the world is drawn at about a third of its size)
+            for (const pts of crs) lineAlong(fore, pts.map(([x, y]) => [x + 5, y + 2]));
+            fore.stroke(pen.line(0xb9b4c8, 3, 0.35));
+            for (const pts of crs) lineAlong(fore, pts);
+            fore.stroke(pen.line(0x221d2c, 5, 0.6));
+            for (let k = 0; k < 16; k++) {
+                const x = h(89.6 + hash(k, 181) * 9.8), y = h(-7.1 + hash(k, 182) * 4.6), col = hash(k, 183) > 0.5 ? 0xc8c98c : 0x9fb57e;
+                for (let i = 0; i < 5; i++) fore.circle(x + (hash(k + i, 184) - 0.5) * 60, y + (hash(k + i, 185) - 0.5) * 26, 6 + hash(k + i, 186) * 8).fill(pen.fill(col, 0.5));
             }
             lineAlong(fore, cliff.slice(2).concat([cliff[0]])).stroke(pen.line(INK, 2.4));
             for (const dx of [89.6, 91.8, 93.5, 95.9, 97.2]) {
