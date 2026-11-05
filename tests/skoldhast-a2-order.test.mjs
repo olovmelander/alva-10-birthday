@@ -398,3 +398,29 @@ test('P4: standing in plain sight does not open the flowers, and the sköldhäst
     await R.hide();
     await R.until(() => R.has('p4_lit'), {}, 6, 'hidden, they open');
 });
+
+test('"Jag har fastnat" never puts the player past what is still closed, swimming or on foot', () => {
+    // 6 November: the gate was judged at the player's own height, so from deep in the water it did not count and
+    // the spring beyond it won; Forsen's falls and the leap off Rutschstammen did not count at all
+    const R = createRobot(), { G } = R;
+    const from = (scene, flags, x, y, mode) => {
+        for (const f of flags) G.flags.add(f);
+        G.goto(scene, { x: x * HL, y: y * HL, mode });
+        G.player.x = x * HL; G.player.y = y * HL; if (mode) G.player.mode = mode;
+        const s = G.safeSpot();
+        return s ? s.x / HL : null;
+    };
+    const cave = [...MOUNTAIN, ...K1];
+    for (const [x, y] of [[60, 1.5], [35, 2], [48, 3.2], [27, 0.5]]) {
+        const to = from('kristall', cave, x, y, 'swim');
+        assert.ok(to === null || to < 66.2, `swimming at ${x}: the shut gate holds (landed at ${to})`);
+    }
+    assert.ok(from('kristall', cave, 35, 2, 'swim') < 43.6, 'under Kristallsjön\'s wall only the shell rides the current');
+    assert.ok(from('strand', ['b:arrive', 'p2_bridge'], 84, 1, 'swim') < 87.3, 'the falls drive a swimmer back: no spot behind them');
+    const p7 = from('skog', ['b:arrive', 'p2_bridge'], 45, -2.8);
+    assert.ok(p7 === null || p7 > 40, `the leap off the trunk is not skipped (landed at ${p7})`);
+    assert.ok(from('topp', ['b:arrive'], 20, -2.95) < 23.8, 'not over the chasm before the bridge');
+    // and once the gate is open the spring is a fair place to go
+    G.flags.add('k3_open'); G.terrain.refresh?.();
+    assert.equal(from('kristall', [], 74, 1, 'swim'), 70.5);
+});

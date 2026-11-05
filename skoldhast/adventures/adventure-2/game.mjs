@@ -158,18 +158,27 @@ export function createGame() {
             // never past something still closed (5 November: from Kristallgrottan's shut gate it landed in the spring
             // beyond it; on Åsktoppen it skipped the bridge and the gap): no refusing edge, unfinished dashed line or
             // wall between here and there; and a spot of the same kind (swimming or on foot) comes first
-            const T = G.terrain;
+            // Closed things are judged by where they stand across the page, not by the player's own height: a gate
+            // is closed to a swimmer under it too, and a leap's edge a length below the trunk still guards the way
+            // (6 November: from deep in Kristallsjön the shut gate did not count, and the spring beyond won).
+            const T = G.terrain, x0 = p.x;
+            const between = (x, a, b = a) => (x > x0 ? b > x0 && a <= x : a < x0 && b >= x);
             const shut = (x) => {
-                const dir = Math.sign(x - p.x) || 1, x0 = p.x;
                 for (const e of T.edges || []) {
-                    if (e.kind === 'pass' || Math.abs(p.y - e.y) > (e.dy ?? 90) + 40) continue;
-                    if (dir > 0 ? (e.x > x0 && e.x <= x) : (e.x < x0 && e.x >= x)) return true;
+                    if (e.kind === 'pass' || Math.abs(p.y - e.y) > (e.dy ?? 90) + 1.5 * HL) continue;
+                    if (between(x, e.x)) return true;
                 }
-                for (const d of T.dashed || []) {
-                    const sx = (dir > 0 ? d.pts[0] : d.pts.at(-1))[0];
-                    if (dir > 0 ? (sx > x0 && sx <= x) : (sx < x0 && sx >= x)) return true;
+                for (const d of T.dashed || []) if (between(x, Math.min(d.pts[0][0], d.pts.at(-1)[0]), Math.max(d.pts[0][0], d.pts.at(-1)[0]))) return true;
+                // walls inside the play area are gates; the page's own ends lie beyond every spot
+                for (const w of T.walls || []) if (between(x, w.x)) return true;
+                // a rock wall down into the water (Kristallsjön): only a shell riding the current gets under it
+                for (const sl of T.slabs || []) if (between(x, sl.top[0][0], sl.top.at(-1)[0])) return true;
+                // water that drives a swimmer back (Forsen's falls, the rush under Kristallsjön's wall)
+                for (const z of sc.pushes || []) {
+                    if (z.kind !== 'box' || !z.vx || !cond(z.when, G.flags)) continue;
+                    if (Math.sign(z.vx) !== Math.sign(x - x0) && between(x, z.x0, z.x1)) return true;
                 }
-                return !!T.wallBetween?.(x0, x, p.y, dir);
+                return false;
             };
             const swimming = p.mode === 'swim';
             let best = null, bd = Infinity;
