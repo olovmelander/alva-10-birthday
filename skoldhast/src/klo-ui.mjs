@@ -228,7 +228,7 @@ export function createKloUI(root, { words, portrait, onCall, onChoice, onClose, 
     function show(patch = {}) {
         if (destroyed) return;
         const wasOpen = open;
-        if (!wasOpen) returnFocus = doc.activeElement;
+        if (!wasOpen) { returnFocus = doc.activeElement; backdropPressed = false; }
         update(patch);
         open = true;
         layer.hidden = false;
@@ -242,6 +242,7 @@ export function createKloUI(root, { words, portrait, onCall, onChoice, onClose, 
     function hide() {
         if (!open) return;
         open = false;
+        backdropPressed = false; // a press that ended on the sheet must not close the next notebook
         spokenText = '';
         voice?.stop('say');
         layer.hidden = true;

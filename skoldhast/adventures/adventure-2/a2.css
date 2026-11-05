@@ -48,6 +48,9 @@
 @media (orientation: portrait) and (max-width: 720px) {
     .a2 .sk-guide-top { top: max(66px, calc(env(safe-area-inset-top) + 56px)); }
     .a2 .sk-goal { margin-left: 3px; max-width: calc(100% - 6px); }
+    /* a place's name: under the goal note, in the open sky. Here the ground lies at about 70 % of the height, so
+       Äventyr 1's place (30 % from the bottom) put the name across the sköldhäst (5 November) */
+    .sk-ui.a2:not(.table-mode) .sk-caption { bottom: auto; top: 25%; }
 }
 
 /* the journal's map of the four places */

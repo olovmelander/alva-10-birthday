@@ -136,7 +136,9 @@ export function createStory(G, io) {
         const gathered = F.has('eggs_in_nest');
         if (sc === 'strand') {
             const nest = G.sceneDef.nest;
-            actor('skata', gathered ? { scene: 'strand', visible: true, x: nest.x + 2.4 * HL, y: -0.36 * HL, facing: -1, pose: F.has('skata_gift') ? 'idle' : 'coin' }
+            // at the nest, between Tordyveln and Tukankrabban (at nest + 2.4 HL she stood on the sköldhäst's own
+            // start spot and was hidden inside it in the finale, 5 November)
+            actor('skata', gathered ? { scene: 'strand', visible: true, x: nest.x - 2.3 * HL, y: -0.47 * HL, facing: 1, pose: F.has('skata_gift') ? 'idle' : 'coin' }
                 : { scene: 'strand', x: sp.magpie.x + 0.5 * HL, y: sp.magpie.y, visible: true, facing: -1, pose: F.has('coin_given') ? 'coin' : 'idle' });
             actor('dyvel', gathered ? { scene: 'strand', visible: true, x: nest.x - 3.7 * HL, y: -0.48 * HL, facing: 1 }
                 : { scene: 'strand', x: sp.beetle.x, y: sp.beetle.y, visible: true, facing: -1 });
@@ -192,12 +194,12 @@ export function createStory(G, io) {
     /** Runs fn while the camera keeps what the lines are about in the picture, with the sköldhäst if it fits
      *  (view.mjs frameSpeaker). box: [x0, x1, y0, y1] in horse lengths. */
     async function about(box, fn) {
-        const look = { x0: box[0] * HL, x1: box[1] * HL, y0: box[2] * HL, y1: box[3] * HL };
+        const look = { scene: G.sceneId, x0: box[0] * HL, x1: box[1] * HL, y0: box[2] * HL, y1: box[3] * HL };
         G.camLook = look;
         try { return await fn(); } finally { if (G.camLook === look) G.camLook = null; }
     }
 
-    const BALL_LOOK = { x0: 55.6 * HL, x1: 61.4 * HL, y0: -1.8 * HL, y1: 0.8 * HL };
+    const BALL_LOOK = { scene: 'strand', x0: 55.6 * HL, x1: 61.4 * HL, y0: -1.8 * HL, y1: 0.8 * HL };
 
     /** Skatan keeps clear of the sköldhäst on her branch: if it comes right up to her, she hops along the branch
      *  to the side with more room, so she is never hidden behind it (the trade happens wherever she stands). */
@@ -205,6 +207,7 @@ export function createStory(G, io) {
     function skataAside(dt) {
         const sk = G.actors.skata, mp = G.scenes.strand.magpie, p = G.player;
         if (!sk?.visible || sk.scene !== 'strand' || G.sceneId !== 'strand' || F.has('eggs_in_nest')) return;
+        if ((current || G.busy) && !sk.hop) return; // not mid-conversation: the coin flies to where she sits
         skataRest = Math.max(0, skataRest - dt);
         if (!sk.hop && !skataRest && p.surface?.id === mp.surface && Math.abs(p.x - sk.x) < 0.7 * HL) {
             const branch = G.scenes.strand.surfaces.find(s => s.id === mp.surface).pts;

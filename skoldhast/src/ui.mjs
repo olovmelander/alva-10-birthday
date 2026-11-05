@@ -276,7 +276,7 @@ export function createUI(host, { assetBase, handlers, voice = null }) {
         const now = performance.now();
         if (now >= measureAt || markWho !== who) {
             const origin = root.getBoundingClientRect();
-            obstacles = [...root.querySelectorAll('.sk-dialogue.on, .sk-hintbubble.on, .sk-think.on, .sk-goal:not(.empty), .sk-hud:not(.off) .sk-round')]
+            obstacles = [...root.querySelectorAll('.sk-dialogue.on, .sk-hintbubble.on, .sk-think.on, .sk-goal:not(.empty), .sk-hud:not(.off) .sk-round, .sk-hud:not(.off) .a2-eggs, .sk-hud:not(.off) .sk-pencils, .sk-klo-call:not([hidden])')]
                 .filter(n => !n.closest('.sk-guide.off')).map(n => {
                     const r = n.getBoundingClientRect();
                     return { left: r.left - origin.left, right: r.right - origin.left, top: r.top - origin.top - (n === dlg ? 38 : 0), bottom: r.bottom - origin.top };
@@ -1004,7 +1004,16 @@ export function createUI(host, { assetBase, handlers, voice = null }) {
             if (keyCap.textContent !== prompt.key) keyCap.textContent = prompt.key;
             if (keyLabel.textContent !== prompt.label) keyLabel.textContent = prompt.label;
             const w = root.clientWidth || window.innerWidth;
-            const x = Math.max(70, Math.min(w - 70, prompt.at.x)), y = Math.max(64, prompt.at.y);
+            const x = Math.max(70, Math.min(w - 70, prompt.at.x));
+            let y = Math.max(64, prompt.at.y);
+            // a thought bubble over the head covered the note (5 November): then the note sits just above the
+            // bubble, or under it if there is no room above
+            const think = root.querySelector('.sk-think.on');
+            if (think) {
+                const o = root.getBoundingClientRect(), t = think.getBoundingClientRect(), nh = keyNote.offsetHeight || 30, nw = keyNote.offsetWidth || 120;
+                const tl = t.left - o.left, tr = t.right - o.left, tt = t.top - o.top, tb = t.bottom - o.top;
+                if (x + nw / 2 > tl - 4 && x - nw / 2 < tr + 4 && y > tt - 4 && y - nh < tb + 4) y = tt - 6 - nh >= 56 ? tt - 6 : tb + 6 + nh;
+            }
             keyNote.style.transform = `translate(${Math.round(x)}px, ${Math.round(y)}px) translate(-50%, -100%)`;
             keyNote.classList.add('on');
         },

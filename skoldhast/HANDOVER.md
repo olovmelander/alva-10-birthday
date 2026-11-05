@@ -1,5 +1,55 @@
 # Sköldhästen – handover
 
+## The night of 5–6 November: an audit of both adventures, and what it fixed
+
+Pappa asked for a full audit of bugs, graphics, design and atmosphere, all fixed and merged, and then for the work
+to go on through the night. Method:
+- every place in both adventures photographed at 390×844 and 844×390 (`skoldhast-tour`, an Äventyr 2 tour script);
+- two independent reviews, one of the day's code, one of the screenshots;
+- a frame-cost measurement of every place.
+
+**Bugs fixed:**
+- Turning the phone in Äventyr 1 cut off the line being spoken (`pause({ reason: 'orientation' })` keeps the voice).
+- A coin still flying when Äventyr 2's page was rebuilt made every frame throw: `clearScene` ends the flight.
+- Äventyr 2's `G.camLook` belongs to its page (`scene`), as in Äventyr 1.
+- Klo's notebook forgets a backdrop press on open and close.
+- Settings changed in the pause menu no longer turn the voice back on while paused.
+- The edge badge keeps clear of the egg count, the pencil count and Ropa på Klo.
+- Skatan is still during conversations.
+- In the finale Skatan stood on the sköldhäst's start spot, hidden inside it. She now stands between Tordyveln and
+  Tukankrabban.
+- A thought bubble covered the "E Prata" note. The note now moves above the bubble, or under it.
+- In Äventyr 2 held upright, place names lay across the sköldhäst. They now sit under the goal note.
+- The water's pale veil ran down over rock wherever ground stood above the surface inside the water's span, leaving
+  ruled strips at the cave mouth and the gate.
+- `skoldhast-tour` teleported in the middle of Viken's arrival, so its frame was pinned on every later stop. It now
+  waits for the story.
+
+**Art in Äventyr 2:**
+- **Jätteträdet:** bark furrows with pale ridges, knots, moonlight on one edge, moss with an uneven top, flared
+  roots.
+- **Water:**
+  - Kristallgrottan's water has crystal light shafts and drifting specks.
+  - Every water surface waves visibly.
+  - The river has weed, pebbles, a sunken branch and fish.
+- **Kristallgrottan's rock:** crystal veins and small crystals along ledge tops. The far wall is faceted crystal with
+  glowing tips instead of fir-tree triangles, and more crystals hang from the roof.
+- **Gaps** (Klyftan, Ravinen, the cave's chasm, Åsktoppen's two): jagged lit walls shaded into the dark, roots or
+  crystals at the lips. The cave pit's dark lies behind its walls.
+- **Beds under rivers and lakes** thin out into the paper like the bank beside them and blend at the join. Before,
+  a ruled light/dark seam ran down the page.
+- **Åsktoppen:** the storm's eye is a ring of lobed clouds with lit rims instead of flat discs.
+- **The finale:** Alva's stars have five points and a halo, and the sky's hatching thins as the storm calms.
+- **Forsen:** the waterfall has wavering edges, a curling lip and spray mist.
+
+**Performance:** no place in either adventure has a heavy frame left. At 390×844 the JavaScript averages at most
+2.3 ms and drawing at most 7.6 ms. Branten's rebuild was the only real hot spot, and it is fixed.
+
+**Checks run before the first merge of the night, all passing:**
+- `skoldhast-a2` (all eight checks), `skoldhast-voice`, `skoldhast-dialogue`, `skoldhast-klo`,
+  `skoldhast-prologue-lifecycle`, `skoldhast-notes`;
+- `npm test`: 428 of 428.
+
 ## Äventyr 1, Branten: no stutter as the roots lift the grass strips (5 November)
 
 Pappa's phone stuttered when the roots lifted the folded grass paths into ramps ("Rötterna lyfter den vikta

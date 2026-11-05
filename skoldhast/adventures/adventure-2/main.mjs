@@ -599,7 +599,7 @@ export function createGame({ host = document.body, assetBase = './skoldhast/', s
         if (!['ask', 'remind', 'guided'].includes(settings.help)) settings.help = 'ask';
         if (G) G.lessMotion = !!settings.lessMotion;
         audio?.setVolumes({ music: settings.music, sfx: settings.sfx, voice: settings.voice });
-        voice?.setEnabled(settings.voice > 0);
+        voice?.setEnabled(settings.voice > 0 && !paused); // a change made in the pause menu speaks again on resume
         ui?.setBigText(settings.bigText);
         ui?.root.classList.toggle('less-motion', !!settings.lessMotion);
     }
