@@ -30,7 +30,8 @@ try {
         page.on('pageerror', e => errors.push(`${name}: ${e.message}`));
         await page.exposeFunction('geoShot', async (part, state) => {
             const file = `${name}-${part}.webp`;
-            await sharp(await page.screenshot()).webp({ quality: 90 }).toFile(path.join(out, file));
+            // software WebGL drains the held vista's hundred 1440×900 renders slowly: give the frame time to arrive
+            await sharp(await page.screenshot({ timeout: 150000 })).webp({ quality: 90 }).toFile(path.join(out, file));
             results.push({ name, file, ...state });
             await fs.writeFile(path.join(out, 'states.json'), JSON.stringify({ baseline, setup: 'staged prerequisites; actual pickup/portal inputs and story', results, errors }, null, 2));
             console.log(file);
