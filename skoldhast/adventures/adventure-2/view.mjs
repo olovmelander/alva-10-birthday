@@ -593,8 +593,8 @@ export function createView(PIXI, app, { assets, G, heroFactory, eggTarget = null
                         const y0 = heightOn(s.pts, x) + h(0.5 + hash(x, 32) * 1.6), col = veinCol[Math.floor(hash(x, 33) * 3)];
                         const vein = [[x, y0]];
                         for (let k = 1; k <= 5; k++) vein.push([x + k * 22 + (hash(x + k, 34) - 0.5) * 16, y0 + (hash(x + k, 35) - 0.5) * 36]);
-                        lineAlong(gr, vein).stroke(pen.line(col, 2.2, 0.38));
-                        lineAlong(gr, vein).stroke(pen.line(0xffffff, 0.9, 0.25));
+                        lineAlong(gr, vein).stroke(pen.line(col, 4.5, 0.38));
+                        lineAlong(gr, vein).stroke(pen.line(0xffffff, 1.6, 0.25));
                     }
                     for (let x = top[0][0] + 60; x < top.at(-1)[0] - 60; x += h(1.6) + hash(x, 36) * h(2.4)) {
                         const y = heightOn(s.pts, x);
@@ -1210,6 +1210,17 @@ export function createView(PIXI, app, { assets, G, heroFactory, eggTarget = null
             const body = [...edge, [edge.at(-1)[0], h(-17)], [edge[0][0], h(-17)]];
             poly(fore, body).fill(material('rock')); poly(fore, body).fill({ color: 0x1a1726, alpha: 0.55 });
             for (let k = 0; k < edge.length; k += 3) { const [x, y] = edge[k]; fore.moveTo(x, y - h(0.3)).lineTo(x + 26, y - h(0.9)).stroke(pen.line(0x4a4560, 1.6, 0.4)); }
+            // crystal veins run through the roof as through the ledges: held upright, the roof fills the top third of
+            // the screen and was a plain grey slab (6 November)
+            for (let x = edge[0][0] + h(0.6); x < edge.at(-1)[0] - h(0.6); x += h(1.3) + hash(x, 108) * h(1.8)) {
+                const ey = heightOn(edge, x);
+                if (ey === null) continue;
+                const y0 = ey - h(0.7 + hash(x, 109) * 2.6), col = [0xb79be6, 0x8fc9f0, 0xe6a6d8][Math.floor(hash(x, 110) * 3)];
+                const vein = [[x, y0]];
+                for (let i = 1; i <= 5; i++) vein.push([x + i * 40 + (hash(x + i, 34) - 0.5) * 30, y0 + (hash(x + i, 35) - 0.5) * 70]);
+                lineAlong(fore, vein).stroke(pen.line(col, 5, 0.38));
+                lineAlong(fore, vein).stroke(pen.line(0xffffff, 1.8, 0.26));
+            }
             lineAlong(fore, edge).stroke(pen.line(INK, 2.6, 0.9));
             // stalactites, and crystals growing down from the roof
             for (let k = 2; k < edge.length - 2; k += 2 + Math.floor(hash(k, line.length) * 3)) {
@@ -1445,6 +1456,20 @@ export function createView(PIXI, app, { assets, G, heroFactory, eggTarget = null
                 const rx = x + dir * h(0.05 + k * 0.12), ry = y + h(0.15 + k * 0.08);
                 gr.moveTo(rx, ry).quadraticCurveTo(rx + dir * h(0.3), ry + h(0.4), rx + dir * h(0.15), ry + h(0.75 + k * 0.2)).stroke(pen.line(0x5a3b20, 2.4, 0.8));
             }
+        }
+        // in the cave, far down: a few dim crystals glinting, and a faint glow, so the dark reads as depth (6 November:
+        // held upright, the chasm under Kristallbron was a black quarter of the screen)
+        if (cave) {
+            const yb = Math.max(y0, y1);
+            for (let k = 0; k < 9; k++) twinkleAt(lerp(x0, x1, 0.1 + hash(k, x0 + 147) * 0.8), yb + h(1.2 + hash(k, 148) * 2.8), 0.55 + hash(k, 149) * 0.45, k % 2 ? 0x8fc9f0 : 0xb79be6, L.back);
+            glowAt((x0 + x1) / 2, yb + h(3.2), 9, 0x6f7fd0, 0.16, L.back);
+            // and small crystals far down on both walls, dimmer the deeper they are
+            const deep = new PIXI.Graphics();
+            for (let k = 0; k < 6; k++) {
+                const left = k % 2 === 0, wx = left ? x0 + h(0.35) : x1 - h(0.35), wy = yb + h(1.6 + k * 0.45);
+                crystalCluster(deep, wx, wy, { dir: -1, size: 0.35 + hash(k, 151) * 0.2, color: left ? 0x8fc9f0 : 0xb79be6, n: 3, seed: 23 + k });
+            }
+            deep.alpha = 0.55; L.back.addChild(deep);
         }
     }
     function createCoinShape(gr, x, y) {
