@@ -175,6 +175,8 @@ export function createUI(host, { assetBase, handlers, voice = null }) {
     // Keyboard and gamepad play: the key and the action it does here, by the horse.
     // (Screen readers already have the action button's name and shortcuts.)
     const keyNote = el('div', 'sk-keynote');
+    const TOP_BAR = '.sk-goal:not(.empty), .sk-hud:not(.off) .sk-round, .sk-hud:not(.off) .a2-eggs, .sk-hud:not(.off) .sk-pencils, .sk-klo-call:not([hidden])';
+    let topBar = null; // the top bar's rects for the key prompt, measured at most four times a second
     const keyCap = el('span', 'sk-keycap');
     const keyLabel = el('span', 'sk-keynote-label');
     keyNote.setAttribute('aria-hidden', 'true');
@@ -1009,17 +1011,23 @@ export function createUI(host, { assetBase, handlers, voice = null }) {
             // a thought bubble over the head covered the note (5 November): then the note sits just above the
             // bubble, or under it if there is no room above
             const think = root.querySelector('.sk-think.on');
-            const o = root.getBoundingClientRect(), nh = keyNote.offsetHeight || 30, nw = keyNote.offsetWidth || 120;
-            const hits = (r) => x + nw / 2 > r.left - o.left - 4 && x - nw / 2 < r.right - o.left + 4 && y > r.top - o.top - 4 && y - nh < r.bottom - o.top + 4;
-            if (think) {
-                const t = think.getBoundingClientRect(), tt = t.top - o.top, tb = t.bottom - o.top;
-                if (hits(t)) y = tt - 6 - nh >= 56 ? tt - 6 : tb + 6 + nh;
-            }
-            // nor under the goal note or the round buttons along the top: in landscape the note covered the prompt
-            // right over the sköldhäst's head, so a child never saw what E does there (6 November)
-            for (const el of root.querySelectorAll('.sk-goal:not(.empty), .sk-hud:not(.off) .sk-round, .sk-hud:not(.off) .a2-eggs, .sk-hud:not(.off) .sk-pencils, .sk-klo-call:not([hidden])')) {
-                const r = el.getBoundingClientRect();
-                if (r.width && r.top - o.top < 140 && hits(r)) y = r.bottom - o.top + 6 + nh;
+            // (the page is measured only when something may be in the way, and the top bar at most four times a second:
+            // this runs every frame, and reading layout every frame slows a phone)
+            const near = y < 64 + 150;
+            if (think || near) {
+                const o = root.getBoundingClientRect(), nh = keyNote.offsetHeight || 30, nw = keyNote.offsetWidth || 120;
+                const hits = (r) => x + nw / 2 > r.left - o.left - 4 && x - nw / 2 < r.right - o.left + 4 && y > r.top - o.top - 4 && y - nh < r.bottom - o.top + 4;
+                if (think) {
+                    const t = think.getBoundingClientRect(), tt = t.top - o.top, tb = t.bottom - o.top;
+                    if (hits(t)) y = tt - 6 - nh >= 56 ? tt - 6 : tb + 6 + nh;
+                }
+                // nor under the goal note or the round buttons along the top: in landscape the note covered the prompt
+                // right over the sköldhäst's head, so a child never saw what E does there (6 November)
+                if (near) {
+                    const now = performance.now();
+                    if (!topBar || now - topBar.t > 250) topBar = { t: now, rects: [...root.querySelectorAll(TOP_BAR)].map(el => el.getBoundingClientRect()).filter(r => r.width && r.top - o.top < 140) };
+                    for (const r of topBar.rects) if (hits(r)) y = r.bottom - o.top + 6 + nh;
+                }
             }
             keyNote.style.transform = `translate(${Math.round(x)}px, ${Math.round(y)}px) translate(-50%, -100%)`;
             keyNote.classList.add('on');
