@@ -265,11 +265,13 @@ export function createGuide(root, { img, portrait, heroScreen, onGoalTap, onDism
         }
         x = clamp(x, 8, W - bw - 8); y = clamp(y, Math.min(minTop, H - bh - 8), H - bh - 8);
         thinkEl.style.transform = `translate(${Math.round(x)}px, ${Math.round(y)}px)`;
-        // two little dots from the bubble to the head
-        const cx = x + bw / 2, cy = y + bh / 2, dx = headX - cx, dy = headY - cy;
+        // two little dots from the bubble towards the head, the last one just above it (aimed at the head itself, the
+        // small dot sat on the sköldhäst's forehead, 6 November)
+        const aimX = headX, aimY = headY - 0.34 * sc;
+        const cx = x + bw / 2, cy = y + bh / 2, dx = aimX - cx, dy = aimY - cy;
         const k = Math.min(dx ? Math.abs(bw / 2 / dx) : Infinity, dy ? Math.abs(bh / 2 / dy) : Infinity, 1);
         const ex = cx + dx * k, ey = cy + dy * k;
-        const put = (n, t, size) => { n.style.transform = `translate(${Math.round(ex + (headX - ex) * t - x - size / 2)}px, ${Math.round(ey + (headY - ey) * t - y - size / 2)}px)`; };
+        const put = (n, t, size) => { n.style.transform = `translate(${Math.round(ex + (aimX - ex) * t - x - size / 2)}px, ${Math.round(ey + (aimY - ey) * t - y - size / 2)}px)`; };
         put(dotA, 0.3, 14); put(dotB, 0.66, 8);
     }
 
