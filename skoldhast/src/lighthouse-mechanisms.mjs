@@ -39,15 +39,22 @@ export function createLighthouseMechanisms(PIXI, def) {
         [def.plates[0].x - 142, def.plates[0].y - 75],
         [def.pullRopes[0].x + 64, def.pullRopes[0].y - 135]
     ];
+    // where each card by its mechanism is tied: a card hanging in the water with no string read as lost paper (6 November)
+    const tiedTo = [
+        [def.chains[0].from.x, def.chains[0].from.y],
+        [def.plates[0].x - def.plates[0].w * .4, def.plates[0].y - 14],
+        [def.pullRopes[0].x - 11, def.pullRopes[0].y - 150]
+    ];
     const badges = ['hoof', 'shell', 'rope'].map((kind, i) => {
-        const make = (x, y) => {
+        const make = (x, y, tie) => {
             const c = new PIXI.Container(), paper = new PIXI.Graphics(), glyph = new PIXI.Graphics(), progress = new PIXI.Graphics();
+            if (tie) paper.moveTo(0, 0).quadraticCurveTo((tie[0] - x) * .5, (tie[1] - y) * .5 + 18, tie[0] - x, tie[1] - y).stroke({ color: INK, width: 1.8, alpha: .55 });
             paper.poly([-29,-29,24,-32,31,23,-25,28]).fill({color:PAPER,alpha:.97}).stroke({color:INK,width:2,alpha:.7});
             paper.poly([-25,-26,23,-28,28,21,-23,25]).stroke({color:INK,width:1,alpha:.2});
             icon(glyph, kind); c.addChild(paper, glyph, progress); c.position.set(x,y); container.addChild(c);
             return {c,paper,glyph,progress};
         };
-        return { local: make(...sourceAt[i]), shutter: make(def.shutters[i].x,def.shutters[i].y-127), fraction:-1, done:null };
+        return { local: make(...sourceAt[i], tiedTo[i]), shutter: make(def.shutters[i].x,def.shutters[i].y-127), fraction:-1, done:null };
     });
     let lastPhysical = '';
     function update(puz, flags) {
