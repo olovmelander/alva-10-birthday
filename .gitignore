@@ -1,4 +1,5 @@
-node_modules/
+# (no slash: a worktree may link node_modules in, and a link is not a directory)
+node_modules
 .codex
 .claude/
 

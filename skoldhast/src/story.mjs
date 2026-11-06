@@ -1092,7 +1092,7 @@ export function createStory(G, io) {
         on: 'schoolDance', lock: false,
         async run(s) {
             s.stinger('discovery');
-            await s.wait(1.2);
+            await s.wait(0.6);
             await s.remark(STORY.after.lyktDance);
         }
     });

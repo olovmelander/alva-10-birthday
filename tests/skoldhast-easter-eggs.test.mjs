@@ -1,7 +1,7 @@
 /*
- * Small surprises for whoever plays on after the story (6 November): two in each adventure, only after the end,
- * each from the story's own characters. Äventyr 2: the ten little researchers follow the sköldhäst, and Molnet flashes
- * for joy. Äventyr 1: Vattenporten's echo goes into Klo's measurements, and Kartväktaren sets a paper boat on the bay.
+ * Small surprises for whoever plays on after the story (6 November): at least one on every page of both adventures,
+ * only after the end, each from the story's own characters and places (skoldhast/HANDOVER.md lists them page by page).
+ * Each test also checks the surprise does not happen before the end.
  */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
@@ -10,6 +10,8 @@ import { createRobot as robot2 } from './skoldhast-a2-robot.mjs';
 import { STORY as STORY1, JOURNAL } from '../skoldhast/src/content/sv.mjs';
 import { STORY as STORY2 } from '../skoldhast/adventures/adventure-2/content/sv.mjs';
 import { CODE_RESTORE } from '../skoldhast/src/save.mjs';
+import { eggFlag } from '../skoldhast/adventures/adventure-2/puzzles.mjs';
+import { EGG_IDS } from '../skoldhast/adventures/adventure-2/content/world.mjs';
 
 const said = (R, line) => R.log.some(l => l.kind === 'say' && l.lines.some(([who, text]) => who === line[0] && text === line[1]));
 const A2_DONE = ['b:arrive', 'b:firstEgg', 'cloud_met', 'eggs_in_nest', 'moon', 'alva_stars', 'hatched', 'watch_given', 'skata_gift', 'ended', 'b:finale'];
@@ -24,6 +26,8 @@ test('Äventyr 2: after the story, the ten little researchers follow the sköldh
     assert.equal(G.hatchFollow, true, 'hidden by the nest, they gather and follow');
     await R.settle();
     assert.ok(said(R, STORY2.hatchlingsFollow[0]), 'Tukankrabban says so, once');
+    await R.hold(3);
+    assert.equal(G.hatchFollow, true, 'staying hidden after her line does not send them home again: one toggle per hiding');
     await R.emerge(); await R.hold(0.5); await R.hide(); await R.hold(2);
     assert.equal(G.hatchFollow, false, 'hidden by the nest again, they go home');
     await R.emerge(); await R.hold(0.5); await R.hide(); await R.hold(2);
@@ -95,6 +99,12 @@ test('Äventyr 1: after the story, Kartväktaren sets a paper boat on the bay', 
     for (const line of STORY1.after.kvBoat) assert.ok(said(R, line), line[1]);
     await R.hold(0.3);
     assert.notEqual(G.context?.id, 'kvBoat', 'once');
+    // before the end he has no boat to set out
+    const B = robot1();
+    B.G.restore({ flags: [...CODE_RESTORE[2].flags, 'ch3_open', 'viken_arrived', 'b:k3_arrive', 'kv_met', 'talk1', 'talk2', 'talk_done', 'lamp_lit'], checkpoint: 'viken' });
+    B.G.goto('viken', { x: 22.4 * 200, y: -0.62 * 200, facing: 1 });
+    await B.settle(); await B.hold(0.3);
+    assert.notEqual(B.G.context?.id, 'kvBoat');
 });
 
 test('Äventyr 2: after the story, Tordyveln shows his ball of eggshells, the finest yet, deep in Kristallgrottan', async () => {
@@ -140,6 +150,16 @@ test('Äventyr 2: after the story, Skatan is home in her tree and copies a whinn
     assert.ok(said(R, STORY2.skataMimic[0]), 'Skatan answers');
     assert.ok(R.log.some(l => l.kind === 'fx' && l.name === 'skataMimic'));
     assert.equal(R.log.filter(l => l.kind === 'fx' && l.name === 'cloudJoy').length, joys, 'under her tree it is her turn, not Molnet\'s');
+    // again: she copies it, without the words
+    await R.hold(7); await R.step({ tapHero: true }); await R.settle();
+    assert.equal(R.log.filter(l => l.kind === 'fx' && l.name === 'skataMimic').length, 2);
+    assert.equal(R.log.filter(l => l.kind === 'say' && l.lines.some(([, t]) => t === STORY2.skataMimic[0][1])).length, 1);
+    // before the end she does not copy anything
+    const B = robot2();
+    for (const f of ['b:arrive', 'b:firstEgg', 'b:magpie']) B.G.flags.add(f);
+    B.G.goto('strand', { x: B.G.scenes.strand.spots.magTree.x - 0.8 * HL, y: B.G.scenes.strand.spots.magTree.y, facing: -1 });
+    B.story.start(); await B.settle(); await B.step({ tapHero: true }); await B.settle();
+    assert.ok(!B.log.some(l => l.kind === 'fx' && l.name === 'skataMimic'));
 });
 
 test('Äventyr 1: after the story, Kartväktaren\'s note at Streckbron says something new', async () => {
@@ -151,6 +171,30 @@ test('Äventyr 1: after the story, Kartväktaren\'s note at Streckbron says some
     await R.context('read'); await R.settle();
     assert.ok(said(R, STORY1.after.note1After), 'the new note');
     assert.ok(!said(R, STORY1.k1.note1), 'not the old one');
+    // before the end it is the old note
+    const B = robot1();
+    B.G.restore({ flags: CODE_RESTORE[2].flags, checkpoint: 'viken' });
+    B.G.goto('land', { x: B.G.scenes.land.spots.note1.x, y: -0.66 * 200, facing: -1 });
+    await B.settle(); await B.hold(0.3);
+    if (B.G.context?.id === 'read') { await B.context('read'); await B.settle(); }
+    assert.ok(!said(B, STORY1.after.note1After));
+});
+
+test('Äventyr 2: right after the finale, Skatan and Tordyveln have gone home while the ending card was up', async () => {
+    const R = robot2(), { G } = R;
+    for (const f of ['b:arrive', 'b:firstEgg', 'cloud_met', 'b:summit', 'topp_reached', 'storm_source', ...EGG_IDS.map(eggFlag)]) G.flags.add(f);
+    G.goto('strand', { x: 24.0 * HL, y: -0.47 * HL, facing: 1 });
+    R.story.start(); await R.settle(120);
+    assert.ok(G.flags.has('ended'), 'the finale ran');
+    assert.ok(R.log.some(l => l.kind === 'fx' && l.name === 'ending'));
+    assert.equal(G.sceneId, 'strand', 'the page has not turned');
+    const mp = G.scenes.strand.spots.magpie;
+    assert.ok(Math.abs(G.actors.skata.x - mp.x) < 1 * HL, 'Skatan is back in her tree');
+    assert.equal(G.actors.dyvel.scene, 'kristall', 'Tordyveln has taken his new ball into the mountain');
+    // so a whinny by the nest is Molnet's
+    await R.hold(3); await R.step({ tapHero: true }); await R.settle();
+    assert.ok(R.log.some(l => l.kind === 'fx' && l.name === 'cloudJoy'));
+    assert.ok(!R.log.some(l => l.kind === 'fx' && l.name === 'skataMimic'));
 });
 
 test('Äventyr 2: after the story, the hollow log is still a drum; the cocoa tree drops a fruit and Klo gives it to Tukankrabban again', async () => {
@@ -189,7 +233,9 @@ test('Äventyr 1: after the story, the lyktfiskar leave their lamps in Mörka va
     assert.equal(G.puz.school.state, 'dance', 'hidden under the roof, they come and dance');
     assert.ok(Math.hypot(G.puz.school.x - G.player.x, G.puz.school.y - G.player.y) < 0.5 * HL, 'round the shell');
     await R.hold(2); await R.settle();
-    assert.ok(said(R, STORY1.after.lyktDance) || R.log.some(l => l.kind === 'remark' && l.line?.[1] === STORY1.after.lyktDance[1]), 'Klo writes it down');
+    assert.ok(said(R, STORY1.after.lyktDance), 'Klo writes it down');
+    await R.hold(5);
+    assert.equal(G.puz.school.state, 'dance', 'the current carries the shell through, and they dance on where it comes to rest');
     await R.hide(); await R.hold(0.3);
     assert.equal(G.puz.school.state, 'lit', 'back to their lamps when the shell comes out');
     // before the end they keep their lamps
@@ -241,4 +287,37 @@ test('Äventyr 2: after the story, standing still in Stormens öga brings a fall
     B.G.goto('topp', { x: top.x - 2 * HL, y: top.y, facing: 1 });
     B.story.start(); await B.settle(); await B.hold(4); await B.settle();
     assert.ok(!B.log.some(l => l.kind === 'fx' && l.name === 'starFall'));
+});
+
+test('Äventyr 2: after the story, a rocket flies off from the top of Utsiktskullen and the sköldhäst wonders about space', async () => {
+    const rockets = (R) => R.log.filter(l => l.kind === 'fx' && l.name === 'rocket').length;
+    const R = robot2(), { G } = R;
+    for (const f of [...A2_DONE, 'p2_bridge', 'p4_lit', 'p7_vine']) G.flags.add(f);
+    G.goto('skog', { x: 57 * HL, y: -3 * HL, facing: -1 });
+    R.story.start(); await R.settle(); await R.hold(0.5);
+    assert.equal(rockets(R), 0, 'not on the slope');
+    await R.walkTo(52.2); await R.settle();
+    assert.equal(rockets(R), 1, 'from the top it is seen');
+    const i = R.log.findIndex(l => l.kind === 'say' && l.lines.some(([, t]) => t === STORY2.rocket[0][1]));
+    const j = R.log.findIndex(l => l.kind === 'say' && l.lines.some(([, t]) => t === STORY2.rocketAfter[0][1]));
+    assert.ok(i > 0 && j > i, 'the sköldhäst sees it first, then wonders');
+    for (const line of [...STORY2.rocket, ...STORY2.rocketAfter]) assert.ok(said(R, line), line[1]);
+    const focus = R.log.filter(l => l.kind === 'fx' && l.name === 'focus');
+    assert.ok(focus.length >= 2 && focus.at(-1).data === null, 'the picture lifts to the sky and comes back');
+    assert.equal(G.busy, 0, 'and the sköldhäst can go on');
+    // once a visit: off the top and back again, nothing
+    await R.walkTo(57); await R.walkTo(52.2); await R.settle(); await R.hold(1);
+    assert.equal(rockets(R), 1);
+    // another visit: it flies again, and the sköldhäst only watches
+    G.goto('strand', 'fromSkog'); await R.settle();
+    G.goto('skog', { x: 57 * HL, y: -3 * HL, facing: -1 }); await R.settle();
+    await R.walkTo(52.2); await R.settle(); await R.hold(0.5);
+    assert.equal(rockets(R), 2);
+    assert.equal(R.log.filter(l => l.kind === 'say' && l.lines.some(([, t]) => t === STORY2.rocket[0][1])).length, 1, 'the words only the first time');
+    // before the end: no rocket
+    const B = robot2();
+    for (const f of ['b:arrive', 'b:firstEgg', 'p2_bridge', 'p4_lit', 'p7_vine', 'egg_e10', 'b:leapSeen']) B.G.flags.add(f);
+    B.G.goto('skog', { x: 57 * HL, y: -3 * HL, facing: -1 });
+    B.story.start(); await B.settle(); await B.walkTo(52.2); await B.settle(); await B.hold(1);
+    assert.equal(rockets(B), 0);
 });

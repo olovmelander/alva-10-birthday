@@ -9,30 +9,45 @@ least one**. Now every page of both adventures has one or more. Each one:
 - comes from the story's own characters, places and arcs;
 - needs no new puzzle, only something the player already knows (whinny, hide, gallop, bounce, stand still, talk);
 - has its lines recorded (all heard exactly by speech-to-text);
-- is tested in `tests/skoldhast-easter-eggs.test.mjs` (14 tests, each also checks that nothing happens before the end).
+- is tested in `tests/skoldhast-easter-eggs.test.mjs` (each test also checks that nothing happens before the end).
 
 After the story everyone who came to the nest goes home, so their surprises lie in different places: Skatan back on
 her branch in Skatträdet, Tordyveln with his new ball into Kristallgrottan, where he rolled his glitter ball before.
-The hatchlings and Molnet stay at the nest (`setupActors` in `adventures/adventure-2/story.mjs`: until the page
-turns after the finale they stay where the finale left them).
+The hatchlings and Molnet stay at the nest (`setupActors` in `adventures/adventure-2/story.mjs`, called again in the
+finale while the ending card covers the page, so when the player chooses Utforska the guests have gone home).
 
 **Äventyr 2, Flodstranden** (west → east)
 - **Kakaolunden: kakaofrukten igen.** The hollow log is still a drum. Gallop over it as in P1 and the cocoa tree
-  shakes and drops a cocoa fruit onto the log. The first time Klo gives it to Tukankrabban again ("Den är till dig …
+  shakes and drops a cocoa fruit onto the log (the drum sounds as in P1, the fruit rustles down and lands with a thud). The first time Klo gives it to Tukankrabban again ("Den är till dig …
   igen."; she: "Du kom ihåg min favorit, Klo."; he: "Det står i anteckningsboken. Bredvid diagrammen."). After that
   a fruit just falls now and then: the tree rests 6 s after each, so it does not rain fruit (`drumAfter`,
   `cocoaRest` in `puzzles.mjs`; `cocoaFall` in the view; at most three fruits lie on the log, each fades after 7 s).
 - **Boet: tio små forskare.** Hide in the shell by the nest and the ten hatchlings gather. Come out and they follow in
-  a row along the beach, the smallest, Lilla Klo, first. They wait at the water's edge. Hide by the nest again and
-  they go home, and they stay home when the page turns. Tukankrabban says once: "De forskar på dig! …"
-  (`G.hatchFollow`, `afterStory`).
-- **Boet: Molnet blixtrar av glädje.** Whinny under Molnet over the nest and it answers with a small flash. Before,
-  it flashed from fear of the dark; now the moon is drawn. The first time, the picture takes Molnet in and it says
-  "Nu blixtrar jag för att det är roligt – inte för att jag är rädd!". After that it just flashes (`cloudJoy`).
-- **Skatträdet: Skatan härmar.** Whinny under her tree and she copies it, then decides it does not suit her
-  (magpies are mimics; she is vain). There it is her turn, not Molnet's (`skataMimic`).
+  a row along the beach, the smallest, Lilla Klo, first (she is drawn a little smaller than the others). They trot, at
+  most 4 HL a second, so they wait at the water's edge and never cross the river or Klyftan (with less motion too).
+  Hide by the nest again and they go home, and they stay home when the page turns. One toggle per hiding: the shell
+  must come out before the next one counts. Tukankrabban says once: "De forskar på dig! …" (`G.hatchFollow`,
+  `afterStory`).
+- **Boet: Molnet blixtrar av glädje.** Whinny under Molnet over the nest and it answers with a small glow of its own
+  and sparkles round it (no bolt across the sky and no thunder: the storm is over). Before, it flashed from fear of
+  the dark; now the moon is drawn. The first time, the picture takes Molnet in and it says "Nu blixtrar jag för att
+  det är roligt – inte för att jag är rädd!". After that it just glows, at most every 2.5 s (`cloudJoy`).
+- **Skatträdet: Skatan härmar.** Whinny under her tree and she copies it (a quieter whinny from her branch, with a
+  sparkle). The first time she also decides it does not suit her (magpies are mimics; she is vain); after that she
+  just keeps trying, at most every 6 s. There it is her turn, not Molnet's (`skataMimic`).
 
 **Äventyr 2, Djupa skogen**
+- **Raketen från Utsiktskullen (a glimpse of Äventyr 3, which Pappa says will be set in space).** On top of the
+  lookout hill, after the story, a rocket rises far away beyond the hill, crosses Mira's moon in silhouette and grows
+  small until it is only a twinkle among Alva's stars, with a curved trail of smoke behind it and a far-off roar. The
+  sköldhäst stops, faces it and follows it with its eyes (`lookAt`, emote `surprised`): "Titta! En raket!" and, when
+  it is gone, "Tänk hur det skulle vara att åka ut i rymden …"; Klo: "Dit har ingen krabba forskat förut."; Tukankrabban:
+  "Det måste vi forska på!". The first time the picture turns a little towards it; after that it flies again once
+  each time the page is visited, without words, and the sköldhäst just watches. It is drawn in pencil like the rest
+  of the page (red nose and fins, a round window, a little gold star like Alva's on its side), in screen space in
+  front of the moon, on a path measured from the moon so it works upright and in landscape (`rocketWatch` in the
+  story; `rocketPath`, `drawRocket` and fx `rocket` in the view; `rocketState()` lets a check hold the flight at a
+  moment to look at it).
 - **Svampen fnissar.** The mushroom that bounced the sköldhäst up to the egg (P9) giggles now when it bounces you:
   it shivers, a little run of pops sounds and glowing spores rise. The first time Tukankrabban hears it and Klo makes
   hypothesis number four: "svampar är kittliga" (`mushroomGiggle`, fx `giggle`). Each bounce lands on the branch
@@ -58,14 +73,24 @@ turns after the finale they stay where the finale left them).
 
 **Äventyr 1, Kelpskogen**
 - **Lyktfiskarnas dans.** The lyktfiskar that lit Mörka valvet stay as its lamps. Hide in the shell under the
-  vault's roof (the current carries you through) and they leave their lamps and dance in a ring round the shell,
-  lighting the water round it; come out or leave the vault and they go back. The first time Klo says "Lyktfiskarna
-  dansar runt skalet! Jag antecknar: de kommer ihåg dig." (school state `dance` in `puzzles.mjs`, `after_lykt`).
+  vault's roof and they leave their lamps and dance in a ring round the shell, lighting the water round it, while
+  the current carries it through and on where it comes to rest just past the east mouth; come out or swim away and
+  they go back. The first time Klo says "Lyktfiskarna dansar runt skalet! Jag antecknar: de kommer ihåg dig."
+  (school state `dance` in `puzzles.mjs`, `after_lykt`).
 
 **Äventyr 1, Spegelviken**
 - **Kartväktarens pappersbåt.** He was afraid of water ("Jag är av papper. Blött papper går sönder!"). Talk to him
   on the pier (the note shows his face) and he dares to set a paper boat on the bay. It stays there, drifting slowly
-  between the shore and the pier's end, far from the lighthouse's reflection (`_kvBoat`, `kv_boat`, `paperBoat`).
+  between the shore and the pier's end, far from the lighthouse's reflection (`_kvBoat`, `kv_boat`, `paperBoat`; if
+  the page is rebuilt while it is being set down, the scene is released instead of waiting for it).
+
+**Audited (6 November, night).** An independent read of all of the above found, and these were fixed: a
+`node_modules` link committed from a worktree (now untracked; `.gitignore` says `node_modules` without the slash, so a
+link is ignored too); hatchlings sent home again while Tukankrabban spoke; Skatan and Tordyveln left at the nest
+right after the finale (Skatan answered instead of Molnet, Tordyveln's ball scene played on the beach); the boat
+blinking out as it touched the water; the dance lasting only the ride through the vault; hatchlings jumping the
+river with less motion; sparkles falling instead of floating; the after-story drum and fruit being silent; a full
+storm bolt and thunder for Molnet's joy; Lilla Klo the same size as the others; tests without a before-the-end check.
 
 ## Prettier, without changing how anything works (6 November, evening)
 

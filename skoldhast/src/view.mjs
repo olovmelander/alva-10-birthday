@@ -1828,6 +1828,8 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
         app.canvas.parentElement?.classList.remove('sk-world-focus');
         if (!S) return;
         if (shoreTrial) { shoreTrial.effect.destroy(); shoreTrial = null; app.canvas.parentElement?.classList.remove('sk-shore-trial'); }
+        // a paper boat still being set down must not keep its story waiting for a page that is gone
+        if (S.obj?.boat?.drop) { const d = S.obj.boat.drop; S.obj.boat.drop = null; d.done(); }
         endFoldDemo(false);
         endMapAssembly(false);
         dropPeels();
@@ -2597,8 +2599,9 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
                     const u = b.drop.t, e = u * u * (3 - 2 * u);
                     b.c.visible = true; b.x = b.drop.x;
                     b.c.position.set(b.drop.x, lerp(b.drop.y, top, e)); b.c.rotation = (1 - e) * .25;
-                    if (u >= 1) { b.drop.done(); b.drop = null; }
-                } else if (F.has('kv_boat')) {
+                    // it stays on the water from here (the story flags it a moment later, after the splash)
+                    if (u >= 1) { b.landed = true; const d = b.drop; b.drop = null; d.done(); }
+                } else if (F.has('kv_boat') || b.landed) {
                     b.c.visible = true;
                     if (!G.lessMotion) {
                         b.x += b.dir * h(0.1) * dt;

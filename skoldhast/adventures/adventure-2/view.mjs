@@ -104,6 +104,8 @@ export function createView(PIXI, app, { assets, G, heroFactory, eggTarget = null
             g.circle(-1.5, -2, 1.6).fill({ color: 0xffffff, alpha: 0.9 });
         }, 44, 44),
         mote: texFrom(g => { for (let i = 6; i >= 1; i--) g.circle(0, 0, i * 2.2).fill({ color: 0xfff1b0, alpha: 0.07 }); g.circle(0, 0, 2.4).fill({ color: 0xfffbe6 }); }, 30, 30),
+        // a soft round puff of smoke (the rocket's trail)
+        puff: texFrom(g => { for (let i = 8; i >= 1; i--) g.circle(0, 0, i * 2).fill({ color: 0xffffff, alpha: 0.1 }); }, 36, 36),
         leaf: texFrom(g => g.moveTo(-7, 0).quadraticCurveTo(0, -6, 7, 0).quadraticCurveTo(0, 6, -7, 0).fill({ color: 0x6f9a4f }).stroke({ width: 1, color: 0x3f5f33 }), 18, 14),
         bubble: texFrom(g => g.circle(0, 0, 4.5).stroke({ width: 1.3, color: 0xcfe6ef, alpha: 0.9 }), 12, 12),
         dust: texFrom(g => g.circle(0, 0, 3).fill({ color: 0xc9b58f, alpha: 0.85 }), 8, 8),
@@ -163,6 +165,119 @@ export function createView(PIXI, app, { assets, G, heroFactory, eggTarget = null
     const ALVA_STARS = [[-2.6, 0.3, 1.9], [-1.4, -0.9, 1.1], [1.5, -0.7, 1.3], [2.3, 0.6, 1.0], [-3.6, -0.6, 0.9], [0.4, 1.7, 0.8]];
     for (const [dx, dy, k] of ALVA_STARS) { const s = new RAW.Sprite(TX.alvaStar); s.anchor.set(0.5); s._d = [dx, dy, k]; alvaStars.addChild(s); }
     const starsState = { shown: 0 };
+
+    // --- the rocket (after the story, from Utsiktskullen: a glimpse of the next adventure, out in space) -------------
+    // Drawn in pencil like everything on the page, in front of the moon: it rises from beyond the hill, crosses Mira's
+    // moon and grows small until it is only a twinkle among Alva's stars. Screen space, like the moon (fx 'rocket').
+    const rocketLayer = new RAW.Container(); rocketLayer.visible = false; moonLayer.addChild(rocketLayer);
+    const rocketTrail = new RAW.Container(); rocketLayer.addChild(rocketTrail);
+    const rocketShip = new PIXI.Container(); rocketLayer.addChild(rocketShip);
+    const rocketFlame = new RAW.Graphics(); rocketShip.addChild(rocketFlame);
+    {
+        const g = new PIXI.Graphics();
+        const ink = 0x3e3550;
+        // fins first, behind the body
+        g.poly([-11, 4, -21, 21, -20, 25, -10, 19]).fill(pen.fill(0xd65a4f)).stroke(pen.line(ink, 1.8));
+        g.poly([11, 4, 21, 21, 20, 25, 10, 19]).fill(pen.fill(0xd65a4f)).stroke(pen.line(ink, 1.8));
+        // the nozzle
+        g.poly([-6, 19, 6, 19, 8, 25, -8, 25]).fill(pen.fill(0x8d879c)).stroke(pen.line(ink, 1.6));
+        // the body: a fat paper-white ogive
+        g.moveTo(0, -34).bezierCurveTo(9, -27, 13, -14, 12.5, 2).lineTo(11, 19).lineTo(-11, 19).lineTo(-12.5, 2)
+            .bezierCurveTo(-13, -14, -9, -27, 0, -34).fill(pen.fill(0xf5f0e4)).stroke(pen.line(ink, 2));
+        // the red nose, and a band round the waist
+        g.moveTo(0, -34).bezierCurveTo(5.5, -30, 8.5, -24, 9.6, -18).quadraticCurveTo(0, -15.5, -9.6, -18)
+            .bezierCurveTo(-8.5, -24, -5.5, -30, 0, -34).fill(pen.fill(0xd65a4f)).stroke(pen.line(ink, 1.6));
+        g.moveTo(-12.4, 9).quadraticCurveTo(0, 11.5, 12.4, 9).stroke(pen.line(0xd65a4f, 2.4, 0.9));
+        // the round window, with a gleam (who is looking out?)
+        g.circle(0, -5, 5.8).fill(pen.fill(0x8ecbe8)).stroke(pen.line(ink, 1.8));
+        g.circle(-1.8, -6.9, 1.5).fill({ color: 0xffffff, alpha: 0.9 });
+        // a little gold star painted on its side, like Alva's
+        const st = []; for (let i = 0; i < 10; i++) { const a = -Math.PI / 2 + i * Math.PI / 5, r = i % 2 ? 1.6 : 3.8; st.push(4.2 + Math.cos(a) * r, 13.6 + Math.sin(a) * r); }
+        g.poly(st).fill({ color: 0xffd86b });
+        rocketShip.addChild(g);
+    }
+    const rocketGlow = new RAW.Sprite(TX.mote); rocketGlow.anchor.set(0.5); rocketGlow.tint = 0xffc27a; rocketLayer.addChildAt(rocketGlow, 1);
+    const rocketTwinkle = new RAW.Sprite(TX.alvaStar); rocketTwinkle.anchor.set(0.5); rocketTwinkle.visible = false; rocketLayer.addChild(rocketTwinkle);
+    let rocket = null;
+    const ROCKET_FLIGHT = 5.6;
+    /** Where the rocket is at progress u (0–1) on this screen: a curve from beyond the hill, across the moon, up
+     *  among Alva's stars. Returns the point and the direction it is flying. */
+    function rocketPath(u, W, H) {
+        const mp = moonScreen(W, H, moonState.rise), r = mp.r;
+        // it starts below the horizon (a little lower than the moon by the same measure on every screen), so it rises
+        // from beyond the hill instead of appearing in the open sky
+        const p0 = [mp.x + 2.3 * r, Math.min(H + 40, mp.y + 4.2 * r + 200)], c = [mp.x + 1.3 * r, mp.y + 0.6 * r];
+        const p2 = [mp.x - 1.6 * r, Math.max(18, mp.y - 1.7 * r)];
+        const a = (1 - u) * (1 - u), b = 2 * u * (1 - u), d = u * u;
+        const x = a * p0[0] + b * c[0] + d * p2[0], y = a * p0[1] + b * c[1] + d * p2[1];
+        const dx = 2 * (1 - u) * (c[0] - p0[0]) + 2 * u * (p2[0] - c[0]), dy = 2 * (1 - u) * (c[1] - p0[1]) + 2 * u * (p2[1] - c[1]);
+        return { x, y, dx, dy, r };
+    }
+    function drawRocket(W, H, dt, t) {
+        const rm = !!G.lessMotion;
+        if (!rocket) { if (rocketLayer.visible) { rocketLayer.visible = false; for (const q of rocketTrail.removeChildren()) q.destroy(); } return; }
+        rocketLayer.visible = true;
+        // (a check may hold the flight at a moment to look at it: rocketState().hold)
+        if (rocket.hold == null || rocket.t < rocket.hold) rocket.t = Math.min(rocket.t + dt, rocket.hold ?? Infinity);
+        const k = Math.max(0.9, Math.min(1.6, Math.min(W, H) / 390));
+        const tau = Math.min(1, rocket.t / ROCKET_FLIGHT);
+        // a slow lift-off, a climb, and seeming slower again as it grows small in the distance
+        const u = tau * tau * (3 - 2 * tau);
+        const P = rocketPath(u, W, H);
+        const flying = tau < 1;
+        const scale = k * (1.05 - 0.78 * u);
+        rocketShip.visible = rocketGlow.visible = flying;
+        if (flying) {
+            rocketShip.position.set(P.x, P.y);
+            rocketShip.rotation = Math.atan2(P.dy, P.dx) + Math.PI / 2;
+            rocketShip.scale.set(scale);
+            rocketShip.alpha = Math.min(1, tau / 0.06) * (tau > 0.9 ? (1 - tau) / 0.1 : 1);
+            // the flame flickers (steady with less motion)
+            const fl = rm ? 1 : 0.8 + 0.25 * Math.sin(t * 47) + 0.12 * Math.sin(t * 83 + 1);
+            rocketFlame.clear();
+            rocketFlame.moveTo(-6, 25).quadraticCurveTo(-5, 25 + 14 * fl, 0, 25 + 24 * fl).quadraticCurveTo(5, 25 + 14 * fl, 6, 25).fill({ color: 0xff9a3c, alpha: 0.9 });
+            rocketFlame.moveTo(-3.2, 25).quadraticCurveTo(-2.6, 25 + 8 * fl, 0, 25 + 14 * fl).quadraticCurveTo(2.6, 25 + 8 * fl, 3.2, 25).fill({ color: 0xfff1b0 });
+            // its light on the smoke
+            const nx = -Math.sin(rocketShip.rotation), ny = Math.cos(rocketShip.rotation);
+            rocketGlow.position.set(P.x + nx * 34 * scale, P.y + ny * 34 * scale);
+            rocketGlow.scale.set(3.2 * scale); rocketGlow.alpha = 0.8 * rocketShip.alpha;
+            // smoke: a puff from the nozzle now and then, which swells, drifts and fades into a curved trail
+            rocket.puffT -= dt;
+            while (rocket.puffT <= 0) {
+                rocket.puffT += rm ? 0.12 : 0.035;
+                const q = new RAW.Sprite(TX.puff); q.anchor.set(0.5); q.tint = 0xf1edf7;
+                q.position.set(P.x + nx * 30 * scale + (Math.random() - 0.5) * 4, P.y + ny * 30 * scale);
+                q._life = 0; q._s = scale; q._vx = (Math.random() - 0.5) * 10; q._vy = 6 + Math.random() * 6;
+                rocketTrail.addChild(q);
+            }
+        }
+        for (let i = rocketTrail.children.length - 1; i >= 0; i--) {
+            const q = rocketTrail.children[i];
+            q._life += dt;
+            const v = q._life / 2.8;
+            if (v >= 1) { q.destroy(); continue; }
+            q.x += q._vx * dt; q.y += q._vy * dt;
+            q.scale.set(q._s * (0.5 + 1.7 * Math.sqrt(v)));
+            q.alpha = 0.78 * (1 - v) * (1 - v);
+        }
+        // at the end it is only a twinkle among the stars, which fades as the trail does
+        if (!flying) {
+            const e = rocket.t - ROCKET_FLIGHT;
+            const end = rocketPath(1, W, H);
+            rocketTwinkle.visible = true;
+            rocketTwinkle.position.set(end.x, end.y);
+            rocketTwinkle.scale.set(k * (e < 0.35 ? 0.4 + 2.2 * e : Math.max(0.35, 1.17 - (e - 0.35) * 0.5)) * (rm ? 1 : 1 + 0.12 * Math.sin(t * 9)));
+            rocketTwinkle.rotation = rm ? 0 : e * 0.8;
+            rocketTwinkle.alpha = Math.max(0, Math.min(1, e / 0.15) * (1 - Math.max(0, e - 1.6) / 1.2));
+            if (e > 2.8 && !rocketTrail.children.length) { rocket = null; rocketTwinkle.visible = false; }
+        } else rocketTwinkle.visible = false;
+    }
+    /** For the hero's eyes: where on the page the rocket is, while it flies. */
+    function rocketWorld(W, H) {
+        if (!rocket || rocket.t >= ROCKET_FLIGHT + 1.2) return null;
+        const tau = Math.min(1, rocket.t / ROCKET_FLIGHT), P = rocketPath(tau * tau * (3 - 2 * tau), W, H);
+        return { x: cam.x + (P.x - W / 2) / cam.zoom, y: cam.y + (P.y - H / 2) / cam.zoom };
+    }
     const stormClouds = new PIXI.Container(); skyLayer.addChild(stormClouds);
     const cloudShapes = [];
     for (let i = 0; i < 6; i++) {
@@ -408,6 +523,8 @@ export function createView(PIXI, app, { assets, G, heroFactory, eggTarget = null
 
     function buildScene(id) {
         clearScene();
+        // the sky's passers-by belong to the page they were seen from
+        rocket = null; shooting = null;
         const def = G.scenes[id];
         atmo.setMood(moodFor(def.sky, G.storm ?? 1), { instant: true });
         S = { id, def, actors: [], eggs: new Map(), surfaces: new Map(), when: [], dashed: new Map(), anim: [] };
@@ -1752,7 +1869,8 @@ export function createView(PIXI, app, { assets, G, heroFactory, eggTarget = null
             }
             S.hatchlings = [];
             for (let i = 0; i < EGG_TOTAL; i++) {
-                const k = createHatchling(PIXI, pen); k.view.scale.set(1.8); k.view.visible = false; L.actors.addChild(k.view);
+                // the last one is the smallest, Lilla Klo (Tukankrabban names her so), and walks first in a row
+                const k = createHatchling(PIXI, pen); k.view.scale.set(i === EGG_TOTAL - 1 ? 1.45 : 1.8); k.view.visible = false; L.actors.addChild(k.view);
                 S.hatchlings.push({ k, home: def.nest.x - h(1.2) + i * h(0.26), t: 0 });
             }
         }
@@ -1999,7 +2117,10 @@ export function createView(PIXI, app, { assets, G, heroFactory, eggTarget = null
                 let tx = k.home + Math.sin(t * 0.6 + i) * h(0.25), face = Math.cos(t * 0.6 + i) > 0 ? 1 : -1;
                 if (G.hatchFollow) { tx = p.x - f * (h(0.75) + (EGG_TOTAL - 1 - i) * h(0.34)); face = Math.sign(p.x - (k.x ?? tx)) || f; }
                 k.x = k.x ?? tx;
-                const nx = rm ? tx : lerp(k.x, tx, 1 - Math.exp(-(G.hatchFollow ? 3.2 - i * 0.12 : 1.4) * dt));
+                // they trot, never jump: at most 4 HL a second (with less motion too), so a step can never carry one
+                // over the river or Klyftan, whatever the frame time
+                const want = rm ? tx : lerp(k.x, tx, 1 - Math.exp(-(G.hatchFollow ? 3.2 - i * 0.12 : 1.4) * dt));
+                const nx = k.x + clamp(want - k.x, -h(4) * dt, h(4) * dt);
                 const gy = groundY(G.sceneDef, nx);
                 if (gy !== null && !(G.sceneDef.waters || []).some(w => nx > w.x0 && nx < w.x1 && gy > w.top - 6)) k.x = nx;
                 const y = groundY(G.sceneDef, k.x) ?? G.sceneDef.nest.y;
@@ -2063,6 +2184,9 @@ export function createView(PIXI, app, { assets, G, heroFactory, eggTarget = null
         }
         // the hero
         if (G.speaker === 'horse' && !snap.action && !rm && !snap.hide) { snap.action = 'talk'; snap.actionT = (t * 1.5) % 1; }
+        // while the rocket flies the sköldhäst follows it with its eyes, wondering
+        const rw = rocketWorld(W, H);
+        if (rw && !snap.hide) { snap.lookAt = rw; snap.emote = 'surprised'; }
         hero.update(dt, ride ? { ...snap, facing: -1, action: null } : snap);
         hero.view.position.set(snap.x, snap.y);
         hero.view.visible = !G.hideHero;
@@ -2411,6 +2535,7 @@ export function createView(PIXI, app, { assets, G, heroFactory, eggTarget = null
                 shootG.circle(hx, hy, 6).fill({ color: 0xffffff, alpha: 0.95 * fade });
             }
         }
+        drawRocket(W, H, dt, t);
         // storm clouds drift and thin out
         for (const c of cloudShapes) {
             c.c.position.set(((c.x * (W + c.w * 2) - cam.x * cam.zoom * c.par + t * (G.lessMotion ? 2 : 8)) % (W + c.w * 2) + (W + c.w * 2)) % (W + c.w * 2) - c.w, c.y * H);
@@ -2513,9 +2638,23 @@ export function createView(PIXI, app, { assets, G, heroFactory, eggTarget = null
                 return;
             case 'lightning': lightning(0.9); await waitGame(0.7); return;
             // after the story: Molnet over the nest flashes for joy, small and soft
-            case 'cloudJoy': lightning(G.lessMotion ? 0.25 : 0.45); return;
+            // (a soft glow from Molnet itself with sparkles round it: no bolt across the sky and no thunder, the storm is over)
+            case 'cloudJoy': {
+                const s = rm ? 0.12 : 0.28;
+                flash = Math.max(flash, s); atmo.flash(s);
+                S?.A?.moln?.flash();
+                const m = G.actors.moln;
+                if (m && m.scene === S.id) emit('star', m.x, m.y + h(0.2), 12, { gravity: 0, speed: 170, life: 1.1, spread: h(1.4), spreadY: h(0.4), tint: 0xfff4b0 });
+                return;
+            }
             // Tordyveln shows his ball of eggshells: it pops up beside him with a few sparkles
-            case 'shellBall': { if (S?.shellBall) S.shellBall.pop = 0; const d = G.actors.dyvel; if (d) emit('star', d.x + (d.facing || 1) * h(0.75), d.y - h(0.3), 8, { g: 0, speed: 140 }); await waitGame(0.5); return; }
+            case 'shellBall': { if (S?.shellBall) S.shellBall.pop = 0; const d = G.actors.dyvel; if (d) emit('star', d.x + (d.facing || 1) * h(0.75), d.y - h(0.3), 8, { gravity: 0, speed: 140, life: 0.9 }); await waitGame(0.5); return; }
+            // Utsiktskullen after the story: a rocket flies off into space (a glimpse of the next adventure)
+            case 'rocket': {
+                rocket = { t: 0, puffT: 0 };
+                await until(() => !rocket || rocket.t >= ROCKET_FLIGHT);
+                return;
+            }
             // Åsktoppen after the story: a star falls from Alva's stars
             case 'starFall': shooting = { t: 0 }; await waitGame(rm ? 0.6 : 2.0); return;
             // Djupa skogen after the story: the mushroom giggles, shakes and puffs glowing spores
@@ -2550,7 +2689,7 @@ export function createView(PIXI, app, { assets, G, heroFactory, eggTarget = null
                 return;
             }
             // Skatan copies the whinny: she sings out (a sparkle by her beak)
-            case 'skataMimic': { const k = G.actors.skata; if (k) emit('star', k.x, k.y - h(0.5), 5, { g: 0, speed: 90 }); return; }
+            case 'skataMimic': { const k = G.actors.skata; if (k) emit('star', k.x, k.y - h(0.5), 5, { gravity: 0, speed: 90, life: 0.9 }); return; }
             case 'eggsDrop': {
                 // from Skatan's nest, or from where the story says (the cloud on Åsktoppen, which has no magpie: it
                 // threw there and the last egg never fell from the cloud, 5 November)
@@ -2727,6 +2866,8 @@ export function createView(PIXI, app, { assets, G, heroFactory, eggTarget = null
         setCloudTexture(tex) { cloudTexture = tex; },
         render, fx, lightning, emit,
         moonScreen: () => moonScreen(),
+        /** For checks: the rocket while it flies after the story ({ t } in seconds, or null). */
+        rocketState: () => rocket,
         /** For checks: Mira's moon and Alva's stars, and how far the moon has risen. */
         moonParts: () => ({ moon, stars: alvaStars, rise: moonState.rise }),
         /** Eggs picked up but still flying to the count (main shows the count without them until they land). */

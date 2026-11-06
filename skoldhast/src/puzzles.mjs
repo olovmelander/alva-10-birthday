@@ -197,10 +197,11 @@ export function stepPuzzles(G, events, dt) {
             if (sch.state === 'wait' && (dSchool > h(8) || sch.wait > 12)) { sch.state = 'home'; sch.t = 0; }
         }
     } else if (sc.school && F.has('p5_lit')) {
-        // after the story the lamps of Mörka valvet still know the shell that showed them in: hide under the roof (the
-        // current carries you through) and they leave their places to dance round it, then go back (an easter egg)
+        // after the story the lamps of Mörka valvet still know the shell that showed them in: hide under the roof and
+        // they leave their places to dance round it while the current carries it through, and on where it comes to
+        // rest just past the east mouth; come out (or swim away) and they go back to their lamps (an easter egg)
         const sch = S.school, lit = sc.school.lit, roof = sc.slabs?.find(q => q.id === 'vault-roof');
-        const under = roof && p.x > roof.bottom[0][0] && p.x < roof.bottom.at(-1)[0] && p.y > lit.y - h(1.6);
+        const under = roof && p.x > roof.bottom[0][0] && p.x < roof.bottom.at(-1)[0] + h(1.6) && p.y > lit.y - h(1.6);
         if (hidden && F.has('ended') && under) {
             sch.t = sch.state === 'dance' ? 0 : (sch.t || 0) + dt;
             if (sch.state !== 'dance' && sch.t > 0.6) { sch.state = 'dance'; G.emit('schoolDance', {}); }

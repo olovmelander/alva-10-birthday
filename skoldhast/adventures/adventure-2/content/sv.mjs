@@ -528,6 +528,13 @@ export const STORY = {
         ['tukan', 'Ett stjärnfall! Det lossnade från Alvas stjärnor.'],
         ['klo', 'Då får man önska något. Jag önskar … nej. Det är vetenskapligt hemligt.']
     ],
+    // Utsiktskullen after the story: a rocket flies off into space (a glimpse of the next adventure)
+    rocket: [['horse', 'Titta! En raket!']],
+    rocketAfter: [
+        ['horse', 'Tänk hur det skulle vara att åka ut i rymden …'],
+        ['klo', 'Rymden! Dit har ingen krabba forskat förut.'],
+        ['tukan', 'Där uppe glänser allt. Det måste vi forska på!']
+    ],
     // Kakaolunden after the story: the log is still a drum, and Klo still gives her the cocoa fruit
     cocoaAgain: [
         ['klo', 'En kakaofrukt till! Den är till dig … igen.'],

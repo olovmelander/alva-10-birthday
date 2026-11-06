@@ -642,6 +642,9 @@ export function createStory(G, io) {
         await fx('epilogue', {});
         if (G.actors.klo) G.actors.klo.pose = 'idle';
         await fx('ending', {});
+        // while the ending card covered the page, the guests went home: Skatan to her tree, Tordyveln with his new
+        // ball into the mountain (their surprises are there; by the nest they would answer instead of Molnet)
+        setupActors();
         await say(STORY.after);
         await fx('focus', null);
     }
@@ -660,14 +663,45 @@ export function createStory(G, io) {
         starFall(dt);
         if (!F.has('hatched') || G.sceneId !== 'strand') { hideByNest = 0; return; }
         const p = G.player, nest = G.sceneDef.nest;
-        if (p.hidden && Math.abs(p.x - nest.x) < 2.4 * HL && !G.busy) {
-            hideByNest += dt;
-            if (hideByNest > 1.5 && !hideToggled) {
-                hideToggled = true;
-                G.hatchFollow = !G.hatchFollow;
-                if (G.hatchFollow && !done('hatchFollow')) beat('hatchFollow', () => say(STORY.hatchlingsFollow));
-            }
-        } else { hideByNest = 0; hideToggled = false; }
+        // one toggle per hiding: the shell must come out before the next one counts (it is still hidden while
+        // Tukankrabban's line is spoken, which used to send them straight home again)
+        if (!p.hidden || Math.abs(p.x - nest.x) >= 2.4 * HL) { hideByNest = 0; hideToggled = false; return; }
+        if (G.busy || hideToggled) return;
+        hideByNest += dt;
+        if (hideByNest > 1.5) {
+            hideToggled = true;
+            G.hatchFollow = !G.hatchFollow;
+            if (G.hatchFollow && !done('hatchFollow')) beat('hatchFollow', () => say(STORY.hatchlingsFollow));
+        }
+    }
+    // Raketen från Utsiktskullen: after the story, on top of the lookout hill, a rocket rises far away, crosses Mira's
+    // moon and becomes a twinkle among Alva's stars. The sköldhäst stops and wonders what it would be like to go out into
+    // space: a glimpse of the next adventure. The first time the picture lifts to the sky and they talk about it; after
+    // that it flies again once each time the page is visited, and the sköldhäst just watches it go.
+    let rocketThisVisit = false;
+    function rocketWatch() {
+        if (rocketThisVisit || !F.has('ended') || G.sceneId !== 'skog' || G.busy || current || queue.length) return;
+        const p = G.player;
+        if (p.mode !== 'ground' || p.hidden || p.x < 50.8 * HL || p.x > 53.6 * HL || p.y > -3.85 * HL) return;
+        rocketThisVisit = true;
+        // a far-off roar that swells and dies away (no thunder: the storm is over)
+        const liftOff = () => { io.audio?.sfx?.('whoosh', { gain: 0.45 }); io.audio?.sfx?.('wind', { gain: 0.55, delay: 0.2 }); io.audio?.sfx?.('wind', { gain: 0.3, delay: 2.3 }); };
+        if (done('rocket')) { liftOff(); fx('rocket', {}).then(() => io.audio?.sfx?.('sparkle')); return; }
+        beat('rocket', async () => {
+            p.vx = 0; p.facing = 1;
+            // the rocket is in the sky (screen space), so the picture only turns a little towards it, keeping the
+            // sköldhäst clear of the speech box below
+            await fx('focus', { x: p.x + 1.1 * HL, y: p.y - 0.7 * HL, zoom: 0.92 });
+            liftOff();
+            const flight = fx('rocket', {});
+            await G.wait(1.4);
+            await say(STORY.rocket);
+            await flight;
+            io.audio?.sfx?.('sparkle');
+            await G.wait(0.6);
+            await say(STORY.rocketAfter);
+            await fx('focus', null);
+        });
     }
     // Stjärnfall i Stormens öga: on the summit where Molnet sat crying in the dark, stand quite still and a star falls
     // from Alva's stars (stillness, as the moonshine flowers taught). The first time Klo makes a wish, and keeps it secret.
@@ -715,12 +749,16 @@ export function createStory(G, io) {
             if (G.time - mimicAt < 6) return;
             mimicAt = G.time;
             fx('skataMimic', {});
-            beat('skataMimic', () => say(STORY.skataMimic), { once: false });
+            // she copies the whinny (a smaller, higher one from her branch); the first time she also decides it does not
+            // suit her, after that she just keeps trying
+            io.audio?.sfx?.('neigh', { gain: 0.32, delay: 0.55 });
+            beat('skataMimic', () => say(STORY.skataMimic));
             return;
         }
         const sky = G.sceneDef.spots.cloudSky;
         if (Math.abs(G.player.x - sky.x) > 4 * HL || G.time - joyAt < 2.5) return;
         joyAt = G.time;
+        io.audio?.sfx?.('sparkle', { delay: 0.6 });
         // the first time, the picture takes Molnet in (it hangs high over the nest, out of a walking view), flashes
         // and says why; after that it just flashes
         if (done('molnJoy')) { fx('cloudJoy', {}); return; }
@@ -730,12 +768,12 @@ export function createStory(G, io) {
 
     const offs = [
         G.on('neigh', cloudJoy),
-        G.on('drumAfter', () => io.audio?.sfx?.('drum')),
         G.on('cocoaFall', cocoaAgain),
         G.on('egg', onEgg),
         G.on('enter', onEnter),
         G.on('scene', () => {
             G.hatchFollow = false; // the little researchers stay by their nest when the page turns
+            rocketThisVisit = false;
             G.flag('visited_' + G.sceneId);
             setupActors();
             // a love scene skipped on the peak comes when they are home
@@ -834,6 +872,7 @@ export function createStory(G, io) {
         step(dt) {
             if (!current && queue.length) run(queue.shift());
             afterStory(dt);
+            rocketWatch();
             if (!current) {
                 follow(G.actors.klo, 1.7 * HL, 520, dt);
                 follow(G.actors.tukan, 2.9 * HL, 600, dt);
