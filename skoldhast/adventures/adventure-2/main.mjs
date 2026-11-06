@@ -544,6 +544,14 @@ export function createGame({ host = document.body, assetBase = './skoldhast/', s
                 case 'vine': audio.sfx('gate'); break;
                 case 'trade': audio.sfx('sparkle'); break;
                 // a soft roll of thunder a moment after the flash, under a gust (the storm used to flash in silence)
+                // a gust is heard coming and then blowing, so you can hide in time by ear too (Vindkanten, T1)
+                case 'gust': {
+                    const w = (G.sceneDef?.winds || []).find(q => q.id === e.id), x = G.player.x;
+                    if (!w || !e.state || x < w.x0 - 6 * HL || x > w.x1 + 6 * HL) break;
+                    if (e.state === 'warn') audio.sfx('wind', { gain: 0.45 });
+                    else { audio.sfx('wind', { gain: 1.1 }); audio.sfx('whoosh', { gain: 0.5 }); }
+                    break;
+                }
                 case 'thunder': audio.sfx('thunder', { gain: 0.3 + e.strength * 0.6, delay: 0.5 + Math.random() * 0.9 }); audio.sfx('wind', { gain: 0.3 + e.strength * 0.35 }); break;
                 case 'clue': audio.sfx('write'); break;
                 case 'bump': audio.sfx('thud'); break;
