@@ -457,7 +457,7 @@ export function createGame({ host = document.body, assetBase = './skoldhast/', s
             const free = !ui.dialogueOpen() && !ui.panelOpen() && !G.busy;
             const promptable = inputDevice !== 'touch' && G.context?.label && !G.player.hidden && free && !story.running();
             const hs = promptable ? heroScreen() : null;
-            ui.keyPrompt(hs ? { key: inputDevice === 'pad' ? 'X' : 'E', label: G.context.label, at: { x: hs.x, y: hs.y - HL * 0.8 * hs.scale } } : null);
+            ui.keyPrompt(hs ? { key: inputDevice === 'pad' ? 'X' : 'E', label: G.context.label, who: G.context.who, at: { x: hs.x, y: hs.y - HL * 0.8 * hs.scale } } : null);
             ui.guide.show(free);
             const obj = story.objective();
             if (settings.help === 'guided' && story.activePuzzle()) ui.guide.goal(story.hint({ peek: true }).text, obj?.text);

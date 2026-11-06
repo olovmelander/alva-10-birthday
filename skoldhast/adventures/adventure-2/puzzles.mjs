@@ -326,7 +326,7 @@ export function contextAction(G) {
         // P6: Skatan on her branch
         if (sc.magpie && p.surface?.id === sc.magpie.surface && Math.abs(p.x - sc.magpie.x) < sc.magpie.reach && !F.has('eggs_in_nest')) {
             if (F.has('coin_got') && !F.has('coin_given')) return { id: 'give', label: CONTEXT.give, run: () => giveCoin(G) };
-            return { id: 'talk-skata', label: CONTEXT.talk, run: () => G.emit('talk', { who: 'skata' }) };
+            return { id: 'talk-skata', label: CONTEXT.talk, who: 'skata', run: () => G.emit('talk', { who: 'skata' }) };
         }
         // P7: the vine across Ravinen
         if (sc.vinePull && !F.has(sc.vinePull.flag) && p.x >= sc.vinePull.x0 && p.x <= sc.vinePull.x1 && p.facing === sc.vinePull.facing && p.y > -1.2 * HL) {
@@ -335,7 +335,7 @@ export function contextAction(G) {
         // the grumpy beetle
         const beetle = G.actors.dyvel;
         if (beetle?.visible && beetle.scene === G.sceneId && Math.hypot(p.x - beetle.x, p.y - beetle.y) < TALK) {
-            return { id: 'talk-dyvel', label: CONTEXT.talk, run: () => G.emit('talk', { who: 'dyvel' }) };
+            return { id: 'talk-dyvel', label: CONTEXT.talk, who: 'dyvel', run: () => G.emit('talk', { who: 'dyvel' }) };
         }
     }
     // a word with a companion: their help for what we are doing now
@@ -343,7 +343,7 @@ export function contextAction(G) {
         const a = G.actors[who];
         if (!a?.visible || a.scene !== G.sceneId) continue;
         if (Math.abs(p.x - a.x) < TALK && Math.abs(p.y - a.y) < 0.8 * HL) {
-            return { id: 'talk-' + who, label: CONTEXT.talk, run: () => G.emit('talk', { who }) };
+            return { id: 'talk-' + who, label: CONTEXT.talk, who, run: () => G.emit('talk', { who }) };
         }
     }
     return null;

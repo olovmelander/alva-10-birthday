@@ -1166,14 +1166,14 @@ export function createStory(G, io) {
         if (inScene('viken') && kv.visible && F.has('talk1') && !F.has('talk_done')) {
             const d = Math.abs(p.x - kv.x);
             if (d < h(1.6)) {
-                if (!F.has('talk2')) out.push({ id: 'talk2', label: CONTEXT_LABELS.talk, dist: d / HL, run: () => start(beats.find((b) => b.id === '_talk2')) });
-                else out.push({ id: 'talk3', label: CONTEXT_LABELS.talk, dist: d / HL, run: () => start(beats.find((b) => b.id === '_talk3')) });
+                if (!F.has('talk2')) out.push({ id: 'talk2', label: CONTEXT_LABELS.talk, who: 'kv', dist: d / HL, run: () => start(beats.find((b) => b.id === '_talk2')) });
+                else out.push({ id: 'talk3', label: CONTEXT_LABELS.talk, who: 'kv', dist: d / HL, run: () => start(beats.find((b) => b.id === '_talk3')) });
             }
         }
         const sg = G.actors.signe;
         if (inScene('land') && F.has('signe_met') && sg.visible && sg.scene === 'land' && !race.active && !sg.walk) {
             const d = Math.abs(p.x - sg.x);
-            if (d < h(1.4)) out.push({ id: 'race', label: CONTEXT_LABELS.talk, dist: d / HL, run: () => start(beats.find((b) => b.id === '_race')) });
+            if (d < h(1.4)) out.push({ id: 'race', label: CONTEXT_LABELS.talk, who: 'signe', dist: d / HL, run: () => start(beats.find((b) => b.id === '_race')) });
         }
         if (inScene('land')) {
             const n = G.sceneDef.spots.note1;

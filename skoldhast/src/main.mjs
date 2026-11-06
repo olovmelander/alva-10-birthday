@@ -669,7 +669,7 @@ export function createGame({ host = document.body, assetBase = './skoldhast/', r
             const promptable = inputDevice !== 'touch' && G.context?.label && !G.player.hidden && !G.busy && !G.vista
                 && !ui.dialogueOpen() && !ui.panelOpen() && !companion.suspended() && !story.running();
             const hs = promptable ? heroScreen() : null;
-            ui.keyPrompt(hs ? { key: inputDevice === 'pad' ? 'X' : 'E', label: G.context.label, at: { x: hs.x, y: hs.y - HL * 0.8 * hs.scale } } : null);
+            ui.keyPrompt(hs ? { key: inputDevice === 'pad' ? 'X' : 'E', label: G.context.label, who: G.context.who, at: { x: hs.x, y: hs.y - HL * 0.8 * hs.scale } } : null);
             const free = !ui.dialogueOpen() && !ui.panelOpen() && !G.busy && !G.vista && !G.journey && !companion.suspended();
             guide.show(free);
             const detailedHelp = settings.help === 'guided' || companion.markerActive();
