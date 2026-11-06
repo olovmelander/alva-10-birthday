@@ -16,7 +16,7 @@
  *               most once every ASIDE_GAP seconds, so feedback that repeats is shown, not nagged.
  * Music is lowered while a clip plays (audio.duckSpeech) and the clip follows the voice volume.
  * Every clip is played at the same loudness (LEVEL): the manifest holds each clip's measured LUFS
- * (6 November: Kartväktaren, recorded in Pappa's own voice, was 5 dB louder than Klo, and some of
+ * (6 November: Kartväktaren and his notes were 5 dB louder than Klo, and some of
  * Tukankrabban's lines 6 dB quieter).
  */
 import { voiceKey } from './voice-key.mjs';

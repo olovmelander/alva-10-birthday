@@ -161,7 +161,7 @@ hear a line that is not in the voice script.
   engine's voice input, so the "Röster" slider sets their volume and 0 turns them off. The music is lowered under
   speech. A voiced box has no crab chirp or pencil sound.
 - **The same loudness:** every clip plays at −20.5 LUFS, moved at most 6 dB up or 7 dB down (`LEVEL`,
-  `levelGain`). Measured on 6 November, Kartväktaren (Pappa's own voice) and his notes were about 5 dB louder than
+  `levelGain`). Measured on 6 November, Kartväktaren and his notes were about 5 dB louder than
   Klo, and some of Tukankrabban's lines 6 dB quieter. Per voice, the medians ran from −23 (Skatan) to −15.7
   (Kartväktaren).
 - **One voice at a time:**

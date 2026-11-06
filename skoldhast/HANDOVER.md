@@ -107,10 +107,9 @@ Art and sound:
 - **Gusts you hear:** on Vindkanten a gust is heard coming (a soft rise) and then blowing, so you can hide in time by
   ear too.
 
-**Frågor till Pappa:** your own voice (Kartväktaren, his notes, the narrator) now plays at the same loudness as the
-others, about 5 dB quieter than it was recorded. If you would rather it stand out, raise those clips in
-`levelGain` (`src/voice.mjs`) or set `LEVEL` higher.
-- **Voices at one loudness.** Measured with EBU R128, Kartväktaren and his notes (Pappa's own voice) were about
+Your own voice, the narrator, was already close to the others (median −21.5 LUFS) and barely moves. Kartväktaren is
+the voice that comes down most, about 5 dB.
+- **Voices at one loudness.** Measured with EBU R128, Kartväktaren and his notes were about
   5 dB louder than Klo, and some of Tukankrabban's hints 6 dB quieter. `manifest.json` now holds each clip's LUFS,
   and `src/voice.mjs` plays every clip at −20.5 LUFS (`LEVEL`, `levelGain`). The recording script measures each
   new clip with ffmpeg; `node scripts/skoldhast-voice.mjs --level` measures them all again. The voice test fails

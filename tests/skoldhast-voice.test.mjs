@@ -109,7 +109,7 @@ test('nobody is cut off mid-sentence: a box can wait for a thought, and a stoppe
 });
 
 test('every clip is played at the same loudness', async () => {
-    // 6 November: Kartväktaren (Pappa's own voice) was 5 dB louder than Klo, some of Tukankrabban's lines 6 dB quieter
+    // 6 November: Kartväktaren was 5 dB louder than Klo, some of Tukankrabban's lines 6 dB quieter
     assert.equal(levelGain(LEVEL), 1);
     assert.ok(Math.abs(levelGain(LEVEL + 6) - 0.5) < 0.01, 'a clip 6 dB too loud is halved');
     assert.ok(Math.abs(levelGain(LEVEL - 3) - 1.41) < 0.01);
