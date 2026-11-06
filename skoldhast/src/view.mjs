@@ -855,7 +855,8 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
         // dancing light on the seabed, where it is shallow enough for daylight
         d.caustics = [];
         const groundAt = drawnGround(def);
-        for (let x = def.bounds.x0 + 40; x < def.bounds.x1; x += 128) {
+        // (closer together: at 128 they read as scattered dashes, not as light dancing on the bed, 6 November)
+        for (let x = def.bounds.x0 + 40; x < def.bounds.x1; x += 84) {
             const y = groundAt(x);
             if (y === null || y - top > h(7.2)) continue;
             const g = new PIXI.Graphics();
@@ -1700,6 +1701,31 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
             O.glimpse = heroFactory({ mini: true }); O.glimpse.view.scale.set(0.3); L.far.addChild(O.glimpse.view); O.glimpse.view.visible = false;
         }
         if (def.id === 'viken') {
+            // Kartväktaren's paper boat (after the story: kv_boat): folded from the same cream paper as he is, it rides
+            // the bay's surface, drifting slowly between the shore and the pier's end
+            {
+                const boat = new PIXI.Container(); boat.label = 'paper-boat';
+                const g = new PIXI.Graphics();
+                fillPoly(g, [[-46, -22], [46, -22], [30, 4], [-30, 4]], 'cream');
+                g.poly([-46, -22, 46, -22, 30, 4, -30, 4]).fill({ color: 0x6b635a, alpha: .12 });
+                fillPoly(g, [[-30, -22], [0, -68], [30, -22]], 'cream');
+                g.poly([0, -68, 30, -22, 0, -22]).fill({ color: 0x6b635a, alpha: .14 });
+                g.moveTo(-46, -22).lineTo(46, -22).lineTo(30, 4).lineTo(-30, 4).closePath().moveTo(-30, -22).lineTo(0, -68).lineTo(30, -22).moveTo(0, -68).lineTo(0, -22)
+                    .stroke({ width: 3, color: 0x4a443c, alpha: .85, join: 'round' });
+                // a fold line or two, and a damp edge where it sits in the water
+                g.moveTo(-38, -12).lineTo(38, -12).stroke({ width: 1.6, color: 0x6b635a, alpha: .4 });
+                g.moveTo(-30, 2).lineTo(30, 2).stroke({ width: 4, color: 0x7aa0b8, alpha: .35 });
+                boat.addChild(g); boat.visible = false; L.mid.addChild(boat);
+                O.boat = { c: boat, x: h(20.5), dir: -1, drop: null };
+            }
+            // bubbles rising beside the pipe, where the current goes up (6 November)
+            O.bayBubbles = [];
+            for (const b of def.bayBubbles || []) for (let i = 0; i < b.count; i++) {
+                const g = new PIXI.Graphics(); const r = 11 + (i % 3) * 5;
+                g.circle(0, 0, r).fill({ color: 0xdff2ff, alpha: 0.12 }).stroke({ width: 2.6, color: 0xeef8ff, alpha: 0.85 }); g.circle(-r * .35, -r * .35, r * .28).fill({ color: 0xffffff, alpha: 0.8 });
+                L.far.addChild(g);
+                O.bayBubbles.push({ g, b, o: i / b.count, dx: ((i * 29) % 9 - 4) * 9 });
+            }
             O.shutters = def.shutters.map((sh) => { const s = spr('shutter-closed'); s.anchor?.set?.(0.5); s.x = sh.x; s.y = sh.y; L.objects.addChild(s); return { sh, s }; });
             O.lamp = spr('lamp-lit'); O.lamp.anchor?.set?.(0.5); O.lamp.x = def.lamp.x; O.lamp.y = def.lamp.y; O.lamp.alpha = G.flags.has('lamp_lit') ? 1 : 0; L.fx.addChild(O.lamp);
             O.beam = createPencilBeam(PIXI); O.beam.position.set(def.lamp.x, def.lamp.y); O.beam.alpha = G.flags.has('lamp_lit') ? .88 : 0; L.far.addChild(O.beam);
@@ -1802,6 +1828,8 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
         app.canvas.parentElement?.classList.remove('sk-world-focus');
         if (!S) return;
         if (shoreTrial) { shoreTrial.effect.destroy(); shoreTrial = null; app.canvas.parentElement?.classList.remove('sk-shore-trial'); }
+        // a paper boat still being set down must not keep its story waiting for a page that is gone
+        if (S.obj?.boat?.drop) { const d = S.obj.boat.drop; S.obj.boat.drop = null; d.done(); }
         endFoldDemo(false);
         endMapAssembly(false);
         dropPeels();
@@ -2507,14 +2535,16 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
                 if (!G.lessMotion) f.a += dt * (1.2 + i * 0.1);
                 // circling their centre while out; once the vault is lit, each keeps its own lamp spot under the roof
                 const lamp = sch.state === 'lit' && lamps ? lamps[i % lamps.length] : null;
-                const tx = lamp ? lamp[0] + Math.cos(f.a * 0.6) * 18 : sch.x + Math.cos(f.a) * f.r;
-                const ty = lamp ? lamp[1] + Math.sin(f.a * 0.8) * 10 : sch.y + Math.sin(f.a * 1.3) * f.r * 0.5;
+                // after the story they may leave their lamps to dance in a ring round the hidden shell
+                const dance = sch.state === 'dance', ring = (time * (G.lessMotion ? 0 : 1.6)) + i * (Math.PI * 2 / O.school.length);
+                const tx = lamp ? lamp[0] + Math.cos(f.a * 0.6) * 18 : dance ? sch.x + Math.cos(ring) * h(1.0) : sch.x + Math.cos(f.a) * f.r;
+                const ty = lamp ? lamp[1] + Math.sin(f.a * 0.8) * 10 : dance ? sch.y + Math.sin(ring) * h(0.62) : sch.y + Math.sin(f.a * 1.3) * f.r * 0.5;
                 if (f.px === undefined || G.lessMotion) { f.px = tx; f.py = ty; }
                 const was = f.px;
                 f.px = damp(f.px, tx, lamp ? 1.6 : 5, dt); f.py = damp(f.py, ty, lamp ? 1.6 : 5, dt);
                 f.s.x = f.px; f.s.y = f.py;
                 if (Math.abs(f.px - was) > 0.05) f.s.scale.x = f.px > was ? -1 : 1;
-                f.g.x = f.s.x; f.g.y = f.s.y; f.g.alpha = sch.state === 'lit' ? 0.9 : sch.state === 'home' ? 0.5 : 0.75;
+                f.g.x = f.s.x; f.g.y = f.s.y; f.g.alpha = sch.state === 'lit' || sch.state === 'dance' ? 0.9 : sch.state === 'home' ? 0.5 : 0.75;
                 f.g.scale.set(1.4);
             });
             if (O.schoolHalo) {
@@ -2549,11 +2579,39 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
             if (g2) { O.glimpse.view.visible = F.has(g2.id) && (Z.glimpse[g2.id] || 0) < 1; O.glimpse.view.x = g2.x + h(6); O.glimpse.view.y = g2.y; O.glimpse.update(dt, { x: 0, y: 0, facing: -1, mode: 'swim', gait: 'stand', speed: 60, time, submerge: 1, groundAt: () => null }); O.glimpse.view.alpha = 0.6; }
         }
         if (def.id === 'viken') {
+            {
+                for (const q of O.bayBubbles) {
+                    const u = G.lessMotion ? q.o : (time * q.b.speed + q.o) % 1;
+                    q.g.x = q.b.x + q.dx + Math.sin(u * 9 + q.o * 6) * 6; q.g.y = lerp(q.b.y0, q.b.y1, u);
+                    q.g.alpha = G.lessMotion ? 0.5 : Math.sin(Math.PI * u) * 0.9;
+                }
+            }
             O.shutters.forEach((o) => setTex(o.s, F.has(o.sh.flag) ? 'shutter-open' : 'shutter-closed'));
             O.mechanisms.update(Z, F);
             O.lamp.alpha = damp(O.lamp.alpha, F.has('lamp_lit') ? G.lessMotion ? .95 : 0.95 + Math.sin(time * 2) * 0.05 : 0, 1.2, dt);
             O.beam.alpha = damp(O.beam.alpha, F.has('lamp_lit') ? .88 : 0, 2, dt);
             O.coastPatch.container.visible = F.has('talk_done');
+            {
+                const b = O.boat, top = S.waterTop ?? 0;
+                if (b.drop) {
+                    // set down from the pier onto the water
+                    b.drop.t = Math.min(1, b.drop.t + dt / (G.lessMotion ? .3 : .9));
+                    const u = b.drop.t, e = u * u * (3 - 2 * u);
+                    b.c.visible = true; b.x = b.drop.x;
+                    b.c.position.set(b.drop.x, lerp(b.drop.y, top, e)); b.c.rotation = (1 - e) * .25;
+                    // it stays on the water from here (the story flags it a moment later, after the splash)
+                    if (u >= 1) { b.landed = true; const d = b.drop; b.drop = null; d.done(); }
+                } else if (F.has('kv_boat') || b.landed) {
+                    b.c.visible = true;
+                    if (!G.lessMotion) {
+                        b.x += b.dir * h(0.1) * dt;
+                        if (b.x < h(5.5)) b.dir = 1; else if (b.x > h(22)) b.dir = -1;
+                    }
+                    b.c.position.set(b.x, top + (G.lessMotion ? 0 : Math.sin(time * 1.6) * 3));
+                    b.c.rotation = G.lessMotion ? 0 : Math.sin(time * 1.1) * .05;
+                    b.c.scale.x = b.dir < 0 ? 1 : -1;
+                } else b.c.visible = false;
+            }
             O.coastPatch.update(sampleShoreTrial(F.has('p8_proven') ? 'proof' : F.has('p8_sea') ? 'draw' : 'folded', 0, { repaired: F.has('p8_done') }));
             O.chains.forEach((c) => { const on = F.has(def.shutters[c.c.shutter].flag); c.r.alpha = on ? 0.95 : 0.7; c.r.tint = on ? 0xffe08a : 0xffffff; });
             const kv = G.actors.kv;
@@ -2692,7 +2750,9 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
         // a hop or a buck is small: the camera stays with the ground it left
         const J = G.player.jump;
         const baseY = J && (J.kind === 'hop' || J.kind === 'buck') && J.fromY !== undefined ? Math.max(snap.y, J.fromY - h(0.2)) : snap.y;
-        let ty = baseY - (H / zoom) * (portrait ? 0.08 : 0.12);
+        // (upright, the ground sits at about two thirds of the height, as in Äventyr 2: at 58 % the pale ground below
+        // took over 40 % of the screen and the sky and the hills were squeezed under the goal note, 6 November)
+        let ty = baseY - (H / zoom) * (portrait ? 0.17 : 0.12);
         // The swim origin is at the feet. Frame the torso in the underwater
         // page so the head stays visible above the surface and below the HUD.
         if (snap.mode === 'swim') ty = snap.y - (S.def.underwater ? h(0.8) : h(0.2));
@@ -3192,6 +3252,15 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
                     else { await controller.arrive(); await controller.fold(); await G.wait(1.5); await controller.unfold(); await controller.depart(); }
                     if (!active()) return new Promise(() => {});
                 } finally { if (active()) endFoldDemo(true); }
+                break;
+            }
+            case 'paperBoat': {
+                // Kartväktaren sets his paper boat on the bay (after the story)
+                const boat = S?.obj?.boat;
+                if (!boat) break;
+                await new Promise((done) => { boat.drop = { t: 0, x: data.x, y: data.y, done }; });
+                emit('drop', data.x, S.waterTop ?? 0, 8, { speed: 160, cone: 1.2, life: .5 });
+                await G.wait(.4);
                 break;
             }
             case 'archOpen':

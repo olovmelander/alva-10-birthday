@@ -104,6 +104,8 @@ export function createView(PIXI, app, { assets, G, heroFactory, eggTarget = null
             g.circle(-1.5, -2, 1.6).fill({ color: 0xffffff, alpha: 0.9 });
         }, 44, 44),
         mote: texFrom(g => { for (let i = 6; i >= 1; i--) g.circle(0, 0, i * 2.2).fill({ color: 0xfff1b0, alpha: 0.07 }); g.circle(0, 0, 2.4).fill({ color: 0xfffbe6 }); }, 30, 30),
+        // a soft round puff of smoke (the rocket's trail)
+        puff: texFrom(g => { for (let i = 8; i >= 1; i--) g.circle(0, 0, i * 2).fill({ color: 0xffffff, alpha: 0.1 }); }, 36, 36),
         leaf: texFrom(g => g.moveTo(-7, 0).quadraticCurveTo(0, -6, 7, 0).quadraticCurveTo(0, 6, -7, 0).fill({ color: 0x6f9a4f }).stroke({ width: 1, color: 0x3f5f33 }), 18, 14),
         bubble: texFrom(g => g.circle(0, 0, 4.5).stroke({ width: 1.3, color: 0xcfe6ef, alpha: 0.9 }), 12, 12),
         dust: texFrom(g => g.circle(0, 0, 3).fill({ color: 0xc9b58f, alpha: 0.85 }), 8, 8),
@@ -146,6 +148,9 @@ export function createView(PIXI, app, { assets, G, heroFactory, eggTarget = null
         s.position.set(hash(i, 1), hash(i, 2) * 0.55); s.scale.set(0.25 + hash(i, 3) * 0.5); s._tw = hash(i, 4) * 6;
         stars.addChild(s);
     }
+    // after the story a star may fall from Alva's stars over Åsktoppen's summit (fx 'starFall')
+    const shootG = new RAW.Graphics(); moonLayer.addChild(shootG);
+    let shooting = null;
     const moon = new PIXI.Container(); moon.label = 'moon'; moonLayer.addChild(moon);
     const moonGlow = new RAW.Sprite(TX.mote); moonGlow.anchor.set(0.5); moonGlow.scale.set(9); moonGlow.alpha = 0.55; moonGlow.tint = 0xfff2c4;
     const moonG = new PIXI.Graphics();
@@ -160,6 +165,119 @@ export function createView(PIXI, app, { assets, G, heroFactory, eggTarget = null
     const ALVA_STARS = [[-2.6, 0.3, 1.9], [-1.4, -0.9, 1.1], [1.5, -0.7, 1.3], [2.3, 0.6, 1.0], [-3.6, -0.6, 0.9], [0.4, 1.7, 0.8]];
     for (const [dx, dy, k] of ALVA_STARS) { const s = new RAW.Sprite(TX.alvaStar); s.anchor.set(0.5); s._d = [dx, dy, k]; alvaStars.addChild(s); }
     const starsState = { shown: 0 };
+
+    // --- the rocket (after the story, from Utsiktskullen: a glimpse of the next adventure, out in space) -------------
+    // Drawn in pencil like everything on the page, in front of the moon: it rises from beyond the hill, crosses Mira's
+    // moon and grows small until it is only a twinkle among Alva's stars. Screen space, like the moon (fx 'rocket').
+    const rocketLayer = new RAW.Container(); rocketLayer.visible = false; moonLayer.addChild(rocketLayer);
+    const rocketTrail = new RAW.Container(); rocketLayer.addChild(rocketTrail);
+    const rocketShip = new PIXI.Container(); rocketLayer.addChild(rocketShip);
+    const rocketFlame = new RAW.Graphics(); rocketShip.addChild(rocketFlame);
+    {
+        const g = new PIXI.Graphics();
+        const ink = 0x3e3550;
+        // fins first, behind the body
+        g.poly([-11, 4, -21, 21, -20, 25, -10, 19]).fill(pen.fill(0xd65a4f)).stroke(pen.line(ink, 1.8));
+        g.poly([11, 4, 21, 21, 20, 25, 10, 19]).fill(pen.fill(0xd65a4f)).stroke(pen.line(ink, 1.8));
+        // the nozzle
+        g.poly([-6, 19, 6, 19, 8, 25, -8, 25]).fill(pen.fill(0x8d879c)).stroke(pen.line(ink, 1.6));
+        // the body: a fat paper-white ogive
+        g.moveTo(0, -34).bezierCurveTo(9, -27, 13, -14, 12.5, 2).lineTo(11, 19).lineTo(-11, 19).lineTo(-12.5, 2)
+            .bezierCurveTo(-13, -14, -9, -27, 0, -34).fill(pen.fill(0xf5f0e4)).stroke(pen.line(ink, 2));
+        // the red nose, and a band round the waist
+        g.moveTo(0, -34).bezierCurveTo(5.5, -30, 8.5, -24, 9.6, -18).quadraticCurveTo(0, -15.5, -9.6, -18)
+            .bezierCurveTo(-8.5, -24, -5.5, -30, 0, -34).fill(pen.fill(0xd65a4f)).stroke(pen.line(ink, 1.6));
+        g.moveTo(-12.4, 9).quadraticCurveTo(0, 11.5, 12.4, 9).stroke(pen.line(0xd65a4f, 2.4, 0.9));
+        // the round window, with a gleam (who is looking out?)
+        g.circle(0, -5, 5.8).fill(pen.fill(0x8ecbe8)).stroke(pen.line(ink, 1.8));
+        g.circle(-1.8, -6.9, 1.5).fill({ color: 0xffffff, alpha: 0.9 });
+        // a little gold star painted on its side, like Alva's
+        const st = []; for (let i = 0; i < 10; i++) { const a = -Math.PI / 2 + i * Math.PI / 5, r = i % 2 ? 1.6 : 3.8; st.push(4.2 + Math.cos(a) * r, 13.6 + Math.sin(a) * r); }
+        g.poly(st).fill({ color: 0xffd86b });
+        rocketShip.addChild(g);
+    }
+    const rocketGlow = new RAW.Sprite(TX.mote); rocketGlow.anchor.set(0.5); rocketGlow.tint = 0xffc27a; rocketLayer.addChildAt(rocketGlow, 1);
+    const rocketTwinkle = new RAW.Sprite(TX.alvaStar); rocketTwinkle.anchor.set(0.5); rocketTwinkle.visible = false; rocketLayer.addChild(rocketTwinkle);
+    let rocket = null;
+    const ROCKET_FLIGHT = 5.6;
+    /** Where the rocket is at progress u (0–1) on this screen: a curve from beyond the hill, across the moon, up
+     *  among Alva's stars. Returns the point and the direction it is flying. */
+    function rocketPath(u, W, H) {
+        const mp = moonScreen(W, H, moonState.rise), r = mp.r;
+        // it starts below the horizon (a little lower than the moon by the same measure on every screen), so it rises
+        // from beyond the hill instead of appearing in the open sky
+        const p0 = [mp.x + 2.3 * r, Math.min(H + 40, mp.y + 4.2 * r + 200)], c = [mp.x + 1.3 * r, mp.y + 0.6 * r];
+        const p2 = [mp.x - 1.6 * r, Math.max(18, mp.y - 1.7 * r)];
+        const a = (1 - u) * (1 - u), b = 2 * u * (1 - u), d = u * u;
+        const x = a * p0[0] + b * c[0] + d * p2[0], y = a * p0[1] + b * c[1] + d * p2[1];
+        const dx = 2 * (1 - u) * (c[0] - p0[0]) + 2 * u * (p2[0] - c[0]), dy = 2 * (1 - u) * (c[1] - p0[1]) + 2 * u * (p2[1] - c[1]);
+        return { x, y, dx, dy, r };
+    }
+    function drawRocket(W, H, dt, t) {
+        const rm = !!G.lessMotion;
+        if (!rocket) { if (rocketLayer.visible) { rocketLayer.visible = false; for (const q of rocketTrail.removeChildren()) q.destroy(); } return; }
+        rocketLayer.visible = true;
+        // (a check may hold the flight at a moment to look at it: rocketState().hold)
+        if (rocket.hold == null || rocket.t < rocket.hold) rocket.t = Math.min(rocket.t + dt, rocket.hold ?? Infinity);
+        const k = Math.max(0.9, Math.min(1.6, Math.min(W, H) / 390));
+        const tau = Math.min(1, rocket.t / ROCKET_FLIGHT);
+        // a slow lift-off, a climb, and seeming slower again as it grows small in the distance
+        const u = tau * tau * (3 - 2 * tau);
+        const P = rocketPath(u, W, H);
+        const flying = tau < 1;
+        const scale = k * (1.05 - 0.78 * u);
+        rocketShip.visible = rocketGlow.visible = flying;
+        if (flying) {
+            rocketShip.position.set(P.x, P.y);
+            rocketShip.rotation = Math.atan2(P.dy, P.dx) + Math.PI / 2;
+            rocketShip.scale.set(scale);
+            rocketShip.alpha = Math.min(1, tau / 0.06) * (tau > 0.9 ? (1 - tau) / 0.1 : 1);
+            // the flame flickers (steady with less motion)
+            const fl = rm ? 1 : 0.8 + 0.25 * Math.sin(t * 47) + 0.12 * Math.sin(t * 83 + 1);
+            rocketFlame.clear();
+            rocketFlame.moveTo(-6, 25).quadraticCurveTo(-5, 25 + 14 * fl, 0, 25 + 24 * fl).quadraticCurveTo(5, 25 + 14 * fl, 6, 25).fill({ color: 0xff9a3c, alpha: 0.9 });
+            rocketFlame.moveTo(-3.2, 25).quadraticCurveTo(-2.6, 25 + 8 * fl, 0, 25 + 14 * fl).quadraticCurveTo(2.6, 25 + 8 * fl, 3.2, 25).fill({ color: 0xfff1b0 });
+            // its light on the smoke
+            const nx = -Math.sin(rocketShip.rotation), ny = Math.cos(rocketShip.rotation);
+            rocketGlow.position.set(P.x + nx * 34 * scale, P.y + ny * 34 * scale);
+            rocketGlow.scale.set(3.2 * scale); rocketGlow.alpha = 0.8 * rocketShip.alpha;
+            // smoke: a puff from the nozzle now and then, which swells, drifts and fades into a curved trail
+            rocket.puffT -= dt;
+            while (rocket.puffT <= 0) {
+                rocket.puffT += rm ? 0.12 : 0.035;
+                const q = new RAW.Sprite(TX.puff); q.anchor.set(0.5); q.tint = 0xf1edf7;
+                q.position.set(P.x + nx * 30 * scale + (Math.random() - 0.5) * 4, P.y + ny * 30 * scale);
+                q._life = 0; q._s = scale; q._vx = (Math.random() - 0.5) * 10; q._vy = 6 + Math.random() * 6;
+                rocketTrail.addChild(q);
+            }
+        }
+        for (let i = rocketTrail.children.length - 1; i >= 0; i--) {
+            const q = rocketTrail.children[i];
+            q._life += dt;
+            const v = q._life / 2.8;
+            if (v >= 1) { q.destroy(); continue; }
+            q.x += q._vx * dt; q.y += q._vy * dt;
+            q.scale.set(q._s * (0.5 + 1.7 * Math.sqrt(v)));
+            q.alpha = 0.78 * (1 - v) * (1 - v);
+        }
+        // at the end it is only a twinkle among the stars, which fades as the trail does
+        if (!flying) {
+            const e = rocket.t - ROCKET_FLIGHT;
+            const end = rocketPath(1, W, H);
+            rocketTwinkle.visible = true;
+            rocketTwinkle.position.set(end.x, end.y);
+            rocketTwinkle.scale.set(k * (e < 0.35 ? 0.4 + 2.2 * e : Math.max(0.35, 1.17 - (e - 0.35) * 0.5)) * (rm ? 1 : 1 + 0.12 * Math.sin(t * 9)));
+            rocketTwinkle.rotation = rm ? 0 : e * 0.8;
+            rocketTwinkle.alpha = Math.max(0, Math.min(1, e / 0.15) * (1 - Math.max(0, e - 1.6) / 1.2));
+            if (e > 2.8 && !rocketTrail.children.length) { rocket = null; rocketTwinkle.visible = false; }
+        } else rocketTwinkle.visible = false;
+    }
+    /** For the hero's eyes: where on the page the rocket is, while it flies. */
+    function rocketWorld(W, H) {
+        if (!rocket || rocket.t >= ROCKET_FLIGHT + 1.2) return null;
+        const tau = Math.min(1, rocket.t / ROCKET_FLIGHT), P = rocketPath(tau * tau * (3 - 2 * tau), W, H);
+        return { x: cam.x + (P.x - W / 2) / cam.zoom, y: cam.y + (P.y - H / 2) / cam.zoom };
+    }
     const stormClouds = new PIXI.Container(); skyLayer.addChild(stormClouds);
     const cloudShapes = [];
     for (let i = 0; i < 6; i++) {
@@ -310,7 +428,17 @@ export function createView(PIXI, app, { assets, G, heroFactory, eggTarget = null
     const peakBolt = new PIXI.Graphics();
     peakBolt.moveTo(10, -380).lineTo(-12, -330).lineTo(6, -330).lineTo(-16, -270).stroke(pen.line(0xffe46b, 5));
     peakBolt.visible = false;
-    peak.addChild(peakArt, swirlTilt, peakBolt);
+    // mist drifting across the mountain's flanks (6 November: the same bare mountain stood in nearly every view): a
+    // few soft bands that slowly drift and part, so it never looks quite the same twice
+    const peakMist = [];
+    const mistLayer = new PIXI.Container();
+    for (let k = 0; k < 4; k++) {
+        const g = new PIXI.Graphics(), w = 220 + hash(k, 221) * 160, y = -230 + k * 52 + hash(k, 222) * 20;
+        for (let i = 0; i < 6; i++) g.ellipse((i - 2.5) * w * 0.28, (hash(k + i, 223) - 0.5) * 14, w * 0.32, 16 + hash(k + i, 224) * 10).fill({ color: 0xc8cbe6, alpha: 0.07 });
+        g.position.set((hash(k, 225) - 0.5) * 200, y);
+        mistLayer.addChild(g); peakMist.push({ g, x0: g.x, o: hash(k, 226) * 6, v: 0.04 + hash(k, 227) * 0.05, w });
+    }
+    peak.addChild(peakArt, swirlTilt, mistLayer, peakBolt);
     skyLayer.addChild(peak);
     let peakVista = 0, peakVistaOn = false; // the view from the crown (fx focus with peak)
     // a bolt across the sky when lightning strikes
@@ -326,7 +454,10 @@ export function createView(PIXI, app, { assets, G, heroFactory, eggTarget = null
     const drops = [];
     for (let i = 0; i < 90; i++) {
         const s = new RAW.Sprite(TX.streak); s.anchor.set(0.5); rain.addChild(s);
-        drops.push({ s, x: hash(i, 11), y: hash(i, 12), v: 0.7 + hash(i, 13) * 0.6 });
+        // drops of different lengths, the faster ones longer (they were all one length, 6 November)
+        const v = 0.7 + hash(i, 13) * 0.6;
+        s.scale.y = 0.7 + (v - 0.7) * 0.9 + hash(i, 14) * 0.25;
+        drops.push({ s, x: hash(i, 11), y: hash(i, 12), v });
     }
     const flashG = new RAW.Graphics(); overlay.addChild(flashG);
     let tooth = null;
@@ -392,6 +523,8 @@ export function createView(PIXI, app, { assets, G, heroFactory, eggTarget = null
 
     function buildScene(id) {
         clearScene();
+        // the sky's passers-by belong to the page they were seen from
+        rocket = null; shooting = null;
         const def = G.scenes[id];
         atmo.setMood(moodFor(def.sky, G.storm ?? 1), { instant: true });
         S = { id, def, actors: [], eggs: new Map(), surfaces: new Map(), when: [], dashed: new Map(), anim: [] };
@@ -605,7 +738,9 @@ export function createView(PIXI, app, { assets, G, heroFactory, eggTarget = null
                     for (let x = top[0][0] + 60; x < top.at(-1)[0] - 60; x += h(1.6) + hash(x, 36) * h(2.4)) {
                         const y = heightOn(s.pts, x);
                         if (y === null || (def.waters || []).some(w => x > w.x0 - 30 && x < w.x1 + 30 && y > w.top - 10)) continue;
-                        crystalCluster(gr, x, y + 4, { size: 0.32 + hash(x, 37) * 0.22, color: veinCol[Math.floor(hash(x, 38) * 3)], n: 3, seed: 11 });
+                        const cc = veinCol[Math.floor(hash(x, 38) * 3)];
+                        crystalCluster(gr, x, y + 4, { size: 0.32 + hash(x, 37) * 0.22, color: cc, n: 3, seed: 11 });
+                        (S.crystalSpots ||= []).push({ x, y, color: cc, size: 1 });
                     }
                 }
                 // Åsktoppen's rock (under the turf, out in the weather): cracks running down from the top, a pale lit
@@ -716,6 +851,7 @@ export function createView(PIXI, app, { assets, G, heroFactory, eggTarget = null
         if (def.dashed) for (const d of def.dashed) buildDashed(d);
         buildPlaces(def);
         buildDecor(def);
+        buildNightLight(def);
         buildObjects(def);
         buildActors(def);
         refreshWhen();
@@ -1275,6 +1411,7 @@ export function createView(PIXI, app, { assets, G, heroFactory, eggTarget = null
             if (gy === null) return;
             glowAt(h(x), gy - h(0.6), 5, col, 0.22, L.back);
             crystalCluster(back, h(x), gy - 4, { size: 1.1 + hash(i, 9) * 0.5, color: col, n: 5, seed: i });
+            (S.crystalSpots ||= []).push({ x: h(x), y: gy, color: col, size: 1.8 });
             twinkleAt(h(x) + 10, gy - h(0.9), 0.5, 0xffffff, L.back);
         });
         for (let k = 0; k < 26; k++) twinkleAt(h(-1 + hash(k, 111) * 77), h(-3.6 + hash(k, 112) * 2.4), 0.25 + hash(k, 113) * 0.3, 0xcfe6ff, L.back);
@@ -1548,6 +1685,72 @@ export function createView(PIXI, app, { assets, G, heroFactory, eggTarget = null
         gr.ellipse(x - 2, y - 2, 2.4, 1.4).fill({ color: PAL.goldHi });
     }
 
+    /**
+     * Light in the stormy night (6 November): the pages were all one purple-grey, the sköldhäst the only warm thing in
+     * them. Fireflies glow low over the forest and the beach (behind every character), and when lightning strikes the
+     * edges of the ground and the rocks catch its light for a moment. Nothing here is drawn over a character or the
+     * water's reflections, and in Mindre rörelse the fireflies keep still.
+     */
+    function buildNightLight(def) {
+        if (def.underground) { buildCaveLight(def); return; }
+        if (def.sky === 'cave') return;
+        // the lightning's light along the top of the ground and the rocks
+        const rim = new PIXI.Graphics(); rim.label = 'bolt-rim';
+        for (const q of def.surfaces) {
+            if (q.thin || q.hidden || q.underwater) continue;
+            const top = resampleX(q.pts, 30);
+            lineAlong(rim, top.map(([x, y]) => [x, y + 3])).stroke(pen.line(0xeef2ff, 5, 0.9));
+            lineAlong(rim, top.map(([x, y]) => [x, y + 9])).stroke(pen.line(0xcfd8ff, 3, 0.5));
+        }
+        rim.blendMode = 'add'; rim.alpha = 0;
+        L.terrain.addChild(rim); S.boltRim = rim;
+        if (def.sky !== 'forest' && def.sky !== 'river') return;
+        // fireflies, low over the ground, in small loose groups
+        const n = Math.round((def.bounds.x1 - def.bounds.x0) / h(1.8));
+        for (let k = 0; k < n; k++) {
+            const x = lerp(def.bounds.x0 + h(1), def.bounds.x1 - h(1), hash(k, 201));
+            const gy = groundY(def, x);
+            if (gy === null || (def.waters || []).some(w => x > w.x0 && x < w.x1 && gy > w.top - 10)) continue;
+            const y = gy - h(0.35 + hash(k, 202) * 1.6);
+            const c = new RAW.Container(); c.position.set(x, y);
+            const halo = new RAW.Sprite(TX.mote); halo.anchor.set(0.5); halo.tint = 0xffc95a; halo.blendMode = 'add'; halo.scale.set(3.6); halo.alpha = 0.8;
+            const halo2 = new RAW.Sprite(TX.mote); halo2.anchor.set(0.5); halo2.tint = 0xffe08a; halo2.blendMode = 'add'; halo2.scale.set(1.8);
+            const core = new RAW.Sprite(TX.mote); core.anchor.set(0.5); core.tint = 0xfffbe0; core.blendMode = 'add'; core.scale.set(0.95);
+            c.addChild(halo, halo2, core);
+            L.mid.addChild(c);
+            S.anim.push({ kind: 'firefly', c, halo, x0: x, y0: y, o: hash(k, 203) * 6, r: h(0.25 + hash(k, 204) * 0.5) });
+        }
+    }
+
+    /**
+     * Kristallgrottan's crystals light the cave (6 November: they were small and the cave nearly black): a pool of
+     * their colour on the floor under each one and a soft glow over it, breathing slowly. All of it lies behind the
+     * characters and the water's front; in Mindre rörelse it holds still.
+     */
+    let lightTex = null;
+    /** A soft round light: full in the middle, gone at its rim (a canvas gradient, made once). */
+    function softLight() {
+        if (lightTex || typeof document === 'undefined') return lightTex || RAW.Texture.WHITE;
+        const cv = document.createElement('canvas'); cv.width = cv.height = 128;
+        const c = cv.getContext('2d'), gr = c.createRadialGradient(64, 64, 0, 64, 64, 64);
+        gr.addColorStop(0, 'rgba(255,255,255,1)'); gr.addColorStop(0.35, 'rgba(255,255,255,.55)'); gr.addColorStop(1, 'rgba(255,255,255,0)');
+        c.fillStyle = gr; c.fillRect(0, 0, 128, 128);
+        lightTex = RAW.Texture.from(cv);
+        return lightTex;
+    }
+    function buildCaveLight(def) {
+        for (const c of S.crystalSpots || []) {
+            const pool = new RAW.Sprite(softLight()); pool.anchor.set(0.5); pool.tint = c.color; pool.blendMode = 'add';
+            pool.position.set(c.x, c.y + 4); pool.width = h(2.4) * c.size; pool.height = h(0.42) * c.size;
+            const glow = new RAW.Sprite(softLight()); glow.anchor.set(0.5); glow.tint = c.color; glow.blendMode = 'add';
+            glow.position.set(c.x, c.y - h(0.3) * c.size); glow.width = glow.height = h(1.5) * c.size;
+            L.terrain.addChild(pool); L.back.addChild(glow);
+            const o = hash(c.x, 205) * 6;
+            S.anim.push({ kind: 'crystalGlow', s: pool, base: 0.42, o });
+            S.anim.push({ kind: 'crystalGlow', s: glow, base: 0.2, o: o + 0.8 });
+        }
+    }
+
     function buildDecor(def) {
         if (def.id !== 'strand' && def.id !== 'skog') return;
         // ferns, grass and mushrooms along the ground, never on a puzzle's spot
@@ -1666,7 +1869,8 @@ export function createView(PIXI, app, { assets, G, heroFactory, eggTarget = null
             }
             S.hatchlings = [];
             for (let i = 0; i < EGG_TOTAL; i++) {
-                const k = createHatchling(PIXI, pen); k.view.scale.set(1.8); k.view.visible = false; L.actors.addChild(k.view);
+                // the last one is the smallest, Lilla Klo (Tukankrabban names her so), and walks first in a row
+                const k = createHatchling(PIXI, pen); k.view.scale.set(i === EGG_TOTAL - 1 ? 1.45 : 1.8); k.view.visible = false; L.actors.addChild(k.view);
                 S.hatchlings.push({ k, home: def.nest.x - h(1.2) + i * h(0.26), t: 0 });
             }
         }
@@ -1682,6 +1886,21 @@ export function createView(PIXI, app, { assets, G, heroFactory, eggTarget = null
         const skata = createMagpie(PIXI, pen); skata.view.scale.set(2); L.actors.addChild(skata.view);
         const dyvel = createBeetle(PIXI, pen); dyvel.view.scale.set(1.5); L.actors.addChild(dyvel.view);
         const moln = createCloud(PIXI, pen, { texture: cloudTexture }); moln.view.scale.set(1.5); L.objects.addChild(moln.view);
+        // Tordyveln's ball of eggshells (after the story: dyvel_shellball): speckled white pieces, the finest yet
+        const shellBall = new PIXI.Container(); shellBall.label = 'shell-ball'; shellBall.visible = false;
+        {
+            const sb = new PIXI.Graphics(), R = 34; // as big as his old ball
+            sb.circle(0, -R, R).fill(pen.fill(0xf3eee0)).stroke(pen.line(0x6f6658, 2.2));
+            for (let i = 0; i < 9; i++) {
+                const a = i * 2.17, r = 8 + (i * 5) % 20, x = Math.cos(a) * r, y = -R + Math.sin(a) * r;
+                sb.poly([x - 6, y - 3, x + 4, y - 6, x + 7, y + 3, x - 2, y + 6]).fill(pen.fill(i % 3 ? 0xe8e1cc : 0xdfe8ef, 0.95)).stroke(pen.line(0x8a8070, 1.2, 0.8));
+            }
+            for (let i = 0; i < 6; i++) sb.circle(Math.cos(i * 1.9) * 15, -R + Math.sin(i * 1.9) * 12, 2).fill({ color: 0x9a8c74, alpha: 0.7 }); // the eggs' speckles
+            sb.ellipse(-8, -R - 10, 6, 3).fill({ color: 0xffffff, alpha: 0.6 });
+            shellBall.addChild(sb);
+        }
+        L.actors.addChild(shellBall);
+        S.shellBall = { c: shellBall, pop: 0 };
         S.A = { klo, hearts, tukan, skata, dyvel, moln };
         S.actors.push(tukan, skata, dyvel, moln, hearts);
         S.shadows = {};
@@ -1735,6 +1954,10 @@ export function createView(PIXI, app, { assets, G, heroFactory, eggTarget = null
             peak.position.set(W * lerp(skyKind === 'river' ? 1.02 - u * 0.3 : lerp(1.2 - u * 0.35, 0.88, high), 0.5, peakVista), lerp(footY, H * 1.04, peakVista));
             swirl.rotation += dt * (rm ? 0.05 : 0.3) * stormShown;
             swirl.alpha = 0.15 + 0.85 * stormShown;
+            for (const m of peakMist) {
+                m.g.x = m.x0 + (rm ? 0 : Math.sin(t * m.v + m.o) * m.w * 0.45);
+                m.g.alpha = (rm ? 0.8 : 0.55 + 0.45 * Math.sin(t * m.v * 1.7 + m.o * 2)) * (0.15 + 0.85 * stormShown); // the storm's own cloud
+            }
             peakBolt.visible = !rm && stormShown > 0.5 && Math.sin(t * 2.3) > (peakVistaOn ? 0.9 : 0.985);
         }
         skyBolt.visible = boltT > 0; boltT = Math.max(0, boltT - dt);
@@ -1773,6 +1996,21 @@ export function createView(PIXI, app, { assets, G, heroFactory, eggTarget = null
         for (const a of S.anim) {
             if (a.kind === 'current') { a.c.x += a.v * dt; if (a.c.x > a.x1 - h(0.8)) a.c.x = a.x0; }
             else if (a.kind === 'fall') { const u = (t * (rm ? 0.6 : 1.8) + a.o) % 1; a.c.y = lerp(a.y0, a.y1, u); a.c.alpha = 0.3 + 0.6 * Math.sin(u * Math.PI); }
+            else if (a.kind === 'crystalGlow') {
+                // the crystals light the cave once the three by the chasm are lit ("Kan kristallerna lysa upp den?"):
+                // before that the cave is dark and only glitters, and the lantern is its light (6 November)
+                a.lit = rm ? (F.has('k1_lit') ? 1 : 0) : lerp(a.lit ?? (F.has('k1_lit') ? 1 : 0), F.has('k1_lit') ? 1 : 0, 1 - Math.exp(-0.8 * dt));
+                a.s.alpha = a.lit * a.base * (rm ? 0.9 : 0.72 + 0.28 * Math.sin(t * 0.8 + a.o));
+            }
+            else if (a.kind === 'firefly') {
+                // only once Mira has drawn the moon: before that the page is dark, as the story says (6 November)
+                a.c.visible = F.has('moon');
+                if (!a.c.visible) continue;
+                // a slow wandering loop, blinking softly; still in Mindre rörelse; dimmer in the heaviest rain
+                const ph = t * 0.35 + a.o;
+                if (!rm) a.c.position.set(a.x0 + Math.sin(ph) * a.r + Math.sin(ph * 2.3) * a.r * 0.3, a.y0 + Math.sin(ph * 1.7 + 1) * a.r * 0.5);
+                a.c.alpha = (rm ? 0.75 : 0.35 + 0.65 * (0.5 + 0.5 * Math.sin(t * 1.3 + a.o * 3)) ** 2) * (1 - 0.35 * stormShown);
+            }
             else if (a.kind === 'twinkle') { a.s.alpha = rm ? 0.55 : 0.3 + 0.7 * Math.max(0, Math.sin(t * 2 + a.o)) ** 4; } // still in Mindre rörelse
             else if (a.kind === 'foam' && !rm && Math.random() < dt * 14) emit('drop', a.x + (Math.random() - 0.5) * h(1.4), a.y, 1, { speed: 260, cone: 1.2, life: 0.6 });
             else if (a.kind === 'mist') { a.s.x = a.x0 + Math.sin(t * 0.05 + a.o) * h(1.2) * (rm ? 0.2 : 1); a.s.alpha = (a.base ?? 0.26) + 0.08 * Math.sin(t * 0.2 + a.o); }
@@ -1812,7 +2050,25 @@ export function createView(PIXI, app, { assets, G, heroFactory, eggTarget = null
         // the cocoa tree shakes while the hooves drum
         if (S.cocoa) {
             const n = G.puz.drum || 0, shaking = !F.has('p1_fallen') && n > 0;
-            S.cocoa.rotation = shaking && !rm ? Math.sin(t * 30) * 0.004 * Math.min(8, n) : 0;
+            // after the story it shakes again for each beat on the log (the easter egg in Kakaolunden)
+            S.cocoaShake = Math.max(0, (S.cocoaShake || 0) - dt);
+            const after = S.cocoaShake > 0 ? 0.004 * Math.min(8, 2 + (G.puz.drumAfter || 0)) : 0;
+            S.cocoa.rotation = rm ? 0 : shaking ? Math.sin(t * 30) * 0.004 * Math.min(8, n) : Math.sin(t * 30) * after;
+        }
+        // cocoa fruits shaken down after the story: they fall, bounce once, lie a while in the grass and are gone
+        if (S.cocoaPods) for (let i = S.cocoaPods.length - 1; i >= 0; i--) {
+            const q = S.cocoaPods[i];
+            q.t += dt;
+            if (!q.landed) {
+                q.vy += 1500 * dt; q.y += q.vy * dt; q.g.rotation += q.spin * dt;
+                if (q.y >= q.gy) {
+                    q.y = q.gy;
+                    if (q.vy > 260 && !rm) { q.vy *= -0.3; emit('leaf', q.x, q.gy - 6, 3, { speed: 70, gravity: 160, life: 0.8, cone: 2 }); }
+                    else { q.landed = true; q.lie = q.t; q.g.rotation = q.side * 1.35; }
+                }
+            }
+            q.g.position.set(q.x, q.y - (q.landed ? 16 : 0));
+            if (q.landed && q.t - q.lie > 7) { q.g.alpha -= dt; if (q.g.alpha <= 0) { q.g.destroy(); S.cocoaPods.splice(i, 1); } }
         }
         // the seeds and the tunnel
         if (S.seeds) {
@@ -1855,9 +2111,21 @@ export function createView(PIXI, app, { assets, G, heroFactory, eggTarget = null
                 k.k.view.visible = !!out;
                 if (!out) return;
                 k.t += dt;
-                const x = k.home + Math.sin(t * 0.6 + i) * h(0.25), y = heightOn(G.sceneDef.surfaces.find(s => s.id === 'sand').pts, x) ?? G.sceneDef.nest.y;
-                k.k.view.position.set(x, y);
-                k.k.update(dt, t, { facing: Math.cos(t * 0.6 + i) > 0 ? 1 : -1, reducedMotion: rm });
+                // after the story they can follow the sköldhäst in a row (G.hatchFollow, story.mjs): each trots after
+                // the one in front, the smallest, Lilla Klo, first; they wait at the water's edge
+                const p = G.player, f = p.facing || 1;
+                let tx = k.home + Math.sin(t * 0.6 + i) * h(0.25), face = Math.cos(t * 0.6 + i) > 0 ? 1 : -1;
+                if (G.hatchFollow) { tx = p.x - f * (h(0.75) + (EGG_TOTAL - 1 - i) * h(0.34)); face = Math.sign(p.x - (k.x ?? tx)) || f; }
+                k.x = k.x ?? tx;
+                // they trot, never jump: at most 4 HL a second (with less motion too), so a step can never carry one
+                // over the river or Klyftan, whatever the frame time
+                const want = rm ? tx : lerp(k.x, tx, 1 - Math.exp(-(G.hatchFollow ? 3.2 - i * 0.12 : 1.4) * dt));
+                const nx = k.x + clamp(want - k.x, -h(4) * dt, h(4) * dt);
+                const gy = groundY(G.sceneDef, nx);
+                if (gy !== null && !(G.sceneDef.waters || []).some(w => nx > w.x0 && nx < w.x1 && gy > w.top - 6)) k.x = nx;
+                const y = groundY(G.sceneDef, k.x) ?? G.sceneDef.nest.y;
+                k.k.view.position.set(k.x, y);
+                k.k.update(dt, t, { facing: face, reducedMotion: rm });
             });
         }
         for (let i = S.flying.length - 1; i >= 0; i--) {
@@ -1900,6 +2168,15 @@ export function createView(PIXI, app, { assets, G, heroFactory, eggTarget = null
             sh.visible = !!a && a.visible !== false && a.scene === S.id && !(id === 'klo' && a.pose === 'faint');
             if (sh.visible) sh.position.set(a.x, a.y + 2);
         }
+        if (S.shellBall) {
+            const d = act.dyvel, sb = S.shellBall, on = F.has('dyvel_shellball') && d?.visible && d.scene === S.id;
+            sb.c.visible = !!on;
+            if (on) {
+                sb.pop = Math.min(1, sb.pop + dt * 2.5);
+                const x = d.x + (d.facing || 1) * h(0.75), gy = groundY(S.def, x) ?? d.y;
+                sb.c.position.set(x, gy); sb.c.scale.set(rm ? 1 : 0.6 + 0.4 * sb.pop);
+            }
+        }
         for (const id of ['tukan', 'skata', 'dyvel', 'moln']) {
             const a = act[id], v = A[id];
             if (!a || a.scene !== S.id) { v.view.visible = false; continue; }
@@ -1907,6 +2184,9 @@ export function createView(PIXI, app, { assets, G, heroFactory, eggTarget = null
         }
         // the hero
         if (G.speaker === 'horse' && !snap.action && !rm && !snap.hide) { snap.action = 'talk'; snap.actionT = (t * 1.5) % 1; }
+        // while the rocket flies the sköldhäst follows it with its eyes, wondering
+        const rw = rocketWorld(W, H);
+        if (rw && !snap.hide) { snap.lookAt = rw; snap.emote = 'surprised'; }
         hero.update(dt, ride ? { ...snap, facing: -1, action: null } : snap);
         hero.view.position.set(snap.x, snap.y);
         hero.view.visible = !G.hideHero;
@@ -1941,7 +2221,10 @@ export function createView(PIXI, app, { assets, G, heroFactory, eggTarget = null
             s.visible = i < nRain;
             if (!s.visible) continue;
             d.y = (d.y + dt * d.v * (rm ? 0.5 : 1.6)) % 1;
-            s.position.set(((d.x + d.y * 0.15 - cam.x * cam.zoom * 0.0004) % 1 + 1) % 1 * W, d.y * H);
+            // the storm's wind blows west, away from Åsktoppen, as the torn leaves and the gusts on the mountain do;
+            // the rain leans the way it falls (it drifted east and was drawn upright, 6 November)
+            s.position.set(((d.x - d.y * 0.15 - cam.x * cam.zoom * 0.0004) % 1 + 1) % 1 * W, d.y * H);
+            s.rotation = Math.atan2(0.15 * W, H);
             s.alpha = (under ? 0.15 : 0.55) * stormShown * (sheltered ? 0.12 : 1);
         }
         // lightning: now and then over the forest; on the peak it follows the bridge's lightning schedule
@@ -1951,6 +2234,7 @@ export function createView(PIXI, app, { assets, G, heroFactory, eggTarget = null
         }
         if (S.def.sky === 'peak' && F.has('flash')) flash = Math.max(flash, rm ? 0.12 : 0.22);
         flash = Math.max(0, flash - dt * 3.2);
+        if (S.boltRim) S.boltRim.alpha = Math.min(1, flash * (rm ? 1 : 1.8));
         flashG.clear();
         if (flash > 0) flashG.rect(0, 0, W, H).fill({ color: 0xe8eeff, alpha: flash * (rm ? 0.25 : 0.5) });
         if (tooth) { tooth.width = W; tooth.height = H; }
@@ -2033,7 +2317,11 @@ export function createView(PIXI, app, { assets, G, heroFactory, eggTarget = null
         if (S.mushroom) {
             const m = S.mushroom; m.t += dt;
             const k = m.t < 1.2 ? Math.exp(-6 * m.t) * Math.cos(16 * m.t) * (rm ? 0.12 : 0.28) : 0;
+            // after the story it giggles: a quick little shiver from side to side
+            if (m.giggle !== undefined) m.giggle += dt;
+            const gg = m.giggle < 1.1 && !rm ? Math.sin(m.giggle * 38) * 0.07 * (1 - m.giggle / 1.1) : 0;
             m.c.scale.set(1 + k * 0.6, 1 - k);
+            m.c.rotation = gg;
         }
         void snap;
     }
@@ -2226,6 +2514,28 @@ export function createView(PIXI, app, { assets, G, heroFactory, eggTarget = null
             s.rotation = G.lessMotion ? 0 : Math.sin(t * 0.7 + i) * 0.15;
             s.alpha = starsState.shown;
         });
+        // a falling star: from the biggest of Alva's stars down across the sky, its tail fading behind it
+        shootG.clear();
+        if (shooting) {
+            shooting.t += dt;
+            const u = shooting.t / 2.2;
+            if (u >= 1 || kind === 'cave') shooting = null;
+            else {
+                const [dx, dy] = ALVA_STARS[0];
+                // a short arc down to the left, staying in the open sky above the horizon and away from the notes
+                const sx = mp.x + dx * mp.r, sy = mp.y + dy * mp.r, ex = sx - W * 0.3, ey = sy + Math.min(H * 0.16, mp.r * 1.6);
+                const e = G.lessMotion ? 0 : 1 - (1 - u) * (1 - u), fade = Math.sin(Math.PI * Math.min(1, u * 1.15));
+                const hx = sx + (ex - sx) * e, hy = sy + (ey - sy) * e, tail = G.lessMotion ? 0 : Math.min(0.5, e);
+                const tx = sx + (ex - sx) * (e - tail), ty = sy + (ey - sy) * (e - tail);
+                if (tail > 0) {
+                    shootG.moveTo(tx, ty).lineTo(hx, hy).stroke({ color: 0xfff3c8, width: 9, alpha: 0.22 * fade, cap: 'round' });
+                    shootG.moveTo(tx + (hx - tx) * 0.35, ty + (hy - ty) * 0.35).lineTo(hx, hy).stroke({ color: 0xfffbe8, width: 3.6, alpha: 0.9 * fade, cap: 'round' });
+                }
+                shootG.circle(hx, hy, 16).fill({ color: 0xfff3c8, alpha: 0.3 * fade });
+                shootG.circle(hx, hy, 6).fill({ color: 0xffffff, alpha: 0.95 * fade });
+            }
+        }
+        drawRocket(W, H, dt, t);
         // storm clouds drift and thin out
         for (const c of cloudShapes) {
             c.c.position.set(((c.x * (W + c.w * 2) - cam.x * cam.zoom * c.par + t * (G.lessMotion ? 2 : 8)) % (W + c.w * 2) + (W + c.w * 2)) % (W + c.w * 2) - c.w, c.y * H);
@@ -2327,6 +2637,59 @@ export function createView(PIXI, app, { assets, G, heroFactory, eggTarget = null
                 if (data.hold) await waitGame(data.hold);
                 return;
             case 'lightning': lightning(0.9); await waitGame(0.7); return;
+            // after the story: Molnet over the nest flashes for joy, small and soft
+            // (a soft glow from Molnet itself with sparkles round it: no bolt across the sky and no thunder, the storm is over)
+            case 'cloudJoy': {
+                const s = rm ? 0.12 : 0.28;
+                flash = Math.max(flash, s); atmo.flash(s);
+                S?.A?.moln?.flash();
+                const m = G.actors.moln;
+                if (m && m.scene === S.id) emit('star', m.x, m.y + h(0.2), 12, { gravity: 0, speed: 170, life: 1.1, spread: h(1.4), spreadY: h(0.4), tint: 0xfff4b0 });
+                return;
+            }
+            // Tordyveln shows his ball of eggshells: it pops up beside him with a few sparkles
+            case 'shellBall': { if (S?.shellBall) S.shellBall.pop = 0; const d = G.actors.dyvel; if (d) emit('star', d.x + (d.facing || 1) * h(0.75), d.y - h(0.3), 8, { gravity: 0, speed: 140, life: 0.9 }); await waitGame(0.5); return; }
+            // Utsiktskullen after the story: a rocket flies off into space (a glimpse of the next adventure)
+            case 'rocket': {
+                rocket = { t: 0, puffT: 0 };
+                await until(() => !rocket || rocket.t >= ROCKET_FLIGHT);
+                return;
+            }
+            // Åsktoppen after the story: a star falls from Alva's stars
+            case 'starFall': shooting = { t: 0 }; await waitGame(rm ? 0.6 : 2.0); return;
+            // Djupa skogen after the story: the mushroom giggles, shakes and puffs glowing spores
+            case 'giggle': {
+                const m = S.def.surfaces.find(q => q.id === 'mushroom');
+                if (!m) return;
+                const cx = (m.pts[0][0] + m.pts.at(-1)[0]) / 2, cy = m.pts[0][1];
+                if (S.mushroom) S.mushroom.giggle = 0;
+                // the spores float up after the sköldhäst, past the branch it lands on
+                emit('star', cx, cy - 6, 18, { speed: 230, gravity: -40, life: 2.8, cone: 1.1, spread: h(0.9), tint: 0xe9d5ff });
+                await waitGame(rm ? 0.2 : 0.6);
+                return;
+            }
+            // Kakaolunden after the story: the drummed tree drops a cocoa fruit beside the log
+            case 'cocoaFall': {
+                if (!S?.cocoa) return;
+                S.cocoaPods ||= [];
+                if (S.cocoaPods.length >= 3) S.cocoaPods.shift().g.destroy();
+                const side = Math.random() < 0.5 ? -1 : 1, x = S.cocoa.x + side * h(0.7 + Math.random() * 0.4);
+                const g = new PIXI.Graphics();
+                g.ellipse(0, 0, 12, 22).fill(pen.fill(0x9a5e32)).stroke(pen.line(0x5b3418, 1.6));
+                g.moveTo(-4, -18).lineTo(-4, 18).stroke(pen.line(0xc78b55, 1.2, 0.7));
+                g.scale.set(1.5); // a little bigger than those on the trunk, so it is seen where it lands
+                L.objects.addChild(g);
+                const y0 = S.cocoa.y - h(2.6);
+                // the hollow log lies under the tree: the fruit lands on top of it, not hidden behind it
+                const log = S.def.surfaces.find(q => q.id === 'log'), onLog = log && x >= log.pts[0][0] && x <= log.pts.at(-1)[0];
+                const gy = onLog ? heightOn(log.pts, x) : groundY(S.def, x) ?? S.cocoa.y;
+                S.cocoaPods.push({ g, x, y: y0, vy: 0, gy, t: 0, spin: side * 3, side, landed: false });
+                emit('leaf', S.cocoa.x, S.cocoa.y - h(4), 8, { speed: 140, gravity: 120, life: 1.6, cone: 3 });
+                await waitGame(rm ? 0.2 : 0.6);
+                return;
+            }
+            // Skatan copies the whinny: she sings out (a sparkle by her beak)
+            case 'skataMimic': { const k = G.actors.skata; if (k) emit('star', k.x, k.y - h(0.5), 5, { gravity: 0, speed: 90, life: 0.9 }); return; }
             case 'eggsDrop': {
                 // from Skatan's nest, or from where the story says (the cloud on Åsktoppen, which has no magpie: it
                 // threw there and the last egg never fell from the cloud, 5 November)
@@ -2482,6 +2845,7 @@ export function createView(PIXI, app, { assets, G, heroFactory, eggTarget = null
         G.on('splashIn', (e) => emit('drop', e.x, e.y, Math.round(6 + (e.size || 0.5) * 10), { speed: 320, cone: 1.4 })),
         G.on('splashOut', (e) => emit('drop', e.x, e.y, 5, { speed: 220 })),
         G.on('drum', () => { if (S?.cocoa) emit('leaf', S.cocoa.x + (Math.random() - 0.5) * h(2), S.cocoa.y - h(4.2), 2, { speed: 60, gravity: 90, life: 1.6, cone: 3 }); cam.shake = 4; }),
+        G.on('drumAfter', () => { if (S?.cocoa) { S.cocoaShake = 0.5; emit('leaf', S.cocoa.x + (Math.random() - 0.5) * h(2), S.cocoa.y - h(4.2), 2, { speed: 60, gravity: 90, life: 1.6, cone: 3 }); } cam.shake = 4; }),
         G.on('eggFall', () => { if (S?.cocoa) emit('leaf', S.cocoa.x, S.cocoa.y - h(4), 10, { speed: 140, gravity: 120, life: 1.6, cone: 3 }); }),
         G.on('push', (e) => emit('dust', e.x, G.player.y, 5, { speed: 120, gravity: 200 })),
         G.on('ballSplash', () => { const b = G.scenes.strand.ball; emit('drop', b.stopX, 0, 14, { speed: 360 }); }),
@@ -2502,6 +2866,8 @@ export function createView(PIXI, app, { assets, G, heroFactory, eggTarget = null
         setCloudTexture(tex) { cloudTexture = tex; },
         render, fx, lightning, emit,
         moonScreen: () => moonScreen(),
+        /** For checks: the rocket while it flies after the story ({ t } in seconds, or null). */
+        rocketState: () => rocket,
         /** For checks: Mira's moon and Alva's stars, and how far the moon has risen. */
         moonParts: () => ({ moon, stars: alvaStars, rise: moonState.rise }),
         /** Eggs picked up but still flying to the count (main shows the count without them until they land). */

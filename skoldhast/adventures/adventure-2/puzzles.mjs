@@ -31,6 +31,8 @@ const TALK = 2.6 * HL;
 export function createPuzzleState() {
     return {
         drum: 0, softDrum: 0,
+        drumAfter: 0,        // after the story: fast beats on the log since the last cocoa fruit fell
+        cocoaRest: 0,        // seconds before the shaken tree lets go of another fruit
         fall: null,          // { t } while the cocoa tree's egg falls
         ball: null,          // the beetle ball's x (null = at its start)
         roll: null,          // { t, phase: 'roll' | 'wash' }
@@ -199,6 +201,16 @@ export function stepPuzzles(G, events, dt) {
                 P.softDrum++;
                 G.emit('drumSoft', { n: P.softDrum });
             }
+        }
+    } else if (sc.drum && F.has('ended')) {
+        // after the story the log is still a drum: as many fast beats as P1 took, and the cocoa tree drops a fruit;
+        // then it rests a while, so a fruit falls now and then and does not rain down on every gallop
+        P.cocoaRest = Math.max(0, P.cocoaRest - dt);
+        for (const e of events) {
+            if (e.type !== 'hoof' || p.surface?.id !== sc.drum.surface || e.speed < sc.drum.minSpeed) continue;
+            if (P.cocoaRest <= 0) P.drumAfter++;
+            G.emit('drumAfter', { n: P.drumAfter, of: sc.drum.beats });
+            if (P.drumAfter >= sc.drum.beats) { P.drumAfter = 0; P.cocoaRest = 6; G.emit('cocoaFall', {}); break; }
         }
     }
     if (P.fall && P.fall.t < FALL_SECONDS) {

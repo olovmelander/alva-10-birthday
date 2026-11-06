@@ -508,7 +508,40 @@ export const STORY = {
         ['skata', 'Här, små ungar. Varje ny forskare behöver något som glänser.'],
         ['tukan', 'Mitt guldmynt! Tack, Skatan – du glänser mest av alla.']
     ],
-    after: [['tukan', 'Tack för att du ritade mig, Alva. Nu forskar vi i månskenet – allt glänser!']]
+    after: [['tukan', 'Tack för att du ritade mig, Alva. Nu forskar vi i månskenet – allt glänser!']],
+    // after the story (easter eggs): the ten little researchers follow the sköldhäst; Molnet lightens for joy
+    hatchlingsFollow: [['tukan', 'De forskar på dig! Tio små forskare i rad – och Lilla Klo går först.']],
+    molnJoy: [['moln', 'Nu blixtrar jag för att det är roligt – inte för att jag är rädd!']],
+    // Tordyveln's finest ball yet, rolled from the hatched eggs' shells; and Skatan, who copies a whinny
+    dyvelShells: [
+        ['dyvel', 'Hmpf. Titta inte. Jag rullade en ny boll av äggskalen.'],
+        ['dyvel', 'Den finaste hittills. Inte för att jag bryr mig.']
+    ],
+    dyvelShellsAgain: [['dyvel', 'Den är fortfarande den finaste. Hmpf.']],
+    // Djupa skogen after the story: the mushroom giggles when it bounces you up
+    mushroomGiggle: [
+        ['tukan', 'Hörde ni? Svampen fnissar!'],
+        ['klo', 'Hypotes nummer fyra: svampar är kittliga. Det antecknar jag.']
+    ],
+    // Åsktoppen after the story: a star falls from Alva's stars over Stormens öga
+    starFall: [
+        ['tukan', 'Ett stjärnfall! Det lossnade från Alvas stjärnor.'],
+        ['klo', 'Då får man önska något. Jag önskar … nej. Det är vetenskapligt hemligt.']
+    ],
+    // Utsiktskullen after the story: a rocket flies off into space (a glimpse of the next adventure)
+    rocket: [['horse', 'Titta! En raket!']],
+    rocketAfter: [
+        ['horse', 'Tänk hur det skulle vara att åka ut i rymden …'],
+        ['klo', 'Rymden! Dit har ingen krabba forskat förut.'],
+        ['tukan', 'Där uppe glänser allt. Det måste vi forska på!']
+    ],
+    // Kakaolunden after the story: the log is still a drum, and Klo still gives her the cocoa fruit
+    cocoaAgain: [
+        ['klo', 'En kakaofrukt till! Den är till dig … igen.'],
+        ['tukan', 'Mjölkchoklad! Du kom ihåg min favorit, Klo.'],
+        ['klo', 'Självklart. Det står i anteckningsboken. Bredvid diagrammen.']
+    ],
+    skataMimic: [['skata', 'Gnägg! … Hmm, nej. Det klär mig inte. Jag håller mig till mitt eget.']]
 };
 
 // thoughts and refusals (short notes above the horse; never block play)

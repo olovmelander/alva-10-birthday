@@ -490,7 +490,7 @@ export function createUI(host, { assetBase, handlers, voice = null }) {
             (c) => {
                 c.append(el('h3', '', JOURNAL.measurements));
                 const ul = el('ul', 'sk-j-list sk-j-checks');
-                for (const id of ['fart', 'djup', 'gom', 'gnagg', 'sprang', 'smak']) if (state.flags.has('exp_' + id)) ul.append(el('li', '', JOURNAL.experiments[id]));
+                for (const id of ['fart', 'djup', 'gom', 'gnagg', 'sprang', 'smak', 'eko']) if (state.flags.has('exp_' + id)) ul.append(el('li', '', JOURNAL.experiments[id]));
                 if (!ul.children.length) { ul.className = 'sk-j-list'; ul.append(el('li', 'sk-j-small', JOURNAL.empty)); }
                 c.append(ul);
                 const signs = el('p', 'sk-j-tally', state.tally > 0 ? JOURNAL.tallyHorse : state.tally < 0 ? JOURNAL.tallyTurtle : JOURNAL.tallyEven);

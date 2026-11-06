@@ -1,5 +1,131 @@
 # Sköldhästen – handover
 
+## Small surprises after the story: easter eggs on every page (6 November, evening)
+
+Pappa asked for easter eggs in both adventures for whoever plays on after the end. Äventyr 1 had only the race
+against Signe, and Äventyr 2 had none. He then asked for them to be spread out, and for **every page to have at
+least one**. Now every page of both adventures has one or more. Each one:
+- comes only after the end (`ended`);
+- comes from the story's own characters, places and arcs;
+- needs no new puzzle, only something the player already knows (whinny, hide, gallop, bounce, stand still, talk);
+- has its lines recorded (all heard exactly by speech-to-text);
+- is tested in `tests/skoldhast-easter-eggs.test.mjs` (each test also checks that nothing happens before the end).
+
+After the story everyone who came to the nest goes home, so their surprises lie in different places: Skatan back on
+her branch in Skatträdet, Tordyveln with his new ball into Kristallgrottan, where he rolled his glitter ball before.
+The hatchlings and Molnet stay at the nest (`setupActors` in `adventures/adventure-2/story.mjs`, called again in the
+finale while the ending card covers the page, so when the player chooses Utforska the guests have gone home).
+
+**Äventyr 2, Flodstranden** (west → east)
+- **Kakaolunden: kakaofrukten igen.** The hollow log is still a drum. Gallop over it as in P1 and the cocoa tree
+  shakes and drops a cocoa fruit onto the log (the drum sounds as in P1, the fruit rustles down and lands with a thud). The first time Klo gives it to Tukankrabban again ("Den är till dig …
+  igen."; she: "Du kom ihåg min favorit, Klo."; he: "Det står i anteckningsboken. Bredvid diagrammen."). After that
+  a fruit just falls now and then: the tree rests 6 s after each, so it does not rain fruit (`drumAfter`,
+  `cocoaRest` in `puzzles.mjs`; `cocoaFall` in the view; at most three fruits lie on the log, each fades after 7 s).
+- **Boet: tio små forskare.** Hide in the shell by the nest and the ten hatchlings gather. Come out and they follow in
+  a row along the beach, the smallest, Lilla Klo, first (she is drawn a little smaller than the others). They trot, at
+  most 4 HL a second, so they wait at the water's edge and never cross the river or Klyftan (with less motion too).
+  Hide by the nest again and they go home, and they stay home when the page turns. One toggle per hiding: the shell
+  must come out before the next one counts. Tukankrabban says once: "De forskar på dig! …" (`G.hatchFollow`,
+  `afterStory`).
+- **Boet: Molnet blixtrar av glädje.** Whinny under Molnet over the nest and it answers with a small glow of its own
+  and sparkles round it (no bolt across the sky and no thunder: the storm is over). Before, it flashed from fear of
+  the dark; now the moon is drawn. The first time, the picture takes Molnet in and it says "Nu blixtrar jag för att
+  det är roligt – inte för att jag är rädd!". After that it just glows, at most every 2.5 s (`cloudJoy`).
+- **Skatträdet: Skatan härmar.** Whinny under her tree and she copies it (a quieter whinny from her branch, with a
+  sparkle). The first time she also decides it does not suit her (magpies are mimics; she is vain); after that she
+  just keeps trying, at most every 6 s. There it is her turn, not Molnet's (`skataMimic`).
+
+**Äventyr 2, Djupa skogen**
+- **Raketen från Utsiktskullen (a glimpse of Äventyr 3, which Pappa says will be set in space).** On top of the
+  lookout hill, after the story, a rocket rises far away beyond the hill, crosses Mira's moon in silhouette and grows
+  small until it is only a twinkle among Alva's stars, with a curved trail of smoke behind it and a far-off roar. The
+  sköldhäst stops, faces it and follows it with its eyes (`lookAt`, emote `surprised`): "Titta! En raket!" and, when
+  it is gone, "Tänk hur det skulle vara att åka ut i rymden …"; Klo: "Dit har ingen krabba forskat förut."; Tukankrabban:
+  "Det måste vi forska på!". The first time the picture turns a little towards it; after that it flies again once
+  each time the page is visited, without words, and the sköldhäst just watches. It is drawn in pencil like the rest
+  of the page (red nose and fins, a round window, a little gold star like Alva's on its side), in screen space in
+  front of the moon, on a path measured from the moon so it works upright and in landscape (`rocketWatch` in the
+  story; `rocketPath`, `drawRocket` and fx `rocket` in the view; `rocketState()` lets a check hold the flight at a
+  moment to look at it).
+- **Svampen fnissar.** The mushroom that bounced the sköldhäst up to the egg (P9) giggles now when it bounces you:
+  it shivers, a little run of pops sounds and glowing spores rise. The first time Tukankrabban hears it and Klo makes
+  hypothesis number four: "svampar är kittliga" (`mushroomGiggle`, fx `giggle`). Each bounce lands on the branch
+  above, so it giggles once per bounce, at most every 4 s.
+
+**Äventyr 2, Kristallgrottan**
+- **Tordyvelns finaste boll.** Tordyveln has gone back to his spot in the cave. Talk to him: he has rolled a new
+  ball from the hatched eggs' shells, "Den finaste hittills. Inte för att jag bryr mig." It lies beside him from
+  then on, and talking again gets a proud "Hmpf" (`dyvel_shellball`, `shellBall`).
+
+**Äventyr 2, Åsktoppen**
+- **Stjärnfall i Stormens öga.** On the summit where Molnet sat crying in the dark, stand quite still for a moment
+  (stillness, as the moonshine flowers taught) and a star falls from the biggest of Alva's stars across the sky.
+  The first time Tukankrabban sees it and Klo makes a wish: "Jag önskar … nej. Det är vetenskapligt hemligt." At
+  most one star every 20 s (`starFall` in the story; the falling star is drawn with the moon in the view).
+
+**Äventyr 1, Stranden och Stäppen**
+- **Ekot i Vattenporten.** Whinny under the arch and it answers twice, softer each time. The first time, Klo writes
+  it down with his measurements ("Ekotestet", in the journal) and says so (`after_echo`).
+- **Kartväktarens nya lapp.** The game's first note at Streckbron said "OBS! Ofärdigt streck. Rör ej!". After the
+  story it reads: "Strecket är färdigt nu. Tack! Ni får röra det hur mycket ni vill." It is read in his voice.
+- (and, as before, the race against Signe)
+
+**Äventyr 1, Kelpskogen**
+- **Lyktfiskarnas dans.** The lyktfiskar that lit Mörka valvet stay as its lamps. Hide in the shell under the
+  vault's roof and they leave their lamps and dance in a ring round the shell, lighting the water round it, while
+  the current carries it through and on where it comes to rest just past the east mouth; come out or swim away and
+  they go back. The first time Klo says "Lyktfiskarna dansar runt skalet! Jag antecknar: de kommer ihåg dig."
+  (school state `dance` in `puzzles.mjs`, `after_lykt`).
+
+**Äventyr 1, Spegelviken**
+- **Kartväktarens pappersbåt.** He was afraid of water ("Jag är av papper. Blött papper går sönder!"). Talk to him
+  on the pier (the note shows his face) and he dares to set a paper boat on the bay. It stays there, drifting slowly
+  between the shore and the pier's end, far from the lighthouse's reflection (`_kvBoat`, `kv_boat`, `paperBoat`; if
+  the page is rebuilt while it is being set down, the scene is released instead of waiting for it).
+
+**Audited (6 November, night).** An independent read of all of the above found, and these were fixed: a
+`node_modules` link committed from a worktree (now untracked; `.gitignore` says `node_modules` without the slash, so a
+link is ignored too); hatchlings sent home again while Tukankrabban spoke; Skatan and Tordyveln left at the nest
+right after the finale (Skatan answered instead of Molnet, Tordyveln's ball scene played on the beach); the boat
+blinking out as it touched the water; the dance lasting only the ride through the vault; hatchlings jumping the
+river with less motion; sparkles falling instead of floating; the after-story drum and fruit being silent; a full
+storm bolt and thunder for Molnet's joy; Lilla Klo the same size as the others; tests without a before-the-end check.
+
+## Prettier, without changing how anything works (6 November, evening)
+
+Pappa asked for graphic and visual improvements in both adventures, on one condition: nothing may break (the
+water's reflections and every other detail must work as before). Every change below is drawing or light only:
+no walking line, wall, puzzle, story frame or reflection changes. Each was shot before and after, upright and
+in landscape, and the browser checks for its area were run alone.
+
+- **Äventyr 1, upright phones:** the ground sits at about two thirds of the height, as in Äventyr 2. At 58 % the
+  pale ground took over 40 % of the screen and the sky and hills were squeezed under the goal note. Only the
+  upright framing while walking changes (`updateCamera`, `src/view.mjs`): swimming, the big leap, the scenes'
+  own views and every story frame (hints, close-ups, the mirror, the map) are as they were.
+- **Äventyr 2's light follows the story** (Pappa: "Vi kan inte ha månljus", and every change must follow the story).
+  The page is dark because Mira forgot the moon ("Det är så mörkt överallt"). Until she draws it, the only light is
+  the lightning, the moonshine seeds and Tukankrabban's lantern.
+  - **No moon-like glow:** the soft glow at the top of the storm's and the peak's sky read as a moon behind the
+    clouds. It is gone (`MOODS.storm`, `MOODS.peak` in `src/atmosphere.mjs`; it predates tonight).
+  - **No fireflies before the moon:** the storm's glowing motes are faint rain dust. Fireflies come out over the
+    forest and the beach only once the moon is drawn (`buildNightLight`). The moonlit ending keeps its own.
+  - **Lightning lights the edges:** when lightning strikes, the edges of the ground and the rocks catch its light
+    ("Varje blixt lyser upp hela skogen"; `S.boltRim`).
+- **Kristallgrottan** stays dark and only glitters until the three crystals by the chasm are lit ("Kan kristallerna
+  lysa upp den?"). Then each crystal cluster casts a pool of its colour and a soft glow (`buildCaveLight`, faded
+  in on `k1_lit`).
+- **Äventyr 1 under water:**
+  - In Spegelviken, bubbles rise beside the pipe, where the current goes up ("Här går den upp genom röret!";
+    `bayBubbles` in `content/world.mjs`). They stay well under the surface, away from the lighthouse's reflection.
+    No loose fish were added: in this story fish are characters with a part to play (the lantern fish, the shy
+    ones), and fish in Spegelviken would promise a puzzle that is not there.
+  - The light on the bed is closer together, there are a few more drifting specks, and the light shafts are
+    slightly brighter (`MOODS.a1Under`).
+- **Äventyr 2's mountain:** the storm's mist drifts slowly across its flanks and thins as the storm calms.
+- **The rain** blows west, away from Åsktoppen, as the torn leaves and the mountain's gusts do. It leans the way it
+  falls, and the faster drops are longer.
+
 ## "E Prata" shows who you would talk to (6 November)
 
 Pappa asked for a small picture of the one you would talk to inside the "E Prata" note. The key prompt now shows

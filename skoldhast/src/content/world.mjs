@@ -561,6 +561,11 @@ SCENES.viken = {
         { id: 'stair', x: h(26.6), y: h(-7.3), to: 'stairFoot', label: CONTEXT_LABELS.down, opens: 'stair_open' },
         { id: 'stair-up', x: h(23.7), y: h(-0.62), to: 'stairTop', label: CONTEXT_LABELS.up, when: 'stair_open' }
     ],
+    // bubbles rising beside the pipe, where the current goes up ("Här går den upp genom röret!"); view only, kept
+    // off the surface where the lighthouse is mirrored. (No fish here: in this story fish are characters with a part
+    // to play, the lantern fish and the shy ones, and loose fish in Spegelviken would promise a puzzle that is not
+    // there.)
+    bayBubbles: [{ x: h(25.75), y0: h(4.6), y1: h(1.4), count: 6, speed: 0.16 }],
     // the stair's post continues down into the bay
     pilings: [{ x: h(25.15), top: h(-0.62) + 30, width: 20 }],
     // Strömröret above the water: the tube the current climbs, from its drawn lower part up into the gallery basin

@@ -531,6 +531,9 @@ export function createGame({ host = document.body, assetBase = './skoldhast/', s
                 case 'egg': audio.sfx('pickup'); audio.sfx('sparkle'); break;
                 case 'drum': audio.sfx('ratchet'); break;
                 case 'eggFall': audio.sfx('rustle'); break;
+                // after the story the log is still a drum, and the shaken tree drops a cocoa fruit
+                case 'drumAfter': audio.sfx('ratchet'); break;
+                case 'cocoaFall': audio.sfx('rustle'); audio.sfx('thud', { gain: 0.5, delay: 0.55 }); break;
                 case 'push': audio.sfx('thud'); break;
                 case 'ballRoll': audio.sfx('rustle'); break;
                 case 'ballSplash': audio.sfx('splash', { size: 0.7 }); break;
