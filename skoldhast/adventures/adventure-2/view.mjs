@@ -1820,7 +1820,7 @@ export function createView(PIXI, app, { assets, G, heroFactory, eggTarget = null
             swirl.alpha = 0.15 + 0.85 * stormShown;
             for (const m of peakMist) {
                 m.g.x = m.x0 + (rm ? 0 : Math.sin(t * m.v + m.o) * m.w * 0.45);
-                m.g.alpha = rm ? 0.8 : 0.55 + 0.45 * Math.sin(t * m.v * 1.7 + m.o * 2);
+                m.g.alpha = (rm ? 0.8 : 0.55 + 0.45 * Math.sin(t * m.v * 1.7 + m.o * 2)) * (0.15 + 0.85 * stormShown); // the storm's own cloud
             }
             peakBolt.visible = !rm && stormShown > 0.5 && Math.sin(t * 2.3) > (peakVistaOn ? 0.9 : 0.985);
         }
@@ -1860,8 +1860,16 @@ export function createView(PIXI, app, { assets, G, heroFactory, eggTarget = null
         for (const a of S.anim) {
             if (a.kind === 'current') { a.c.x += a.v * dt; if (a.c.x > a.x1 - h(0.8)) a.c.x = a.x0; }
             else if (a.kind === 'fall') { const u = (t * (rm ? 0.6 : 1.8) + a.o) % 1; a.c.y = lerp(a.y0, a.y1, u); a.c.alpha = 0.3 + 0.6 * Math.sin(u * Math.PI); }
-            else if (a.kind === 'crystalGlow') a.s.alpha = a.base * (rm ? 0.9 : 0.72 + 0.28 * Math.sin(t * 0.8 + a.o));
+            else if (a.kind === 'crystalGlow') {
+                // the crystals light the cave once the three by the chasm are lit ("Kan kristallerna lysa upp den?"):
+                // before that the cave is dark and only glitters, and the lantern is its light (6 November)
+                a.lit = rm ? (F.has('k1_lit') ? 1 : 0) : lerp(a.lit ?? (F.has('k1_lit') ? 1 : 0), F.has('k1_lit') ? 1 : 0, 1 - Math.exp(-0.8 * dt));
+                a.s.alpha = a.lit * a.base * (rm ? 0.9 : 0.72 + 0.28 * Math.sin(t * 0.8 + a.o));
+            }
             else if (a.kind === 'firefly') {
+                // only once Mira has drawn the moon: before that the page is dark, as the story says (6 November)
+                a.c.visible = F.has('moon');
+                if (!a.c.visible) continue;
                 // a slow wandering loop, blinking softly; still in Mindre rörelse; dimmer in the heaviest rain
                 const ph = t * 0.35 + a.o;
                 if (!rm) a.c.position.set(a.x0 + Math.sin(ph) * a.r + Math.sin(ph * 2.3) * a.r * 0.3, a.y0 + Math.sin(ph * 1.7 + 1) * a.r * 0.5);
@@ -2035,9 +2043,10 @@ export function createView(PIXI, app, { assets, G, heroFactory, eggTarget = null
             s.visible = i < nRain;
             if (!s.visible) continue;
             d.y = (d.y + dt * d.v * (rm ? 0.5 : 1.6)) % 1;
-            s.position.set(((d.x + d.y * 0.15 - cam.x * cam.zoom * 0.0004) % 1 + 1) % 1 * W, d.y * H);
-            // leaning the way it falls, with the wind (it fell slanted but was drawn upright)
-            s.rotation = -Math.atan2(0.15 * W, H);
+            // the storm's wind blows west, away from Åsktoppen, as the torn leaves and the gusts on the mountain do;
+            // the rain leans the way it falls (it drifted east and was drawn upright, 6 November)
+            s.position.set(((d.x - d.y * 0.15 - cam.x * cam.zoom * 0.0004) % 1 + 1) % 1 * W, d.y * H);
+            s.rotation = Math.atan2(0.15 * W, H);
             s.alpha = (under ? 0.15 : 0.55) * stormShown * (sheltered ? 0.12 : 1);
         }
         // lightning: now and then over the forest; on the peak it follows the bridge's lightning schedule
