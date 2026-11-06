@@ -75,6 +75,17 @@ Art and sound:
 - Moss, ferns and dripping water on the overhang above Forsen's cave.
 - Åsktoppen's rock has cracks with a lit edge and pale lichen, so it reads as a mountain, not layered paper.
 - An egg flying into the count lands with a soft note, one step higher for each egg.
+- Kristallgrottan: ledges lie in the cave's purple dusk instead of standing out as pale blocks; the spring's column
+  wavers; crystal veins run through the roof (which fills the top third of a phone held upright); small crystals
+  glint far down the chasm under Kristallbron, which was a black quarter of the screen.
+- Forsen's overhang has cracks and lichen too, drawn thick enough to read at a phone's zoom.
+- **Thunder:** a soft, distant roll follows each lightning flash after half a second to a second and a half
+  (`renderThunder` in `src/audio.mjs`; `sfx()` takes `{ delay }`). The storm used to flash in silence.
+- **Voices at one loudness.** Measured with EBU R128, Kartväktaren and his notes (Pappa's own voice) were about
+  5 dB louder than Klo, and some of Tukankrabban's hints 6 dB quieter. `manifest.json` now holds each clip's LUFS,
+  and `src/voice.mjs` plays every clip at −20.5 LUFS (`LEVEL`, `levelGain`). The recording script measures each
+  new clip with ffmpeg; `node scripts/skoldhast-voice.mjs --level` measures them all again. The voice test fails
+  while a clip is unmeasured.
 
 ## Äventyr 1, Branten: no stutter as the roots lift the grass strips (5 November)
 
