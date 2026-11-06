@@ -411,6 +411,8 @@ export function createStory(G, io) {
         });
     }
 
+    async function seedsLit() { await say(STORY.seedsLit); await say(STORY.alvaSeeds); await say(STORY.seedsLit2); clue('lantern'); }
+
     function onEnter({ id }) {
         const sc = G.sceneId;
         if (!done('arrive')) return;
@@ -465,6 +467,9 @@ export function createStory(G, io) {
                 await fx('focus', null);
             });
             if (intro && id === 'seeds' && !F.has('p4_lit')) beat('seeds', () => about([88.7, 90.8, -1.6, -0.4], async () => { await say(STORY.seeds); clue('darkStorm'); }));
+            // a save while the seeds' lighting was told (the tablet locked mid-sentence) lost it, and the lantern's
+            // note in the book with it: the same place tells it again (6 November)
+            if (id === 'seeds' && F.has('p4_lit') && !done('seedsLit')) beat('seedsLit', seedsLit);
             if (intro && (id === 'hill' || id === 'trunkTop') && !F.has('egg_e10')) beat('leapSeen', async () => {
                 await fx('focus', { x: G.scenes.skog.eggs[2].x, y: G.scenes.skog.eggs[2].y - 0.5 * HL, zoom: 0.85, hold: 0.6 });
                 await say(STORY.leapSeen);
@@ -673,7 +678,7 @@ export function createStory(G, io) {
             G.wait(2.5).then(() => { if (G.camLook === BALL_LOOK) G.camLook = null; });
             beat('washed', () => say(F.has('k3_ball') ? [STORY.washed[0], ...STORY.washedLate] : STORY.washed));
         }),
-        G.on('seedsLit', () => beat('seedsLit', async () => { await say(STORY.seedsLit); await say(STORY.alvaSeeds); await say(STORY.seedsLit2); clue('lantern'); })),
+        G.on('seedsLit', () => beat('seedsLit', seedsLit)),
         G.on('coin', () => { io.audio?.sfx?.('coin'); beat('coin', () => say(F.has('b:magpie') ? STORY.coin : STORY.coinEarly)); }),
         G.on('trade', () => beat('trade', async () => {
             await fx('coinGive', {}); // the coin flies from the sköldhäst to Skatan's beak
