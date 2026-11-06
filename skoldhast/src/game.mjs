@@ -203,6 +203,24 @@ export function createGame({ released = RELEASED_CHAPTER } = {}) {
             G.goto(cp.scene, cp.spot || cp.at);
         },
         setCheckpoint(name) { if (CHECKPOINTS[name]) { G.checkpoint = name; G.emit('checkpoint', { id: name }); } },
+        /**
+         * Move the sköldhäst to another place on this page, keeping the same player object: "Jag har fastnat".
+         * (6 November: it used G.goto, whose new player made every beat that watches its player give up for good,
+         * holding the controls locked: a close-up of a puzzle, Klo at the map corner.)
+         */
+        relocate(spawn) {
+            const p = G.player, keepWet = p.wet, fresh = createPlayer(spawn);
+            for (const k of Object.keys(p)) delete p[k];
+            Object.assign(p, fresh);
+            p.wet = keepWet;
+            if (spawn?.hidden) { p.hidden = true; p.hide = 1; }
+            const sup = G.terrain.support(p.x, p.y, 120, 400);
+            if (p.mode === 'ground' && sup) { p.y = sup.y; p.surface = sup.s; }
+            if (spawn?.mode === 'swim') { p.water = G.terrain.waterAt(p.x, p.y); p.submerge = 1; }
+            G.worldInspection = null;
+            G.areas = new Set();
+            resetUncommitted(G);
+        },
 
         /**
          * "Jag har fastnat": the nearest safe place in this scene (a checkpoint or a spawn), in the water if you
@@ -211,10 +229,14 @@ export function createGame({ released = RELEASED_CHAPTER } = {}) {
         safeSpot() {
             const p = G.player, sc = G.sceneDef;
             const cands = [];
-            for (const cp of Object.values(CHECKPOINTS)) if (cp.scene === G.sceneId) cands.push(cp.spot ? sc.spots[cp.spot] : cp.at);
+            // a checkpoint only once the way to it is open (its `when`)
+            for (const cp of Object.values(CHECKPOINTS)) if (cp.scene === G.sceneId && cond(cp.when, G.flags)) cands.push(cp.spot ? sc.spots[cp.spot] : cp.at);
             for (const [k, v] of Object.entries(sc.spots)) if (/^(start|from)/.test(k)) cands.push(v);
             const blank = (x) => (sc.paper || []).some((pc) => !G.flags.has(pc.until) && x >= pc.x0 && x <= pc.x1);
-            const walled = (x) => G.terrain.walls.some((w) => (w.x - p.x) * (w.x - x) < 0);
+            // nor across a wall, or a dashed line still to be drawn (Streckbron)
+            const across = (a, b, x) => (x > p.x ? b > p.x && a <= x : a < p.x && b >= x);
+            const walled = (x) => G.terrain.walls.some((w) => (w.x - p.x) * (w.x - x) < 0)
+                || (G.terrain.dashed || []).some((d) => across(Math.min(d.pts[0][0], d.pts.at(-1)[0]), Math.max(d.pts[0][0], d.pts.at(-1)[0]), x));
             const swimming = p.mode === 'swim';
             let best = null, bd = Infinity;
             for (const c of cands) {
