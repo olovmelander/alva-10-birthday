@@ -20,7 +20,7 @@ test('synthesized cues and every hoof material produce finite, bounded buffers w
 });
 
 test('the beds the game sets (rain, a waterfall) loop without a break and stay quiet', () => {
-    for (const name of ['rain', 'falls']) {
+    for (const name of ['rain', 'falls', 'drips']) {
         const x = __dsp.renderBed(SR, __dsp.mulberry32(3), name);
         assert.ok(x.length > SR * 5, name + ' is a long loop');
         let peak = 0;

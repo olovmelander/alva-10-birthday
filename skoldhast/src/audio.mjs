@@ -191,7 +191,7 @@ export const SFX = Object.freeze(['hoof', 'splash', 'drip', 'shake', 'bubble', '
     'crabclick', 'neigh', 'blubb', 'snort', 'stamp', 'gull', 'wind', 'thunder', 'whoosh', 'thud', 'latch', 'ratchet', 'gate', 'pop',
     'page', 'pickup', 'colorin', 'sparkle', 'stopwatch', 'write', 'ui', 'crabvoice']);
 export const SURFACES = Object.freeze(['sand', 'wetsand', 'plank', 'pier', 'grass', 'rock', 'shallow']);
-export const ENVIRONMENTS = Object.freeze(['beach', 'steppe', 'kelp', 'bay', 'table']);
+export const ENVIRONMENTS = Object.freeze(['beach', 'steppe', 'kelp', 'bay', 'table', 'cave']);
 // other names the world uses for what is underfoot
 const SURFACE_ALIAS = { wood: 'plank', spangen: 'pier', cream: 'plank', seabed: 'wetsand', earth: 'grass', paper: 'grass', glass: 'rock', stone: 'rock', water: 'shallow' };
 const VOICE_SFX = new Set(['crabvoice', 'neigh', 'blubb', 'snort']);
@@ -1479,6 +1479,16 @@ function renderBed(fs, rng, name) {
         const w = ctl(n, fs, (t) => 0.25 + 0.75 * Math.pow(0.5 - 0.5 * Math.cos((TAU * (t % 4)) / 4), 1.5), 32);
         const crest = ctl(n, fs, (t) => 0.25 * Math.pow(Math.max(0, Math.sin((TAU * ((t % 4) - 1.6)) / 4)), 6), 32);
         for (let i = 0; i < n; i++) x[i] = nz[i] * w[i] + hiss[i] * crest[i];
+    } else if (name === 'drips') {
+        // inside a mountain: a low, still hum of the rock, and water dripping now and then, far and near
+        x = brown(n, rng);
+        svf(x, fs, 180, 0.7, 0);
+        for (let i = 0; i < n; i++) x[i] *= 0.25;
+        for (let k = 0; k < 11; k++) {
+            const t = rr(rng, 0.1, sec);
+            const near = rng() < 0.4;
+            addDrip(x, fs, t, rr(rng, 900, 1500), rr(rng, 1800, 3200), near ? rr(rng, 0.18, 0.28) : rr(rng, 0.06, 0.12), near ? 0.07 : 0.05);
+        }
     } else if (name === 'falls') {
         // a waterfall: a steady roar, low and broad, with spray hissing over it
         x = pink(n, rng);
@@ -1554,9 +1564,9 @@ const MUSIC_GAIN = 1.4; // music bus make-up (+3 dB) relative to effects
 const VERB_RETURN = 0.55;
 const PAD_LEVEL = 0.03; // per oscillator
 const DRONE_LEVEL = 0.022;
-const BED_LEVEL = { wind: 0.12, under: 0.2, waves: 0.32, lap: 0.22, rain: 0.07, falls: 0.16 }; // rain sits about as loud as the wind
+const BED_LEVEL = { wind: 0.12, under: 0.2, waves: 0.32, lap: 0.22, rain: 0.07, falls: 0.16, drips: 0.2 }; // rain sits about as loud as the wind
 const AREA_BEDS = { table: {}, land: { wind: 1 }, sea: { under: 1 }, bay: { lap: 1 }, final: { waves: 1, wind: 0.4 } };
-const ENV_BEDS = { table: {}, beach: { waves: 0.5, wind: 0.2 }, steppe: { wind: 1 }, kelp: { under: 1 }, bay: { lap: 1, wind: 0.12 } };
+const ENV_BEDS = { table: {}, beach: { waves: 0.5, wind: 0.2 }, steppe: { wind: 1 }, kelp: { under: 1 }, bay: { lap: 1, wind: 0.12 }, cave: { drips: 1 } };
 const HIDE_MUL = { mel: 0.85, acc: 0.12, pad: 0.3, drum: 0, harm: 0.8, tex: 0.4 };
 const INST_GAIN = { lyre: 0.6, harm: 0.8, shell: 0.55, plank: 0.6 };
 const INST_ALIAS = { lyre: 'lyre', shell: 'shell', plank: 'plank', 'bell-free': 'harm', harm: 'harm' };
@@ -2192,7 +2202,7 @@ export function createAudio({ ctx: givenCtx, seed, lifecycle = false, warm = tru
             for (const k in want) want[k] *= 0.5;
             want.under = 1;
         }
-        for (const name of ['wind', 'under', 'waves', 'lap', 'rain', 'falls']) {
+        for (const name of ['wind', 'under', 'waves', 'lap', 'rain', 'falls', 'drips']) {
             const v = muted.beds ? 0 : (want[name] || 0) * BED_LEVEL[name];
             let b = beds[name];
             if (v > 0 && !b) {

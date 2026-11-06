@@ -102,6 +102,8 @@ Art and sound:
   draws (`view.rainLevel` → `audio.setRain`): softer under shelter, none in Kristallgrottan, gone as the storm calms.
 - **Waterfalls you hear:** Forsen and the spring at Källan roar louder as the sköldhäst comes to them (`sounds` in
   `content/world.mjs`, `audio.setBed('falls', …)`).
+- **The cave sounds like a cave:** Kristallgrottan used the mountain's wind. Inside the mountain the rock now hums low
+  and water drips, far and near (environment `'cave'`, bed `drips`).
 - **Voices at one loudness.** Measured with EBU R128, Kartväktaren and his notes (Pappa's own voice) were about
   5 dB louder than Klo, and some of Tukankrabban's hints 6 dB quieter. `manifest.json` now holds each clip's LUFS,
   and `src/voice.mjs` plays every clip at −20.5 LUFS (`LEVEL`, `levelGain`). The recording script measures each

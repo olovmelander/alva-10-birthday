@@ -471,7 +471,8 @@ export function createGame({ host = document.body, assetBase = './skoldhast/', s
             if (audio) {
                 const p = G.player;
                 audio.setMotion({ speed01: Math.min(1, Math.abs(p.vx) / 1200), underwater: p.mode === 'swim' && p.submerge > 0.7, hidden: p.hidden });
-                audio.setEnvironment(p.mode === 'swim' ? 'kelp' : 'steppe');
+                // inside the mountain the rock hums and drips; outside the wind blows (it used to blow in the cave too)
+                audio.setEnvironment(p.mode === 'swim' ? 'kelp' : G.sceneDef?.underground ? 'cave' : 'steppe');
                 audio.setRain?.(view.rainLevel);
                 // a waterfall roars louder as you come to it (Forsen, the spring at Källan)
                 let falls = 0;
