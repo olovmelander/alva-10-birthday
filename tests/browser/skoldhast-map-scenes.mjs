@@ -18,6 +18,7 @@ const modes = selectedSize
     : [{ size: '390x844', big: true, reduced: false }, { size: '844x390', big: true, reduced: true }, { size: '1440x900', big: false, reduced: false }];
 const chapter2 = [...CODE_RESTORE[1].flags, 'ch2_open', 'b:k2_open', 'b:k2_note2', 'p4_leap', 'b:k2_leap', 'p5_lit', 'b:k2_lit'];
 const guardianFlags = [...CODE_RESTORE[2].flags, 'ch3_open', 'viken_arrived', 'b:k3_arrive', 'shutter1', 'shutter2', 'shutter3', 'lamp_lit', 'b:k3_lamp', 'kv_met', 'talk1', 'b:k3_talk1'];
+const story = (flags) => flags.filter(f => !f.startsWith('penna_'));
 const separated = (a, b) => a.x + a.width <= b.x || b.x + b.width <= a.x || a.y + a.height <= b.y || b.y + b.height <= a.y;
 await fs.mkdir(out, { recursive: true });
 const server = await serve(), browser = await launch(), errors = [], results = [];
@@ -98,7 +99,9 @@ try {
                 assert.equal(rotated.state.phase, state.state.phase);
                 assert.equal(rotated.state.joined, state.state.joined);
                 assert.equal(rotated.routeOpen, state.routeOpen);
-                assert.deepEqual(rotated.flags, state.flags);
+                // (a swimmer left in the trench drifts down to the boat's pencil in about 14 s, so a pencil may be
+                // picked up while the screen turns; turning must not change the story's flags)
+                assert.deepEqual(story(rotated.flags), story(state.flags));
                 assert.ok(rotated.textFits, `${activeName}: rotated dialogue text fits`);
                 for (const box of rotated.content) {
                     assert.ok(box.x >= -1 && box.y >= -1 && box.x + box.width <= height + 1 && box.y + box.height <= width + 1,
@@ -111,7 +114,7 @@ try {
                 const restored = await measure();
                 assert.equal(restored.text, state.text);
                 assert.equal(restored.state.phase, state.state.phase);
-                assert.deepEqual(restored.flags, state.flags);
+                assert.deepEqual(story(restored.flags), story(state.flags));
                 state = restored;
                 state.rotationVerified = true;
             }
