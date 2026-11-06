@@ -2692,7 +2692,9 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
         // a hop or a buck is small: the camera stays with the ground it left
         const J = G.player.jump;
         const baseY = J && (J.kind === 'hop' || J.kind === 'buck') && J.fromY !== undefined ? Math.max(snap.y, J.fromY - h(0.2)) : snap.y;
-        let ty = baseY - (H / zoom) * (portrait ? 0.08 : 0.12);
+        // (upright, the ground sits at about two thirds of the height, as in Äventyr 2: at 58 % the pale ground below
+        // took over 40 % of the screen and the sky and the hills were squeezed under the goal note, 6 November)
+        let ty = baseY - (H / zoom) * (portrait ? 0.17 : 0.12);
         // The swim origin is at the feet. Frame the torso in the underwater
         // page so the head stays visible above the surface and below the HUD.
         if (snap.mode === 'swim') ty = snap.y - (S.def.underwater ? h(0.8) : h(0.2));
