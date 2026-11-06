@@ -310,7 +310,17 @@ export function createView(PIXI, app, { assets, G, heroFactory, eggTarget = null
     const peakBolt = new PIXI.Graphics();
     peakBolt.moveTo(10, -380).lineTo(-12, -330).lineTo(6, -330).lineTo(-16, -270).stroke(pen.line(0xffe46b, 5));
     peakBolt.visible = false;
-    peak.addChild(peakArt, swirlTilt, peakBolt);
+    // mist drifting across the mountain's flanks (6 November: the same bare mountain stood in nearly every view): a
+    // few soft bands that slowly drift and part, so it never looks quite the same twice
+    const peakMist = [];
+    const mistLayer = new PIXI.Container();
+    for (let k = 0; k < 4; k++) {
+        const g = new PIXI.Graphics(), w = 220 + hash(k, 221) * 160, y = -230 + k * 52 + hash(k, 222) * 20;
+        for (let i = 0; i < 6; i++) g.ellipse((i - 2.5) * w * 0.28, (hash(k + i, 223) - 0.5) * 14, w * 0.32, 16 + hash(k + i, 224) * 10).fill({ color: 0xc8cbe6, alpha: 0.07 });
+        g.position.set((hash(k, 225) - 0.5) * 200, y);
+        mistLayer.addChild(g); peakMist.push({ g, x0: g.x, o: hash(k, 226) * 6, v: 0.04 + hash(k, 227) * 0.05, w });
+    }
+    peak.addChild(peakArt, swirlTilt, mistLayer, peakBolt);
     skyLayer.addChild(peak);
     let peakVista = 0, peakVistaOn = false; // the view from the crown (fx focus with peak)
     // a bolt across the sky when lightning strikes
@@ -326,7 +336,10 @@ export function createView(PIXI, app, { assets, G, heroFactory, eggTarget = null
     const drops = [];
     for (let i = 0; i < 90; i++) {
         const s = new RAW.Sprite(TX.streak); s.anchor.set(0.5); rain.addChild(s);
-        drops.push({ s, x: hash(i, 11), y: hash(i, 12), v: 0.7 + hash(i, 13) * 0.6 });
+        // drops of different lengths, the faster ones longer (they were all one length, 6 November)
+        const v = 0.7 + hash(i, 13) * 0.6;
+        s.scale.y = 0.7 + (v - 0.7) * 0.9 + hash(i, 14) * 0.25;
+        drops.push({ s, x: hash(i, 11), y: hash(i, 12), v });
     }
     const flashG = new RAW.Graphics(); overlay.addChild(flashG);
     let tooth = null;
@@ -1805,6 +1818,10 @@ export function createView(PIXI, app, { assets, G, heroFactory, eggTarget = null
             peak.position.set(W * lerp(skyKind === 'river' ? 1.02 - u * 0.3 : lerp(1.2 - u * 0.35, 0.88, high), 0.5, peakVista), lerp(footY, H * 1.04, peakVista));
             swirl.rotation += dt * (rm ? 0.05 : 0.3) * stormShown;
             swirl.alpha = 0.15 + 0.85 * stormShown;
+            for (const m of peakMist) {
+                m.g.x = m.x0 + (rm ? 0 : Math.sin(t * m.v + m.o) * m.w * 0.45);
+                m.g.alpha = rm ? 0.8 : 0.55 + 0.45 * Math.sin(t * m.v * 1.7 + m.o * 2);
+            }
             peakBolt.visible = !rm && stormShown > 0.5 && Math.sin(t * 2.3) > (peakVistaOn ? 0.9 : 0.985);
         }
         skyBolt.visible = boltT > 0; boltT = Math.max(0, boltT - dt);
@@ -2019,6 +2036,8 @@ export function createView(PIXI, app, { assets, G, heroFactory, eggTarget = null
             if (!s.visible) continue;
             d.y = (d.y + dt * d.v * (rm ? 0.5 : 1.6)) % 1;
             s.position.set(((d.x + d.y * 0.15 - cam.x * cam.zoom * 0.0004) % 1 + 1) % 1 * W, d.y * H);
+            // leaning the way it falls, with the wind (it fell slanted but was drawn upright)
+            s.rotation = -Math.atan2(0.15 * W, H);
             s.alpha = (under ? 0.15 : 0.55) * stormShown * (sheltered ? 0.12 : 1);
         }
         // lightning: now and then over the forest; on the peak it follows the bridge's lightning schedule
