@@ -953,7 +953,9 @@ export function createView(PIXI, app, { assets, G, heroFactory, eggTarget = null
             // the beetle's burrow
             mid.ellipse(h(63.9), h(-1.47), h(0.32), h(0.12)).fill({ color: 0x24170e, alpha: 0.85 });
             // Forsen: the cliff above the cave, the cave's dark inside, the waterfall
-            const caveIn = [[h(88.7), h(-1.9)], [h(91), h(-1.75)], [h(94), h(-1.85)], [h(96.2), h(-1.6)], [h(99.8), h(-1.7)], [h(99.8), h(0.4)], [h(88.7), h(0.4)]];
+            // (its left side starts behind the falls, under the overhang's lip: a straight edge beside the water read as
+            // a dark box, 6 November)
+            const caveIn = [[h(87.9), h(-2.5)], [h(88.6), h(-2.2)], [h(89.6), h(-2.0)], [h(91), h(-1.75)], [h(94), h(-1.85)], [h(96.2), h(-1.6)], [h(99.8), h(-1.7)], [h(99.8), h(0.4)], [h(87.9), h(0.4)]];
             poly(back, caveIn).fill(material('rock')); poly(back, caveIn).fill({ color: 0x14121d, alpha: 0.72 });
             for (let k = 0; k < 7; k++) back.moveTo(h(89.2 + k), h(-1.6)).quadraticCurveTo(h(89.4 + k), h(-1.1), h(89.3 + k), h(-0.8)).stroke(pen.line(0x3a3646, 3, 0.6));
             const cliff = [[h(88.3), h(-7.6)], [h(99.8), h(-7.6)], [h(99.8), h(-1.6)], [h(97.6), h(-1.45)], [h(97), h(-1.55)], [h(95.4), h(-1.75)], [h(94.1), h(-1.5)], [h(92.6), h(-1.85)], [h(91.1), h(-1.55)], [h(89.8), h(-1.9)], [h(88.9), h(-2.6)],
@@ -1366,7 +1368,17 @@ export function createView(PIXI, app, { assets, G, heroFactory, eggTarget = null
 
     function buildTopp(def, back, mid, fore) {
         // the spring's mouth at the bottom of the pool, bubbling up from Kristallgrottan
-        const vent = new PIXI.Graphics(); vent.ellipse(h(0.7), h(2.92), h(1.4), 18).fill({ color: 0x0b0a14, alpha: 0.85 }); L.objects.addChild(vent);
+        // (a ring of stones and the spring's own light, so it reads as a spring's mouth, not a black hole in the
+        // lake floor, 6 November)
+        const vent = new PIXI.Graphics(), vx = h(0.7), vy = h(2.92);
+        vent.ellipse(vx, vy, h(1.4), 18).fill({ color: 0x0c1826, alpha: 0.88 });
+        vent.ellipse(vx, vy - 2, h(0.8), 9).fill({ color: 0x7fb4d4, alpha: 0.22 });
+        for (let k = 0; k < 9; k++) {
+            const a = Math.PI * (k / 8), sx = vx + Math.cos(a) * h(1.45), sy = vy + 6 - Math.sin(a) * 14 + (k % 2) * 3;
+            vent.ellipse(sx, sy, 14 + hash(k, 191) * 10, 8 + hash(k, 192) * 4).fill(material('rock', 0.95)).stroke(pen.line(0x2a2638, 1.4, 0.8));
+            vent.ellipse(sx - 3, sy - 3, 6, 2.5).fill({ color: 0xffffff, alpha: 0.2 });
+        }
+        L.objects.addChild(vent);
         bubblesAlong([[h(0.7), h(2.8)], [h(0.7), h(0.1)]], { n: 9, speed: 200, tint: 0xe8f4fa, scale: 1.4 });
         // boulders on Vindkanten and Klippan: in their lee the gusts do not reach
         let seed = 0;
