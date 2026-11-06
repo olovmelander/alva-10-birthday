@@ -7,7 +7,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { voiceKey } from '../skoldhast/src/voice-key.mjs';
-import { createVoice, ASIDE_GAP } from '../skoldhast/src/voice.mjs';
+import { createVoice, ASIDE_GAP, LEVEL, levelGain } from '../skoldhast/src/voice.mjs';
 import { voiceScript, spoken, match, VOICES } from '../scripts/skoldhast-voice.mjs';
 import { STORY } from '../skoldhast/src/content/sv.mjs';
 import { STORY as STORY2, HINTS } from '../skoldhast/adventures/adventure-2/content/sv.mjs';
@@ -15,7 +15,7 @@ import { STORY as STORY2, HINTS } from '../skoldhast/adventures/adventure-2/cont
 const tick = () => new Promise(r => setImmediate(r));
 
 /** An audio engine with a fake WebAudio context: sources start and end when told. */
-function rig(clips) {
+function rig(clips, lufs) {
     const sources = [];
     let now = 0;
     const audio = {
@@ -31,7 +31,7 @@ function rig(clips) {
         }
     };
     const fetch = async (url) => String(url).endsWith('manifest.json')
-        ? { ok: true, json: async () => ({ clips }) }
+        ? { ok: true, json: async () => ({ clips, lufs }) }
         : { ok: true, arrayBuffer: async () => new ArrayBuffer(4) };
     const voice = createVoice({ audio: () => audio, base: 'https://example.test/voice/', fetch, clock: () => now });
     return { voice, audio, sources, at: (t) => { now = t; } };
@@ -106,6 +106,28 @@ test('nobody is cut off mid-sentence: a box can wait for a thought, and a stoppe
     voice.stop();
     assert.deepEqual(ramps, [[0, 10]], 'it fades to silence from now');
     assert.ok(stoppedAt > 10 && stoppedAt < 10.3, 'and stops a moment later, not at once');
+});
+
+test('every clip is played at the same loudness', async () => {
+    // 6 November: Kartväktaren was 5 dB louder than Klo, some of Tukankrabban's lines 6 dB quieter
+    assert.equal(levelGain(LEVEL), 1);
+    assert.ok(Math.abs(levelGain(LEVEL + 6) - 0.5) < 0.01, 'a clip 6 dB too loud is halved');
+    assert.ok(Math.abs(levelGain(LEVEL - 3) - 1.41) < 0.01);
+    assert.equal(levelGain(LEVEL - 20), 2, 'never raised more than 6 dB');
+    assert.equal(levelGain(undefined), 1, 'a clip not measured plays as it is');
+    const A = ['kv', 'Högt.'];
+    const { voice, audio } = rig(clipsFor(A), { [voiceKey(...A)]: LEVEL + 5 });
+    const made = [];
+    audio.ctx.currentTime = 0;
+    audio.ctx.createGain = () => { const g = { connect() {}, gain: { value: 1, setTargetAtTime() {} } }; made.push(g); return g; };
+    await voice.ready;
+    voice.play(...A);
+    await tick(); await tick();
+    assert.ok(Math.abs(made[0].gain.value - 10 ** (-5 / 20)) < 0.001, 'played 5 dB quieter');
+    const dir = fileURLToPath(new URL('../skoldhast/voice/', import.meta.url));
+    const m = JSON.parse(fs.readFileSync(dir + 'manifest.json', 'utf8'));
+    assert.deepEqual(Object.keys(m.clips).filter(k => typeof m.lufs?.[k] !== 'number'), [],
+        'measure them: node scripts/skoldhast-voice.mjs --level (needs ffmpeg)');
 });
 
 test('voices off: nothing is fetched or played, and what was playing stops', async () => {

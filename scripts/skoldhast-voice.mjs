@@ -14,6 +14,7 @@
  *     node scripts/skoldhast-voice.mjs --record [--only klo] [--limit 20] [--report out.json]
  *   … --record --redo out.json [--below 0.9] [--tries 5]   # retake what a report heard badly; keep the better clip
  *   node scripts/skoldhast-voice.mjs --prune         # remove clips no line uses, rewrite the manifest
+ *   node scripts/skoldhast-voice.mjs --level         # measure every clip's loudness (EBU R128, ffmpeg) into the manifest
  *
  * The characters are the voices named "Sköldhästen – <roll>" in Pappa's ElevenLabs account; the
  * narrator is his own voice, given by id. Recording is Eleven v4 in Swedish, 24 kHz mono, MP3 48 kbit/s.
@@ -109,8 +110,29 @@ export function spoken(text) {
 const readManifest = () => { try { return JSON.parse(fs.readFileSync(MANIFEST, 'utf8')); } catch { return { format: 'mp3', clips: {} }; } };
 function writeManifest(m) {
     const clips = Object.fromEntries(Object.entries(m.clips).sort(([a], [b]) => a.localeCompare(b)));
+    // each clip's loudness (LUFS): the player evens the voices out with it (src/voice.mjs)
+    const lufs = Object.fromEntries(Object.entries(m.lufs || {}).filter(([k]) => clips[k]).sort(([a], [b]) => a.localeCompare(b)));
     fs.mkdirSync(OUT, { recursive: true });
-    fs.writeFileSync(MANIFEST, JSON.stringify({ format: 'mp3', clips }) + '\n');
+    fs.writeFileSync(MANIFEST, JSON.stringify({ format: 'mp3', clips, lufs }) + '\n');
+}
+/** A clip's integrated loudness in LUFS (EBU R128, measured by ffmpeg), or null without ffmpeg. */
+function loudness(file) {
+    const r = spawnSync('ffmpeg', ['-hide_banner', '-nostats', '-i', file, '-af', 'ebur128', '-f', 'null', '-'], { encoding: 'utf8' });
+    const m = /Integrated loudness:\s*I:\s*(-?[\d.]+) LUFS/.exec(r.stderr || '');
+    return m ? Math.round(Number(m[1]) * 10) / 10 : null;
+}
+/** Measure every clip's loudness into the manifest (6 November: Kartväktaren was 5 dB louder than Klo). */
+function level() {
+    const m = readManifest();
+    m.lufs = {};
+    for (const key of Object.keys(m.clips)) {
+        const l = loudness(path.join(OUT, key + '.mp3'));
+        if (l === null) throw new Error('ffmpeg is needed to measure ' + key);
+        m.lufs[key] = l;
+    }
+    writeManifest(m);
+    const v = Object.values(m.lufs).sort((a, b) => a - b);
+    console.log(`measured ${v.length} clips: ${v[0]} to ${v.at(-1)} LUFS, median ${v[Math.floor(v.length / 2)]}`);
 }
 
 // ---- recording --------------------------------------------------------------------------------
@@ -194,6 +216,8 @@ async function record({ only, limit, report, redo, below = 0.9, tries = 3, word 
         if (retake && best.score <= retake.get(line.key)) { log.push({ key: line.key, voice: line.voice, src: line.src, text: line.text, heard: best.back, match: Math.round(best.score * 100) / 100, kept: 'old' }); done++; return; }
         fs.writeFileSync(path.join(OUT, line.key + '.mp3'), best.mp3);
         m.clips[line.key] = Math.round(best.seconds * 100) / 100;
+        (m.lufs ||= {})[line.key] = loudness(path.join(OUT, line.key + '.mp3'));
+        if (m.lufs[line.key] === null) delete m.lufs[line.key];
         log.push({ key: line.key, voice: line.voice, src: line.src, text: line.text, heard: best.back, match: Math.round(best.score * 100) / 100 });
         if (++done % 20 === 0) { writeManifest(m); console.log(`${done}/${todo.length}`); }
     };
@@ -238,5 +262,6 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
     if (process.argv.includes('--record')) await record({ only: arg('--only'), limit: Number(arg('--limit')) || 0, report: arg('--report'),
         redo: arg('--redo'), below: Number(arg('--below')) || 0.9, word: arg('--word'), tries: Number(arg('--tries')) || (arg('--redo') || arg('--word') ? 6 : 3) });
     else if (process.argv.includes('--prune')) prune();
+    else if (process.argv.includes('--level')) level();
     else summary(process.argv.includes('--missing'));
 }

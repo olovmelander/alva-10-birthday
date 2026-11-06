@@ -396,8 +396,11 @@ export function createStory(G, io) {
         async run(s) { lookAt([88.5, 92.8, -3.2, 0], 4.5); await s.remark(STORY.k1.boardwalkLesson); } // the wheel and the flag going up
     });
 
+    // (6 November) A beat started by an event is lost if the game is saved while it runs (the tablet locked
+    // mid-sentence): the event never comes again. These come back, by `when`, at the same place.
     beat('k1_glimpse', {
         on: 'glimpse', filter: (e) => e.id === 'glimpse1',
+        when: () => inScene('land') && inArea('glimpse1') && F.has('glimpse1') && !done('k1_glimpse'),
         async run(s) {
             // frame the sköldhäst and the far ridge together (not an empty sky)
             const gp = G.sceneDef.spots.glimpse1;
@@ -478,6 +481,7 @@ export function createStory(G, io) {
 
     beat('k1_mirror', {
         on: 'reflectionSeen', filter: (e) => e.id === 'pool',
+        when: () => inScene('land') && inArea('pool') && F.has('p2_seen') && !F.has('p2_open') && !done('k1_mirror'),
         async run(s) {
             await s.wait(0.8);
             await landLook(s, 'pool', async () => {
@@ -495,6 +499,7 @@ export function createStory(G, io) {
 
     beat('k1_arch', {
         on: 'opened', filter: (e) => e.id === 'arch',
+        when: () => inScene('land') && inArea('pool') && F.has('p2_open') && !done('k1_arch'),
         async run(s) {
             await landLook(s, 'pool', async () => {
                 s.stinger('reveal');
@@ -686,11 +691,13 @@ export function createStory(G, io) {
         on: 'bigLanding',
         async run(s) {
             if (F.has('final_run')) return;
+            // the checkpoint at once, as she lands: a save during Klo's cheer used to reload her on the near side,
+            // with the hint saying she was across (6 November)
+            s.checkpoint('udden');
             s.stinger('leap');
             await s.appear('klo', { scene: 'land', x: G.sceneDef.spots.kloUdden.x, y: G.sceneDef.spots.kloUdden.y, pose: 'stopwatch', facing: 1 });
             await landLook(s, 'landmark', () => s.say(STORY.k2.record));
             s.experiment('sprang', 'hast');
-            s.checkpoint('udden');
         }
     });
 
@@ -822,6 +829,7 @@ export function createStory(G, io) {
 
     beat('k3_mirror', {
         on: 'reflectionSeen', filter: (e) => e.id === 'bay',
+        when: () => inScene('viken') && inArea('pier') && F.has('p7_seen') && !F.has('lamp_lit') && !done('k3_mirror'),
         async run(s) {
             await s.wait(0.6);
             // Keep the actual answer visible for the whole explanation. The

@@ -45,6 +45,8 @@ const PUZZLES = [
     { id: 't3', scene: 'topp', areas: ['t-gap'], solved: F => F.has('gap_crossed'), needs: 't2_bridge', seen: 'b:medvind' },
     { id: 'summit', scene: 'topp', areas: ['t-climb', 't-summit'], solved: F => F.has('cloud_met'), needs: 't2_bridge' }
 ];
+// the flag that frees each of these puzzles' eggs before it is picked up
+const FREED = { p1: 'p1_fallen', p5: 'p5_washed', p4: 'p4_lit' };
 const EGG_PUZZLES = ['dig', 'p1', 'p5', 'coin', 'trade', 'p2', 'mush', 'p4', 'p7', 'k2', 'k3', 'summit'];
 const IN_MOUNTAIN = new Set(['k2', 'k3', 'summit']);
 const PEAK_PATH = ['k1', 'k2', 'k3', 'spring', 't1', 't2', 't3', 'summit'];
@@ -276,6 +278,8 @@ export function createStory(G, io) {
     function nextHint() {
         if (F.has('ended')) return { puzzle: null, text: null };
         const pz = activePuzzle() || peakStep();
+        // the puzzle is done and its egg lies free: say so, not how to solve it again (5 November)
+        if (pz && FREED[pz.id] && F.has(FREED[pz.id])) return { puzzle: pz.id, level: 0, text: HINTS.pickup[0] };
         if (pz) return ladder(pz.id);
         if (F.has('cloud_met') && eggsFound(G) >= EGG_TOTAL) return ladder('nest');
         const next = nextEggPuzzle();
@@ -407,6 +411,8 @@ export function createStory(G, io) {
         });
     }
 
+    async function seedsLit() { await say(STORY.seedsLit); await say(STORY.alvaSeeds); await say(STORY.seedsLit2); clue('lantern'); }
+
     function onEnter({ id }) {
         const sc = G.sceneId;
         if (!done('arrive')) return;
@@ -428,7 +434,9 @@ export function createStory(G, io) {
                 await say(STORY.miraFors);
                 await fx('focus', null);
             });
+            if (id === 'klyft' && F.has('p2_bridge')) G.setCheckpoint('west');
             if (id === 'cave') {
+                G.setCheckpoint('cave');
                 if (!F.has('cave_reached')) G.flag('cave_reached');
                 if (intro && !F.has('visited_kristall')) beat(F.has('lantern') ? 'caveLit' : 'caveDark', async () => {
                     stage();
@@ -459,6 +467,9 @@ export function createStory(G, io) {
                 await fx('focus', null);
             });
             if (intro && id === 'seeds' && !F.has('p4_lit')) beat('seeds', () => about([88.7, 90.8, -1.6, -0.4], async () => { await say(STORY.seeds); clue('darkStorm'); }));
+            // a save while the seeds' lighting was told (the tablet locked mid-sentence) lost it, and the lantern's
+            // note in the book with it: the same place tells it again (6 November)
+            if (id === 'seeds' && F.has('p4_lit') && !done('seedsLit')) beat('seedsLit', seedsLit);
             if (intro && (id === 'hill' || id === 'trunkTop') && !F.has('egg_e10')) beat('leapSeen', async () => {
                 await fx('focus', { x: G.scenes.skog.eggs[2].x, y: G.scenes.skog.eggs[2].y - 0.5 * HL, zoom: 0.85, hold: 0.6 });
                 await say(STORY.leapSeen);
@@ -667,7 +678,7 @@ export function createStory(G, io) {
             G.wait(2.5).then(() => { if (G.camLook === BALL_LOOK) G.camLook = null; });
             beat('washed', () => say(F.has('k3_ball') ? [STORY.washed[0], ...STORY.washedLate] : STORY.washed));
         }),
-        G.on('seedsLit', () => beat('seedsLit', async () => { await say(STORY.seedsLit); await say(STORY.alvaSeeds); await say(STORY.seedsLit2); clue('lantern'); })),
+        G.on('seedsLit', () => beat('seedsLit', seedsLit)),
         G.on('coin', () => { io.audio?.sfx?.('coin'); beat('coin', () => say(F.has('b:magpie') ? STORY.coin : STORY.coinEarly)); }),
         G.on('trade', () => beat('trade', async () => {
             await fx('coinGive', {}); // the coin flies from the sköldhäst to Skatan's beak

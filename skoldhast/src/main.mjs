@@ -824,13 +824,14 @@ export function createGame({ host = document.body, assetBase = './skoldhast/', r
             openPause: () => openPause(),
             resume: () => resume(),
             stuck: () => {
-                // the nearest safe place on this page; the last checkpoint only if there is none
+                // the nearest safe place on this page, the same sköldhäst moved there (a beat watching it goes on);
+                // the last checkpoint only if there is none
                 const spot = G.safeSpot?.();
-                if (spot) { G.goto(G.sceneId, spot); view.cam.snap = true; }
+                if (spot) { G.relocate(spot); view.cam.snap = true; }
                 else {
                     const cp = CHECKPOINTS[G.checkpoint] || CHECKPOINTS.start;
-                    G.goto(cp.scene, cp.spot || cp.at);
-                    view.setScene(G.sceneId);
+                    if (cp.scene === G.sceneId) { G.relocate(typeof cp.spot === 'string' ? G.sceneDef.spots[cp.spot] : cp.spot || cp.at); view.cam.snap = true; }
+                    else { G.goto(cp.scene, cp.spot || cp.at); view.setScene(G.sceneId); }
                 }
                 resume();
             },

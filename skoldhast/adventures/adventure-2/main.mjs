@@ -38,6 +38,7 @@ export function createGame({ host = document.body, assetBase = './skoldhast/', s
     onChooseAdventure, onSlotChange, onRestart, onClose, preview = false } = {}) {
     let state = 'closed';
     let el = null, app = null, assets = null, G = null, view = null, ui = null, input = null, audio = null, story = null, table = null, voice = null;
+    let eggsLanded = 0; // eggs the view has flown into the count (a chime as each lands)
     let raf = 0, last = 0, acc = 0, paused = false, mode = 'title';
     let slot = { id: 'alva', label: BOOK.slotAlva };
     let settings = { ...DEFAULT_SETTINGS, lessMotion: !!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches };
@@ -125,6 +126,7 @@ export function createGame({ host = document.body, assetBase = './skoldhast/', s
         voice.setEnabled(settings.voice > 0);
         ui = createA2UI(el, { assetBase, handlers: uiHandlers(), voice });
         const heroFactory = await loadHeroFactory();
+        eggsLanded = 0;
         view = createView(PIXI, app, { assets, G, heroFactory, eggTarget: () => ui?.eggTarget?.(app.canvas, app.screen) });
         setDevice(window.matchMedia?.('(pointer: coarse)').matches ? 'touch' : 'keys');
         input = createInput(el, ui, {
@@ -464,10 +466,18 @@ export function createGame({ host = document.body, assetBase = './skoldhast/', s
             ui.guide.update();
             // an egg still flying to the count is counted when it lands there (view.mjs)
             ui.setEggs(G.eggs() - (view?.eggsArriving || 0), EGG_TOTAL);
+            // a small chime as a flying egg lands in the count, one note higher for each egg
+            if (view && view.eggsLanded > eggsLanded) { eggsLanded = view.eggsLanded; audio?.note?.(2 + (G.eggs() % 6), { inst: 'shell', vel: 0.5 }); }
             if (audio) {
                 const p = G.player;
                 audio.setMotion({ speed01: Math.min(1, Math.abs(p.vx) / 1200), underwater: p.mode === 'swim' && p.submerge > 0.7, hidden: p.hidden });
-                audio.setEnvironment(p.mode === 'swim' ? 'kelp' : 'steppe');
+                // inside the mountain the rock hums and drips; outside the wind blows (it used to blow in the cave too)
+                audio.setEnvironment(p.mode === 'swim' ? 'kelp' : G.sceneDef?.underground ? 'cave' : 'steppe');
+                audio.setRain?.(view.rainLevel);
+                // a waterfall roars louder as you come to it (Forsen, the spring at Källan)
+                let falls = 0;
+                for (const s of G.sceneDef?.sounds || []) if (s.kind === 'falls') falls = Math.max(falls, 1 - Math.hypot(s.x - p.x, (s.y - p.y) * 0.6) / (14 * HL));
+                audio.setBed?.('falls', Math.max(0, falls) ** 1.5);
             }
         } else if (mode === 'table') {
             presses.clear();
@@ -533,7 +543,16 @@ export function createGame({ host = document.body, assetBase = './skoldhast/', s
                 case 'seedsLit': audio.sfx('sparkle'); audio.stinger('aha'); break;
                 case 'vine': audio.sfx('gate'); break;
                 case 'trade': audio.sfx('sparkle'); break;
-                case 'thunder': audio.sfx('wind', { gain: 0.5 + e.strength * 0.5 }); break;
+                // a soft roll of thunder a moment after the flash, under a gust (the storm used to flash in silence)
+                // a gust is heard coming and then blowing, so you can hide in time by ear too (Vindkanten, T1)
+                case 'gust': {
+                    const w = (G.sceneDef?.winds || []).find(q => q.id === e.id), x = G.player.x;
+                    if (!w || !e.state || x < w.x0 - 6 * HL || x > w.x1 + 6 * HL) break;
+                    if (e.state === 'warn') audio.sfx('wind', { gain: 0.45 });
+                    else { audio.sfx('wind', { gain: 1.1 }); audio.sfx('whoosh', { gain: 0.5 }); }
+                    break;
+                }
+                case 'thunder': audio.sfx('thunder', { gain: 0.3 + e.strength * 0.6, delay: 0.5 + Math.random() * 0.9 }); audio.sfx('wind', { gain: 0.3 + e.strength * 0.35 }); break;
                 case 'clue': audio.sfx('write'); break;
                 case 'bump': audio.sfx('thud'); break;
                 case 'skid': audio.sfx('hoof', { surface: 'sand', speed01: 1 }); break;

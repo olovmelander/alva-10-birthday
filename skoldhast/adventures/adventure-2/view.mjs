@@ -79,7 +79,7 @@ export function createView(PIXI, app, { assets, G, heroFactory, eggTarget = null
     L.hero.addChild(hero.view);
     let cloudTexture = null;
     let storm = 1, stormShown = 1;
-    let flash = 0, nextLightning = 4;
+    let flash = 0, nextLightning = 4, rainLevel = 0;
     let fade = 0, fadeTarget = 0, fadeRate = 3;
     const waiters = new Set();
 
@@ -382,6 +382,8 @@ export function createView(PIXI, app, { assets, G, heroFactory, eggTarget = null
         if (!S) return;
         // a coin still flying lives in L.fx, which is about to be destroyed: end its flight (and its waiting beat) first
         if (coinFlight) { const c = coinFlight; coinFlight = null; c.done?.(); }
+        // and eggs still flying somewhere end their flights, so a beat waiting for them goes on
+        for (const f of S.flying || []) f.done?.();
         // every scene display (and its actors) lives in these layers; the hero is kept
         for (const l of Object.values(L)) if (l !== L.hero) l.removeChildren().forEach(c => c.destroy({ children: true }));
         parts.length = 0;
@@ -398,6 +400,14 @@ export function createView(PIXI, app, { assets, G, heroFactory, eggTarget = null
         for (const w of def.waters || []) {
             const wb = w.kind === 'pipe' ? w.bottom : bottom; // the spring's column ends in its pool
             const gw = new PIXI.Graphics();
+            if (w.kind === 'pipe') {
+                // the spring's column: water with wavering sides, not a ruled box (5 November)
+                const side = (x, ph) => { const pts = []; for (let y = w.top; y <= wb; y += h(0.2)) pts.push([x + Math.sin(y / HL * 4.1 + ph) * 5 + Math.sin(y / HL * 9.3 + ph) * 2.5, y]); return pts; };
+                const body = [...side(w.x0, 0), ...side(w.x1, 1.7).reverse()];
+                poly(gw, body).fill({ color: 0x3f6f8e, alpha: 0.85 });
+                poly(gw, body).fill(pen.material('mat-water', 0.35, 0x5d8eaa));
+                L.water.addChild(gw);
+            } else {
             gw.rect(w.x0, w.top, w.x1 - w.x0, wb - w.top).fill(material('wetsand', 0));
             gw.rect(w.x0, w.top, w.x1 - w.x0, wb - w.top).fill({ color: 0x3f6f8e, alpha: 0.85 });
             gw.rect(w.x0, w.top, w.x1 - w.x0, wb - w.top).fill(pen.material('mat-water', 0.35, 0x5d8eaa));
@@ -405,6 +415,7 @@ export function createView(PIXI, app, { assets, G, heroFactory, eggTarget = null
             for (let k = 0; k < 9; k++) gw.rect(w.x0, w.top + h(0.45) * (k + 1), w.x1 - w.x0, wb - w.top - h(0.45) * (k + 1)).fill({ color: 0x0f2436, alpha: 0.07 });
             gw.rect(w.x0, w.top, w.x1 - w.x0, h(0.35)).fill({ color: 0x9cc8de, alpha: 0.16 }); // the lit skin of the water
             L.water.addChild(gw);
+            }
             // the surface: a pencil line and its light
             const surf = new PIXI.Graphics();
             // a gentle wave you can see at play zoom (at 4 units it read as a ruled line, 5 November)
@@ -427,7 +438,10 @@ export function createView(PIXI, app, { assets, G, heroFactory, eggTarget = null
                 }
             }
             const front = new PIXI.Graphics();
-            if (w.kind === 'pipe') front.rect(w.x0, w.top + 6, w.x1 - w.x0, wb - w.top).fill({ color: 0x3d6d8f, alpha: 0.28 });
+            if (w.kind === 'pipe') {
+                const side = (x, ph) => { const pts = []; for (let y = w.top + 6; y <= wb; y += h(0.2)) pts.push([x + Math.sin(y / HL * 4.1 + ph) * 5 + Math.sin(y / HL * 9.3 + ph) * 2.5, y]); return pts; };
+                poly(front, [...side(w.x0, 0), ...side(w.x1, 1.7).reverse()]).fill({ color: 0x3d6d8f, alpha: 0.28 });
+            }
             else {
                 // only over the water itself: down to its bed, never over the banks
                 // where solid ground stands above the water's surface (a bank, a rock wall inside the water's
@@ -530,16 +544,25 @@ export function createView(PIXI, app, { assets, G, heroFactory, eggTarget = null
                 // the soil's lower edge is torn, not ruled: the colour runs out unevenly into the paper
                 const vnoise = (x, seed, cell = 150) => { const i = Math.floor(x / cell), f = x / cell - i, u = f * f * (3 - 2 * f); return lerp(hash(i, seed), hash(i + 1, seed), u); };
                 const rag = (dy, amp, seed) => top.map(([x, y]) => [x, y + dy + (vnoise(x, seed) - 0.5) * amp * 2 + (vnoise(x, seed + 9, 38) - 0.5) * amp * 0.4]);
-                const deepEdge = rag(h(1.5), h(0.3), 17), thinEdge = rag(h(2.3), h(0.5), 19);
-                const deep = [...top, ...deepEdge.reverse()], thin = [...rag(h(1.4), h(0.3), 17), ...thinEdge.reverse()];
-                poly(gr, deep).fill(material(under));
-                poly(gr, thin).fill(material(under, 0.45));
-                poly(gr, deep).fill({ color: under === 'earth' ? 0x5a3f2a : 0x6b6256, alpha: 0.18 });
+                // Åsktoppen is a mountain: its rock runs deep before the page shows through (with the soil's usual
+                // depth it read as a thin crust on a pale slab, 6 November)
+                const dk = def.sky === 'peak' ? 2.3 : 1;
+                const deepEdge = rag(h(1.5 * dk), h(0.3 * dk), 17), thinEdge = rag(h(2.3 * dk), h(0.5 * dk), 19);
+                const deep = [...top, ...deepEdge.reverse()], thin = [...rag(h(1.4 * dk), h(0.3 * dk), 17), ...thinEdge.reverse()];
+                // inside the mountain the rock is one rock all the way down: a lighter skin band ended square at each
+                // ledge's ends and stood out as a pale box on every island (6 November)
+                if (!def.underground) {
+                    poly(gr, deep).fill(material(under));
+                    poly(gr, thin).fill(material(under, 0.45));
+                    poly(gr, deep).fill({ color: under === 'earth' ? 0x5a3f2a : 0x6b6256, alpha: 0.18 });
+                }
                 // darker just under the surface, lighter deeper down: the ground has a skin
                 poly(gr, [...top, ...offset(top, h(0.45)).reverse()]).fill({ color: 0x2a1c12, alpha: under === 'earth' ? 0.16 : 0.1 });
                 // layers in the soil, drawn as long uneven pencil lines
                 // (each kind of mark is one path, stroked once: a page builds quickly even on a slow tablet)
-                for (const [dy, a, sd] of [[0.62, 0.28, 3], [1.02, 0.22, 5], [1.32, 0.16, 7]]) {
+                const strata = [[0.62, 0.28, 3], [1.02, 0.22, 5], [1.32, 0.16, 7]];
+                if (def.sky === 'peak') strata.push([1.9, 0.2, 11], [2.6, 0.17, 13], [3.3, 0.14, 15], [4.1, 0.1, 21]);
+                for (const [dy, a, sd] of strata) {
                     const line = rag(h(dy), h(0.18), sd);
                     let pen2 = false;
                     for (let i = 0; i < line.length - 1; i += 1) {
@@ -576,13 +599,39 @@ export function createView(PIXI, app, { assets, G, heroFactory, eggTarget = null
                         const y0 = heightOn(s.pts, x) + h(0.5 + hash(x, 32) * 1.6), col = veinCol[Math.floor(hash(x, 33) * 3)];
                         const vein = [[x, y0]];
                         for (let k = 1; k <= 5; k++) vein.push([x + k * 22 + (hash(x + k, 34) - 0.5) * 16, y0 + (hash(x + k, 35) - 0.5) * 36]);
-                        lineAlong(gr, vein).stroke(pen.line(col, 2.2, 0.38));
-                        lineAlong(gr, vein).stroke(pen.line(0xffffff, 0.9, 0.25));
+                        lineAlong(gr, vein).stroke(pen.line(col, 4.5, 0.38));
+                        lineAlong(gr, vein).stroke(pen.line(0xffffff, 1.6, 0.25));
                     }
                     for (let x = top[0][0] + 60; x < top.at(-1)[0] - 60; x += h(1.6) + hash(x, 36) * h(2.4)) {
                         const y = heightOn(s.pts, x);
                         if (y === null || (def.waters || []).some(w => x > w.x0 - 30 && x < w.x1 + 30 && y > w.top - 10)) continue;
                         crystalCluster(gr, x, y + 4, { size: 0.32 + hash(x, 37) * 0.22, color: veinCol[Math.floor(hash(x, 38) * 3)], n: 3, seed: 11 });
+                    }
+                }
+                // Åsktoppen's rock (under the turf, out in the weather): cracks running down from the top, a pale lit
+                // edge on each, and lichen in small pale patches, so the mountain reads as rock, not as layered paper
+                // (5 November)
+                if (under === 'rock' && !def.underground && !s.cave && top.length > 2) {
+                    // (drawn into the ground's own Graphics: a Graphics cannot hold children in PixiJS 8)
+                    const cracks = [];
+                    for (let x = top[0][0] + 60; x < top.at(-1)[0] - 60; x += h(1.0) + hash(x, 51) * h(1.5)) {
+                        let cx = x, cy = heightOn(s.pts, x) + h(0.3);
+                        const crack = [[cx, cy]], n = (def.sky === 'peak' ? 6 : 3) + Math.floor(hash(x, 52) * 3);
+                        for (let k = 0; k < n; k++) { cx += (hash(x + k, 53) - 0.5) * 70; cy += h((def.sky === 'peak' ? 0.3 : 0.14) + hash(x + k, 54) * 0.18); crack.push([cx, cy]); }
+                        cracks.push({ crack, branch: hash(x, 55) > 0.5 ? (hash(x, 56) > 0.5 ? 22 : -22) : 0 });
+                    }
+                    // (thick enough to read at a phone's zoom)
+                    for (const { crack } of cracks) lineAlong(gr, crack.map(([px, py]) => [px + 5, py + 2]));
+                    gr.stroke(pen.line(0xb9b4c8, 3, 0.35));
+                    for (const { crack, branch } of cracks) {
+                        lineAlong(gr, crack);
+                        // a short branch off the crack
+                        if (branch) { const [bx, by] = crack[2]; gr.moveTo(bx, by).lineTo(bx + branch * 2, by + h(0.15)); }
+                    }
+                    gr.stroke(pen.line(0x221d2c, 5, 0.6));
+                    for (let x = top[0][0] + 40; x < top.at(-1)[0] - 40; x += h(0.6) + hash(x, 57) * h(1.1)) {
+                        const y = heightOn(s.pts, x) + h(0.38 + hash(x, 58) * 0.7 * (def.sky === 'peak' ? 3 : 1)), col = hash(x, 59) > 0.5 ? 0xc8c98c : 0x9fb57e;
+                        for (let k = 0; k < 5; k++) gr.circle(x + (hash(x + k, 60) - 0.5) * 60, y + (hash(x + k, 61) - 0.5) * 26, 6 + hash(x + k, 62) * 8).fill(pen.fill(col, 0.5));
                     }
                 }
                 // under grass, fine roots hang down from the turf
@@ -904,7 +953,9 @@ export function createView(PIXI, app, { assets, G, heroFactory, eggTarget = null
             // the beetle's burrow
             mid.ellipse(h(63.9), h(-1.47), h(0.32), h(0.12)).fill({ color: 0x24170e, alpha: 0.85 });
             // Forsen: the cliff above the cave, the cave's dark inside, the waterfall
-            const caveIn = [[h(88.7), h(-1.9)], [h(91), h(-1.75)], [h(94), h(-1.85)], [h(96.2), h(-1.6)], [h(99.8), h(-1.7)], [h(99.8), h(0.4)], [h(88.7), h(0.4)]];
+            // (its left side starts behind the falls, under the overhang's lip: a straight edge beside the water read as
+            // a dark box, 6 November)
+            const caveIn = [[h(87.9), h(-2.5)], [h(88.6), h(-2.2)], [h(89.6), h(-2.0)], [h(91), h(-1.75)], [h(94), h(-1.85)], [h(96.2), h(-1.6)], [h(99.8), h(-1.7)], [h(99.8), h(0.4)], [h(87.9), h(0.4)]];
             poly(back, caveIn).fill(material('rock')); poly(back, caveIn).fill({ color: 0x14121d, alpha: 0.72 });
             for (let k = 0; k < 7; k++) back.moveTo(h(89.2 + k), h(-1.6)).quadraticCurveTo(h(89.4 + k), h(-1.1), h(89.3 + k), h(-0.8)).stroke(pen.line(0x3a3646, 3, 0.6));
             const cliff = [[h(88.3), h(-7.6)], [h(99.8), h(-7.6)], [h(99.8), h(-1.6)], [h(97.6), h(-1.45)], [h(97), h(-1.55)], [h(95.4), h(-1.75)], [h(94.1), h(-1.5)], [h(92.6), h(-1.85)], [h(91.1), h(-1.55)], [h(89.8), h(-1.9)], [h(88.9), h(-2.6)],
@@ -912,7 +963,47 @@ export function createView(PIXI, app, { assets, G, heroFactory, eggTarget = null
             poly(fore, cliff).fill(material('rock')); poly(fore, cliff).fill({ color: 0x2d2a36, alpha: 0.3 });
             for (let k = 0; k < 9; k++) { const y = h(-7 + k * 0.62); fore.moveTo(h(89.4), y).lineTo(h(96.8), y + h(0.12) * Math.sin(k)).stroke(pen.line(0x5a5668, 1.6, 0.45)); }
             for (let k = 0; k < 6; k++) fore.circle(h(90 + k * 1.2), h(-7.5) + 6, h(0.3 + hash(k, 55) * 0.2)).fill(pen.fill(0x3d6a45));
+            // the overhang above the cave was one plain grey slab (5 November): moss along its lip, ferns in its
+            // cracks, and water dripping from the edge where the falls keep it wet
+            const lip = cliff.slice(2, 11);
+            for (let i = 0; i < lip.length - 1; i++) {
+                const [x0, y0] = lip[i], [x1, y1] = lip[i + 1];
+                for (let k = 0; k < 3; k++) {
+                    const u = (k + 0.5) / 3, x = lerp(x0, x1, u), y = lerp(y0, y1, u);
+                    fore.ellipse(x, y - 4, h(0.18 + hash(x, 171) * 0.14), h(0.07)).fill(pen.fill(k % 2 ? 0x4f7a4a : 0x3d6646, 0.9));
+                    if (hash(x, 172) > 0.6) fore.moveTo(x, y).quadraticCurveTo(x + 6, y + h(0.25), x - 2, y + h(0.45 + hash(x, 173) * 0.4)).stroke(pen.line(0x4f7a4a, 2.4, 0.8)); // hanging moss
+                }
+            }
+            for (const [fx, fy] of [[h(91.2), h(-4.4)], [h(94.6), h(-5.9)], [h(97.8), h(-3.6)]]) {
+                fore.moveTo(fx - 30, fy + 6).lineTo(fx + 34, fy - 4).stroke(pen.line(0x2a2633, 2, 0.55)); // a crack
+                for (let k = 0; k < 4; k++) fore.moveTo(fx + k * 6, fy).quadraticCurveTo(fx + k * 6 - 18 + k * 10, fy - 26, fx + k * 6 - 26 + k * 16, fy - 34).stroke(pen.line(k % 2 ? 0x5f8a55 : 0x4a7444, 2.6, 0.85));
+            }
+            // cracks running down the face with a lit edge, and pale lichen, as on Åsktoppen: in a phone held upright
+            // the overhang fills half the screen and read as one flat grey slab (5 November)
+            const crs = [];
+            for (let k = 0; k < 7; k++) {
+                let cx = h(89.6 + k * 1.45 + hash(k, 175) * 0.6), cy = h(-7.3 + hash(k, 176) * 1.2);
+                const pts = [[cx, cy]], n = 4 + Math.floor(hash(k, 177) * 4);
+                for (let i = 0; i < n; i++) { cx += (hash(k + i, 178) - 0.5) * 90; cy += h(0.3 + hash(k + i, 179) * 0.3); if (cy > h(-2.4)) break; pts.push([cx, cy]); }
+                if (pts.length > 1) crs.push(pts);
+            }
+            // (thick enough to read at a phone's zoom, where the world is drawn at about a third of its size)
+            for (const pts of crs) lineAlong(fore, pts.map(([x, y]) => [x + 5, y + 2]));
+            fore.stroke(pen.line(0xb9b4c8, 3, 0.35));
+            for (const pts of crs) lineAlong(fore, pts);
+            fore.stroke(pen.line(0x221d2c, 5, 0.6));
+            for (let k = 0; k < 16; k++) {
+                const x = h(89.6 + hash(k, 181) * 9.8), y = h(-7.1 + hash(k, 182) * 4.6), col = hash(k, 183) > 0.5 ? 0xc8c98c : 0x9fb57e;
+                for (let i = 0; i < 5; i++) fore.circle(x + (hash(k + i, 184) - 0.5) * 60, y + (hash(k + i, 185) - 0.5) * 26, 6 + hash(k + i, 186) * 8).fill(pen.fill(col, 0.5));
+            }
             lineAlong(fore, cliff.slice(2).concat([cliff[0]])).stroke(pen.line(INK, 2.4));
+            for (const dx of [89.6, 91.8, 93.5, 95.9, 97.2]) {
+                const d = new PIXI.Graphics();
+                d.moveTo(0, -5).quadraticCurveTo(3.5, 1, 0, 4).quadraticCurveTo(-3.5, 1, 0, -5).fill({ color: 0xcfe6f2, alpha: 0.9 });
+                const x = h(dx), y0 = heightOn(cliff.slice(2, 11).map(([px, py]) => [px, py]).sort((a, b) => a[0] - b[0]), x) ?? h(-1.7);
+                d.position.set(x, y0); L.fore.addChild(d);
+                S.anim.push({ kind: 'drip', c: d, y0, y1: y0 + h(1.5), o: hash(dx, 174) });
+            }
             const falls = new PIXI.Container(); L.waterFront.addChild(falls);
             const fg = new PIXI.Graphics();
             // the sheet of water: its edges waver as falling water does, fuller at the lip (5 November: it was a ruled
@@ -1127,6 +1218,17 @@ export function createView(PIXI, app, { assets, G, heroFactory, eggTarget = null
             const body = [...edge, [edge.at(-1)[0], h(-17)], [edge[0][0], h(-17)]];
             poly(fore, body).fill(material('rock')); poly(fore, body).fill({ color: 0x1a1726, alpha: 0.55 });
             for (let k = 0; k < edge.length; k += 3) { const [x, y] = edge[k]; fore.moveTo(x, y - h(0.3)).lineTo(x + 26, y - h(0.9)).stroke(pen.line(0x4a4560, 1.6, 0.4)); }
+            // crystal veins run through the roof as through the ledges: held upright, the roof fills the top third of
+            // the screen and was a plain grey slab (6 November)
+            for (let x = edge[0][0] + h(0.6); x < edge.at(-1)[0] - h(0.6); x += h(1.3) + hash(x, 108) * h(1.8)) {
+                const ey = heightOn(edge, x);
+                if (ey === null) continue;
+                const y0 = ey - h(0.7 + hash(x, 109) * 2.6), col = [0xb79be6, 0x8fc9f0, 0xe6a6d8][Math.floor(hash(x, 110) * 3)];
+                const vein = [[x, y0]];
+                for (let i = 1; i <= 5; i++) vein.push([x + i * 40 + (hash(x + i, 34) - 0.5) * 30, y0 + (hash(x + i, 35) - 0.5) * 70]);
+                lineAlong(fore, vein).stroke(pen.line(col, 5, 0.38));
+                lineAlong(fore, vein).stroke(pen.line(0xffffff, 1.8, 0.26));
+            }
             lineAlong(fore, edge).stroke(pen.line(INK, 2.6, 0.9));
             // stalactites, and crystals growing down from the roof
             for (let k = 2; k < edge.length - 2; k += 2 + Math.floor(hash(k, line.length) * 3)) {
@@ -1210,8 +1312,19 @@ export function createView(PIXI, app, { assets, G, heroFactory, eggTarget = null
         const vent = new PIXI.Graphics(); vent.ellipse(def.spots.spring.x, def.spots.spring.y + 22, h(0.7), 16).fill({ color: 0x0b0a14, alpha: 0.85 }); L.objects.addChild(vent);
         const sp = def.waters.find(w => w.kind === 'pipe');
         if (sp) {
-            const edges = new PIXI.Graphics();
-            for (const x of [sp.x0 + 8, sp.x1 - 8]) edges.moveTo(x, sp.top).lineTo(x, h(0)).stroke(pen.line(0xe8f4fa, 3, 0.65));
+            // its sides waver like falling water and long strokes of it rise in the middle (they were two ruled
+            // lines down a blue box, 5 November)
+            const edges = new PIXI.Graphics(), wy = (y, ph) => Math.sin(y / HL * 4.1 + ph) * 5 + Math.sin(y / HL * 9.3 + ph) * 2.5;
+            for (let k = 0; k < 7; k++) {
+                const x = lerp(sp.x0, sp.x1, 0.2 + k * 0.1), pts = [];
+                for (let y = sp.top + 10; y <= h(0); y += h(0.25)) pts.push([x + wy(y, k * 1.3) * 0.8, y]);
+                lineAlong(edges, pts).stroke(pen.line(k % 3 ? 0x9cc3dc : 0xe8f4fa, 1.6 + (k % 2), k % 3 ? 0.3 : 0.4));
+            }
+            for (const [x, ph] of [[sp.x0 + 6, 0], [sp.x1 - 6, 1.7]]) {
+                const pts = [];
+                for (let y = sp.top; y <= h(0); y += h(0.2)) pts.push([x + wy(y, ph), y]);
+                lineAlong(edges, pts).stroke(pen.line(0xe8f4fa, 3, 0.7));
+            }
             L.waterFront.addChild(edges);
             for (let k = 0; k < 8; k++) {
                 const st = new PIXI.Graphics(), x = k % 2 ? sp.x0 + 14 + hash(k, 121) * 10 : sp.x1 - 14 - hash(k, 121) * 10;
@@ -1255,7 +1368,17 @@ export function createView(PIXI, app, { assets, G, heroFactory, eggTarget = null
 
     function buildTopp(def, back, mid, fore) {
         // the spring's mouth at the bottom of the pool, bubbling up from Kristallgrottan
-        const vent = new PIXI.Graphics(); vent.ellipse(h(0.7), h(2.92), h(1.4), 18).fill({ color: 0x0b0a14, alpha: 0.85 }); L.objects.addChild(vent);
+        // (a ring of stones and the spring's own light, so it reads as a spring's mouth, not a black hole in the
+        // lake floor, 6 November)
+        const vent = new PIXI.Graphics(), vx = h(0.7), vy = h(2.92);
+        vent.ellipse(vx, vy, h(1.4), 18).fill({ color: 0x0c1826, alpha: 0.88 });
+        vent.ellipse(vx, vy - 2, h(0.8), 9).fill({ color: 0x7fb4d4, alpha: 0.22 });
+        for (let k = 0; k < 9; k++) {
+            const a = Math.PI * (k / 8), sx = vx + Math.cos(a) * h(1.45), sy = vy + 6 - Math.sin(a) * 14 + (k % 2) * 3;
+            vent.ellipse(sx, sy, 14 + hash(k, 191) * 10, 8 + hash(k, 192) * 4).fill(material('rock', 0.95)).stroke(pen.line(0x2a2638, 1.4, 0.8));
+            vent.ellipse(sx - 3, sy - 3, 6, 2.5).fill({ color: 0xffffff, alpha: 0.2 });
+        }
+        L.objects.addChild(vent);
         bubblesAlong([[h(0.7), h(2.8)], [h(0.7), h(0.1)]], { n: 9, speed: 200, tint: 0xe8f4fa, scale: 1.4 });
         // boulders on Vindkanten and Klippan: in their lee the gusts do not reach
         let seed = 0;
@@ -1265,10 +1388,8 @@ export function createView(PIXI, app, { assets, G, heroFactory, eggTarget = null
         }
         // Blixtbron's ravine, deep and dark
         ravine(back, h(23.8), h(29.8), h(-3.1), h(-3.1));
-        L.back.addChild(softDark('down', h(23.7), h(-2.6), h(29.9), h(3.7), { color: 0x0b0a14, alpha: 0.85 }));
         // Klippan: the gap only the turned wind crosses
         ravine(back, h(37), h(39.8), h(-4.35), h(-5.33));
-        L.back.addChild(softDark('down', h(36.9), h(-4.1), h(39.9), h(3.7), { color: 0x0b0a14, alpha: 0.85 }));
         // rocks and a little snow up on the summit
         for (let k = 0; k < 7; k++) {
             const x = h(45 + k * 2.2 + hash(k, 131) * 1.2), y = groundY(def, x);
@@ -1333,7 +1454,7 @@ export function createView(PIXI, app, { assets, G, heroFactory, eggTarget = null
     function ravine(gr, x0, x1, y0, y1) {
         // A gap you can see the inside of (5 November: it read as a black box with ruled sides): jagged rock walls
         // with ledges, shaded darker as they go down and lost in the dark, roots or crystals at the lips
-        const depth = h(4.2), cave = !!S?.def.underground;
+        const depth = h(S?.def.sky === 'peak' ? 5.6 : 4.2), cave = !!S?.def.underground;
         const dk = softDark('down', x0 - h(0.1), Math.min(y0, y1) + h(0.1), x1 + h(0.1), Math.max(y0, y1) + depth + h(0.8), { color: 0x14121d, alpha: 0.92 });
         if (gr.parent) gr.parent.addChildAt(dk, gr.parent.getChildIndex(gr)); else L.back.addChild(dk);
         for (const [x, y, dir] of [[x0, y0, 1], [x1, y1, -1]]) {
@@ -1351,6 +1472,48 @@ export function createView(PIXI, app, { assets, G, heroFactory, eggTarget = null
                 const rx = x + dir * h(0.05 + k * 0.12), ry = y + h(0.15 + k * 0.08);
                 gr.moveTo(rx, ry).quadraticCurveTo(rx + dir * h(0.3), ry + h(0.4), rx + dir * h(0.15), ry + h(0.75 + k * 0.2)).stroke(pen.line(0x5a3b20, 2.4, 0.8));
             }
+        }
+        // Each ground ends square at the lip, so a straight cut ran down beside the gap (pale paper against the dark
+        // outdoors, rock against black in the cave). A jagged band of rock in front of the cut hides it, darker as it
+        // goes down and tapering out; outdoors, below the walls, the gap's dark gives way to the page itself
+        // (6 November)
+        const yb = Math.max(y0, y1), front = new PIXI.Graphics(), shades = [];
+        for (const [x, y, dir] of [[x0, y0, 1], [x1, y1, -1]]) {
+            const t0 = y + h(0.3), t1 = y + depth * (cave ? 1.25 : 1.02), n = 14;
+            const inner = [], outer = [];
+            for (let k = 0; k <= n; k++) {
+                const u = k / n, yy = lerp(t0, t1, u), taper = u > 0.8 ? (1 - u) / 0.2 : 1;
+                inner.push([x - dir * h(0.1 + hash(x + k, 151) * 0.24) * taper, yy]);
+                outer.push([x + dir * h(0.04 + hash(x + k, 152) * 0.12) * taper, yy]);
+            }
+            const band = [...inner, ...outer.reverse()];
+            poly(front, band).fill(material('rock')); poly(front, band).fill({ color: cave ? 0x0e0c16 : 0x2a2433, alpha: cave ? 0.55 : 0.4 });
+            lineAlong(front, inner.slice(0, n - 2)).stroke(pen.line(INK, 1.8, 0.55));
+            shades.push(softDark('down', Math.min(x, x - dir * h(0.4)) - 4, t0, Math.max(x, x - dir * h(0.4)) + h(0.25), t1, { color: 0x0e0c16, alpha: 0.75 }));
+        }
+        L.terrain.addChild(front, ...shades);
+        if (!cave) {
+            // the page below the gap: the same paper (and dusk) as below the ground beside it, the dark melting into it
+            const pg = new PIXI.Graphics(), bottomY = (S?.def.bounds.y1 ?? yb + h(8)) + h(4), py = yb + depth + h(0.2);
+            pg.rect(x0 - h(0.1), py, x1 - x0 + h(0.2), bottomY - py).fill(pen.material('mat-paper', 1, 0xf3ecdc));
+            pg.rect(x0 - h(0.1), py, x1 - x0 + h(0.2), bottomY - py).fill({ color: S?.def.sky === 'peak' ? 0x26263e : 0x2a2a46, alpha: 0.36 });
+            const melt = softDark('down', x0 - h(0.1), py - h(0.8), x1 + h(0.1), py + h(1.2), { color: 0x14121d, alpha: 0.92 });
+            melt.scale.y *= -1; melt.y = py + h(1.2); // dark at its top, fading down into the paper
+            if (gr.parent) { gr.parent.addChildAt(pg, gr.parent.getChildIndex(gr)); gr.parent.addChild(melt); } else L.back.addChild(pg, melt);
+        }
+        // in the cave, far down: a few dim crystals glinting, and a faint glow, so the dark reads as depth (6 November:
+        // held upright, the chasm under Kristallbron was a black quarter of the screen)
+        if (cave) {
+            const yb = Math.max(y0, y1);
+            for (let k = 0; k < 9; k++) twinkleAt(lerp(x0, x1, 0.1 + hash(k, x0 + 147) * 0.8), yb + h(1.2 + hash(k, 148) * 2.8), 0.55 + hash(k, 149) * 0.45, k % 2 ? 0x8fc9f0 : 0xb79be6, L.back);
+            glowAt((x0 + x1) / 2, yb + h(3.2), 9, 0x6f7fd0, 0.16, L.back);
+            // and small crystals far down on both walls, dimmer the deeper they are
+            const deep = new PIXI.Graphics();
+            for (let k = 0; k < 6; k++) {
+                const left = k % 2 === 0, wx = left ? x0 + h(0.35) : x1 - h(0.35), wy = yb + h(1.6 + k * 0.45);
+                crystalCluster(deep, wx, wy, { dir: -1, size: 0.35 + hash(k, 151) * 0.2, color: left ? 0x8fc9f0 : 0xb79be6, n: 3, seed: 23 + k });
+            }
+            deep.alpha = 0.55; L.back.addChild(deep);
         }
     }
     function createCoinShape(gr, x, y) {
@@ -1583,10 +1746,11 @@ export function createView(PIXI, app, { assets, G, heroFactory, eggTarget = null
         for (const a of S.anim) {
             if (a.kind === 'current') { a.c.x += a.v * dt; if (a.c.x > a.x1 - h(0.8)) a.c.x = a.x0; }
             else if (a.kind === 'fall') { const u = (t * (rm ? 0.6 : 1.8) + a.o) % 1; a.c.y = lerp(a.y0, a.y1, u); a.c.alpha = 0.3 + 0.6 * Math.sin(u * Math.PI); }
-            else if (a.kind === 'twinkle') { a.s.alpha = 0.3 + 0.7 * Math.max(0, Math.sin(t * 2 + a.o)) ** 4; }
+            else if (a.kind === 'twinkle') { a.s.alpha = rm ? 0.55 : 0.3 + 0.7 * Math.max(0, Math.sin(t * 2 + a.o)) ** 4; } // still in Mindre rörelse
             else if (a.kind === 'foam' && !rm && Math.random() < dt * 14) emit('drop', a.x + (Math.random() - 0.5) * h(1.4), a.y, 1, { speed: 260, cone: 1.2, life: 0.6 });
             else if (a.kind === 'mist') { a.s.x = a.x0 + Math.sin(t * 0.05 + a.o) * h(1.2) * (rm ? 0.2 : 1); a.s.alpha = (a.base ?? 0.26) + 0.08 * Math.sin(t * 0.2 + a.o); }
             else if (a.kind === 'sway') a.c.rotation = rm ? 0 : Math.sin(t * 0.9 + a.o) * 0.025 + (stormShown > 0.5 ? Math.sin(t * 2.1 + a.o) * 0.02 : 0);
+            else if (a.kind === 'drip') { const u = rm ? 0.05 : (t * 0.55 + a.o) % 1; a.c.y = lerp(a.y0, a.y1, u * u); a.c.alpha = u < 0.85 ? 0.9 : (1 - u) * 6; }
             else if (a.kind === 'fish') {
                 // a slow figure of eight, turning to face the way it swims
                 const ph = t * a.v * (rm ? 0.4 : 1) + a.o, nx = a.x0 + Math.sin(ph) * a.r, ny = a.y0 + Math.sin(ph * 2) * h(0.25);
@@ -1727,6 +1891,8 @@ export function createView(PIXI, app, { assets, G, heroFactory, eggTarget = null
         const under = snap.mode === 'swim' && snap.submerge > 0.7;
         const sheltered = (S.id === 'strand' && snap.x > h(89)) || (S.id === 'skog' && snap.x > h(74.3) && snap.x < h(87.7) && snap.y > h(-0.95));
         rain.visible = stormShown > 0.03 && S.def.sky !== 'cave';
+        // and how loud it is (main.mjs gives it to the audio engine's rain bed): softer under shelter and gone in the cave
+        rainLevel = rain.visible ? stormShown * (sheltered ? 0.35 : 1) : 0;
         const nRain = Math.round(drops.length * stormShown * (rm ? 0.35 : 1));
         // leaves torn loose by the storm blow across the forest pages
         if (!rm && stormShown > 0.4 && (S.def.sky === 'forest' || S.def.sky === 'river') && Math.random() < dt * 1.6 * stormShown) {
@@ -2135,7 +2301,9 @@ export function createView(PIXI, app, { assets, G, heroFactory, eggTarget = null
                 return;
             case 'lightning': lightning(0.9); await waitGame(0.7); return;
             case 'eggsDrop': {
-                const from = { x: S.def.magpie.x, y: S.def.magpie.y - 10 };
+                // from Skatan's nest, or from where the story says (the cloud on Åsktoppen, which has no magpie: it
+                // threw there and the last egg never fell from the cloud, 5 November)
+                const from = data.from || { x: S.def.magpie.x, y: S.def.magpie.y - 10 };
                 const ids = data.ids || [];
                 await Promise.all(ids.map((id, i) => new Promise(done => {
                     const e = createEgg(PIXI, pen, EGG_SCALE); L.fx.addChild(e.view);
@@ -2228,7 +2396,7 @@ export function createView(PIXI, app, { assets, G, heroFactory, eggTarget = null
     // It pops up where it was, then flies in an arc into the count in the corner (eggTarget, from main),
     // which counts it as it lands (eggsArriving). In "Mindre rörelse" it goes straight there, quickly.
     const pickups = [];
-    let coinFlight = null;
+    let coinFlight = null, eggsLanded = 0;
     function startPickup(id) {
         const rec = S?.eggs.get(id), p = G.player;
         const near = rec?.e.view.visible && Math.hypot(rec.e.view.x - p.x, rec.e.view.y - p.y) < h(4);
@@ -2261,7 +2429,7 @@ export function createView(PIXI, app, { assets, G, heroFactory, eggTarget = null
                 k.e.view.position.set(lerp(a.x, goal.x, e), lerp(a.y, goal.y + 12, e) - arc);
                 k.e.view.scale.set(lerp(a.s, 0.8, e));
                 k.e.view.rotation = (1 - e) * 0.25 + e * Math.PI * 2 * (rm ? 0 : 1);
-                if (u >= 1) { k.e.destroy(); pickups.splice(i, 1); continue; }
+                if (u >= 1) { k.e.destroy(); pickups.splice(i, 1); eggsLanded++; continue; }
             }
             k.e.update(dt, t, { glow: 1.3 });
         }
@@ -2311,6 +2479,8 @@ export function createView(PIXI, app, { assets, G, heroFactory, eggTarget = null
         moonParts: () => ({ moon, stars: alvaStars, rise: moonState.rise }),
         /** Eggs picked up but still flying to the count (main shows the count without them until they land). */
         get eggsArriving() { return pickups.length; },
+        get eggsLanded() { return eggsLanded; },
+        get rainLevel() { return rainLevel; },
         fadeNow(v) { fade = fadeTarget = v; },
         heroScreen() {
             const p = hero.view;

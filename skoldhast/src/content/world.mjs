@@ -611,19 +611,21 @@ SCENES.viken = {
 export function sceneOf(id) { return SCENES[id]; }
 
 /** Named checkpoints: where to put the player when a save is loaded. */
+// `when`: "Jag har fastnat" may take the sköldhäst there only once the way there is open (6 November: from Spången it
+// jumped over the unfinished Streckbron, from the hill's foot onto the ledge, from the ledge over the cleft)
 export const CHECKPOINTS = {
     start: { scene: 'land', spot: 'start' },
     pool: { scene: 'land', spot: 'fromKelp' },
-    steppe: { scene: 'land', at: { x: h(72.5), y: h(-0.77), facing: -1 } },
-    ledge: { scene: 'land', at: { x: h(35.2), y: h(-4.0), facing: -1 } },
-    udden: { scene: 'land', at: { x: h(5.5), y: h(-4.02), facing: 1 } },
+    steppe: { scene: 'land', at: { x: h(72.5), y: h(-0.77), facing: -1 }, when: 'p1_inked' },
+    ledge: { scene: 'land', at: { x: h(35.2), y: h(-4.0), facing: -1 }, when: 'p3_t3' },
+    udden: { scene: 'land', at: { x: h(5.5), y: h(-4.02), facing: 1 }, when: 'p4_leap' },
     kelp: { scene: 'kelp', spot: 'fromLand' },
     overlook: { scene: 'kelp', at: { x: h(19.8), y: h(3.2), facing: 1, mode: 'swim' } },
     trench: { scene: 'kelp', at: { x: h(22.8), y: h(7.4), facing: 1, mode: 'swim' } },
     viken: { scene: 'viken', spot: 'fromKelp' },
     pier: { scene: 'viken', at: { x: h(12), y: h(-0.62), facing: 1 } },
     pierEnd: { scene: 'viken', at: { x: h(21.5), y: h(-0.62), facing: 1 } },
-    lineWindow: { scene: 'viken', at: { x: h(26.35), y: h(2.6), facing: 1, mode: 'swim', hidden: true } },
+    lineWindow: { scene: 'viken', at: { x: h(26.35), y: h(2.6), facing: 1, mode: 'swim', hidden: true }, when: 'p8_sea' },
     beachEnd: { scene: 'land', spot: 'start' }
 };
 

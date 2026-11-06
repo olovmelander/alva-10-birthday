@@ -50,6 +50,86 @@ to go on through the night. Method:
   `skoldhast-prologue-lifecycle`, `skoldhast-notes`;
 - `npm test`: 428 of 428.
 
+### Later in the night: a hunt for soft-locks, and more art
+
+A headless hunt through Äventyr 2's logic (the robot trying other orders, reloads and "Jag har fastnat") restored
+211 save states cleanly and found no hard soft-lock. What it found, fixed:
+- **Klippan (T3) solved itself while Alva read.** The forward wind kept carrying the sköldhäst over the gap during
+  "Så långt kan ingen hoppa". The wind now holds while the story holds the controls (`applyWinds`, `G.busy`).
+- **"Jag har fastnat" could jump past what was still closed.** At Kristallgrottan's shut gate it landed in the
+  spring beyond; on Åsktoppen it skipped the bridge and the gap. `safeSpot` now never picks a spot past a gate (any
+  wall inside the page), an unfinished dashed line, Kristallsjön's rock wall, or water that drives a swimmer back
+  (Forsen's falls), whatever the player's height, nor past a refusing edge within 1.5 lengths of the player's height.
+  It prefers a spot of the same kind (swimming or on foot). A first version judged the gate at the player's own
+  height, so from deep water it did not count; a review caught it. `tests/skoldhast-a2-order.test.mjs` pins the
+  cases (K3 pool, Kristallsjön, Forsen's pool, Rutschstammen, the summit chasm).
+- **The cloud's egg never fell from the cloud.** `eggsDrop` always started from Skatan's nest, which Åsktoppen
+  does not have, and threw. It starts where the story says (`data.from`).
+- A page rebuilt while eggs were flying ends their flights, so a beat waiting for them goes on.
+- **New checkpoints:** the cave behind the falls, and the beach's west end once Klyftan's bridge is drawn.
+- **Hints after the work is done.** Once the cocoa egg has fallen, the ball is washed or the seeds light the
+  tunnel, the hint says "Nu ligger ägget fritt – spring och hämta det!" until the egg is picked up. Before, it
+  explained the solved puzzle again. The line is recorded for Klo and Tukankrabban.
+
+The same hunt through **Äventyr 1** (the robot pressing "Jag har fastnat" every 3 s along both routes, saving at 97
+states per route and reloading each to the end) found four bugs, fixed:
+- **"Jag har fastnat" froze a scene.** Pressed during a close-up of a puzzle (about 13 locked beats) or while Klo
+  walked to the map corner, it froze the game until a reload. `G.goto` made a new player, and those beats give up
+  for good when their player changes, holding `G.busy`. The button now moves the same sköldhäst on its own page
+  (`G.relocate`).
+- **It skipped puzzles:** over the unfinished Streckbron (P1), onto the unopened ledge (P3), over the cleft (P4)
+  and into the line window (P8's sea half). `CHECKPOINTS` in `src/content/world.mjs` now have a `when` (steppe
+  `p1_inked`, ledge `p3_t3`, udden `p4_leap`, lineWindow `p8_sea`), and no spot lies across a dashed line still to
+  be drawn.
+- **A save mid-discovery lost it.** A save while a discovery was told (the tablet locked mid-sentence) lost it for
+  good, since its event never comes again. Affected: the arch opening, the pool's mirror, the glimpse and Viken's
+  mirror (P7's explanation). Each comes back by `when` at the same place.
+- **The wrong side after the leap.** A save during Klo's cheer for the big leap reloaded her on the near side,
+  while the hint said she was across. The 'udden' checkpoint is now set as she lands.
+- `tests/skoldhast-a1-order.test.mjs` pins the stuck rules, the same player and a recovered beat.
+
+Art and sound:
+- Moss, ferns and dripping water on the overhang above Forsen's cave.
+- Åsktoppen's rock has cracks with a lit edge and pale lichen, so it reads as a mountain, not layered paper.
+- An egg flying into the count lands with a soft note, one step higher for each egg.
+- Kristallgrottan: ledges lie in the cave's purple dusk instead of standing out as pale blocks; the spring's column
+  wavers; crystal veins run through the roof (which fills the top third of a phone held upright); small crystals
+  glint far down the chasm under Kristallbron, which was a black quarter of the screen.
+- Forsen's overhang has cracks and lichen too, drawn thick enough to read at a phone's zoom.
+- **From a fresh visual read of all 56 tour shots (upright and landscape):**
+  - **Gaps:** every ground ends square at a gap's lip, so a straight cut ran down beside every gap. A jagged band of
+    rock (`ravine()`) now covers it, and below the walls the gap's dark melts into the same paper as under the
+    ground beside it.
+  - **Kristallgrottan:** the soil's lighter skin band no longer stands out as a pale box on every island; inside the
+    mountain the rock is one rock all the way down.
+  - **Åsktoppen:** its rock, strata, cracks and lichen run more than twice as deep, so it reads as a mountain and not
+    a thin crust on a pale slab. Its gaps are deeper to match.
+  - **Jätteträdet's crown, held upright:** the forest's top bound is higher (−24), so the crown sits in the middle of
+    the screen instead of under the goal note.
+  - **Forsen's cave and the summit spring:** the cave behind the falls starts behind the water, and the summit
+    spring's mouth has a ring of stones.
+  - **Thought bubbles:** their dots lead to just above the head, not onto the forehead (`src/guide.mjs`).
+  - Seen and kept: the grass/sand join by the cocoa tree (a natural edge, already blended); the vine at Ravinen leads
+    off screen to the trunk.
+- **Thunder:** a soft, distant roll follows each lightning flash after half a second to a second and a half
+  (`renderThunder` in `src/audio.mjs`; `sfx()` takes `{ delay }`). The storm used to flash in silence.
+- **Rain you hear:** a rain bed (soft hiss and small drops, about as loud as the wind) follows the rain Äventyr 2
+  draws (`view.rainLevel` → `audio.setRain`): softer under shelter, none in Kristallgrottan, gone as the storm calms.
+- **Waterfalls you hear:** Forsen and the spring at Källan roar louder as the sköldhäst comes to them (`sounds` in
+  `content/world.mjs`, `audio.setBed('falls', …)`).
+- **The cave sounds like a cave:** Kristallgrottan used the mountain's wind. Inside the mountain the rock now hums low
+  and water drips, far and near (environment `'cave'`, bed `drips`).
+- **Gusts you hear:** on Vindkanten a gust is heard coming (a soft rise) and then blowing, so you can hide in time by
+  ear too.
+
+Your own voice, the narrator, was already close to the others (median −21.5 LUFS) and barely moves. Kartväktaren is
+the voice that comes down most, about 5 dB.
+- **Voices at one loudness.** Measured with EBU R128, Kartväktaren and his notes were about
+  5 dB louder than Klo, and some of Tukankrabban's hints 6 dB quieter. `manifest.json` now holds each clip's LUFS,
+  and `src/voice.mjs` plays every clip at −20.5 LUFS (`LEVEL`, `levelGain`). The recording script measures each
+  new clip with ffmpeg; `node scripts/skoldhast-voice.mjs --level` measures them all again. The voice test fails
+  while a clip is unmeasured.
+
 ## Äventyr 1, Branten: no stutter as the roots lift the grass strips (5 November)
 
 Pappa's phone stuttered when the roots lifted the folded grass paths into ramps ("Rötterna lyfter den vikta

@@ -2789,8 +2789,11 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
         const reserve = mapAssembly.insets ||= { width: W, height: H, top: portrait ? 172 : 18, bottom: portrait ? 24 : 145 };
         if (reserve.width !== W || reserve.height !== H) Object.assign(reserve,
             { width: W, height: H, top: portrait ? 172 : 18, bottom: portrait ? 24 : 145 });
-        const dialog = app.canvas.closest('.sk-root')?.querySelector('.sk-dialogue.on');
-        if (dialog) {
+        // the dialogue's place is known before it fades in (top on a wide screen, bottom on a short one): reading it
+        // at once keeps the first layout clear of it, instead of sliding the sheet away a moment later (6 November)
+        const root = app.canvas.closest('.sk-root');
+        const dialog = root?.querySelector('.sk-dialogue.on') || root?.querySelector('.sk-dialogue');
+        if (dialog && dialog.getBoundingClientRect().height > 20) {
             const box = dialog.getBoundingClientRect(), canvas = app.canvas.getBoundingClientRect();
             const sy = H / (canvas.height || H), top = (box.top - canvas.top) * sy, bottom = (box.bottom - canvas.top) * sy;
             if ((top + bottom) / 2 < H / 2) reserve.top = Math.max(reserve.top, Math.min(H - 110, bottom + 14));

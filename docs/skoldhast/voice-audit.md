@@ -135,7 +135,8 @@ is confirmed, in both orders. With the old shutter line the check fails.
 - It records every line that has no clip yet: Eleven v4, Swedish, 24 kHz mono, MP3 48 kbit/s.
 - It reads each clip back with speech-to-text and records it again, up to three times, if fewer than 80 % of the
   words come back.
-- It writes `skoldhast/voice/<key>.mp3` and `manifest.json`, which holds each clip's length.
+- It writes `skoldhast/voice/<key>.mp3` and `manifest.json`, which holds each clip's length and loudness
+  (LUFS, EBU R128, measured with ffmpeg as each clip is written).
 - The key is who speaks plus what is shown (`src/voice-key.mjs`). A line kept under two keys is recorded once.
 
 Spoken text is the shown text, with two exceptions. The signature "/Kartväktaren" is read without the slash, which is
@@ -148,7 +149,9 @@ NODE_USE_ENV_PROXY=1 ELEVENLABS_API_KEY=… SKOLDHAST_NARRATOR_VOICE=<id> node s
 node scripts/skoldhast-voice.mjs --prune
 ```
 
-`tests/skoldhast-voice.test.mjs` fails until every line is recorded and no clip is left over. The robots fail if they
+`node scripts/skoldhast-voice.mjs --level` measures every clip's loudness again (about ten minutes).
+
+`tests/skoldhast-voice.test.mjs` fails until every line is recorded and measured, and no clip is left over. The robots fail if they
 hear a line that is not in the voice script.
 
 **Playback** (`src/voice.mjs`, the same in both adventures).
@@ -157,6 +160,10 @@ hear a line that is not in the voice script.
 - **Download:** clips are fetched only as a line is shown, never in the first download. They play through the audio
   engine's voice input, so the "Röster" slider sets their volume and 0 turns them off. The music is lowered under
   speech. A voiced box has no crab chirp or pencil sound.
+- **The same loudness:** every clip plays at −20.5 LUFS, moved at most 6 dB up or 7 dB down (`LEVEL`,
+  `levelGain`). Measured on 6 November, Kartväktaren and his notes were about 5 dB louder than
+  Klo, and some of Tukankrabban's lines 6 dB quieter. Per voice, the medians ran from −23 (Skatan) to −15.7
+  (Kartväktaren).
 - **One voice at a time:**
   - A speech box silences what came before, and its tap silences itself.
   - A caption is the narrator. The table scenes and the prologue wait for its reading before the next line, and a
