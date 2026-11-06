@@ -855,7 +855,8 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
         // dancing light on the seabed, where it is shallow enough for daylight
         d.caustics = [];
         const groundAt = drawnGround(def);
-        for (let x = def.bounds.x0 + 40; x < def.bounds.x1; x += 128) {
+        // (closer together: at 128 they read as scattered dashes, not as light dancing on the bed, 6 November)
+        for (let x = def.bounds.x0 + 40; x < def.bounds.x1; x += 84) {
             const y = groundAt(x);
             if (y === null || y - top > h(7.2)) continue;
             const g = new PIXI.Graphics();
@@ -1700,6 +1701,26 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
             O.glimpse = heroFactory({ mini: true }); O.glimpse.view.scale.set(0.3); L.far.addChild(O.glimpse.view); O.glimpse.view.visible = false;
         }
         if (def.id === 'viken') {
+            // life in the bay under the pier (6 November): small schools of fish in the deep water, far from the
+            // surface where the lighthouse is mirrored, and bubbles rising round the pipe's foot
+            O.bayFish = (def.bayFish || []).map((sc) => {
+                const fish = [];
+                for (let i = 0; i < sc.count; i++) {
+                    const f = spr('fish-' + (1 + (i % 2)));
+                    if (f._placeholder) { f.destroy(); continue; }
+                    f.anchor?.set?.(0.5); f.scale.set(0.8 + (i % 3) * 0.1); f.alpha = 0.7; f.tint = 0xd2e0e2;
+                    L.far.addChild(f);
+                    fish.push({ f, ox: ((i * 37) % 11 - 5) * 22, oy: ((i * 23) % 7 - 3) * 16, ph: i * 1.3 });
+                }
+                return { sc, fish, prevX: sc.x };
+            });
+            O.bayBubbles = [];
+            for (const b of def.bayBubbles || []) for (let i = 0; i < b.count; i++) {
+                const g = new PIXI.Graphics(); const r = 11 + (i % 3) * 5;
+                g.circle(0, 0, r).fill({ color: 0xdff2ff, alpha: 0.12 }).stroke({ width: 2.6, color: 0xeef8ff, alpha: 0.85 }); g.circle(-r * .35, -r * .35, r * .28).fill({ color: 0xffffff, alpha: 0.8 });
+                L.far.addChild(g);
+                O.bayBubbles.push({ g, b, o: i / b.count, dx: ((i * 29) % 9 - 4) * 9 });
+            }
             O.shutters = def.shutters.map((sh) => { const s = spr('shutter-closed'); s.anchor?.set?.(0.5); s.x = sh.x; s.y = sh.y; L.objects.addChild(s); return { sh, s }; });
             O.lamp = spr('lamp-lit'); O.lamp.anchor?.set?.(0.5); O.lamp.x = def.lamp.x; O.lamp.y = def.lamp.y; O.lamp.alpha = G.flags.has('lamp_lit') ? 1 : 0; L.fx.addChild(O.lamp);
             O.beam = createPencilBeam(PIXI); O.beam.position.set(def.lamp.x, def.lamp.y); O.beam.alpha = G.flags.has('lamp_lit') ? .88 : 0; L.far.addChild(O.beam);
@@ -2549,6 +2570,19 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
             if (g2) { O.glimpse.view.visible = F.has(g2.id) && (Z.glimpse[g2.id] || 0) < 1; O.glimpse.view.x = g2.x + h(6); O.glimpse.view.y = g2.y; O.glimpse.update(dt, { x: 0, y: 0, facing: -1, mode: 'swim', gait: 'stand', speed: 60, time, submerge: 1, groundAt: () => null }); O.glimpse.view.alpha = 0.6; }
         }
         if (def.id === 'viken') {
+            {
+                const t = G.lessMotion ? 0 : time;
+                for (const sc of O.bayFish) {
+                    const gx = sc.sc.x + Math.sin(t * 0.09 + sc.sc.x) * sc.sc.range, gy = sc.sc.y + Math.sin(t * 0.27) * h(0.3);
+                    const dir = gx >= sc.prevX ? 1 : -1; sc.prevX = gx;
+                    for (const q of sc.fish) { q.f.x = gx + q.ox + Math.sin(t * 1.7 + q.ph) * 10; q.f.y = gy + q.oy + Math.sin(t * 2.3 + q.ph) * 6; q.f.scale.x = Math.abs(q.f.scale.x) * -dir; }
+                }
+                for (const q of O.bayBubbles) {
+                    const u = G.lessMotion ? q.o : (time * q.b.speed + q.o) % 1;
+                    q.g.x = q.b.x + q.dx + Math.sin(u * 9 + q.o * 6) * 6; q.g.y = lerp(q.b.y0, q.b.y1, u);
+                    q.g.alpha = G.lessMotion ? 0.5 : Math.sin(Math.PI * u) * 0.9;
+                }
+            }
             O.shutters.forEach((o) => setTex(o.s, F.has(o.sh.flag) ? 'shutter-open' : 'shutter-closed'));
             O.mechanisms.update(Z, F);
             O.lamp.alpha = damp(O.lamp.alpha, F.has('lamp_lit') ? G.lessMotion ? .95 : 0.95 + Math.sin(time * 2) * 0.05 : 0, 1.2, dt);

@@ -85,7 +85,8 @@ export const MOODS = {
 // Äventyr 1's page already has its own soft lamp vignette, and faint shafts and plankton under water
 MOODS.a1Day = { ...MOODS.day, vignette: { ...MOODS.day.vignette, alpha: 0.1 } };
 MOODS.a1Evening = { ...MOODS.evening, vignette: { ...MOODS.evening.vignette, alpha: 0.16 } };
-MOODS.a1Under = { ...MOODS.underwater, rays: { ...MOODS.underwater.rays, alpha: 0.12 }, motes: { ...MOODS.underwater.motes, n: 8 }, vignette: { ...MOODS.underwater.vignette, alpha: 0.26 } };
+// (a few more drifting specks and slightly brighter shafts than at first: the water read as one still blue, 6 November)
+MOODS.a1Under = { ...MOODS.underwater, rays: { ...MOODS.underwater.rays, alpha: 0.15 }, motes: { ...MOODS.underwater.motes, n: 15 }, vignette: { ...MOODS.underwater.vignette, alpha: 0.26 } };
 MOODS.a1UnderEvening = { ...MOODS.a1Under, light: { ...MOODS.underwater.light, color: 0xffe2c0 }, rays: { ...MOODS.a1Under.rays, color: 0xffe8c8 } };
 
 const PARTS = ['light', 'rays', 'haze', 'motes', 'vignette', 'grade', 'shade'];
