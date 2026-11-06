@@ -18,6 +18,7 @@
  *   audio.stinger(name) → seconds          // aha reveal chapter freeze plask leap unfold discovery
  *   audio.freeze(on)                       // stop dead / start on the next downbeat
  *   audio.setRain(0..1)                    // a bed of rain under the scene (Äventyr 2's storm)
+ *   audio.setBed('rain' | 'falls', 0..1)   // the same for any bed the game sets (a waterfall nearby)
  *   audio.sfx(name, opts)                  // see SFX; every effect also takes { gain, pan, delay }
  *   audio.phrase(n, { inst }) → seconds    // first n notes of the theme
  *   audio.note(i, { inst, vel })           // scale degree i (0 = D4) on lyre | shell | plank | bell-free
@@ -1478,6 +1479,15 @@ function renderBed(fs, rng, name) {
         const w = ctl(n, fs, (t) => 0.25 + 0.75 * Math.pow(0.5 - 0.5 * Math.cos((TAU * (t % 4)) / 4), 1.5), 32);
         const crest = ctl(n, fs, (t) => 0.25 * Math.pow(Math.max(0, Math.sin((TAU * ((t % 4) - 1.6)) / 4)), 6), 32);
         for (let i = 0; i < n; i++) x[i] = nz[i] * w[i] + hiss[i] * crest[i];
+    } else if (name === 'falls') {
+        // a waterfall: a steady roar, low and broad, with spray hissing over it
+        x = pink(n, rng);
+        svf(x, fs, (t) => 900 + 120 * Math.sin((TAU * 2 * t) / sec), 0.5, 0);
+        const h = white(n, rng);
+        svf(h, fs, 2600, 0.6, 2);
+        svf(h, fs, 6500, 0.7, 0);
+        const g = ctl(n, fs, (t) => 0.85 + 0.15 * Math.sin((TAU * 3 * t) / sec + 0.7), 32);
+        for (let i = 0; i < n; i++) x[i] = (x[i] + h[i] * 0.35) * g[i];
     } else if (name === 'rain') {
         // steady rain on leaves and stone (Äventyr 2's storm): a soft hiss and many small drops
         x = white(n, rng);
@@ -1544,7 +1554,7 @@ const MUSIC_GAIN = 1.4; // music bus make-up (+3 dB) relative to effects
 const VERB_RETURN = 0.55;
 const PAD_LEVEL = 0.03; // per oscillator
 const DRONE_LEVEL = 0.022;
-const BED_LEVEL = { wind: 0.12, under: 0.2, waves: 0.32, lap: 0.22, rain: 0.07 }; // rain sits about as loud as the wind
+const BED_LEVEL = { wind: 0.12, under: 0.2, waves: 0.32, lap: 0.22, rain: 0.07, falls: 0.16 }; // rain sits about as loud as the wind
 const AREA_BEDS = { table: {}, land: { wind: 1 }, sea: { under: 1 }, bay: { lap: 1 }, final: { waves: 1, wind: 0.4 } };
 const ENV_BEDS = { table: {}, beach: { waves: 0.5, wind: 0.2 }, steppe: { wind: 1 }, kelp: { under: 1 }, bay: { lap: 1, wind: 0.12 } };
 const HIDE_MUL = { mel: 0.85, acc: 0.12, pad: 0.3, drum: 0, harm: 0.8, tex: 0.4 };
@@ -1566,6 +1576,7 @@ function silentAudio() {
         setArea: noop,
         setEnvironment: noop,
         setRain: noop,
+        setBed: noop,
         setMotion: noop,
         stinger: () => 0,
         freeze: noop,
@@ -2169,19 +2180,19 @@ export function createAudio({ ctx: givenCtx, seed, lifecycle = false, warm = tru
     const beds = Object.create(null); // name → { src, g, target, idle }
     let bedArea = null;
     let environment = null;
-    let rain = 0; // 0–1, set by the game (setRain)
+    const near = { rain: 0, falls: 0 }; // beds the game sets, 0–1 (setBed)
     function bedBuf(name) {
         if (!bedCache[name]) bedCache[name] = makeBuffer([renderBed(fs, rngFor('bed:' + name), name)]);
         return bedCache[name];
     }
     function updateBeds(now) {
         const want = Object.assign({}, bedArea === 'final' ? AREA_BEDS.final : ENV_BEDS[environment] || AREA_BEDS[bedArea] || {});
-        if (rain > 0) want.rain = rain;
+        for (const k in near) if (near[k] > 0) want[k] = near[k];
         if (motion.underwater) {
             for (const k in want) want[k] *= 0.5;
             want.under = 1;
         }
-        for (const name of ['wind', 'under', 'waves', 'lap', 'rain']) {
+        for (const name of ['wind', 'under', 'waves', 'lap', 'rain', 'falls']) {
             const v = muted.beds ? 0 : (want[name] || 0) * BED_LEVEL[name];
             let b = beds[name];
             if (v > 0 && !b) {
@@ -2530,13 +2541,16 @@ export function createAudio({ ctx: givenCtx, seed, lifecycle = false, warm = tru
         environment = name == null ? null : name;
         updateBeds(ctx.currentTime);
     }
-    /** How hard it rains, 0–1: a bed of rain under the scene (followed in steps of a twentieth). */
-    function setRain(v) {
+    /** A bed the game sets, 0–1: 'rain' (how hard it rains), 'falls' (how near a waterfall is); followed in
+     *  steps of a twentieth. */
+    function setBed(name, v) {
+        if (!(name in near)) return;
         const r = Math.round(clamp(Number(v) || 0, 0, 1) * 20) / 20;
-        if (disposed || r === rain) return;
-        rain = r;
+        if (disposed || r === near[name]) return;
+        near[name] = r;
         updateBeds(ctx.currentTime);
     }
+    const setRain = (v) => setBed('rain', v);
 
     function setVolumes(v) {
         if (disposed || !v) return;
@@ -2769,6 +2783,7 @@ export function createAudio({ ctx: givenCtx, seed, lifecycle = false, warm = tru
         setArea,
         setEnvironment,
         setRain,
+        setBed,
         setMotion,
         stinger,
         freeze,

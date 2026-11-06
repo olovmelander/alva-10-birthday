@@ -473,6 +473,10 @@ export function createGame({ host = document.body, assetBase = './skoldhast/', s
                 audio.setMotion({ speed01: Math.min(1, Math.abs(p.vx) / 1200), underwater: p.mode === 'swim' && p.submerge > 0.7, hidden: p.hidden });
                 audio.setEnvironment(p.mode === 'swim' ? 'kelp' : 'steppe');
                 audio.setRain?.(view.rainLevel);
+                // a waterfall roars louder as you come to it (Forsen, the spring at Källan)
+                let falls = 0;
+                for (const s of G.sceneDef?.sounds || []) if (s.kind === 'falls') falls = Math.max(falls, 1 - Math.hypot(s.x - p.x, (s.y - p.y) * 0.6) / (14 * HL));
+                audio.setBed?.('falls', Math.max(0, falls) ** 1.5);
             }
         } else if (mode === 'table') {
             presses.clear();

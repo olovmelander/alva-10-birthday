@@ -98,6 +98,8 @@ SCENES.strand = {
     vortices: [
         { id: 'djuphalan', x: h(43), y: h(5.05), r: h(2.4), eye: h(0.45), speed: 220, pull: 320, spin: 1, when: '!coin_got' }
     ],
+    // what is heard nearer as you come to it (main.mjs → audio.setBed)
+    sounds: [{ kind: 'falls', x: h(88), y: h(-2) }],
     pushes: [
         // the falling water drives every swimmer back from the cave mouth; a hidden shell sinks under it
         { id: 'fors', kind: 'box', x0: h(87.3), x1: h(90.0), y0: h(-1.2), y1: h(3.4), vx: -700 },
@@ -310,6 +312,8 @@ SCENES.kristall = {
         // Källan: a shell that lies still rides the spring up through the mountain
         { id: 'spring', pts: L([73, 2.55], [73, 0.6], [73, -4], [73, -9.0]), width: h(1.0), speed: 430, dashed: true, suck: h(1.6) }
     ],
+    // the spring's water falling back down its sides, heard nearer as you come to Källan
+    sounds: [{ kind: 'falls', x: h(73), y: h(-1.5) }],
     pushes: [
         // under the wall the water rushes back west; a swimmer is pushed back, a hidden shell rides its current through
         { id: 'k-wall-rush', kind: 'box', x0: h(43.4), x1: h(46.8), y0: h(2.0), y1: h(4.6), vx: -700 },
