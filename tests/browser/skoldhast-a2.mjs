@@ -196,7 +196,13 @@ await check('who speaks is seen on a phone held upright: the camera takes Klo in
     await shot(p, 'a2-speaker-far-390x844');
     assert.ok(far.hero.x > 0 && far.hero.x < far.w, 'too far to take in: the sköldhäst stays in the picture');
     assert.ok(far.klo.x > far.w && far.edge, 'a badge with his face at the right edge points to him');
-    await p.click('.sk-dialogue.on .sk-dlg-next', { force: true });
+    // the box closes before the camera is asked to come back (a click that landed while the box was still opening
+    // was lost under load, and the talk never ended)
+    for (let i = 0; i < 4; i++) {
+        await p.click('.sk-dialogue.on .sk-dlg-next', { force: true }).catch(() => {});
+        const closed = await p.waitForFunction(() => !document.querySelector('.sk-dialogue.on'), null, { timeout: 1500 }).then(() => true, () => false);
+        if (closed) break;
+    }
     await p.waitForTimeout(1500);
     const after = await state();
     assert.ok(!after.edge && !after.mark && Math.abs(after.hero.x - before.hero.x) < 40, 'the camera returns when the talk ends');
