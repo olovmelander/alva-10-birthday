@@ -96,6 +96,21 @@ Art and sound:
   wavers; crystal veins run through the roof (which fills the top third of a phone held upright); small crystals
   glint far down the chasm under Kristallbron, which was a black quarter of the screen.
 - Forsen's overhang has cracks and lichen too, drawn thick enough to read at a phone's zoom.
+- **From a fresh visual read of all 56 tour shots (upright and landscape):**
+  - **Gaps:** every ground ends square at a gap's lip, so a straight cut ran down beside every gap. A jagged band of
+    rock (`ravine()`) now covers it, and below the walls the gap's dark melts into the same paper as under the
+    ground beside it.
+  - **Kristallgrottan:** the soil's lighter skin band no longer stands out as a pale box on every island; inside the
+    mountain the rock is one rock all the way down.
+  - **Åsktoppen:** its rock, strata, cracks and lichen run more than twice as deep, so it reads as a mountain and not
+    a thin crust on a pale slab. Its gaps are deeper to match.
+  - **Jätteträdet's crown, held upright:** the forest's top bound is higher (−24), so the crown sits in the middle of
+    the screen instead of under the goal note.
+  - **Forsen's cave and the summit spring:** the cave behind the falls starts behind the water, and the summit
+    spring's mouth has a ring of stones.
+  - **Thought bubbles:** their dots lead to just above the head, not onto the forehead (`src/guide.mjs`).
+  - Seen and kept: the grass/sand join by the cocoa tree (a natural edge, already blended); the vine at Ravinen leads
+    off screen to the trunk.
 - **Thunder:** a soft, distant roll follows each lightning flash after half a second to a second and a half
   (`renderThunder` in `src/audio.mjs`; `sfx()` takes `{ delay }`). The storm used to flash in silence.
 - **Rain you hear:** a rain bed (soft hiss and small drops, about as loud as the wind) follows the rain Äventyr 2
