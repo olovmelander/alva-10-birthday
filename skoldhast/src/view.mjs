@@ -1701,6 +1701,23 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
             O.glimpse = heroFactory({ mini: true }); O.glimpse.view.scale.set(0.3); L.far.addChild(O.glimpse.view); O.glimpse.view.visible = false;
         }
         if (def.id === 'viken') {
+            // Kartväktaren's paper boat (after the story: kv_boat): folded from the same cream paper as he is, it rides
+            // the bay's surface, drifting slowly between the shore and the pier's end
+            {
+                const boat = new PIXI.Container(); boat.label = 'paper-boat';
+                const g = new PIXI.Graphics();
+                fillPoly(g, [[-46, -22], [46, -22], [30, 4], [-30, 4]], 'cream');
+                g.poly([-46, -22, 46, -22, 30, 4, -30, 4]).fill({ color: 0x6b635a, alpha: .12 });
+                fillPoly(g, [[-30, -22], [0, -68], [30, -22]], 'cream');
+                g.poly([0, -68, 30, -22, 0, -22]).fill({ color: 0x6b635a, alpha: .14 });
+                g.moveTo(-46, -22).lineTo(46, -22).lineTo(30, 4).lineTo(-30, 4).closePath().moveTo(-30, -22).lineTo(0, -68).lineTo(30, -22).moveTo(0, -68).lineTo(0, -22)
+                    .stroke({ width: 3, color: 0x4a443c, alpha: .85, join: 'round' });
+                // a fold line or two, and a damp edge where it sits in the water
+                g.moveTo(-38, -12).lineTo(38, -12).stroke({ width: 1.6, color: 0x6b635a, alpha: .4 });
+                g.moveTo(-30, 2).lineTo(30, 2).stroke({ width: 4, color: 0x7aa0b8, alpha: .35 });
+                boat.addChild(g); boat.visible = false; L.mid.addChild(boat);
+                O.boat = { c: boat, x: h(20.5), dir: -1, drop: null };
+            }
             // bubbles rising beside the pipe, where the current goes up (6 November)
             O.bayBubbles = [];
             for (const b of def.bayBubbles || []) for (let i = 0; i < b.count; i++) {
@@ -2570,6 +2587,26 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
             O.lamp.alpha = damp(O.lamp.alpha, F.has('lamp_lit') ? G.lessMotion ? .95 : 0.95 + Math.sin(time * 2) * 0.05 : 0, 1.2, dt);
             O.beam.alpha = damp(O.beam.alpha, F.has('lamp_lit') ? .88 : 0, 2, dt);
             O.coastPatch.container.visible = F.has('talk_done');
+            {
+                const b = O.boat, top = S.waterTop ?? 0;
+                if (b.drop) {
+                    // set down from the pier onto the water
+                    b.drop.t = Math.min(1, b.drop.t + dt / (G.lessMotion ? .3 : .9));
+                    const u = b.drop.t, e = u * u * (3 - 2 * u);
+                    b.c.visible = true; b.x = b.drop.x;
+                    b.c.position.set(b.drop.x, lerp(b.drop.y, top, e)); b.c.rotation = (1 - e) * .25;
+                    if (u >= 1) { b.drop.done(); b.drop = null; }
+                } else if (F.has('kv_boat')) {
+                    b.c.visible = true;
+                    if (!G.lessMotion) {
+                        b.x += b.dir * h(0.1) * dt;
+                        if (b.x < h(5.5)) b.dir = 1; else if (b.x > h(22)) b.dir = -1;
+                    }
+                    b.c.position.set(b.x, top + (G.lessMotion ? 0 : Math.sin(time * 1.6) * 3));
+                    b.c.rotation = G.lessMotion ? 0 : Math.sin(time * 1.1) * .05;
+                    b.c.scale.x = b.dir < 0 ? 1 : -1;
+                } else b.c.visible = false;
+            }
             O.coastPatch.update(sampleShoreTrial(F.has('p8_proven') ? 'proof' : F.has('p8_sea') ? 'draw' : 'folded', 0, { repaired: F.has('p8_done') }));
             O.chains.forEach((c) => { const on = F.has(def.shutters[c.c.shutter].flag); c.r.alpha = on ? 0.95 : 0.7; c.r.tint = on ? 0xffe08a : 0xffffff; });
             const kv = G.actors.kv;
@@ -3210,6 +3247,15 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
                     else { await controller.arrive(); await controller.fold(); await G.wait(1.5); await controller.unfold(); await controller.depart(); }
                     if (!active()) return new Promise(() => {});
                 } finally { if (active()) endFoldDemo(true); }
+                break;
+            }
+            case 'paperBoat': {
+                // Kartväktaren sets his paper boat on the bay (after the story)
+                const boat = S?.obj?.boat;
+                if (!boat) break;
+                await new Promise((done) => { boat.drop = { t: 0, x: data.x, y: data.y, done }; });
+                emit('drop', data.x, S.waterTop ?? 0, 8, { speed: 160, cone: 1.2, life: .5 });
+                await G.wait(.4);
                 break;
             }
             case 'archOpen':

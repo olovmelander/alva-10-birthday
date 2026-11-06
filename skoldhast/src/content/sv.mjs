@@ -374,7 +374,13 @@ export const STORY = {
         signeLose: [['signe', 'Jag vann på stilpoäng.']],
         signeWin: [['signe', 'Jag vann! Och jag hade hela huset med mig!']],
         signeAgain: [['signe', 'En gång till? Klara … färdiga … gå!']],
-        signeGiveUp: [['signe', 'Vi tar det en annan gång.']]
+        signeGiveUp: [['signe', 'Vi tar det en annan gång.']],
+        // small surprises for whoever plays on (easter eggs)
+        echo: ['klo', 'Ett eko! Vattenporten gnäggar tillbaka – två gånger. Det skriver jag upp.'],
+        kvBoat: [
+            ['kv', 'Titta – en båt av papper. Förr hade jag aldrig vågat sätta den på vattnet.'],
+            ['kv', 'Den flyter! Papper håller visst, bara man viker det rätt.']
+        ]
     }
 };
 
@@ -720,7 +726,8 @@ export const JOURNAL = {
         gom: 'Gömleken: fiskarna trodde att det var en sten.',
         gnagg: 'Gnäggtestet: ”gnägg” på land, ”blubb” under vatten.',
         sprang: 'Språnglängden: fem hästlängder. Rekord för sköldpaddor – och för krabbor.',
-        smak: 'Smaktestet: äter både gräs och kelp.'
+        smak: 'Smaktestet: äter både gräs och kelp.',
+        eko: 'Ekotestet: Vattenporten gnäggar tillbaka – två gånger.'
     },
     clueText: {
         map_corner: 'En kartbit med namnet Kartväktaren – en av lapparna som flög när sidan veks. Samma rosa snäcka finns på kartan och stranden. När Klo vek kartan följde stranden med. Båda blev platta när han vecklade ut den.',

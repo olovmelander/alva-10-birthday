@@ -1068,6 +1068,38 @@ export function createStory(G, io) {
             G.flag('signe_met');
         }
     });
+    // =========================================================================
+    // After the ending: small surprises (easter eggs)
+    // =========================================================================
+    // Ekot i Vattenporten: whinny under the arch and it answers twice, softer each time; the first time Klo writes it
+    // down with his other measurements (no tally: the ending's answer is settled)
+    beat('after_echo', {
+        on: 'neigh', repeat: true, lock: false,
+        filter: (e) => !e.under && F.has('ended') && inScene('land') && inArea('pool'),
+        async run(s) {
+            io.audio?.sfx('neigh', { delay: 0.5, gain: 0.42 });
+            io.audio?.sfx('neigh', { delay: 1.05, gain: 0.18 });
+            if (F.has('exp_eko')) return;
+            G.flag('exp_eko');
+            await s.wait(1.4);
+            io.ui.toast(JOURNAL.measurements + ': ' + JOURNAL.experiments.eko);
+            await s.remark(STORY.after.echo);
+        }
+    });
+    // Kartväktarens pappersbåt: he was afraid of water ("Jag är av papper. Blött papper går sönder!"); now the sea is
+    // back, he dares to set a paper boat on it. It stays on the bay, drifting (view: kv_boat).
+    beat('_kvBoat', {
+        manual: true,
+        async run(s) {
+            const kv = G.actors.kv;
+            kv.pose = 'stand'; kv.facing = -1;
+            await s.say([STORY.after.kvBoat[0]]);
+            await s.fx('paperBoat', { x: kv.x - h(0.6), y: kv.y });
+            G.flag('kv_boat');
+            await s.say([STORY.after.kvBoat[1]]);
+        }
+    });
+
     beat('_race', {
         manual: true, lock: false,
         async run(s) {
@@ -1169,6 +1201,10 @@ export function createStory(G, io) {
                 if (!F.has('talk2')) out.push({ id: 'talk2', label: CONTEXT_LABELS.talk, who: 'kv', dist: d / HL, run: () => start(beats.find((b) => b.id === '_talk2')) });
                 else out.push({ id: 'talk3', label: CONTEXT_LABELS.talk, who: 'kv', dist: d / HL, run: () => start(beats.find((b) => b.id === '_talk3')) });
             }
+        }
+        if (inScene('viken') && kv.visible && F.has('ended') && !F.has('kv_boat')) {
+            const d = Math.abs(p.x - kv.x);
+            if (d < h(1.6)) out.push({ id: 'kvBoat', label: CONTEXT_LABELS.talk, who: 'kv', dist: d / HL, run: () => start(beats.find((b) => b.id === '_kvBoat')) });
         }
         const sg = G.actors.signe;
         if (inScene('land') && F.has('signe_met') && sg.visible && sg.scene === 'land' && !race.active && !sg.walk) {

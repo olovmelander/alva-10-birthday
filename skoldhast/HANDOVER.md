@@ -1,5 +1,34 @@
 # Sköldhästen – handover
 
+## Small surprises after the story: easter eggs (6 November, evening)
+
+Pappa asked for a few easter eggs in both adventures for whoever plays on after the end. Äventyr 1 had only the
+race against Signe, and Äventyr 2 had none. There are now two in each. Each one:
+- comes only after the end (`ended`);
+- comes from the story's own characters and their arcs;
+- needs no new puzzle;
+- has its lines recorded (all heard exactly by speech-to-text);
+- is tested in `tests/skoldhast-easter-eggs.test.mjs`.
+
+**Äventyr 2**
+- **Tio små forskare.** Hide in the shell by the nest and the ten hatchlings gather. Come out and they follow in a
+  row along the beach, the smallest, Lilla Klo, first. They wait at the water's edge. Hide by the nest again and
+  they go home, and they stay home when the page turns. Tukankrabban says once: "De forskar på dig! …"
+  (`G.hatchFollow`, `afterStory` in `story.mjs`; drawn in the hatchlings' update in `view.mjs`).
+- **Molnet blixtrar av glädje.** Whinny under Molnet over the nest and it answers with a small flash. Before, it
+  flashed from fear of the dark; now the moon is drawn. The first time, the picture takes Molnet in and it says
+  "Nu blixtrar jag för att det är roligt – inte för att jag är rädd!". After that it just flashes, at most every
+  2.5 s (`cloudJoy`).
+
+**Äventyr 1**
+- **Ekot i Vattenporten.** Whinny under the arch and it answers twice, softer each time (`sfx(…, { delay })`). The
+  first time, Klo writes it down with his measurements ("Ekotestet", in the journal) and says so. It adds no tally:
+  the ending's answer is settled (`after_echo`).
+- **Kartväktarens pappersbåt.** He was afraid of water ("Jag är av papper. Blött papper går sönder!"). Talk to him
+  on the pier (the note shows his face) and he dares to set a paper boat on the bay. It stays there, drifting
+  slowly between the shore and the pier's end, far from the lighthouse's reflection (`_kvBoat`, `kv_boat`,
+  `paperBoat`).
+
 ## Prettier, without changing how anything works (6 November, evening)
 
 Pappa asked for graphic and visual improvements in both adventures, on one condition: nothing may break (the

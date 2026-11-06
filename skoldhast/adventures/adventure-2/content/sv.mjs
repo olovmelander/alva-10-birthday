@@ -508,7 +508,10 @@ export const STORY = {
         ['skata', 'Här, små ungar. Varje ny forskare behöver något som glänser.'],
         ['tukan', 'Mitt guldmynt! Tack, Skatan – du glänser mest av alla.']
     ],
-    after: [['tukan', 'Tack för att du ritade mig, Alva. Nu forskar vi i månskenet – allt glänser!']]
+    after: [['tukan', 'Tack för att du ritade mig, Alva. Nu forskar vi i månskenet – allt glänser!']],
+    // after the story (easter eggs): the ten little researchers follow the sköldhäst; Molnet lightens for joy
+    hatchlingsFollow: [['tukan', 'De forskar på dig! Tio små forskare i rad – och Lilla Klo går först.']],
+    molnJoy: [['moln', 'Nu blixtrar jag för att det är roligt – inte för att jag är rädd!']]
 };
 
 // thoughts and refusals (short notes above the horse; never block play)

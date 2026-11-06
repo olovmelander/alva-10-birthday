@@ -633,10 +633,44 @@ export function createStory(G, io) {
     // --------------------------------------------------------------------------
     // wiring
     // --------------------------------------------------------------------------
+    // --------------------------------------------------------------------------
+    // after the story: small surprises for whoever plays on (easter eggs)
+    // --------------------------------------------------------------------------
+    // Tio små forskare: hide in the shell by the nest and the ten hatchlings gather round; come out and they follow
+    // in a row along the beach (G.hatchFollow, drawn by the view). Hide by the nest again and they go home.
+    let hideByNest = 0, hideToggled = false, joyAt = -Infinity;
+    function afterStory(dt) {
+        if (!F.has('hatched') || G.sceneId !== 'strand') { hideByNest = 0; return; }
+        const p = G.player, nest = G.sceneDef.nest;
+        if (p.hidden && Math.abs(p.x - nest.x) < 2.4 * HL && !G.busy) {
+            hideByNest += dt;
+            if (hideByNest > 1.5 && !hideToggled) {
+                hideToggled = true;
+                G.hatchFollow = !G.hatchFollow;
+                if (G.hatchFollow && !done('hatchFollow')) beat('hatchFollow', () => say(STORY.hatchlingsFollow));
+            }
+        } else { hideByNest = 0; hideToggled = false; }
+    }
+    // Molnet blixtrar av glädje: whinny under Molnet over the nest and it answers with a small flash, for joy now
+    // ("När jag blixtrar blir det ljust en liten stund" was fear of the dark; the moon has made it brave)
+    function cloudJoy({ under }) {
+        if (!F.has('moon') || !F.has('ended') || under || G.sceneId !== 'strand' || G.busy) return;
+        const sky = G.sceneDef.spots.cloudSky;
+        if (Math.abs(G.player.x - sky.x) > 4 * HL || G.time - joyAt < 2.5) return;
+        joyAt = G.time;
+        // the first time, the picture takes Molnet in (it hangs high over the nest, out of a walking view), flashes
+        // and says why; after that it just flashes
+        if (done('molnJoy')) { fx('cloudJoy', {}); return; }
+        const box = [sky.x / HL - 2, sky.x / HL + 2, sky.y / HL - 1.4, G.player.y / HL + 0.3];
+        beat('molnJoy', () => about(box, async () => { await G.wait(0.6); await fx('cloudJoy', {}); await G.wait(0.4); await say(STORY.molnJoy); }));
+    }
+
     const offs = [
+        G.on('neigh', cloudJoy),
         G.on('egg', onEgg),
         G.on('enter', onEnter),
         G.on('scene', () => {
+            G.hatchFollow = false; // the little researchers stay by their nest when the page turns
             G.flag('visited_' + G.sceneId);
             setupActors();
             // a love scene skipped on the peak comes when they are home
@@ -734,6 +768,7 @@ export function createStory(G, io) {
         },
         step(dt) {
             if (!current && queue.length) run(queue.shift());
+            afterStory(dt);
             if (!current) {
                 follow(G.actors.klo, 1.7 * HL, 520, dt);
                 follow(G.actors.tukan, 2.9 * HL, 600, dt);

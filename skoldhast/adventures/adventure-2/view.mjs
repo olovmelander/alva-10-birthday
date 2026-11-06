@@ -1957,9 +1957,18 @@ export function createView(PIXI, app, { assets, G, heroFactory, eggTarget = null
                 k.k.view.visible = !!out;
                 if (!out) return;
                 k.t += dt;
-                const x = k.home + Math.sin(t * 0.6 + i) * h(0.25), y = heightOn(G.sceneDef.surfaces.find(s => s.id === 'sand').pts, x) ?? G.sceneDef.nest.y;
-                k.k.view.position.set(x, y);
-                k.k.update(dt, t, { facing: Math.cos(t * 0.6 + i) > 0 ? 1 : -1, reducedMotion: rm });
+                // after the story they can follow the sköldhäst in a row (G.hatchFollow, story.mjs): each trots after
+                // the one in front, the smallest, Lilla Klo, first; they wait at the water's edge
+                const p = G.player, f = p.facing || 1;
+                let tx = k.home + Math.sin(t * 0.6 + i) * h(0.25), face = Math.cos(t * 0.6 + i) > 0 ? 1 : -1;
+                if (G.hatchFollow) { tx = p.x - f * (h(0.75) + (EGG_TOTAL - 1 - i) * h(0.34)); face = Math.sign(p.x - (k.x ?? tx)) || f; }
+                k.x = k.x ?? tx;
+                const nx = rm ? tx : lerp(k.x, tx, 1 - Math.exp(-(G.hatchFollow ? 3.2 - i * 0.12 : 1.4) * dt));
+                const gy = groundY(G.sceneDef, nx);
+                if (gy !== null && !(G.sceneDef.waters || []).some(w => nx > w.x0 && nx < w.x1 && gy > w.top - 6)) k.x = nx;
+                const y = groundY(G.sceneDef, k.x) ?? G.sceneDef.nest.y;
+                k.k.view.position.set(k.x, y);
+                k.k.update(dt, t, { facing: face, reducedMotion: rm });
             });
         }
         for (let i = S.flying.length - 1; i >= 0; i--) {
@@ -2433,6 +2442,8 @@ export function createView(PIXI, app, { assets, G, heroFactory, eggTarget = null
                 if (data.hold) await waitGame(data.hold);
                 return;
             case 'lightning': lightning(0.9); await waitGame(0.7); return;
+            // after the story: Molnet over the nest flashes for joy, small and soft
+            case 'cloudJoy': lightning(G.lessMotion ? 0.25 : 0.45); return;
             case 'eggsDrop': {
                 // from Skatan's nest, or from where the story says (the cloud on Åsktoppen, which has no magpie: it
                 // threw there and the last egg never fell from the cloud, 5 November)
