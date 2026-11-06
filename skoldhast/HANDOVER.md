@@ -128,7 +128,7 @@ Art and sound:
 - **Next (not done tonight, they touch Äventyr 1's ground drawing and the checks that measure it):**
   - square-cut ground beside Streckbron's gully and at the plateau edge (the fix used in Äventyr 2's `ravine()`
     would fit);
-  - Spegelviken's flat lighthouse face in the pipe view;
+  - Spegelviken's lighthouse foot in the pipe view: a pale panel that ends in open water above the rock;
   - the straight seabed under the pier;
   - the empty kelp cave and Kelphjärtat in landscape.
 - **Thunder:** a soft, distant roll follows each lightning flash after half a second to a second and a half
