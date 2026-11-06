@@ -11,20 +11,26 @@ in landscape, and the browser checks for its area were run alone.
   pale ground took over 40 % of the screen and the sky and hills were squeezed under the goal note. Only the
   upright framing while walking changes (`updateCamera`, `src/view.mjs`): swimming, the big leap, the scenes'
   own views and every story frame (hints, close-ups, the mirror, the map) are as they were.
-- **Äventyr 2 at night:**
-  - Fireflies glow low over the forest and the beach. They sit behind every character and hold still in Mindre
-    rörelse (`buildNightLight`).
-  - When lightning strikes, the edges of the ground and the rocks catch its light (`S.boltRim`, faded with the
-    flash).
-- **Kristallgrottan:** each crystal cluster casts a pool of its colour on the floor and a soft, slowly breathing
-  glow (`buildCaveLight`, a canvas gradient light).
+- **Äventyr 2's light follows the story** (Pappa: "Vi kan inte ha månljus", and every change must follow the story).
+  The page is dark because Mira forgot the moon ("Det är så mörkt överallt"). Until she draws it, the only light is
+  the lightning, the moonshine seeds and Tukankrabban's lantern.
+  - **No moon-like glow:** the soft glow at the top of the storm's and the peak's sky read as a moon behind the
+    clouds. It is gone (`MOODS.storm`, `MOODS.peak` in `src/atmosphere.mjs`; it predates tonight).
+  - **No fireflies before the moon:** the storm's glowing motes are faint rain dust. Fireflies come out over the
+    forest and the beach only once the moon is drawn (`buildNightLight`). The moonlit ending keeps its own.
+  - **Lightning lights the edges:** when lightning strikes, the edges of the ground and the rocks catch its light
+    ("Varje blixt lyser upp hela skogen"; `S.boltRim`).
+- **Kristallgrottan** stays dark and only glitters until the three crystals by the chasm are lit ("Kan kristallerna
+  lysa upp den?"). Then each crystal cluster casts a pool of its colour and a soft glow (`buildCaveLight`, faded
+  in on `k1_lit`).
 - **Äventyr 1 under water:**
   - In Spegelviken, fish swim deep under the pier and bubbles rise beside the pipe (`bayFish`, `bayBubbles` in
     `content/world.mjs`). Both stay well under the surface, away from the lighthouse's reflection.
   - The light on the bed is closer together, there are a few more drifting specks, and the light shafts are
     slightly brighter (`MOODS.a1Under`).
-- **Äventyr 2's mountain:** bands of mist drift slowly across its flanks, so it never looks quite the same twice.
-- **The rain** leans the way it falls, and the faster drops are longer.
+- **Äventyr 2's mountain:** the storm's mist drifts slowly across its flanks and thins as the storm calms.
+- **The rain** blows west, away from Åsktoppen, as the torn leaves and the mountain's gusts do. It leans the way it
+  falls, and the faster drops are longer.
 
 ## "E Prata" shows who you would talk to (6 November)
 
