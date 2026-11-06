@@ -11,7 +11,8 @@
     touch, controls, gamepad, guardian and land-focus.
 - **Two old timing faults** in the checks also failed on main. Both are fixed: `skoldhast-map-scenes` at 1440×900, and
   `skoldhast-a2`'s speaker check under load.
-- **What is left** is under "Next" in the Äventyr 1 notes below.
+- **What was left** (Äventyr 1's ground drawing in four places) was fixed the next morning; see the Äventyr 1 notes
+  below.
 
 Pappa asked for a full audit of bugs, graphics, design and atmosphere, all fixed and merged, and then for the work
 to go on through the night. Method:
@@ -136,12 +137,24 @@ Art and sound:
 - **Seen and kept on purpose:** the pool's reflection below the water line (it is P2's clue), the "SKÖLD häst"
   writing on the wave at the start (world art, whole as you walk on), the journey map's caption, Klo's
   measurement note beside his line, and the hills' straight pencil slopes.
-- **Next (not done tonight, they touch Äventyr 1's ground drawing and the checks that measure it):**
-  - square-cut ground beside Streckbron's gully and at the plateau edge (the fix used in Äventyr 2's `ravine()`
-    would fit);
-  - Spegelviken's lighthouse foot in the pipe view: a pale panel that ends in open water above the rock;
-  - the straight seabed under the pier;
-  - the empty kelp cave and Kelphjärtat in landscape.
+- **Fixed the next morning (6 November, Pappa: "Fixa detta"):**
+  - **Gaps that are not boxes.** Streckbron's gully, the ditch and the cleft below the plateau were square boxes:
+    a ruled vertical face, a ruled floor and a flat far wall. `gapFaces()` in `src/view.mjs` changes them without
+    touching the walking lines:
+    - a jagged band of the high ground's soil covers each face, with its own uneven pencil edge;
+    - earth fallen from it lies in a slope at its foot;
+    - an uneven skin of earth, with stones, covers the floor.
+
+    The far walls (`buildBacks`) have cracks and ledges in rock, or stones in earth, and darken toward the foot.
+  - **The pipe in the bay.** Its drawn lower part ended in open water above the bay's bed. It now runs on down into
+    a heap of the bed's sand (`tubes[].foot` in `content/world.mjs`).
+  - **The bay's bed under the pier** has an uneven skin of sand with ripples, pebbles, small shells and tufts of weed
+    (`seabedLife()`).
+  - **The kelp cave in landscape** read as open water, because its roof lies above the surface. Under the water it
+    now has a far wall (`createCoastalCave`): darker toward the back, with strata, weed hanging from its ceiling and
+    the mouth's rim.
+  - **Kelphjärtat** is a clearing in a denser stand of kelp on either side (two more `kelp` decor runs). The puzzle's
+    own stretch stays clear.
 - **Thunder:** a soft, distant roll follows each lightning flash after half a second to a second and a half
   (`renderThunder` in `src/audio.mjs`; `sfx()` takes `{ delay }`). The storm used to flash in silence.
 - **Rain you hear:** a rain bed (soft hiss and small drops, about as loud as the wind) follows the rain Äventyr 2

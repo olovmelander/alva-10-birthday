@@ -58,5 +58,35 @@ export function createCoastalCave(PIXI, { def, texture = () => null }) {
             .stroke(pen.line(0xd0d8c4, 3, .5));
     }
     container.addChild(details);
+    // Under the water the cave has walls too: its far wall in the dim, darker toward the back, with strata and weed
+    // hanging from its ceiling, ending in the mouth's rim toward the kelp. (The roof lies above the surface, so in a
+    // phone held sideways the cave read as open water, 6 November.)
+    const wall = new PIXI.Graphics(); wall.label = 'cave-under-wall';
+    const ground = (x) => heightOn(floor.pts, Math.min(Math.max(x, floor.pts[0][0]), floor.pts.at(-1)[0])) ?? h(4);
+    const rim = [];
+    for (let k = 0; k <= 10; k++) { const u = k / 10; rim.push([h(5.6) + Math.sin(u * Math.PI * .5) * h(1.5) + Math.sin(u * 9) * 10, h(.1) + u * (ground(h(7)) - h(.1))]); }
+    const body = [[h(-1.8), h(.1)], ...rim, [h(-1.8), ground(h(-1)) + 20]];
+    wall.poly(body.flat()).fill(pen.material('mat-rock', 1, 0x7f9f9b));
+    wall.poly(body.flat()).fill({ color: 0x2c4a4c, alpha: .42 });
+    wall.poly(body.flat()).fill(pen.hatch(0x1d3a3c, .25));
+    // deeper into the cave, darker
+    for (let k = 0; k < 5; k++) {
+        const x1 = h(5.2 - k * 1.1);
+        wall.poly([h(-1.8), h(.1), x1, h(.1), x1 - h(.6), ground(x1) + 20, h(-1.8), ground(h(-1)) + 20].flat()).fill({ color: 0x0f2426, alpha: .07 });
+    }
+    // strata across it
+    for (let i = 0; i < 4; i++) {
+        const y = h(.7 + i * .75);
+        wall.moveTo(h(-1.6), y).bezierCurveTo(h(.8), y - h(.25), h(2.6), y + h(.2), h(4.6), y - h(.1)).stroke(pen.line(i % 2 ? 0xbacac1 : 0x48655f, 3, i % 2 ? .18 : .3));
+    }
+    // weed hanging from the ceiling, swaying a little in the dim
+    for (const [xHL, len] of [[-.6, .9], [.9, 1.3], [2.2, .7], [3.4, 1.1], [4.6, .8]]) {
+        const x = h(xHL), y0 = h(.12);
+        wall.moveTo(x, y0).bezierCurveTo(x + 14, y0 + h(len) * .35, x - 14, y0 + h(len) * .7, x + 6, y0 + h(len)).stroke(pen.line(0x3e6a52, 4, .55));
+    }
+    // the mouth's rim toward the kelp
+    wall.moveTo(rim[0][0], rim[0][1]); for (const [x, y] of rim.slice(1)) wall.lineTo(x, y);
+    wall.stroke(pen.line(0x34504d, 4.5, .75));
+    container.addChildAt(wall, 0);
     return { container };
 }

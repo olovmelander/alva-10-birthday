@@ -493,6 +493,8 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
                 const blue = clipX(pts, wl.x0, wl.x1);
                 if (blue.length > 1) { const r = rope('stroke-blue', resamplePts(blue, 50), { color: 0x244f8f, width: 4 }); r.label = 'her-waterline'; groundLines.addChild(r); }
             }
+            if (!def.underwater) gapFaces(def, shape, groundLines);
+            if (def.id === 'viken') seabedLife(shape, groundLines);
             d.groundRevision = G.terrain.layout;
             d.groundTerrain = G.terrain;
         };
@@ -1215,6 +1217,133 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
         lines.addChildAt(lips, 0);
     }
 
+    /**
+     * A gap's own walls and floor (Streckbron's gully, the ditch, the cleft below the plateau): the ground was cut
+     * square, a ruled vertical face and a ruled floor, and the gap read as a box (6 November). A jagged band of the
+     * high ground's soil now covers each face, with its own uneven pencil edge, and earth fallen from it lies in a
+     * slope at its foot, so the inner corners are not right angles. Drawn over the outline; the walking lines are
+     * unchanged.
+     */
+    function gapFaces(def, shape, lines) {
+        const g = new PIXI.Graphics(); g.label = 'gap-faces';
+        const hash = (n) => { const v = Math.sin(n * 127.1 + 31.7) * 43758.5453; return v - Math.floor(v); };
+        const inks = [];
+        const matOf = (r) => r ? (r.s.edgeMat || (r.s.ramp ? 'earth' : r.s.mat)) : 'earth';
+        for (const pts of shape.outlines) {
+            for (let i = 1; i < pts.length; i++) {
+                const [ax, ay] = pts[i - 1], [bx, by] = pts[i];
+                if (Math.abs(ax - bx) > 1e-6 || Math.abs(by - ay) < 60) continue;
+                const down = by > ay, x = ax, yTop = Math.min(ay, by), yLow = Math.max(ay, by), dir = down ? -1 : 1; // dir points into the high ground
+                const at = (r, end) => Math.abs(r.pts[end][0] - x) < 1e-6;
+                const high = shape.runs.find(r => at(r, dir < 0 ? r.pts.length - 1 : 0) && Math.abs((dir < 0 ? r.pts.at(-1)[1] : r.pts[0][1]) - yTop) < 1e-6);
+                const low = shape.runs.find(r => at(r, dir < 0 ? 0 : r.pts.length - 1) && Math.abs((dir < 0 ? r.pts[0][1] : r.pts.at(-1)[1]) - yLow) < 1e-6);
+                if (!high || high.s.boardwalk) continue;
+                const hm = matOf(high), faceMat = hm === 'grass' ? 'earth' : hm, lowMat = matOf(low) === 'grass' ? 'earth' : matOf(low);
+                const depth = yLow - yTop, start = yTop + (high.s.mat === 'grass' ? 34 : 6);
+                // the face: a band of the high ground's soil, its edge on the gap's side uneven
+                const n = Math.max(4, Math.round((yLow - start) / 26)), outer = [], inner = [];
+                for (let k = 0; k <= n; k++) {
+                    const u = k / n, y = start + u * (yLow - start);
+                    outer.push([x - dir * (3 + hash(x + k * 7) * 15 + Math.sin(u * 7 + x) * 4), y]);
+                    inner.push([x + dir * (12 + hash(x - k * 5) * 16), y]);
+                }
+                const band = [...outer, ...inner.slice().reverse()];
+                fillPoly(g, band, faceMat);
+                g.poly(band.flat()).fill({ color: 0x2b1d12, alpha: .14 });
+                // a few strata and pebbles in the face
+                for (let k = 1; k < 4; k++) {
+                    const y = start + (yLow - start) * k / 4 + (hash(x + k) - .5) * 14;
+                    g.moveTo(x - dir * 2, y).lineTo(x + dir * (14 + hash(x * k) * 12), y + (hash(k - x) - .5) * 6);
+                }
+                g.stroke({ width: 2, color: 0x5c4630, alpha: .35, cap: 'round' });
+                inks.push(outer);
+                // earth fallen from the face, lying in a slope at its foot in the gap
+                const w = Math.min(130, 40 + depth * .45), ht = Math.min(40, 12 + depth * .18);
+                const talus = [];
+                for (let k = 0; k <= 8; k++) {
+                    const u = k / 8, tx = x + dir * 8 - dir * u * (w + 8);
+                    talus.push([tx, yLow - ht * Math.pow(1 - u, 1.6) + (k > 0 && k < 8 ? (hash(tx) - .5) * 5 : 0)]);
+                }
+                const heap = [...talus, [x - dir * w, yLow + 3], [x + dir * 8, yLow + 3]];
+                fillPoly(g, heap, lowMat);
+                g.poly(heap.flat()).fill({ color: 0x2b1d12, alpha: .1 });
+                for (let k = 0; k < 3; k++) {
+                    const px = x - dir * (14 + hash(x + k * 3) * (w - 20)), py = yLow - 6 - hash(x - k) * ht * .4;
+                    g.ellipse(px, py, 7 + hash(px) * 6, 4 + hash(py) * 3).fill({ color: 0x8c8378, alpha: .8 }).stroke({ width: 1.5, color: 0x4a4038, alpha: .6 });
+                }
+                inks.push(talus);
+            }
+        }
+        // the floor between the walls is not a ruled line either: an uneven skin of earth (or rubble) over it
+        for (const bk of def.backs || []) {
+            const floorRun = shape.runs.find(r => Math.abs(r.pts[0][0] - bk.x0) < 2 && Math.abs(r.pts.at(-1)[0] - bk.x1) < 2);
+            if (!floorRun) continue;
+            const fm = matOf(floorRun) === 'grass' ? 'earth' : matOf(floorRun), top = [];
+            for (let x = bk.x0; x <= bk.x1 + 1; x += 24) {
+                const xx = Math.min(x, bk.x1), y = heightOn(floorRun.pts, xx) ?? bk.floor;
+                top.push([xx, y - 2 - hash(xx * 1.7) * 7 - Math.sin(xx * .021) * 2]);
+            }
+            const skin = [...top, ...top.slice().reverse().map(([x, y]) => [x, y + 26])];
+            fillPoly(g, skin, fm);
+            g.poly(skin.flat()).fill({ color: 0x2b1d12, alpha: .12 });
+            inks.push(top);
+            for (let x = bk.x0 + 30; x < bk.x1 - 30; x += 46 + hash(x) * 60) {
+                const y = (heightOn(floorRun.pts, x) ?? bk.floor) - 4;
+                g.ellipse(x, y, 4 + hash(x + 1) * 5, 3 + hash(x + 2) * 2).fill({ color: 0x8c8378, alpha: .75 });
+            }
+        }
+        lines.addChild(g);
+        for (const p of inks) lines.addChild(rope('stroke-graphite', resamplePts(p, 14), { width: 4, alpha: .78 }));
+    }
+
+    /**
+     * The bay's bed under the pier: a ruled slab before (6 November). Its edge now has an uneven skin of sand with
+     * ripples, and pebbles, small shells and tufts of weed lie on it. Drawn over the outline; the bed's line is unchanged.
+     */
+    function seabedLife(shape, lines) {
+        const g = new PIXI.Graphics(); g.label = 'seabed-life';
+        const hash = (n) => { const v = Math.sin(n * 157.3 + 11.9) * 43758.5453; return v - Math.floor(v); };
+        const inks = [];
+        for (const { s, pts } of shape.runs) {
+            if (s.mat !== 'seabed') continue;
+            const x0 = pts[0][0], x1 = pts.at(-1)[0], top = [];
+            for (let x = x0; x <= x1 + 1; x += 26) {
+                const xx = Math.min(x, x1), y = heightOn(pts, xx);
+                if (y !== null) top.push([xx, y - 1 - hash(xx) * 5 - Math.sin(xx * .03) * 2]);
+            }
+            if (top.length < 2) continue;
+            const skin = [...top, ...top.slice().reverse().map(([x, y]) => [x, y + 30])];
+            fillPoly(g, skin, 'seabed');
+            g.poly(skin.flat()).fill({ color: 0x3f5a63, alpha: .1 });
+            inks.push(top);
+            // ripples in the sand
+            for (let x = x0 + 40; x < x1 - 40; x += 60 + hash(x) * 50) {
+                const y = heightOn(pts, x);
+                if (y === null) continue;
+                const yy = y + 12 + hash(x + 3) * 18;
+                g.moveTo(x - 22, yy).quadraticCurveTo(x - 11, yy - 6, x, yy).quadraticCurveTo(x + 11, yy - 6, x + 22, yy);
+            }
+            g.stroke({ width: 2, color: 0x5d6f74, alpha: .35, cap: 'round' });
+            // pebbles and small shells lying on it
+            for (let x = x0 + 50; x < x1 - 50; x += 120 + hash(x * 2) * 160) {
+                const y = heightOn(pts, x);
+                if (y === null) continue;
+                if (hash(x + 9) > .7) {
+                    g.moveTo(x - 9, y - 1).quadraticCurveTo(x, y - 16, x + 9, y - 1).closePath().fill({ color: 0xf0e2cc, alpha: .9 }).stroke({ width: 1.5, color: 0x7c705e, alpha: .8 });
+                } else g.ellipse(x, y - 3, 7 + hash(x) * 7, 4 + hash(x + 1) * 3).fill({ color: 0x8c8378, alpha: .85 }).stroke({ width: 1.5, color: 0x4a4038, alpha: .6 });
+            }
+            // tufts of weed swaying from the bed
+            for (let x = x0 + 120; x < x1 - 80; x += 260 + hash(x * 3) * 300) {
+                const y = heightOn(pts, x);
+                if (y === null) continue;
+                for (let k = -1; k <= 1; k++) g.moveTo(x + k * 6, y + 2).quadraticCurveTo(x + k * 12 + 8, y - 30, x + k * 8 - 4, y - 46 - Math.abs(k) * -8);
+                g.stroke({ width: 3, color: 0x4f7a5a, alpha: .7, cap: 'round' });
+            }
+        }
+        lines.addChild(g);
+        for (const p of inks) lines.addChild(rope('stroke-graphite', resamplePts(p, 30), { width: 3.5, alpha: .6 }));
+    }
+
     /** How deep a plank, bridge or pier deck is drawn below its walking line. The
      * beach jetty is thin, so it stands clear of the sea instead of lying in it. */
     function thickness(s) { return s.jetty ? 22 : s.pier ? 34 : s.bridge ? 30 : 26; }
@@ -1337,6 +1466,25 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
             const lines = new PIXI.Container();
             lines.addChild(rope('stroke-graphite', resamplePts([[l, tb.y1], [l, tb.y0]], 50), { width: 4 }), rope('stroke-graphite', resamplePts([[r, tb.y1], [r, tb.y0]], 50), { width: 4 }));
             L.mid.addChild(g, lines);
+            // below the drawn lower part the pipe runs on down into the bed, behind the bed's edge (so the bed covers
+            // its foot); before, the pipe ended in open water above the bed
+            if (tb.foot) {
+                const f = tb.foot, fl = tb.x - f.width / 2, fr = tb.x + f.width / 2, fg = new PIXI.Graphics(); fg.label = 'tube-foot';
+                fillPoly(fg, [[fl, f.y0], [fr, f.y0], [fr, f.y1], [fl, f.y1]], 'cream');
+                fg.rect(fl, f.y0, f.width * 0.2, f.y1 - f.y0).fill({ color: 0x6b635a, alpha: .16 });
+                fg.rect(fr - f.width * 0.16, f.y0, f.width * 0.16, f.y1 - f.y0).fill({ color: 0x6b635a, alpha: .22 });
+                fg.rect(fl - 5, f.y0 + h(.9) - 7, f.width + 10, 14).fill({ color: 0x2b4a78, alpha: .55 });
+                // planted in a heap of the bed's sand at its foot
+                const mound = [];
+                for (let k = 0; k <= 10; k++) { const u = k / 10, mx = lerp(fl - 70, fr + 70, u); mound.push([mx, f.y1 - Math.sin(Math.PI * u) * 34 + (k % 2) * 3]); }
+                fillPoly(fg, [...mound, [fr + 70, f.y1 + 30], [fl - 70, f.y1 + 30]], 'seabed');
+                fg.poly([...mound, [fr + 70, f.y1 + 30], [fl - 70, f.y1 + 30]].flat()).fill({ color: 0x3f5a63, alpha: .12 });
+                const fl2 = new PIXI.Container();
+                fl2.addChild(rope('stroke-graphite', resamplePts([[fl, f.y0], [fl, f.y1 - 30]], 50), { width: 4 }), rope('stroke-graphite', resamplePts([[fr, f.y0], [fr, f.y1 - 30]], 50), { width: 4 }),
+                    rope('stroke-graphite', resamplePts(mound, 20), { width: 3.5, alpha: .7 }));
+                // behind the drawn lower part, in front of the water, like it
+                L.mid.addChildAt(fl2, 0); L.mid.addChildAt(fg, 0);
+            }
         }
     }
 
@@ -1367,6 +1515,38 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
                 const y0 = Math.min(tl, tr) + depth * (.25 + k * .2);
                 const band = [...rim.map(([x, y]) => [x, Math.max(y, y0 + Math.sin(x * .013 + k) * 10)]), [bk.x1 + 6, bk.floor + 60], [bk.x0 - 6, bk.floor + 60]];
                 g.poly(band.flat()).fill(pen.hatch(0x3b2a1a, .1));
+            }
+            // its own texture, so a deep gap reads as rock (or earth) going down, not as one flat panel (6 November):
+            // cracks and ledges in rock, small stones and roots in earth, and darker toward the foot
+            {
+                const hsh = (n) => { const v = Math.sin(n * 71.3 + 9.1) * 43758.5453; return v - Math.floor(v); };
+                const top0 = Math.min(tl, tr), span = bk.x1 - bk.x0;
+                for (let k = 0; k < 6; k++) {
+                    const u = (k + 1) / 7, y0 = top0 + depth * u * .9;
+                    const band = [...rim.map(([x, y]) => [x, Math.max(y, y0)]), [bk.x1 + 6, bk.floor + 60], [bk.x0 - 6, bk.floor + 60]];
+                    g.poly(band.flat()).fill({ color: 0x2b1d12, alpha: .045 });
+                }
+                if (bk.mat === 'rock') {
+                    for (let x = bk.x0 + 30 + hsh(bk.x0) * 40; x < bk.x1 - 20; x += 70 + hsh(x) * 90) {
+                        let cx = x, cy = (heightOn(rim, x) ?? top0) + 14;
+                        const crack = [[cx, cy]];
+                        while (cy < bk.floor - 20) { cx += (hsh(cx + cy) - .5) * 30; cy += 26 + hsh(cy) * 30; crack.push([cx, Math.min(cy, bk.floor - 10)]); }
+                        g.moveTo(crack[0][0] + 3, crack[0][1] + 1); for (const [px, py] of crack.slice(1)) g.lineTo(px + 3, py + 1);
+                        g.stroke({ width: 2, color: 0xe8e4d8, alpha: .35 });
+                        g.moveTo(crack[0][0], crack[0][1]); for (const [px, py] of crack.slice(1)) g.lineTo(px, py);
+                        g.stroke({ width: 3, color: 0x3a3630, alpha: .45 });
+                    }
+                    for (let k = 0; k < Math.max(2, Math.round(span / 160)); k++) {
+                        const lx = bk.x0 + span * (.1 + hsh(k + bk.x0) * .7), ly = top0 + depth * (.3 + hsh(k * 3) * .5), lw = 40 + hsh(k * 7) * 60;
+                        g.moveTo(lx, ly).lineTo(lx + lw, ly + (hsh(k) - .5) * 8).stroke({ width: 3, color: 0x3a3630, alpha: .4 });
+                        g.moveTo(lx + 2, ly - 3).lineTo(lx + lw - 4, ly - 3).stroke({ width: 2, color: 0xe8e4d8, alpha: .3 });
+                    }
+                } else {
+                    for (let x = bk.x0 + 20; x < bk.x1 - 10; x += 34 + hsh(x) * 40) {
+                        const y = top0 + 18 + hsh(x * 3) * Math.max(10, bk.floor - top0 - 40);
+                        g.ellipse(x, y, 5 + hsh(x) * 6, 3 + hsh(y) * 3).fill({ color: 0x8c8378, alpha: .5 });
+                    }
+                }
             }
             // the far turf: its own ragged lip of grass along the rim, in shade
             if (bk.mat !== 'rock' || bk.turf !== false) {
