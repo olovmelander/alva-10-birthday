@@ -716,6 +716,7 @@ export function createView(PIXI, app, { assets, G, heroFactory, eggTarget = null
         if (def.dashed) for (const d of def.dashed) buildDashed(d);
         buildPlaces(def);
         buildDecor(def);
+        buildNightLight(def);
         buildObjects(def);
         buildActors(def);
         refreshWhen();
@@ -1548,6 +1549,42 @@ export function createView(PIXI, app, { assets, G, heroFactory, eggTarget = null
         gr.ellipse(x - 2, y - 2, 2.4, 1.4).fill({ color: PAL.goldHi });
     }
 
+    /**
+     * Light in the stormy night (6 November): the pages were all one purple-grey, the sköldhäst the only warm thing in
+     * them. Fireflies glow low over the forest and the beach (behind every character), and when lightning strikes the
+     * edges of the ground and the rocks catch its light for a moment. Nothing here is drawn over a character or the
+     * water's reflections, and in Mindre rörelse the fireflies keep still.
+     */
+    function buildNightLight(def) {
+        if (def.sky === 'cave' || def.underground) return;
+        // the lightning's light along the top of the ground and the rocks
+        const rim = new PIXI.Graphics(); rim.label = 'bolt-rim';
+        for (const q of def.surfaces) {
+            if (q.thin || q.hidden || q.underwater) continue;
+            const top = resampleX(q.pts, 30);
+            lineAlong(rim, top.map(([x, y]) => [x, y + 3])).stroke(pen.line(0xeef2ff, 5, 0.9));
+            lineAlong(rim, top.map(([x, y]) => [x, y + 9])).stroke(pen.line(0xcfd8ff, 3, 0.5));
+        }
+        rim.blendMode = 'add'; rim.alpha = 0;
+        L.terrain.addChild(rim); S.boltRim = rim;
+        if (def.sky !== 'forest' && def.sky !== 'river') return;
+        // fireflies, low over the ground, in small loose groups
+        const n = Math.round((def.bounds.x1 - def.bounds.x0) / h(1.8));
+        for (let k = 0; k < n; k++) {
+            const x = lerp(def.bounds.x0 + h(1), def.bounds.x1 - h(1), hash(k, 201));
+            const gy = groundY(def, x);
+            if (gy === null || (def.waters || []).some(w => x > w.x0 && x < w.x1 && gy > w.top - 10)) continue;
+            const y = gy - h(0.35 + hash(k, 202) * 1.6);
+            const c = new RAW.Container(); c.position.set(x, y);
+            const halo = new RAW.Sprite(TX.mote); halo.anchor.set(0.5); halo.tint = 0xffc95a; halo.blendMode = 'add'; halo.scale.set(3.6); halo.alpha = 0.8;
+            const halo2 = new RAW.Sprite(TX.mote); halo2.anchor.set(0.5); halo2.tint = 0xffe08a; halo2.blendMode = 'add'; halo2.scale.set(1.8);
+            const core = new RAW.Sprite(TX.mote); core.anchor.set(0.5); core.tint = 0xfffbe0; core.blendMode = 'add'; core.scale.set(0.95);
+            c.addChild(halo, halo2, core);
+            L.mid.addChild(c);
+            S.anim.push({ kind: 'firefly', c, halo, x0: x, y0: y, o: hash(k, 203) * 6, r: h(0.25 + hash(k, 204) * 0.5) });
+        }
+    }
+
     function buildDecor(def) {
         if (def.id !== 'strand' && def.id !== 'skog') return;
         // ferns, grass and mushrooms along the ground, never on a puzzle's spot
@@ -1773,6 +1810,12 @@ export function createView(PIXI, app, { assets, G, heroFactory, eggTarget = null
         for (const a of S.anim) {
             if (a.kind === 'current') { a.c.x += a.v * dt; if (a.c.x > a.x1 - h(0.8)) a.c.x = a.x0; }
             else if (a.kind === 'fall') { const u = (t * (rm ? 0.6 : 1.8) + a.o) % 1; a.c.y = lerp(a.y0, a.y1, u); a.c.alpha = 0.3 + 0.6 * Math.sin(u * Math.PI); }
+            else if (a.kind === 'firefly') {
+                // a slow wandering loop, blinking softly; still in Mindre rörelse; dimmer in the heaviest rain
+                const ph = t * 0.35 + a.o;
+                if (!rm) a.c.position.set(a.x0 + Math.sin(ph) * a.r + Math.sin(ph * 2.3) * a.r * 0.3, a.y0 + Math.sin(ph * 1.7 + 1) * a.r * 0.5);
+                a.c.alpha = (rm ? 0.75 : 0.35 + 0.65 * (0.5 + 0.5 * Math.sin(t * 1.3 + a.o * 3)) ** 2) * (1 - 0.35 * stormShown);
+            }
             else if (a.kind === 'twinkle') { a.s.alpha = rm ? 0.55 : 0.3 + 0.7 * Math.max(0, Math.sin(t * 2 + a.o)) ** 4; } // still in Mindre rörelse
             else if (a.kind === 'foam' && !rm && Math.random() < dt * 14) emit('drop', a.x + (Math.random() - 0.5) * h(1.4), a.y, 1, { speed: 260, cone: 1.2, life: 0.6 });
             else if (a.kind === 'mist') { a.s.x = a.x0 + Math.sin(t * 0.05 + a.o) * h(1.2) * (rm ? 0.2 : 1); a.s.alpha = (a.base ?? 0.26) + 0.08 * Math.sin(t * 0.2 + a.o); }
@@ -1951,6 +1994,7 @@ export function createView(PIXI, app, { assets, G, heroFactory, eggTarget = null
         }
         if (S.def.sky === 'peak' && F.has('flash')) flash = Math.max(flash, rm ? 0.12 : 0.22);
         flash = Math.max(0, flash - dt * 3.2);
+        if (S.boltRim) S.boltRim.alpha = Math.min(1, flash * (rm ? 1 : 1.8));
         flashG.clear();
         if (flash > 0) flashG.rect(0, 0, W, H).fill({ color: 0xe8eeff, alpha: flash * (rm ? 0.25 : 0.5) });
         if (tooth) { tooth.width = W; tooth.height = H; }
