@@ -544,19 +544,25 @@ export function createView(PIXI, app, { assets, G, heroFactory, eggTarget = null
                 // the soil's lower edge is torn, not ruled: the colour runs out unevenly into the paper
                 const vnoise = (x, seed, cell = 150) => { const i = Math.floor(x / cell), f = x / cell - i, u = f * f * (3 - 2 * f); return lerp(hash(i, seed), hash(i + 1, seed), u); };
                 const rag = (dy, amp, seed) => top.map(([x, y]) => [x, y + dy + (vnoise(x, seed) - 0.5) * amp * 2 + (vnoise(x, seed + 9, 38) - 0.5) * amp * 0.4]);
-                const deepEdge = rag(h(1.5), h(0.3), 17), thinEdge = rag(h(2.3), h(0.5), 19);
-                const deep = [...top, ...deepEdge.reverse()], thin = [...rag(h(1.4), h(0.3), 17), ...thinEdge.reverse()];
-                poly(gr, deep).fill(material(under));
-                poly(gr, thin).fill(material(under, 0.45));
-                poly(gr, deep).fill({ color: under === 'earth' ? 0x5a3f2a : 0x6b6256, alpha: 0.18 });
-                // inside the mountain the rock's skin lies in the cave's purple dusk, a little lighter than the rock under
-                // it (lit from the crystals) but not a pale block against the dark (5 November)
-                if (def.underground) { poly(gr, deep).fill({ color: 0x1d1830, alpha: 0.42 }); poly(gr, thin).fill({ color: 0x1d1830, alpha: 0.3 }); }
+                // Åsktoppen is a mountain: its rock runs deep before the page shows through (with the soil's usual
+                // depth it read as a thin crust on a pale slab, 6 November)
+                const dk = def.sky === 'peak' ? 2.3 : 1;
+                const deepEdge = rag(h(1.5 * dk), h(0.3 * dk), 17), thinEdge = rag(h(2.3 * dk), h(0.5 * dk), 19);
+                const deep = [...top, ...deepEdge.reverse()], thin = [...rag(h(1.4 * dk), h(0.3 * dk), 17), ...thinEdge.reverse()];
+                // inside the mountain the rock is one rock all the way down: a lighter skin band ended square at each
+                // ledge's ends and stood out as a pale box on every island (6 November)
+                if (!def.underground) {
+                    poly(gr, deep).fill(material(under));
+                    poly(gr, thin).fill(material(under, 0.45));
+                    poly(gr, deep).fill({ color: under === 'earth' ? 0x5a3f2a : 0x6b6256, alpha: 0.18 });
+                }
                 // darker just under the surface, lighter deeper down: the ground has a skin
                 poly(gr, [...top, ...offset(top, h(0.45)).reverse()]).fill({ color: 0x2a1c12, alpha: under === 'earth' ? 0.16 : 0.1 });
                 // layers in the soil, drawn as long uneven pencil lines
                 // (each kind of mark is one path, stroked once: a page builds quickly even on a slow tablet)
-                for (const [dy, a, sd] of [[0.62, 0.28, 3], [1.02, 0.22, 5], [1.32, 0.16, 7]]) {
+                const strata = [[0.62, 0.28, 3], [1.02, 0.22, 5], [1.32, 0.16, 7]];
+                if (def.sky === 'peak') strata.push([1.9, 0.2, 11], [2.6, 0.17, 13], [3.3, 0.14, 15], [4.1, 0.1, 21]);
+                for (const [dy, a, sd] of strata) {
                     const line = rag(h(dy), h(0.18), sd);
                     let pen2 = false;
                     for (let i = 0; i < line.length - 1; i += 1) {
@@ -610,8 +616,8 @@ export function createView(PIXI, app, { assets, G, heroFactory, eggTarget = null
                     const cracks = [];
                     for (let x = top[0][0] + 60; x < top.at(-1)[0] - 60; x += h(1.0) + hash(x, 51) * h(1.5)) {
                         let cx = x, cy = heightOn(s.pts, x) + h(0.3);
-                        const crack = [[cx, cy]], n = 3 + Math.floor(hash(x, 52) * 3);
-                        for (let k = 0; k < n; k++) { cx += (hash(x + k, 53) - 0.5) * 70; cy += h(0.14 + hash(x + k, 54) * 0.18); crack.push([cx, cy]); }
+                        const crack = [[cx, cy]], n = (def.sky === 'peak' ? 6 : 3) + Math.floor(hash(x, 52) * 3);
+                        for (let k = 0; k < n; k++) { cx += (hash(x + k, 53) - 0.5) * 70; cy += h((def.sky === 'peak' ? 0.3 : 0.14) + hash(x + k, 54) * 0.18); crack.push([cx, cy]); }
                         cracks.push({ crack, branch: hash(x, 55) > 0.5 ? (hash(x, 56) > 0.5 ? 22 : -22) : 0 });
                     }
                     // (thick enough to read at a phone's zoom)
@@ -624,7 +630,7 @@ export function createView(PIXI, app, { assets, G, heroFactory, eggTarget = null
                     }
                     gr.stroke(pen.line(0x221d2c, 5, 0.6));
                     for (let x = top[0][0] + 40; x < top.at(-1)[0] - 40; x += h(0.6) + hash(x, 57) * h(1.1)) {
-                        const y = heightOn(s.pts, x) + h(0.38 + hash(x, 58) * 0.7), col = hash(x, 59) > 0.5 ? 0xc8c98c : 0x9fb57e;
+                        const y = heightOn(s.pts, x) + h(0.38 + hash(x, 58) * 0.7 * (def.sky === 'peak' ? 3 : 1)), col = hash(x, 59) > 0.5 ? 0xc8c98c : 0x9fb57e;
                         for (let k = 0; k < 5; k++) gr.circle(x + (hash(x + k, 60) - 0.5) * 60, y + (hash(x + k, 61) - 0.5) * 26, 6 + hash(x + k, 62) * 8).fill(pen.fill(col, 0.5));
                     }
                 }
@@ -1370,10 +1376,8 @@ export function createView(PIXI, app, { assets, G, heroFactory, eggTarget = null
         }
         // Blixtbron's ravine, deep and dark
         ravine(back, h(23.8), h(29.8), h(-3.1), h(-3.1));
-        L.back.addChild(softDark('down', h(23.7), h(-2.6), h(29.9), h(3.7), { color: 0x0b0a14, alpha: 0.85 }));
         // Klippan: the gap only the turned wind crosses
         ravine(back, h(37), h(39.8), h(-4.35), h(-5.33));
-        L.back.addChild(softDark('down', h(36.9), h(-4.1), h(39.9), h(3.7), { color: 0x0b0a14, alpha: 0.85 }));
         // rocks and a little snow up on the summit
         for (let k = 0; k < 7; k++) {
             const x = h(45 + k * 2.2 + hash(k, 131) * 1.2), y = groundY(def, x);
@@ -1438,7 +1442,7 @@ export function createView(PIXI, app, { assets, G, heroFactory, eggTarget = null
     function ravine(gr, x0, x1, y0, y1) {
         // A gap you can see the inside of (5 November: it read as a black box with ruled sides): jagged rock walls
         // with ledges, shaded darker as they go down and lost in the dark, roots or crystals at the lips
-        const depth = h(4.2), cave = !!S?.def.underground;
+        const depth = h(S?.def.sky === 'peak' ? 5.6 : 4.2), cave = !!S?.def.underground;
         const dk = softDark('down', x0 - h(0.1), Math.min(y0, y1) + h(0.1), x1 + h(0.1), Math.max(y0, y1) + depth + h(0.8), { color: 0x14121d, alpha: 0.92 });
         if (gr.parent) gr.parent.addChildAt(dk, gr.parent.getChildIndex(gr)); else L.back.addChild(dk);
         for (const [x, y, dir] of [[x0, y0, 1], [x1, y1, -1]]) {
@@ -1456,6 +1460,34 @@ export function createView(PIXI, app, { assets, G, heroFactory, eggTarget = null
                 const rx = x + dir * h(0.05 + k * 0.12), ry = y + h(0.15 + k * 0.08);
                 gr.moveTo(rx, ry).quadraticCurveTo(rx + dir * h(0.3), ry + h(0.4), rx + dir * h(0.15), ry + h(0.75 + k * 0.2)).stroke(pen.line(0x5a3b20, 2.4, 0.8));
             }
+        }
+        // Each ground ends square at the lip, so a straight cut ran down beside the gap (pale paper against the dark
+        // outdoors, rock against black in the cave). A jagged band of rock in front of the cut hides it, darker as it
+        // goes down and tapering out; outdoors, below the walls, the gap's dark gives way to the page itself
+        // (6 November)
+        const yb = Math.max(y0, y1), front = new PIXI.Graphics(), shades = [];
+        for (const [x, y, dir] of [[x0, y0, 1], [x1, y1, -1]]) {
+            const t0 = y + h(0.3), t1 = y + depth * (cave ? 1.25 : 1.02), n = 14;
+            const inner = [], outer = [];
+            for (let k = 0; k <= n; k++) {
+                const u = k / n, yy = lerp(t0, t1, u), taper = u > 0.8 ? (1 - u) / 0.2 : 1;
+                inner.push([x - dir * h(0.1 + hash(x + k, 151) * 0.24) * taper, yy]);
+                outer.push([x + dir * h(0.04 + hash(x + k, 152) * 0.12) * taper, yy]);
+            }
+            const band = [...inner, ...outer.reverse()];
+            poly(front, band).fill(material('rock')); poly(front, band).fill({ color: cave ? 0x0e0c16 : 0x2a2433, alpha: cave ? 0.55 : 0.4 });
+            lineAlong(front, inner.slice(0, n - 2)).stroke(pen.line(INK, 1.8, 0.55));
+            shades.push(softDark('down', Math.min(x, x - dir * h(0.4)) - 4, t0, Math.max(x, x - dir * h(0.4)) + h(0.25), t1, { color: 0x0e0c16, alpha: 0.75 }));
+        }
+        L.terrain.addChild(front, ...shades);
+        if (!cave) {
+            // the page below the gap: the same paper (and dusk) as below the ground beside it, the dark melting into it
+            const pg = new PIXI.Graphics(), bottomY = (S?.def.bounds.y1 ?? yb + h(8)) + h(4), py = yb + depth + h(0.2);
+            pg.rect(x0 - h(0.1), py, x1 - x0 + h(0.2), bottomY - py).fill(pen.material('mat-paper', 1, 0xf3ecdc));
+            pg.rect(x0 - h(0.1), py, x1 - x0 + h(0.2), bottomY - py).fill({ color: S?.def.sky === 'peak' ? 0x26263e : 0x2a2a46, alpha: 0.36 });
+            const melt = softDark('down', x0 - h(0.1), py - h(0.8), x1 + h(0.1), py + h(1.2), { color: 0x14121d, alpha: 0.92 });
+            melt.scale.y *= -1; melt.y = py + h(1.2); // dark at its top, fading down into the paper
+            if (gr.parent) { gr.parent.addChildAt(pg, gr.parent.getChildIndex(gr)); gr.parent.addChild(melt); } else L.back.addChild(pg, melt);
         }
         // in the cave, far down: a few dim crystals glinting, and a faint glow, so the dark reads as depth (6 November:
         // held upright, the chasm under Kristallbron was a black quarter of the screen)

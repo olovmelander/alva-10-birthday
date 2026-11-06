@@ -167,7 +167,9 @@ SCENES.strand = {
 // ===========================================================================
 SCENES.skog = {
     id: 'skog',
-    bounds: { x0: h(-3), x1: h(102), y0: h(-17), y1: h(4) },
+    // (the top lies well above Jätteträdet's crown: held upright, the camera could not rise far enough to keep the
+    // sköldhäst on the crown in the lower part of the screen, and it was squeezed under the goal note, 6 November)
+    bounds: { x0: h(-3), x1: h(102), y0: h(-24), y1: h(4) },
     sky: 'forest',
     surfaces: [
         // Jätteträdet stands on the forest floor west of Ravinen
