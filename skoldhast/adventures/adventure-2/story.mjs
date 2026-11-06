@@ -140,11 +140,17 @@ export function createStory(G, io) {
             const nest = G.sceneDef.nest;
             // at the nest, between Tordyveln and Tukankrabban (at nest + 2.4 HL she stood on the sköldhäst's own
             // start spot and was hidden inside it in the finale, 5 November)
-            actor('skata', gathered ? { scene: 'strand', visible: true, x: nest.x - 2.3 * HL, y: -0.47 * HL, facing: 1, pose: F.has('skata_gift') ? 'idle' : 'coin' }
-                : { scene: 'strand', x: sp.magpie.x + 0.5 * HL, y: sp.magpie.y, visible: true, facing: -1, pose: F.has('coin_given') ? 'coin' : 'idle' });
-            actor('dyvel', gathered ? { scene: 'strand', visible: true, x: nest.x - 3.7 * HL, y: -0.48 * HL, facing: 1 }
+            // After the story everyone who came to the nest goes home, so their surprises lie in different places
+            // (6 November): Skatan back on her branch in Skatträdet; Tordyveln off with his new ball into the mountain,
+            // where he rolled his glitter ball before ("ända hit in i berget"). The hatchlings and Molnet stay.
+            const home = F.has('ended');
+            actor('skata', gathered && !home ? { scene: 'strand', visible: true, x: nest.x - 2.3 * HL, y: -0.47 * HL, facing: 1, pose: F.has('skata_gift') ? 'idle' : 'coin' }
+                : { scene: 'strand', x: sp.magpie.x + 0.5 * HL, y: sp.magpie.y, visible: true, facing: -1, pose: F.has('coin_given') && !F.has('skata_gift') ? 'coin' : 'idle' });
+            const kb = G.scenes.kristall.spots.beetle;
+            actor('dyvel', gathered && !home ? { scene: 'strand', visible: true, x: nest.x - 3.7 * HL, y: -0.48 * HL, facing: 1 }
+                : home ? { scene: 'kristall', x: kb.x, y: kb.y, visible: true, facing: 1 }
                 : { scene: 'strand', x: sp.beetle.x, y: sp.beetle.y, visible: true, facing: -1 });
-        } else if (sc === 'kristall' && !gathered) {
+        } else if (sc === 'kristall' && (!gathered || F.has('ended'))) {
             actor('dyvel', { scene: 'kristall', x: sp.beetle.x, y: sp.beetle.y, visible: true, facing: 1 });
         }
         const moln = actor('moln', { visible: true });
@@ -293,7 +299,7 @@ export function createStory(G, io) {
     function talk(who) {
         if (who === 'skata') return beat('skataTalk', () => say(F.has('coin_given') ? STORY.skataAfter : STORY.skataTalk), { once: false });
         // after the story Tordyveln has rolled his finest ball yet, from the hatched eggs' shells (an easter egg)
-        if (who === 'dyvel' && F.has('hatched') && G.sceneId === 'strand') {
+        if (who === 'dyvel' && F.has('hatched')) {
             if (F.has('dyvel_shellball')) return beat('dyvelTalk', () => say(STORY.dyvelShellsAgain), { once: false });
             return beat('dyvelShells', async () => {
                 await say([STORY.dyvelShells[0]]);
@@ -649,7 +655,9 @@ export function createStory(G, io) {
     // Tio små forskare: hide in the shell by the nest and the ten hatchlings gather round; come out and they follow
     // in a row along the beach (G.hatchFollow, drawn by the view). Hide by the nest again and they go home.
     let hideByNest = 0, hideToggled = false, joyAt = -Infinity;
+    let stillOnTop = 0, starFellAt = -Infinity, giggledAt = -Infinity;
     function afterStory(dt) {
+        starFall(dt);
         if (!F.has('hatched') || G.sceneId !== 'strand') { hideByNest = 0; return; }
         const p = G.player, nest = G.sceneDef.nest;
         if (p.hidden && Math.abs(p.x - nest.x) < 2.4 * HL && !G.busy) {
@@ -661,8 +669,43 @@ export function createStory(G, io) {
             }
         } else { hideByNest = 0; hideToggled = false; }
     }
+    // Stjärnfall i Stormens öga: on the summit where Molnet sat crying in the dark, stand quite still and a star falls
+    // from Alva's stars (stillness, as the moonshine flowers taught). The first time Klo makes a wish, and keeps it secret.
+    function starFall(dt) {
+        const p = G.player;
+        const still = F.has('ended') && F.has('alva_stars') && G.sceneId === 'topp' && G.areas.has('t-summit') && p.mode === 'ground'
+            && Math.abs(p.vx) < 20 && !G.busy;
+        stillOnTop = still ? stillOnTop + dt : 0;
+        if (stillOnTop < 2.5 || G.time - starFellAt < 20) return;
+        starFellAt = G.time; stillOnTop = 0;
+        io.audio?.sfx?.('sparkle');
+        if (done('starFall')) { fx('starFall', {}); return; }
+        beat('starFall', async () => { await fx('starFall', {}); await say(STORY.starFall); });
+    }
+    // Svampen fnissar: after the story the forest's mushroom giggles and puffs glowing spores when it bounces you up
+    // (each bounce lands on the branch above it, so there is no bouncing again and again: every bounce giggles).
+    // The first time it is a new hypothesis.
+    function mushroomGiggle() {
+        if (!F.has('ended') || G.sceneId !== 'skog' || G.time - giggledAt < 4) return;
+        giggledAt = G.time;
+        for (let i = 0; i < 4; i++) io.audio?.sfx?.('pop', { delay: i * 0.11, gain: 0.45 - i * 0.06 }); // a little giggle
+        if (done('mushroomGiggle')) { fx('giggle', {}); return; }
+        beat('mushroomGiggle', async () => { await fx('giggle', {}); await say(STORY.mushroomGiggle); }, { lock: false });
+    }
     // Molnet blixtrar av glädje: whinny under Molnet over the nest and it answers with a small flash, for joy now
     // ("När jag blixtrar blir det ljust en liten stund" was fear of the dark; the moon has made it brave)
+    // Kakaolunden: the log is still a drum. Drum it and the cocoa tree drops another fruit; the first time Klo gives it to
+    // Tukankrabban again, as on the day of P1 (they research together now, love scene 8). After that it just falls.
+    function cocoaAgain() {
+        if (done('cocoaAgain')) { fx('cocoaFall', {}); return; }
+        beat('cocoaAgain', async () => {
+            await fx('cocoaFall', {});
+            await G.wait(0.3);
+            if (G.actors.tukan) G.actors.tukan.pose = 'happy';
+            await say(STORY.cocoaAgain);
+            if (G.actors.tukan) G.actors.tukan.pose = 'idle';
+        });
+    }
     // Skatan copies a whinny beside her (magpies are mimics), then decides it does not suit her
     let mimicAt = -Infinity;
     function cloudJoy({ under }) {
@@ -687,6 +730,8 @@ export function createStory(G, io) {
 
     const offs = [
         G.on('neigh', cloudJoy),
+        G.on('drumAfter', () => io.audio?.sfx?.('drum')),
+        G.on('cocoaFall', cocoaAgain),
         G.on('egg', onEgg),
         G.on('enter', onEnter),
         G.on('scene', () => {
@@ -712,7 +757,7 @@ export function createStory(G, io) {
             if (e.flag === 'k1_bridge') beat('k1Done', () => say(STORY.k1Done));
             if (e.flag === 't2_bridge') beat('t2Done', () => say(STORY.t2Done));
         }),
-        G.on('bounce', () => thinkOnce('bounce', STORY.bounce)),
+        G.on('bounce', () => { thinkOnce('bounce', STORY.bounce); mushroomGiggle(); }),
         G.on('drumSoft', ({ n }) => { if (n % 6 === 2) think(STORY.drumSoft, { gap: 6 }); }),
         G.on('seedsShy', () => think(STORY.seedsShy, { gap: 6 })),
         G.on('seedsWatched', () => think(STORY.seedsWatched, { gap: 20 })),

@@ -1,43 +1,71 @@
 # Sköldhästen – handover
 
-## Small surprises after the story: easter eggs (6 November, evening)
+## Small surprises after the story: easter eggs on every page (6 November, evening)
 
-Pappa asked for a few easter eggs in both adventures for whoever plays on after the end. Äventyr 1 had only the
-race against Signe, and Äventyr 2 had none. There are now two in each. Each one:
+Pappa asked for easter eggs in both adventures for whoever plays on after the end. Äventyr 1 had only the race
+against Signe, and Äventyr 2 had none. He then asked for them to be spread out, and for **every page to have at
+least one**. Now every page of both adventures has one or more. Each one:
 - comes only after the end (`ended`);
-- comes from the story's own characters and their arcs;
-- needs no new puzzle;
+- comes from the story's own characters, places and arcs;
+- needs no new puzzle, only something the player already knows (whinny, hide, gallop, bounce, stand still, talk);
 - has its lines recorded (all heard exactly by speech-to-text);
-- is tested in `tests/skoldhast-easter-eggs.test.mjs`.
+- is tested in `tests/skoldhast-easter-eggs.test.mjs` (14 tests, each also checks that nothing happens before the end).
 
-**Äventyr 2**
-- **Tio små forskare.** Hide in the shell by the nest and the ten hatchlings gather. Come out and they follow in a
-  row along the beach, the smallest, Lilla Klo, first. They wait at the water's edge. Hide by the nest again and
+After the story everyone who came to the nest goes home, so their surprises lie in different places: Skatan back on
+her branch in Skatträdet, Tordyveln with his new ball into Kristallgrottan, where he rolled his glitter ball before.
+The hatchlings and Molnet stay at the nest (`setupActors` in `adventures/adventure-2/story.mjs`: until the page
+turns after the finale they stay where the finale left them).
+
+**Äventyr 2, Flodstranden** (west → east)
+- **Kakaolunden: kakaofrukten igen.** The hollow log is still a drum. Gallop over it as in P1 and the cocoa tree
+  shakes and drops a cocoa fruit onto the log. The first time Klo gives it to Tukankrabban again ("Den är till dig …
+  igen."; she: "Du kom ihåg min favorit, Klo."; he: "Det står i anteckningsboken. Bredvid diagrammen."). After that
+  a fruit just falls now and then: the tree rests 6 s after each, so it does not rain fruit (`drumAfter`,
+  `cocoaRest` in `puzzles.mjs`; `cocoaFall` in the view; at most three fruits lie on the log, each fades after 7 s).
+- **Boet: tio små forskare.** Hide in the shell by the nest and the ten hatchlings gather. Come out and they follow in
+  a row along the beach, the smallest, Lilla Klo, first. They wait at the water's edge. Hide by the nest again and
   they go home, and they stay home when the page turns. Tukankrabban says once: "De forskar på dig! …"
-  (`G.hatchFollow`, `afterStory` in `story.mjs`; drawn in the hatchlings' update in `view.mjs`).
-- **Molnet blixtrar av glädje.** Whinny under Molnet over the nest and it answers with a small flash. Before, it
-  flashed from fear of the dark; now the moon is drawn. The first time, the picture takes Molnet in and it says
-  "Nu blixtrar jag för att det är roligt – inte för att jag är rädd!". After that it just flashes, at most every
-  2.5 s (`cloudJoy`).
+  (`G.hatchFollow`, `afterStory`).
+- **Boet: Molnet blixtrar av glädje.** Whinny under Molnet over the nest and it answers with a small flash. Before,
+  it flashed from fear of the dark; now the moon is drawn. The first time, the picture takes Molnet in and it says
+  "Nu blixtrar jag för att det är roligt – inte för att jag är rädd!". After that it just flashes (`cloudJoy`).
+- **Skatträdet: Skatan härmar.** Whinny under her tree and she copies it, then decides it does not suit her
+  (magpies are mimics; she is vain). There it is her turn, not Molnet's (`skataMimic`).
 
-**Äventyr 1**
-- **Ekot i Vattenporten.** Whinny under the arch and it answers twice, softer each time (`sfx(…, { delay })`). The
-  first time, Klo writes it down with his measurements ("Ekotestet", in the journal) and says so. It adds no tally:
-  the ending's answer is settled (`after_echo`).
+**Äventyr 2, Djupa skogen**
+- **Svampen fnissar.** The mushroom that bounced the sköldhäst up to the egg (P9) giggles now when it bounces you:
+  it shivers, a little run of pops sounds and glowing spores rise. The first time Tukankrabban hears it and Klo makes
+  hypothesis number four: "svampar är kittliga" (`mushroomGiggle`, fx `giggle`). Each bounce lands on the branch
+  above, so it giggles once per bounce, at most every 4 s.
+
+**Äventyr 2, Kristallgrottan**
+- **Tordyvelns finaste boll.** Tordyveln has gone back to his spot in the cave. Talk to him: he has rolled a new
+  ball from the hatched eggs' shells, "Den finaste hittills. Inte för att jag bryr mig." It lies beside him from
+  then on, and talking again gets a proud "Hmpf" (`dyvel_shellball`, `shellBall`).
+
+**Äventyr 2, Åsktoppen**
+- **Stjärnfall i Stormens öga.** On the summit where Molnet sat crying in the dark, stand quite still for a moment
+  (stillness, as the moonshine flowers taught) and a star falls from the biggest of Alva's stars across the sky.
+  The first time Tukankrabban sees it and Klo makes a wish: "Jag önskar … nej. Det är vetenskapligt hemligt." At
+  most one star every 20 s (`starFall` in the story; the falling star is drawn with the moon in the view).
+
+**Äventyr 1, Stranden och Stäppen**
+- **Ekot i Vattenporten.** Whinny under the arch and it answers twice, softer each time. The first time, Klo writes
+  it down with his measurements ("Ekotestet", in the journal) and says so (`after_echo`).
+- **Kartväktarens nya lapp.** The game's first note at Streckbron said "OBS! Ofärdigt streck. Rör ej!". After the
+  story it reads: "Strecket är färdigt nu. Tack! Ni får röra det hur mycket ni vill." It is read in his voice.
+- (and, as before, the race against Signe)
+
+**Äventyr 1, Kelpskogen**
+- **Lyktfiskarnas dans.** The lyktfiskar that lit Mörka valvet stay as its lamps. Hide in the shell under the
+  vault's roof (the current carries you through) and they leave their lamps and dance in a ring round the shell,
+  lighting the water round it; come out or leave the vault and they go back. The first time Klo says "Lyktfiskarna
+  dansar runt skalet! Jag antecknar: de kommer ihåg dig." (school state `dance` in `puzzles.mjs`, `after_lykt`).
+
+**Äventyr 1, Spegelviken**
 - **Kartväktarens pappersbåt.** He was afraid of water ("Jag är av papper. Blött papper går sönder!"). Talk to him
-  on the pier (the note shows his face) and he dares to set a paper boat on the bay. It stays there, drifting
-  slowly between the shore and the pier's end, far from the lighthouse's reflection (`_kvBoat`, `kv_boat`,
-  `paperBoat`).
-
-**More, at Pappa's wish (Tordyveln, Skatan, Kartväktaren):**
-- **Äventyr 2, Tordyvelns finaste boll.** Talk to Tordyveln by the nest after the story. He has rolled a new ball
-  from the hatched eggs' shells: "Den finaste hittills. Inte för att jag bryr mig." It lies beside him from then
-  on, and talking again gets a proud "Hmpf" (`dyvel_shellball`, `shellBall`).
-- **Äventyr 2, Skatan härmar.** Whinny beside Skatan at the nest and she copies it, then decides it does not suit
-  her (magpies are mimics; she is vain). Beside her it is her turn: Molnet does not flash then (`skataMimic`).
-- **Äventyr 1, Kartväktarens nya lapp.** The game's first note at Streckbron said "OBS! Ofärdigt streck. Rör ej!".
-  After the story it reads: "Strecket är färdigt nu. Tack! Ni får röra det hur mycket ni vill." It is read in his
-  voice.
+  on the pier (the note shows his face) and he dares to set a paper boat on the bay. It stays there, drifting slowly
+  between the shore and the pier's end, far from the lighthouse's reflection (`_kvBoat`, `kv_boat`, `paperBoat`).
 
 ## Prettier, without changing how anything works (6 November, evening)
 

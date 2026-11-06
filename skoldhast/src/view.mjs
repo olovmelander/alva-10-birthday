@@ -2533,14 +2533,16 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
                 if (!G.lessMotion) f.a += dt * (1.2 + i * 0.1);
                 // circling their centre while out; once the vault is lit, each keeps its own lamp spot under the roof
                 const lamp = sch.state === 'lit' && lamps ? lamps[i % lamps.length] : null;
-                const tx = lamp ? lamp[0] + Math.cos(f.a * 0.6) * 18 : sch.x + Math.cos(f.a) * f.r;
-                const ty = lamp ? lamp[1] + Math.sin(f.a * 0.8) * 10 : sch.y + Math.sin(f.a * 1.3) * f.r * 0.5;
+                // after the story they may leave their lamps to dance in a ring round the hidden shell
+                const dance = sch.state === 'dance', ring = (time * (G.lessMotion ? 0 : 1.6)) + i * (Math.PI * 2 / O.school.length);
+                const tx = lamp ? lamp[0] + Math.cos(f.a * 0.6) * 18 : dance ? sch.x + Math.cos(ring) * h(1.0) : sch.x + Math.cos(f.a) * f.r;
+                const ty = lamp ? lamp[1] + Math.sin(f.a * 0.8) * 10 : dance ? sch.y + Math.sin(ring) * h(0.62) : sch.y + Math.sin(f.a * 1.3) * f.r * 0.5;
                 if (f.px === undefined || G.lessMotion) { f.px = tx; f.py = ty; }
                 const was = f.px;
                 f.px = damp(f.px, tx, lamp ? 1.6 : 5, dt); f.py = damp(f.py, ty, lamp ? 1.6 : 5, dt);
                 f.s.x = f.px; f.s.y = f.py;
                 if (Math.abs(f.px - was) > 0.05) f.s.scale.x = f.px > was ? -1 : 1;
-                f.g.x = f.s.x; f.g.y = f.s.y; f.g.alpha = sch.state === 'lit' ? 0.9 : sch.state === 'home' ? 0.5 : 0.75;
+                f.g.x = f.s.x; f.g.y = f.s.y; f.g.alpha = sch.state === 'lit' || sch.state === 'dance' ? 0.9 : sch.state === 'home' ? 0.5 : 0.75;
                 f.g.scale.set(1.4);
             });
             if (O.schoolHalo) {

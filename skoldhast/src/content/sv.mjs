@@ -377,6 +377,7 @@ export const STORY = {
         signeGiveUp: [['signe', 'Vi tar det en annan gång.']],
         // small surprises for whoever plays on (easter eggs)
         echo: ['klo', 'Ett eko! Vattenporten gnäggar tillbaka – två gånger. Det skriver jag upp.'],
+        lyktDance: ['klo', 'Lyktfiskarna dansar runt skalet! Jag antecknar: de kommer ihåg dig.'],
         // the first note in the game was "OBS! Ofärdigt streck. Rör ej!"; after the story it says something new
         note1After: ['note', 'Strecket är färdigt nu. Tack! Ni får röra det hur mycket ni vill. /Kartväktaren'],
         kvBoat: [

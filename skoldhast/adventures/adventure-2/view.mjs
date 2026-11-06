@@ -146,6 +146,9 @@ export function createView(PIXI, app, { assets, G, heroFactory, eggTarget = null
         s.position.set(hash(i, 1), hash(i, 2) * 0.55); s.scale.set(0.25 + hash(i, 3) * 0.5); s._tw = hash(i, 4) * 6;
         stars.addChild(s);
     }
+    // after the story a star may fall from Alva's stars over Åsktoppen's summit (fx 'starFall')
+    const shootG = new RAW.Graphics(); moonLayer.addChild(shootG);
+    let shooting = null;
     const moon = new PIXI.Container(); moon.label = 'moon'; moonLayer.addChild(moon);
     const moonGlow = new RAW.Sprite(TX.mote); moonGlow.anchor.set(0.5); moonGlow.scale.set(9); moonGlow.alpha = 0.55; moonGlow.tint = 0xfff2c4;
     const moonG = new PIXI.Graphics();
@@ -1929,7 +1932,25 @@ export function createView(PIXI, app, { assets, G, heroFactory, eggTarget = null
         // the cocoa tree shakes while the hooves drum
         if (S.cocoa) {
             const n = G.puz.drum || 0, shaking = !F.has('p1_fallen') && n > 0;
-            S.cocoa.rotation = shaking && !rm ? Math.sin(t * 30) * 0.004 * Math.min(8, n) : 0;
+            // after the story it shakes again for each beat on the log (the easter egg in Kakaolunden)
+            S.cocoaShake = Math.max(0, (S.cocoaShake || 0) - dt);
+            const after = S.cocoaShake > 0 ? 0.004 * Math.min(8, 2 + (G.puz.drumAfter || 0)) : 0;
+            S.cocoa.rotation = rm ? 0 : shaking ? Math.sin(t * 30) * 0.004 * Math.min(8, n) : Math.sin(t * 30) * after;
+        }
+        // cocoa fruits shaken down after the story: they fall, bounce once, lie a while in the grass and are gone
+        if (S.cocoaPods) for (let i = S.cocoaPods.length - 1; i >= 0; i--) {
+            const q = S.cocoaPods[i];
+            q.t += dt;
+            if (!q.landed) {
+                q.vy += 1500 * dt; q.y += q.vy * dt; q.g.rotation += q.spin * dt;
+                if (q.y >= q.gy) {
+                    q.y = q.gy;
+                    if (q.vy > 260 && !rm) { q.vy *= -0.3; emit('leaf', q.x, q.gy - 6, 3, { speed: 70, gravity: 160, life: 0.8, cone: 2 }); }
+                    else { q.landed = true; q.lie = q.t; q.g.rotation = q.side * 1.35; }
+                }
+            }
+            q.g.position.set(q.x, q.y - (q.landed ? 16 : 0));
+            if (q.landed && q.t - q.lie > 7) { q.g.alpha -= dt; if (q.g.alpha <= 0) { q.g.destroy(); S.cocoaPods.splice(i, 1); } }
         }
         // the seeds and the tunnel
         if (S.seeds) {
@@ -2172,7 +2193,11 @@ export function createView(PIXI, app, { assets, G, heroFactory, eggTarget = null
         if (S.mushroom) {
             const m = S.mushroom; m.t += dt;
             const k = m.t < 1.2 ? Math.exp(-6 * m.t) * Math.cos(16 * m.t) * (rm ? 0.12 : 0.28) : 0;
+            // after the story it giggles: a quick little shiver from side to side
+            if (m.giggle !== undefined) m.giggle += dt;
+            const gg = m.giggle < 1.1 && !rm ? Math.sin(m.giggle * 38) * 0.07 * (1 - m.giggle / 1.1) : 0;
             m.c.scale.set(1 + k * 0.6, 1 - k);
+            m.c.rotation = gg;
         }
         void snap;
     }
@@ -2365,6 +2390,27 @@ export function createView(PIXI, app, { assets, G, heroFactory, eggTarget = null
             s.rotation = G.lessMotion ? 0 : Math.sin(t * 0.7 + i) * 0.15;
             s.alpha = starsState.shown;
         });
+        // a falling star: from the biggest of Alva's stars down across the sky, its tail fading behind it
+        shootG.clear();
+        if (shooting) {
+            shooting.t += dt;
+            const u = shooting.t / 2.2;
+            if (u >= 1 || kind === 'cave') shooting = null;
+            else {
+                const [dx, dy] = ALVA_STARS[0];
+                // a short arc down to the left, staying in the open sky above the horizon and away from the notes
+                const sx = mp.x + dx * mp.r, sy = mp.y + dy * mp.r, ex = sx - W * 0.3, ey = sy + Math.min(H * 0.16, mp.r * 1.6);
+                const e = G.lessMotion ? 0 : 1 - (1 - u) * (1 - u), fade = Math.sin(Math.PI * Math.min(1, u * 1.15));
+                const hx = sx + (ex - sx) * e, hy = sy + (ey - sy) * e, tail = G.lessMotion ? 0 : Math.min(0.5, e);
+                const tx = sx + (ex - sx) * (e - tail), ty = sy + (ey - sy) * (e - tail);
+                if (tail > 0) {
+                    shootG.moveTo(tx, ty).lineTo(hx, hy).stroke({ color: 0xfff3c8, width: 9, alpha: 0.22 * fade, cap: 'round' });
+                    shootG.moveTo(tx + (hx - tx) * 0.35, ty + (hy - ty) * 0.35).lineTo(hx, hy).stroke({ color: 0xfffbe8, width: 3.6, alpha: 0.9 * fade, cap: 'round' });
+                }
+                shootG.circle(hx, hy, 16).fill({ color: 0xfff3c8, alpha: 0.3 * fade });
+                shootG.circle(hx, hy, 6).fill({ color: 0xffffff, alpha: 0.95 * fade });
+            }
+        }
         // storm clouds drift and thin out
         for (const c of cloudShapes) {
             c.c.position.set(((c.x * (W + c.w * 2) - cam.x * cam.zoom * c.par + t * (G.lessMotion ? 2 : 8)) % (W + c.w * 2) + (W + c.w * 2)) % (W + c.w * 2) - c.w, c.y * H);
@@ -2470,6 +2516,39 @@ export function createView(PIXI, app, { assets, G, heroFactory, eggTarget = null
             case 'cloudJoy': lightning(G.lessMotion ? 0.25 : 0.45); return;
             // Tordyveln shows his ball of eggshells: it pops up beside him with a few sparkles
             case 'shellBall': { if (S?.shellBall) S.shellBall.pop = 0; const d = G.actors.dyvel; if (d) emit('star', d.x + (d.facing || 1) * h(0.75), d.y - h(0.3), 8, { g: 0, speed: 140 }); await waitGame(0.5); return; }
+            // Åsktoppen after the story: a star falls from Alva's stars
+            case 'starFall': shooting = { t: 0 }; await waitGame(rm ? 0.6 : 2.0); return;
+            // Djupa skogen after the story: the mushroom giggles, shakes and puffs glowing spores
+            case 'giggle': {
+                const m = S.def.surfaces.find(q => q.id === 'mushroom');
+                if (!m) return;
+                const cx = (m.pts[0][0] + m.pts.at(-1)[0]) / 2, cy = m.pts[0][1];
+                if (S.mushroom) S.mushroom.giggle = 0;
+                // the spores float up after the sköldhäst, past the branch it lands on
+                emit('star', cx, cy - 6, 18, { speed: 230, gravity: -40, life: 2.8, cone: 1.1, spread: h(0.9), tint: 0xe9d5ff });
+                await waitGame(rm ? 0.2 : 0.6);
+                return;
+            }
+            // Kakaolunden after the story: the drummed tree drops a cocoa fruit beside the log
+            case 'cocoaFall': {
+                if (!S?.cocoa) return;
+                S.cocoaPods ||= [];
+                if (S.cocoaPods.length >= 3) S.cocoaPods.shift().g.destroy();
+                const side = Math.random() < 0.5 ? -1 : 1, x = S.cocoa.x + side * h(0.7 + Math.random() * 0.4);
+                const g = new PIXI.Graphics();
+                g.ellipse(0, 0, 12, 22).fill(pen.fill(0x9a5e32)).stroke(pen.line(0x5b3418, 1.6));
+                g.moveTo(-4, -18).lineTo(-4, 18).stroke(pen.line(0xc78b55, 1.2, 0.7));
+                g.scale.set(1.5); // a little bigger than those on the trunk, so it is seen where it lands
+                L.objects.addChild(g);
+                const y0 = S.cocoa.y - h(2.6);
+                // the hollow log lies under the tree: the fruit lands on top of it, not hidden behind it
+                const log = S.def.surfaces.find(q => q.id === 'log'), onLog = log && x >= log.pts[0][0] && x <= log.pts.at(-1)[0];
+                const gy = onLog ? heightOn(log.pts, x) : groundY(S.def, x) ?? S.cocoa.y;
+                S.cocoaPods.push({ g, x, y: y0, vy: 0, gy, t: 0, spin: side * 3, side, landed: false });
+                emit('leaf', S.cocoa.x, S.cocoa.y - h(4), 8, { speed: 140, gravity: 120, life: 1.6, cone: 3 });
+                await waitGame(rm ? 0.2 : 0.6);
+                return;
+            }
             // Skatan copies the whinny: she sings out (a sparkle by her beak)
             case 'skataMimic': { const k = G.actors.skata; if (k) emit('star', k.x, k.y - h(0.5), 5, { g: 0, speed: 90 }); return; }
             case 'eggsDrop': {
@@ -2627,6 +2706,7 @@ export function createView(PIXI, app, { assets, G, heroFactory, eggTarget = null
         G.on('splashIn', (e) => emit('drop', e.x, e.y, Math.round(6 + (e.size || 0.5) * 10), { speed: 320, cone: 1.4 })),
         G.on('splashOut', (e) => emit('drop', e.x, e.y, 5, { speed: 220 })),
         G.on('drum', () => { if (S?.cocoa) emit('leaf', S.cocoa.x + (Math.random() - 0.5) * h(2), S.cocoa.y - h(4.2), 2, { speed: 60, gravity: 90, life: 1.6, cone: 3 }); cam.shake = 4; }),
+        G.on('drumAfter', () => { if (S?.cocoa) { S.cocoaShake = 0.5; emit('leaf', S.cocoa.x + (Math.random() - 0.5) * h(2), S.cocoa.y - h(4.2), 2, { speed: 60, gravity: 90, life: 1.6, cone: 3 }); } cam.shake = 4; }),
         G.on('eggFall', () => { if (S?.cocoa) emit('leaf', S.cocoa.x, S.cocoa.y - h(4), 10, { speed: 140, gravity: 120, life: 1.6, cone: 3 }); }),
         G.on('push', (e) => emit('dust', e.x, G.player.y, 5, { speed: 120, gravity: 200 })),
         G.on('ballSplash', () => { const b = G.scenes.strand.ball; emit('drop', b.stopX, 0, 14, { speed: 360 }); }),

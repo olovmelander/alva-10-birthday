@@ -518,6 +518,22 @@ export const STORY = {
         ['dyvel', 'Den finaste hittills. Inte för att jag bryr mig.']
     ],
     dyvelShellsAgain: [['dyvel', 'Den är fortfarande den finaste. Hmpf.']],
+    // Djupa skogen after the story: the mushroom giggles when it bounces you up
+    mushroomGiggle: [
+        ['tukan', 'Hörde ni? Svampen fnissar!'],
+        ['klo', 'Hypotes nummer fyra: svampar är kittliga. Det antecknar jag.']
+    ],
+    // Åsktoppen after the story: a star falls from Alva's stars over Stormens öga
+    starFall: [
+        ['tukan', 'Ett stjärnfall! Det lossnade från Alvas stjärnor.'],
+        ['klo', 'Då får man önska något. Jag önskar … nej. Det är vetenskapligt hemligt.']
+    ],
+    // Kakaolunden after the story: the log is still a drum, and Klo still gives her the cocoa fruit
+    cocoaAgain: [
+        ['klo', 'En kakaofrukt till! Den är till dig … igen.'],
+        ['tukan', 'Mjölkchoklad! Du kom ihåg min favorit, Klo.'],
+        ['klo', 'Självklart. Det står i anteckningsboken. Bredvid diagrammen.']
+    ],
     skataMimic: [['skata', 'Gnägg! … Hmm, nej. Det klär mig inte. Jag håller mig till mitt eget.']]
 };
 

@@ -1086,6 +1086,16 @@ export function createStory(G, io) {
             await s.remark(STORY.after.echo);
         }
     });
+    // Lyktfiskarnas dans: the lamps of Mörka valvet leave their places and dance round the hidden shell (puzzles.mjs);
+    // the first time Klo writes it down
+    beat('after_lykt', {
+        on: 'schoolDance', lock: false,
+        async run(s) {
+            s.stinger('discovery');
+            await s.wait(1.2);
+            await s.remark(STORY.after.lyktDance);
+        }
+    });
     // Kartväktarens pappersbåt: he was afraid of water ("Jag är av papper. Blött papper går sönder!"); now the sea is
     // back, he dares to set a paper boat on it. It stays on the bay, drifting (view: kv_boat).
     beat('_kvBoat', {
