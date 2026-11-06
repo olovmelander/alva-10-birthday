@@ -1,5 +1,14 @@
 # Sköldhästen – handover
 
+## "E Prata" shows who you would talk to (6 November)
+
+Pappa asked for a small picture of the one you would talk to inside the "E Prata" note. The key prompt now shows
+their face, small and round, between the key and the word: the same face as in the speaking badge and the name tab
+(`portrait()` in `src/ui.mjs`).
+- **Äventyr 2:** Klo, Tukankrabban, Skatan and Tordyveln. The context's `who` is in `adventures/adventure-2/puzzles.mjs`.
+- **Äventyr 1:** Kartväktaren and Signe. Their `who` is in the story actions in `src/story.mjs`.
+- Other prompts ("Skaka", "Dra", "Läs") stay as they were.
+
 ## The night of 5–6 November: an audit of both adventures, and what it fixed
 
 **Status at the end of the night:**

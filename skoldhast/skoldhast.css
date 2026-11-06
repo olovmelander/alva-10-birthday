@@ -151,6 +151,12 @@ html.skoldhast-lock, html.skoldhast-lock body { overflow: hidden !important; ove
     border: 1.5px solid var(--sk-ink); border-radius: 5px; box-shadow: 0 2px 0 var(--sk-ink); background: #fffdf6;
     font-size: 0.92em; transform: translateY(-1px); }
 .sk-ui.sk-pad .sk-keycap { border-radius: 50%; min-width: 24px; height: 24px; background: #e7f0dc; }
+/* "E Prata": the face of who you would talk to, small and round, between the key and the word */
+.sk-key-face { display: none; }
+.sk-keynote.with-face .sk-key-face { display: inline-flex; align-items: center; justify-content: center; flex: none;
+    width: 30px; height: 30px; margin: -4px 0; border-radius: 50%; overflow: hidden; background: #fffaf0;
+    border: 1.4px solid #675345; box-sizing: border-box; }
+.sk-key-face .sk-speaker-face { margin: 0; transform: scale(.72); }
 .sk-stick-zone { position: absolute; left: 0; bottom: 0; top: 0; width: 58%; pointer-events: auto; touch-action: none; }
 .sk-stick-base { position: absolute; width: 132px; height: 132px; margin: -66px 0 0 -66px; background-size: contain; background-repeat: no-repeat;
     opacity: 0; transition: opacity .15s; left: 90px; top: 60%; pointer-events: none; }

@@ -179,8 +179,11 @@ export function createUI(host, { assetBase, handlers, voice = null }) {
     let topBar = null; // the top bar's rects for the key prompt, measured at most four times a second
     const keyCap = el('span', 'sk-keycap');
     const keyLabel = el('span', 'sk-keynote-label');
+    // "E Prata" shows who you would talk to: their small face, as in the speaking badge (6 November)
+    const keyFace = el('span', 'sk-key-face');
+    let keyWho = null;
     keyNote.setAttribute('aria-hidden', 'true');
-    keyNote.append(keyCap, keyLabel);
+    keyNote.append(keyCap, keyFace, keyLabel);
     root.appendChild(keyNote);
 
     // ---------------------------------------------------------------------------
@@ -1005,6 +1008,13 @@ export function createUI(host, { assetBase, handlers, voice = null }) {
             if (!prompt?.at || !prompt.label) { keyNote.classList.remove('on'); return; }
             if (keyCap.textContent !== prompt.key) keyCap.textContent = prompt.key;
             if (keyLabel.textContent !== prompt.label) keyLabel.textContent = prompt.label;
+            const who = prompt.who || null;
+            if (who !== keyWho) {
+                keyWho = who;
+                const face = who ? portrait(who) : null;
+                keyFace.replaceChildren(...[face].filter(Boolean));
+                keyNote.classList.toggle('with-face', !!face);
+            }
             const w = root.clientWidth || window.innerWidth;
             const x = Math.max(70, Math.min(w - 70, prompt.at.x));
             let y = Math.max(64, prompt.at.y);
