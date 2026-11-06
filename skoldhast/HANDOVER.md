@@ -71,6 +71,23 @@ A headless hunt through Äventyr 2's logic (the robot trying other orders, reloa
   tunnel, the hint says "Nu ligger ägget fritt – spring och hämta det!" until the egg is picked up. Before, it
   explained the solved puzzle again. The line is recorded for Klo and Tukankrabban.
 
+The same hunt through **Äventyr 1** (the robot pressing "Jag har fastnat" every 3 s along both routes, saving at 97
+states per route and reloading each to the end) found four bugs, fixed:
+- **"Jag har fastnat" froze a scene.** Pressed during a close-up of a puzzle (about 13 locked beats) or while Klo
+  walked to the map corner, it froze the game until a reload. `G.goto` made a new player, and those beats give up
+  for good when their player changes, holding `G.busy`. The button now moves the same sköldhäst on its own page
+  (`G.relocate`).
+- **It skipped puzzles:** over the unfinished Streckbron (P1), onto the unopened ledge (P3), over the cleft (P4)
+  and into the line window (P8's sea half). `CHECKPOINTS` in `src/content/world.mjs` now have a `when` (steppe
+  `p1_inked`, ledge `p3_t3`, udden `p4_leap`, lineWindow `p8_sea`), and no spot lies across a dashed line still to
+  be drawn.
+- **A save mid-discovery lost it.** A save while a discovery was told (the tablet locked mid-sentence) lost it for
+  good, since its event never comes again. Affected: the arch opening, the pool's mirror, the glimpse and Viken's
+  mirror (P7's explanation). Each comes back by `when` at the same place.
+- **The wrong side after the leap.** A save during Klo's cheer for the big leap reloaded her on the near side,
+  while the hint said she was across. The 'udden' checkpoint is now set as she lands.
+- `tests/skoldhast-a1-order.test.mjs` pins the stuck rules, the same player and a recovered beat.
+
 Art and sound:
 - Moss, ferns and dripping water on the overhang above Forsen's cave.
 - Åsktoppen's rock has cracks with a lit edge and pale lichen, so it reads as a mountain, not layered paper.
