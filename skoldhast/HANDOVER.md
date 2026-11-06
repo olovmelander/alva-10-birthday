@@ -109,8 +109,28 @@ Art and sound:
   - **Forsen's cave and the summit spring:** the cave behind the falls starts behind the water, and the summit
     spring's mouth has a ring of stones.
   - **Thought bubbles:** their dots lead to just above the head, not onto the forehead (`src/guide.mjs`).
-  - Seen and kept: the grass/sand join by the cocoa tree (a natural edge, already blended); the vine at Ravinen leads
-    off screen to the trunk.
+  - **Where two soils meet** (grass and sand by the cocoa tree, and every other join) a straight line ran down the
+    soil: the old tints swapped the colours across the join and had ruled edges of their own. One soil now reaches
+    into the other in wandering tongues, and the turf thins out onto the next ground.
+  - **Källan's column** wavers about three times as far, enough to see on a phone.
+  - Seen and kept: the vine at Ravinen leads off screen to the trunk.
+- **The same fresh read of Äventyr 1** (all 28 places, upright and landscape), fixed:
+  - **The key prompt was hidden.** In landscape the goal note covered the prompt for E ("Skaka", "Simma in", "Läs")
+    right over the sköldhäst's head. The note and the round buttons now push the prompt below them (`keyPrompt` in
+    `src/ui.mjs`, both adventures).
+  - **A noose-like handle.** The lighthouse's pull handle and its symbol were a teardrop loop on a line, and on the
+    gallery they read as a noose. They are a wooden toggle now, and the symbol has an arrow pulling down.
+  - **Floating cards.** The mechanisms' paper cards hang on strings from their wheel, plate and rope.
+  - **Branten's tide band** (P3's clue) has a wave's crest and a stain's foot instead of a near rectangle.
+- **Seen and kept on purpose:** the pool's reflection below the water line (it is P2's clue), the "SKÖLD häst"
+  writing on the wave at the start (world art, whole as you walk on), the journey map's caption, Klo's
+  measurement note beside his line, and the hills' straight pencil slopes.
+- **Next (not done tonight, they touch Äventyr 1's ground drawing and the checks that measure it):**
+  - square-cut ground beside Streckbron's gully and at the plateau edge (the fix used in Äventyr 2's `ravine()`
+    would fit);
+  - Spegelviken's lighthouse foot in the pipe view: a pale panel that ends in open water above the rock;
+  - the straight seabed under the pier;
+  - the empty kelp cave and Kelphjärtat in landscape.
 - **Thunder:** a soft, distant roll follows each lightning flash after half a second to a second and a half
   (`renderThunder` in `src/audio.mjs`; `sfx()` takes `{ delay }`). The storm used to flash in silence.
 - **Rain you hear:** a rain bed (soft hiss and small drops, about as loud as the wind) follows the rain Äventyr 2
