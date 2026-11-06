@@ -1,5 +1,31 @@
 # Sköldhästen – handover
 
+## Prettier, without changing how anything works (6 November, evening)
+
+Pappa asked for graphic and visual improvements in both adventures, on one condition: nothing may break (the
+water's reflections and every other detail must work as before). Every change below is drawing or light only:
+no walking line, wall, puzzle, story frame or reflection changes. Each was shot before and after, upright and
+in landscape, and the browser checks for its area were run alone.
+
+- **Äventyr 1, upright phones:** the ground sits at about two thirds of the height, as in Äventyr 2. At 58 % the
+  pale ground took over 40 % of the screen and the sky and hills were squeezed under the goal note. Only the
+  upright framing while walking changes (`updateCamera`, `src/view.mjs`): swimming, the big leap, the scenes'
+  own views and every story frame (hints, close-ups, the mirror, the map) are as they were.
+- **Äventyr 2 at night:**
+  - Fireflies glow low over the forest and the beach. They sit behind every character and hold still in Mindre
+    rörelse (`buildNightLight`).
+  - When lightning strikes, the edges of the ground and the rocks catch its light (`S.boltRim`, faded with the
+    flash).
+- **Kristallgrottan:** each crystal cluster casts a pool of its colour on the floor and a soft, slowly breathing
+  glow (`buildCaveLight`, a canvas gradient light).
+- **Äventyr 1 under water:**
+  - In Spegelviken, fish swim deep under the pier and bubbles rise beside the pipe (`bayFish`, `bayBubbles` in
+    `content/world.mjs`). Both stay well under the surface, away from the lighthouse's reflection.
+  - The light on the bed is closer together, there are a few more drifting specks, and the light shafts are
+    slightly brighter (`MOODS.a1Under`).
+- **Äventyr 2's mountain:** bands of mist drift slowly across its flanks, so it never looks quite the same twice.
+- **The rain** leans the way it falls, and the faster drops are longer.
+
 ## "E Prata" shows who you would talk to (6 November)
 
 Pappa asked for a small picture of the one you would talk to inside the "E Prata" note. The key prompt now shows
