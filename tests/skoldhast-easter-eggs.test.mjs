@@ -96,3 +96,45 @@ test('Äventyr 1: after the story, Kartväktaren sets a paper boat on the bay', 
     await R.hold(0.3);
     assert.notEqual(G.context?.id, 'kvBoat', 'once');
 });
+
+test('Äventyr 2: after the story, Tordyveln shows his ball of eggshells, the finest yet', async () => {
+    const R = robot2(), { G } = R;
+    for (const f of A2_DONE) G.flags.add(f);
+    G.goto('strand', { x: G.scenes.strand.nest.x - 3.2 * HL, y: -0.42 * HL, facing: -1 });
+    R.story.start(); await R.settle(); await R.hold(0.3);
+    assert.equal(G.context?.id, 'talk-dyvel');
+    assert.equal(G.context.who, 'dyvel');
+    await R.act(); await R.settle();
+    for (const line of STORY2.dyvelShells) assert.ok(said(R, line), line[1]);
+    assert.ok(G.flags.has('dyvel_shellball') && R.log.some(l => l.kind === 'fx' && l.name === 'shellBall'));
+    await R.hold(0.3); await R.act(); await R.settle();
+    assert.ok(said(R, STORY2.dyvelShellsAgain[0]), 'after that he is just proud of it');
+    // before the end he talks about his old ball, as before
+    const B = robot2();
+    for (const f of ['b:arrive', 'b:firstEgg']) B.G.flags.add(f);
+    B.G.goto('strand', { x: B.G.scenes.strand.spots.beetle.x + 0.6 * HL, y: B.G.scenes.strand.spots.beetle.y, facing: -1 });
+    B.story.start(); await B.settle(); await B.hold(0.3);
+    if (B.G.context?.id === 'talk-dyvel') { await B.act(); await B.settle(); }
+    assert.ok(!B.G.flags.has('dyvel_shellball'));
+});
+
+test('Äventyr 2: after the story, Skatan copies a whinny beside her (and then Molnet does not flash)', async () => {
+    const R = robot2(), { G } = R;
+    for (const f of A2_DONE) G.flags.add(f);
+    G.goto('strand', { x: G.scenes.strand.nest.x - 2.0 * HL, y: -0.42 * HL, facing: -1 });
+    R.story.start(); await R.settle();
+    await R.step({ tapHero: true }); await R.settle();
+    assert.ok(said(R, STORY2.skataMimic[0]), 'Skatan answers');
+    assert.ok(!R.log.some(l => l.kind === 'fx' && l.name === 'cloudJoy'), 'beside Skatan it is her turn, not Molnet\'s');
+});
+
+test('Äventyr 1: after the story, Kartväktaren\'s note at Streckbron says something new', async () => {
+    const R = robot1(), { G } = R;
+    G.restore({ flags: [...CODE_RESTORE[2].flags, 'ended', 'conclusion'], checkpoint: 'beachEnd' });
+    G.goto('land', { x: G.sceneDef.spots.note1.x, y: -0.66 * 200, facing: -1 });
+    await R.settle(); await R.hold(0.3);
+    assert.equal(G.context?.id, 'read');
+    await R.context('read'); await R.settle();
+    assert.ok(said(R, STORY1.after.note1After), 'the new note');
+    assert.ok(!said(R, STORY1.k1.note1), 'not the old one');
+});

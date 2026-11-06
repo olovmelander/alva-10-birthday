@@ -29,6 +29,16 @@ race against Signe, and Äventyr 2 had none. There are now two in each. Each one
   slowly between the shore and the pier's end, far from the lighthouse's reflection (`_kvBoat`, `kv_boat`,
   `paperBoat`).
 
+**More, at Pappa's wish (Tordyveln, Skatan, Kartväktaren):**
+- **Äventyr 2, Tordyvelns finaste boll.** Talk to Tordyveln by the nest after the story. He has rolled a new ball
+  from the hatched eggs' shells: "Den finaste hittills. Inte för att jag bryr mig." It lies beside him from then
+  on, and talking again gets a proud "Hmpf" (`dyvel_shellball`, `shellBall`).
+- **Äventyr 2, Skatan härmar.** Whinny beside Skatan at the nest and she copies it, then decides it does not suit
+  her (magpies are mimics; she is vain). Beside her it is her turn: Molnet does not flash then (`skataMimic`).
+- **Äventyr 1, Kartväktarens nya lapp.** The game's first note at Streckbron said "OBS! Ofärdigt streck. Rör ej!".
+  After the story it reads: "Strecket är färdigt nu. Tack! Ni får röra det hur mycket ni vill." It is read in his
+  voice.
+
 ## Prettier, without changing how anything works (6 November, evening)
 
 Pappa asked for graphic and visual improvements in both adventures, on one condition: nothing may break (the

@@ -511,7 +511,14 @@ export const STORY = {
     after: [['tukan', 'Tack för att du ritade mig, Alva. Nu forskar vi i månskenet – allt glänser!']],
     // after the story (easter eggs): the ten little researchers follow the sköldhäst; Molnet lightens for joy
     hatchlingsFollow: [['tukan', 'De forskar på dig! Tio små forskare i rad – och Lilla Klo går först.']],
-    molnJoy: [['moln', 'Nu blixtrar jag för att det är roligt – inte för att jag är rädd!']]
+    molnJoy: [['moln', 'Nu blixtrar jag för att det är roligt – inte för att jag är rädd!']],
+    // Tordyveln's finest ball yet, rolled from the hatched eggs' shells; and Skatan, who copies a whinny
+    dyvelShells: [
+        ['dyvel', 'Hmpf. Titta inte. Jag rullade en ny boll av äggskalen.'],
+        ['dyvel', 'Den finaste hittills. Inte för att jag bryr mig.']
+    ],
+    dyvelShellsAgain: [['dyvel', 'Den är fortfarande den finaste. Hmpf.']],
+    skataMimic: [['skata', 'Gnägg! … Hmm, nej. Det klär mig inte. Jag håller mig till mitt eget.']]
 };
 
 // thoughts and refusals (short notes above the horse; never block play)

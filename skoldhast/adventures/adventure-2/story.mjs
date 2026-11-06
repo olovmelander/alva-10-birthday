@@ -292,6 +292,16 @@ export function createStory(G, io) {
     let chatter = 0;
     function talk(who) {
         if (who === 'skata') return beat('skataTalk', () => say(F.has('coin_given') ? STORY.skataAfter : STORY.skataTalk), { once: false });
+        // after the story Tordyveln has rolled his finest ball yet, from the hatched eggs' shells (an easter egg)
+        if (who === 'dyvel' && F.has('hatched') && G.sceneId === 'strand') {
+            if (F.has('dyvel_shellball')) return beat('dyvelTalk', () => say(STORY.dyvelShellsAgain), { once: false });
+            return beat('dyvelShells', async () => {
+                await say([STORY.dyvelShells[0]]);
+                G.flag('dyvel_shellball');
+                await fx('shellBall', {});
+                await say([STORY.dyvelShells[1]]);
+            });
+        }
         if (who === 'dyvel') {
             const lines = G.sceneId === 'kristall' ? (F.has('k3_ball') ? STORY.glitterAfter : STORY.glitterTalk)
                 : F.has('p5_washed') ? STORY.beetleAfter : STORY.beetleTalk;
@@ -653,8 +663,18 @@ export function createStory(G, io) {
     }
     // Molnet blixtrar av glädje: whinny under Molnet over the nest and it answers with a small flash, for joy now
     // ("När jag blixtrar blir det ljust en liten stund" was fear of the dark; the moon has made it brave)
+    // Skatan copies a whinny beside her (magpies are mimics), then decides it does not suit her
+    let mimicAt = -Infinity;
     function cloudJoy({ under }) {
         if (!F.has('moon') || !F.has('ended') || under || G.sceneId !== 'strand' || G.busy) return;
+        const sk = G.actors.skata;
+        if (sk?.visible && sk.scene === 'strand' && Math.abs(G.player.x - sk.x) < 1.4 * HL) {
+            if (G.time - mimicAt < 6) return;
+            mimicAt = G.time;
+            fx('skataMimic', {});
+            beat('skataMimic', () => say(STORY.skataMimic), { once: false });
+            return;
+        }
         const sky = G.sceneDef.spots.cloudSky;
         if (Math.abs(G.player.x - sky.x) > 4 * HL || G.time - joyAt < 2.5) return;
         joyAt = G.time;

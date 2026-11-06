@@ -1765,6 +1765,21 @@ export function createView(PIXI, app, { assets, G, heroFactory, eggTarget = null
         const skata = createMagpie(PIXI, pen); skata.view.scale.set(2); L.actors.addChild(skata.view);
         const dyvel = createBeetle(PIXI, pen); dyvel.view.scale.set(1.5); L.actors.addChild(dyvel.view);
         const moln = createCloud(PIXI, pen, { texture: cloudTexture }); moln.view.scale.set(1.5); L.objects.addChild(moln.view);
+        // Tordyveln's ball of eggshells (after the story: dyvel_shellball): speckled white pieces, the finest yet
+        const shellBall = new PIXI.Container(); shellBall.label = 'shell-ball'; shellBall.visible = false;
+        {
+            const sb = new PIXI.Graphics(), R = 34; // as big as his old ball
+            sb.circle(0, -R, R).fill(pen.fill(0xf3eee0)).stroke(pen.line(0x6f6658, 2.2));
+            for (let i = 0; i < 9; i++) {
+                const a = i * 2.17, r = 8 + (i * 5) % 20, x = Math.cos(a) * r, y = -R + Math.sin(a) * r;
+                sb.poly([x - 6, y - 3, x + 4, y - 6, x + 7, y + 3, x - 2, y + 6]).fill(pen.fill(i % 3 ? 0xe8e1cc : 0xdfe8ef, 0.95)).stroke(pen.line(0x8a8070, 1.2, 0.8));
+            }
+            for (let i = 0; i < 6; i++) sb.circle(Math.cos(i * 1.9) * 15, -R + Math.sin(i * 1.9) * 12, 2).fill({ color: 0x9a8c74, alpha: 0.7 }); // the eggs' speckles
+            sb.ellipse(-8, -R - 10, 6, 3).fill({ color: 0xffffff, alpha: 0.6 });
+            shellBall.addChild(sb);
+        }
+        L.actors.addChild(shellBall);
+        S.shellBall = { c: shellBall, pop: 0 };
         S.A = { klo, hearts, tukan, skata, dyvel, moln };
         S.actors.push(tukan, skata, dyvel, moln, hearts);
         S.shadows = {};
@@ -2010,6 +2025,15 @@ export function createView(PIXI, app, { assets, G, heroFactory, eggTarget = null
             if (!sh) continue;
             sh.visible = !!a && a.visible !== false && a.scene === S.id && !(id === 'klo' && a.pose === 'faint');
             if (sh.visible) sh.position.set(a.x, a.y + 2);
+        }
+        if (S.shellBall) {
+            const d = act.dyvel, sb = S.shellBall, on = F.has('dyvel_shellball') && d?.visible && d.scene === S.id;
+            sb.c.visible = !!on;
+            if (on) {
+                sb.pop = Math.min(1, sb.pop + dt * 2.5);
+                const x = d.x + (d.facing || 1) * h(0.75), gy = groundY(S.def, x) ?? d.y;
+                sb.c.position.set(x, gy); sb.c.scale.set(rm ? 1 : 0.6 + 0.4 * sb.pop);
+            }
         }
         for (const id of ['tukan', 'skata', 'dyvel', 'moln']) {
             const a = act[id], v = A[id];
@@ -2444,6 +2468,10 @@ export function createView(PIXI, app, { assets, G, heroFactory, eggTarget = null
             case 'lightning': lightning(0.9); await waitGame(0.7); return;
             // after the story: Molnet over the nest flashes for joy, small and soft
             case 'cloudJoy': lightning(G.lessMotion ? 0.25 : 0.45); return;
+            // Tordyveln shows his ball of eggshells: it pops up beside him with a few sparkles
+            case 'shellBall': { if (S?.shellBall) S.shellBall.pop = 0; const d = G.actors.dyvel; if (d) emit('star', d.x + (d.facing || 1) * h(0.75), d.y - h(0.3), 8, { g: 0, speed: 140 }); await waitGame(0.5); return; }
+            // Skatan copies the whinny: she sings out (a sparkle by her beak)
+            case 'skataMimic': { const k = G.actors.skata; if (k) emit('star', k.x, k.y - h(0.5), 5, { g: 0, speed: 90 }); return; }
             case 'eggsDrop': {
                 // from Skatan's nest, or from where the story says (the cloud on Åsktoppen, which has no magpie: it
                 // threw there and the last egg never fell from the cloud, 5 November)

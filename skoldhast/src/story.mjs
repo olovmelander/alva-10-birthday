@@ -1214,7 +1214,9 @@ export function createStory(G, io) {
         if (inScene('land')) {
             const n = G.sceneDef.spots.note1;
             const d = Math.abs(p.x - n.x);
-            if (d < h(0.9) && F.has('note1_read')) out.push({ id: 'read', label: CONTEXT_LABELS.read, dist: d / HL + 0.3, run: () => say([STORY.k1.note1]) });
+            // after the story Kartväktaren has left a new note on the same post (an easter egg)
+            if (d < h(0.9) && F.has('note1_read')) out.push({ id: 'read', label: CONTEXT_LABELS.read, dist: d / HL + 0.3,
+                run: () => { if (F.has('ended')) G.flag('note1_after'); return say([F.has('ended') ? STORY.after.note1After : STORY.k1.note1]); } });
         }
         return out;
     }
