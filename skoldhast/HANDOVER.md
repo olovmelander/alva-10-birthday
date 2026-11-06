@@ -109,8 +109,11 @@ Art and sound:
   - **Forsen's cave and the summit spring:** the cave behind the falls starts behind the water, and the summit
     spring's mouth has a ring of stones.
   - **Thought bubbles:** their dots lead to just above the head, not onto the forehead (`src/guide.mjs`).
-  - Seen and kept: the grass/sand join by the cocoa tree (a natural edge, already blended); the vine at Ravinen leads
-    off screen to the trunk.
+  - **Where two soils meet** (grass and sand by the cocoa tree, and every other join) a straight line ran down the
+    soil: the old tints swapped the colours across the join and had ruled edges of their own. One soil now reaches
+    into the other in wandering tongues, and the turf thins out onto the next ground.
+  - **Källan's column** wavers about three times as far, enough to see on a phone.
+  - Seen and kept: the vine at Ravinen leads off screen to the trunk.
 - **Thunder:** a soft, distant roll follows each lightning flash after half a second to a second and a half
   (`renderThunder` in `src/audio.mjs`; `sfx()` takes `{ delay }`). The storm used to flash in silence.
 - **Rain you hear:** a rain bed (soft hiss and small drops, about as loud as the wind) follows the rain Äventyr 2
