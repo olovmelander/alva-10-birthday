@@ -402,7 +402,7 @@ export function createView(PIXI, app, { assets, G, heroFactory, eggTarget = null
             const gw = new PIXI.Graphics();
             if (w.kind === 'pipe') {
                 // the spring's column: water with wavering sides, not a ruled box (5 November)
-                const side = (x, ph) => { const pts = []; for (let y = w.top; y <= wb; y += h(0.2)) pts.push([x + Math.sin(y / HL * 4.1 + ph) * 5 + Math.sin(y / HL * 9.3 + ph) * 2.5, y]); return pts; };
+                const side = (x, ph) => { const pts = []; for (let y = w.top; y <= wb; y += h(0.2)) pts.push([x + Math.sin(y / HL * 2.3 + ph) * 13 + Math.sin(y / HL * 6.1 + ph) * 5, y]); return pts; };
                 const body = [...side(w.x0, 0), ...side(w.x1, 1.7).reverse()];
                 poly(gw, body).fill({ color: 0x3f6f8e, alpha: 0.85 });
                 poly(gw, body).fill(pen.material('mat-water', 0.35, 0x5d8eaa));
@@ -439,7 +439,7 @@ export function createView(PIXI, app, { assets, G, heroFactory, eggTarget = null
             }
             const front = new PIXI.Graphics();
             if (w.kind === 'pipe') {
-                const side = (x, ph) => { const pts = []; for (let y = w.top + 6; y <= wb; y += h(0.2)) pts.push([x + Math.sin(y / HL * 4.1 + ph) * 5 + Math.sin(y / HL * 9.3 + ph) * 2.5, y]); return pts; };
+                const side = (x, ph) => { const pts = []; for (let y = w.top + 6; y <= wb; y += h(0.2)) pts.push([x + Math.sin(y / HL * 2.3 + ph) * 13 + Math.sin(y / HL * 6.1 + ph) * 5, y]); return pts; };
                 poly(front, [...side(w.x0, 0), ...side(w.x1, 1.7).reverse()]).fill({ color: 0x3d6d8f, alpha: 0.28 });
             }
             else {
@@ -1314,7 +1314,7 @@ export function createView(PIXI, app, { assets, G, heroFactory, eggTarget = null
         if (sp) {
             // its sides waver like falling water and long strokes of it rise in the middle (they were two ruled
             // lines down a blue box, 5 November)
-            const edges = new PIXI.Graphics(), wy = (y, ph) => Math.sin(y / HL * 4.1 + ph) * 5 + Math.sin(y / HL * 9.3 + ph) * 2.5;
+            const edges = new PIXI.Graphics(), wy = (y, ph) => Math.sin(y / HL * 2.3 + ph) * 13 + Math.sin(y / HL * 6.1 + ph) * 5;
             for (let k = 0; k < 7; k++) {
                 const x = lerp(sp.x0, sp.x1, 0.2 + k * 0.1), pts = [];
                 for (let y = sp.top + 10; y <= h(0); y += h(0.25)) pts.push([x + wy(y, k * 1.3) * 0.8, y]);
