@@ -83,6 +83,8 @@ Art and sound:
   (`renderThunder` in `src/audio.mjs`; `sfx()` takes `{ delay }`). The storm used to flash in silence.
 - **Rain you hear:** a rain bed (soft hiss and small drops, about as loud as the wind) follows the rain Äventyr 2
   draws (`view.rainLevel` → `audio.setRain`): softer under shelter, none in Kristallgrottan, gone as the storm calms.
+- **Waterfalls you hear:** Forsen and the spring at Källan roar louder as the sköldhäst comes to them (`sounds` in
+  `content/world.mjs`, `audio.setBed('falls', …)`).
 - **Voices at one loudness.** Measured with EBU R128, Kartväktaren and his notes (Pappa's own voice) were about
   5 dB louder than Klo, and some of Tukankrabban's hints 6 dB quieter. `manifest.json` now holds each clip's LUFS,
   and `src/voice.mjs` plays every clip at −20.5 LUFS (`LEVEL`, `levelGain`). The recording script measures each
