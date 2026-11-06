@@ -2,6 +2,17 @@
 
 ## The night of 5–6 November: an audit of both adventures, and what it fixed
 
+**Status at the end of the night:**
+- **Merged to main:** #22 (00:17), #23 (03:21) and #24 (05:07), all Swedish time.
+- **Checks on the last merge:**
+  - `npm test`: 433 of 433.
+  - Every browser check passed overnight, one at a time.
+  - Run again before #24, alone: `skoldhast-a2` (all eight), world-art, polish-scenes, mirror-vista, tour, voice,
+    touch, controls, gamepad, guardian and land-focus.
+- **Two old timing faults** in the checks also failed on main. Both are fixed: `skoldhast-map-scenes` at 1440×900, and
+  `skoldhast-a2`'s speaker check under load.
+- **What is left** is under "Next" in the Äventyr 1 notes below.
+
 Pappa asked for a full audit of bugs, graphics, design and atmosphere, all fixed and merged, and then for the work
 to go on through the night. Method:
 - every place in both adventures photographed at 390×844 and 844×390 (`skoldhast-tour`, an Äventyr 2 tour script);
