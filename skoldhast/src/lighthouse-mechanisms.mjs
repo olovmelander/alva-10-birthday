@@ -23,8 +23,11 @@ function icon(g, kind, color = INK) {
         g.moveTo(-15, 1).lineTo(15, 1).moveTo(-8, -12).lineTo(-5, 1).lineTo(-8, 8)
             .moveTo(8, -12).lineTo(5, 1).lineTo(8, 8).stroke({ color, width: 2 });
     } else {
-        g.moveTo(0, -20).lineTo(0, -6).quadraticCurveTo(-15, 7, -9, 14)
-            .quadraticCurveTo(0, 24, 9, 14).quadraticCurveTo(15, 7, 0, -6).stroke(stroke);
+        // a pull handle: a cord ending in a wooden toggle, and an arrow pulling down (a teardrop loop on a line
+        // looked like a noose, 6 November)
+        g.moveTo(-4, -21).lineTo(-4, 4).stroke(stroke);
+        g.roundRect(-16, 4, 24, 8, 4).stroke(stroke);
+        g.moveTo(12, -12).lineTo(12, 4).moveTo(7, -1).lineTo(12, 5).lineTo(17, -1).stroke({ color, width: 2.4, cap: 'round', join: 'round' });
     }
 }
 
@@ -81,10 +84,10 @@ export function createLighthouseMechanisms(PIXI, def) {
         physical.circle(r.x,top,7).stroke({color:INK,width:2});
         physical.moveTo(r.x-11,top).lineTo(r.x-11,bottom-20).stroke({color:INK,width:5,alpha:.8});
         physical.moveTo(r.x-8,top+10).lineTo(r.x-8,bottom-19).stroke({color:PAPER,width:2,alpha:.8});
-        physical.moveTo(r.x-11,bottom-20).quadraticCurveTo(r.x-43,bottom+18,r.x-11,bottom+24)
-            .quadraticCurveTo(r.x+20,bottom+18,r.x-11,bottom-20).stroke({color:INK,width:7,cap:'round'});
-        physical.moveTo(r.x-11,bottom-16).quadraticCurveTo(r.x-35,bottom+15,r.x-11,bottom+19)
-            .quadraticCurveTo(r.x+12,bottom+15,r.x-11,bottom-16).stroke({color:0xd6bd84,width:3});
+        // a wooden toggle at the cord's end, like a bell pull (it was a teardrop loop, 6 November)
+        physical.moveTo(r.x-11,bottom-20).lineTo(r.x-11,bottom+2).stroke({color:INK,width:5,alpha:.8});
+        physical.roundRect(r.x-41,bottom+2,60,17,8).fill(0xd6bd84).stroke({color:INK,width:4});
+        physical.moveTo(r.x-35,bottom+7).lineTo(r.x+12,bottom+7).stroke({color:0xf2dfae,width:2,alpha:.8});
         // Opening a shutter exposes warm light; the full beam waits for all three.
         for(const s of states)if(s.done){
             physical.roundRect(s.shutter.x-30,s.shutter.y-43,60,86,5).fill({color:0xffda80,alpha:.3});
