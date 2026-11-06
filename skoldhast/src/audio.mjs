@@ -17,7 +17,7 @@
  *   audio.setMotion({ speed01, underwater, hidden })                      // every frame, allocation-free
  *   audio.stinger(name) → seconds          // aha reveal chapter freeze plask leap unfold discovery
  *   audio.freeze(on)                       // stop dead / start on the next downbeat
- *   audio.sfx(name, opts)                  // see SFX; every effect also takes { gain, pan }
+ *   audio.sfx(name, opts)                  // see SFX; every effect also takes { gain, pan, delay }
  *   audio.phrase(n, { inst }) → seconds    // first n notes of the theme
  *   audio.note(i, { inst, vel })           // scale degree i (0 = D4) on lyre | shell | plank | bell-free
  *   audio.dispose()                        // stops and disconnects everything; closes only its own ctx
@@ -186,7 +186,7 @@ const FILL = [4, 'tone', 0.34, 4.5, 'tone', 0.42, 5, 'tone', 0.52, 5.5, 'tone', 
 export const AREAS = Object.freeze(['table', 'land', 'sea', 'bay', 'final', 'quiet']);
 export const STINGERS = Object.freeze(['aha', 'reveal', 'chapter', 'freeze', 'plask', 'leap', 'unfold', 'discovery']);
 export const SFX = Object.freeze(['hoof', 'splash', 'drip', 'shake', 'bubble', 'swim', 'pencil', 'rustle', 'unfold',
-    'crabclick', 'neigh', 'blubb', 'snort', 'stamp', 'gull', 'wind', 'whoosh', 'thud', 'latch', 'ratchet', 'gate', 'pop',
+    'crabclick', 'neigh', 'blubb', 'snort', 'stamp', 'gull', 'wind', 'thunder', 'whoosh', 'thud', 'latch', 'ratchet', 'gate', 'pop',
     'page', 'pickup', 'colorin', 'sparkle', 'stopwatch', 'write', 'ui', 'crabvoice']);
 export const SURFACES = Object.freeze(['sand', 'wetsand', 'plank', 'pier', 'grass', 'rock', 'shallow']);
 export const ENVIRONMENTS = Object.freeze(['beach', 'steppe', 'kelp', 'bay', 'table']);
@@ -1129,6 +1129,36 @@ function renderWind(fs, rng) {
     ch.forEach((x) => scaleTo(x, 0.3, pk));
     return { ch, send: 0.2 };
 }
+// A distant roll of thunder after the lightning, soft enough for a child (6 November: the storm flashed in
+// silence, with only a gust of wind): a few low rolls of filtered noise, each swelling and dying away.
+function renderThunder(fs, rng) {
+    const dur = rr(rng, 3.2, 4.2);
+    const ch = [buf(fs, dur), buf(fs, dur)];
+    const rolls = [[0, 1]];
+    for (let k = 1; k < 4; k++) rolls.push([rr(rng, 0.25, 1.7), rr(rng, 0.35, 0.75)]);
+    const env = (t) => {
+        let v = 0;
+        for (const [t0, a] of rolls) { const u = t - t0; if (u > 0) v += a * (1 - Math.exp(-u / 0.14)) * Math.exp(-u / 0.85); }
+        return v * Math.min(1, (dur - t) / 0.5);
+    };
+    const e = ctl(ch[0].length, fs, env);
+    for (let c = 0; c < 2; c++) {
+        const x = pink(ch[c].length, rng);
+        filt(x, fs, 'lp', 150 + c * 20, 0.7);
+        filt(x, fs, 'lp', 240, 0.7);
+        filt(x, fs, 'hp', 26, 0.7);
+        // and its growl higher up, so a phone's or a tablet's small speaker still carries it
+        const m = pink(ch[c].length, rng);
+        filt(m, fs, 'hp', 260, 0.7);
+        filt(m, fs, 'lp', 720, 0.7);
+        const xs = Math.max(1e-9, peakOf(x)), ms = Math.max(1e-9, peakOf(m));
+        for (let i = 0; i < x.length; i++) ch[c][i] = (x[i] / xs + 0.45 * m[i] / ms) * e[i];
+        dcBlock(ch[c], fs);
+    }
+    const pk = Math.max(peakOf(ch[0]), peakOf(ch[1]));
+    ch.forEach((x) => scaleTo(x, 0.55, pk));
+    return { ch, send: 0.35 };
+}
 function renderWhoosh(fs, rng) {
     const dur = rr(rng, 0.45, 0.6);
     const ch = [buf(fs, dur), buf(fs, dur)];
@@ -1399,6 +1429,7 @@ const SFX_RENDER = {
     stamp: renderStamp,
     gull: renderGull,
     wind: renderWind,
+    thunder: renderThunder,
     whoosh: renderWhoosh,
     thud: renderThud,
     latch: renderLatch,
@@ -1414,7 +1445,7 @@ const SFX_RENDER = {
     write: renderWrite
 };
 // how many variants each effect keeps before reusing them (and how many may overlap)
-const SFX_VARIANTS = { drip: 6, bubble: 6, crabclick: 5, crabvoice: 5, ratchet: 5, pop: 3, splash: 2, wind: 2, unfold: 2, gate: 2, shake: 2, blubb: 2 };
+const SFX_VARIANTS = { thunder: 3, drip: 6, bubble: 6, crabclick: 5, crabvoice: 5, ratchet: 5, pop: 3, splash: 2, wind: 2, unfold: 2, gate: 2, shake: 2, blubb: 2 };
 const SFX_POLY = { hoof: 8, drip: 6, bubble: 6, ratchet: 4, pencil: 3, splash: 4, crabvoice: 1, ui: 3 };
 
 // --- ambience beds (seamless loops) -------------------------------------------------------------
@@ -2218,7 +2249,7 @@ export function createAudio({ ctx: givenCtx, seed, lifecycle = false, warm = tru
     function sfx(name, opts) {
         if (!audible()) return;
         const o = opts || {};
-        const t = ctx.currentTime + 0.005;
+        const t = ctx.currentTime + 0.005 + clamp(Number(o.delay) || 0, 0, 3); // { delay }: thunder after its flash
         const gm = o.gain == null ? 1 : clamp(o.gain, 0, 2);
         const poly = SFX_POLY[name] || 4;
         if ((sfxCount[name] || 0) >= poly || voices > 120) return;

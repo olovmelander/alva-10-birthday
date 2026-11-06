@@ -537,7 +537,8 @@ export function createGame({ host = document.body, assetBase = './skoldhast/', s
                 case 'seedsLit': audio.sfx('sparkle'); audio.stinger('aha'); break;
                 case 'vine': audio.sfx('gate'); break;
                 case 'trade': audio.sfx('sparkle'); break;
-                case 'thunder': audio.sfx('wind', { gain: 0.5 + e.strength * 0.5 }); break;
+                // a soft roll of thunder a moment after the flash, under a gust (the storm used to flash in silence)
+                case 'thunder': audio.sfx('thunder', { gain: 0.3 + e.strength * 0.6, delay: 0.5 + Math.random() * 0.9 }); audio.sfx('wind', { gain: 0.3 + e.strength * 0.35 }); break;
                 case 'clue': audio.sfx('write'); break;
                 case 'bump': audio.sfx('thud'); break;
                 case 'skid': audio.sfx('hoof', { surface: 'sand', speed01: 1 }); break;

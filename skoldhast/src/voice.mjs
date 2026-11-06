@@ -15,6 +15,9 @@
  *   'aside'     a thought, a hint bubble, a joke: only when nobody is speaking, and the same line at
  *               most once every ASIDE_GAP seconds, so feedback that repeats is shown, not nagged.
  * Music is lowered while a clip plays (audio.duckSpeech) and the clip follows the voice volume.
+ * Every clip is played at the same loudness (LEVEL): the manifest holds each clip's measured LUFS
+ * (6 November: Kartväktaren, recorded in Pappa's own voice, was 5 dB louder than Klo, and some of
+ * Tukankrabban's lines 6 dB quieter).
  */
 import { voiceKey } from './voice-key.mjs';
 
@@ -26,6 +29,9 @@ const CACHE = 48;
 const LOAD_WAIT = 4, END_SLACK = 1.5;
 // a stopped voice fades out this quickly: soft, not a click, and too short to talk over the next one
 const FADE = 0.12;
+// the loudness every clip is played at (about the clips' median), and how far a clip is ever moved
+export const LEVEL = -20.5;
+export const levelGain = (lufs) => (typeof lufs === 'number' ? Math.min(2, Math.max(0.45, 10 ** ((LEVEL - lufs) / 20))) : 1);
 
 /**
  * @param {object} o
@@ -35,10 +41,10 @@ const FADE = 0.12;
  * @param {() => number} [o.clock] seconds
  */
 export function createVoice({ audio = () => null, base = BASE, fetch: get = globalThis.fetch?.bind(globalThis), clock = () => performance.now() / 1000 } = {}) {
-    let clips = null, enabled = true, cur = null;
+    let clips = null, lufs = {}, enabled = true, cur = null;
     const buffers = new Map(), heard = new Map();
     const ready = !get ? Promise.resolve(clips = {}) : get(new URL('manifest.json', base))
-        .then(r => (r.ok ? r.json() : null)).then(m => { clips = m?.clips || {}; }).catch(() => { clips = {}; });
+        .then(r => (r.ok ? r.json() : null)).then(m => { clips = m?.clips || {}; lufs = m?.lufs || {}; }).catch(() => { clips = {}; });
     // only a running context can be waited for (before the first tap, or in a hidden tab, it is not)
     const engine = () => { const a = audio(); return a?.ctx && a.voiceInput && a.ctx.state !== 'suspended' && a.ctx.state !== 'closed' ? a : null; };
 
@@ -105,7 +111,8 @@ export function createVoice({ audio = () => null, base = BASE, fetch: get = glob
             src.buffer = buf;
             // through its own gain, so that stop() can fade it
             const gain = a.ctx.createGain?.();
-            if (gain) { src.connect(gain); gain.connect(a.voiceInput); me.gain = gain; } else src.connect(a.voiceInput);
+            // (and at the same loudness as every other clip)
+            if (gain) { gain.gain.value = levelGain(lufs[key]); src.connect(gain); gain.connect(a.voiceInput); me.gain = gain; } else src.connect(a.voiceInput);
             src.onended = () => { if (cur === me) cur = null; me.finish(); };
             me.node = src;
             src.start();
