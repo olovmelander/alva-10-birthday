@@ -605,7 +605,9 @@ export function createView(PIXI, app, { assets, G, heroFactory, eggTarget = null
                     for (let x = top[0][0] + 60; x < top.at(-1)[0] - 60; x += h(1.6) + hash(x, 36) * h(2.4)) {
                         const y = heightOn(s.pts, x);
                         if (y === null || (def.waters || []).some(w => x > w.x0 - 30 && x < w.x1 + 30 && y > w.top - 10)) continue;
-                        crystalCluster(gr, x, y + 4, { size: 0.32 + hash(x, 37) * 0.22, color: veinCol[Math.floor(hash(x, 38) * 3)], n: 3, seed: 11 });
+                        const cc = veinCol[Math.floor(hash(x, 38) * 3)];
+                        crystalCluster(gr, x, y + 4, { size: 0.32 + hash(x, 37) * 0.22, color: cc, n: 3, seed: 11 });
+                        (S.crystalSpots ||= []).push({ x, y, color: cc, size: 1 });
                     }
                 }
                 // Åsktoppen's rock (under the turf, out in the weather): cracks running down from the top, a pale lit
@@ -1276,6 +1278,7 @@ export function createView(PIXI, app, { assets, G, heroFactory, eggTarget = null
             if (gy === null) return;
             glowAt(h(x), gy - h(0.6), 5, col, 0.22, L.back);
             crystalCluster(back, h(x), gy - 4, { size: 1.1 + hash(i, 9) * 0.5, color: col, n: 5, seed: i });
+            (S.crystalSpots ||= []).push({ x: h(x), y: gy, color: col, size: 1.8 });
             twinkleAt(h(x) + 10, gy - h(0.9), 0.5, 0xffffff, L.back);
         });
         for (let k = 0; k < 26; k++) twinkleAt(h(-1 + hash(k, 111) * 77), h(-3.6 + hash(k, 112) * 2.4), 0.25 + hash(k, 113) * 0.3, 0xcfe6ff, L.back);
@@ -1556,7 +1559,8 @@ export function createView(PIXI, app, { assets, G, heroFactory, eggTarget = null
      * water's reflections, and in Mindre rörelse the fireflies keep still.
      */
     function buildNightLight(def) {
-        if (def.sky === 'cave' || def.underground) return;
+        if (def.underground) { buildCaveLight(def); return; }
+        if (def.sky === 'cave') return;
         // the lightning's light along the top of the ground and the rocks
         const rim = new PIXI.Graphics(); rim.label = 'bolt-rim';
         for (const q of def.surfaces) {
@@ -1582,6 +1586,35 @@ export function createView(PIXI, app, { assets, G, heroFactory, eggTarget = null
             c.addChild(halo, halo2, core);
             L.mid.addChild(c);
             S.anim.push({ kind: 'firefly', c, halo, x0: x, y0: y, o: hash(k, 203) * 6, r: h(0.25 + hash(k, 204) * 0.5) });
+        }
+    }
+
+    /**
+     * Kristallgrottan's crystals light the cave (6 November: they were small and the cave nearly black): a pool of
+     * their colour on the floor under each one and a soft glow over it, breathing slowly. All of it lies behind the
+     * characters and the water's front; in Mindre rörelse it holds still.
+     */
+    let lightTex = null;
+    /** A soft round light: full in the middle, gone at its rim (a canvas gradient, made once). */
+    function softLight() {
+        if (lightTex || typeof document === 'undefined') return lightTex || RAW.Texture.WHITE;
+        const cv = document.createElement('canvas'); cv.width = cv.height = 128;
+        const c = cv.getContext('2d'), gr = c.createRadialGradient(64, 64, 0, 64, 64, 64);
+        gr.addColorStop(0, 'rgba(255,255,255,1)'); gr.addColorStop(0.35, 'rgba(255,255,255,.55)'); gr.addColorStop(1, 'rgba(255,255,255,0)');
+        c.fillStyle = gr; c.fillRect(0, 0, 128, 128);
+        lightTex = RAW.Texture.from(cv);
+        return lightTex;
+    }
+    function buildCaveLight(def) {
+        for (const c of S.crystalSpots || []) {
+            const pool = new RAW.Sprite(softLight()); pool.anchor.set(0.5); pool.tint = c.color; pool.blendMode = 'add';
+            pool.position.set(c.x, c.y + 4); pool.width = h(2.4) * c.size; pool.height = h(0.42) * c.size;
+            const glow = new RAW.Sprite(softLight()); glow.anchor.set(0.5); glow.tint = c.color; glow.blendMode = 'add';
+            glow.position.set(c.x, c.y - h(0.3) * c.size); glow.width = glow.height = h(1.5) * c.size;
+            L.terrain.addChild(pool); L.back.addChild(glow);
+            const o = hash(c.x, 205) * 6;
+            S.anim.push({ kind: 'crystalGlow', s: pool, base: 0.42, o });
+            S.anim.push({ kind: 'crystalGlow', s: glow, base: 0.2, o: o + 0.8 });
         }
     }
 
@@ -1810,6 +1843,7 @@ export function createView(PIXI, app, { assets, G, heroFactory, eggTarget = null
         for (const a of S.anim) {
             if (a.kind === 'current') { a.c.x += a.v * dt; if (a.c.x > a.x1 - h(0.8)) a.c.x = a.x0; }
             else if (a.kind === 'fall') { const u = (t * (rm ? 0.6 : 1.8) + a.o) % 1; a.c.y = lerp(a.y0, a.y1, u); a.c.alpha = 0.3 + 0.6 * Math.sin(u * Math.PI); }
+            else if (a.kind === 'crystalGlow') a.s.alpha = a.base * (rm ? 0.9 : 0.72 + 0.28 * Math.sin(t * 0.8 + a.o));
             else if (a.kind === 'firefly') {
                 // a slow wandering loop, blinking softly; still in Mindre rörelse; dimmer in the heaviest rain
                 const ph = t * 0.35 + a.o;
