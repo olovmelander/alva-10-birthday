@@ -472,6 +472,7 @@ export function createGame({ host = document.body, assetBase = './skoldhast/', s
                 const p = G.player;
                 audio.setMotion({ speed01: Math.min(1, Math.abs(p.vx) / 1200), underwater: p.mode === 'swim' && p.submerge > 0.7, hidden: p.hidden });
                 audio.setEnvironment(p.mode === 'swim' ? 'kelp' : 'steppe');
+                audio.setRain?.(view.rainLevel);
             }
         } else if (mode === 'table') {
             presses.clear();

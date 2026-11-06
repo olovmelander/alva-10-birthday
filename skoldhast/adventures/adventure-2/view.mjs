@@ -79,7 +79,7 @@ export function createView(PIXI, app, { assets, G, heroFactory, eggTarget = null
     L.hero.addChild(hero.view);
     let cloudTexture = null;
     let storm = 1, stormShown = 1;
-    let flash = 0, nextLightning = 4;
+    let flash = 0, nextLightning = 4, rainLevel = 0;
     let fade = 0, fadeTarget = 0, fadeRate = 3;
     const waiters = new Set();
 
@@ -1847,6 +1847,8 @@ export function createView(PIXI, app, { assets, G, heroFactory, eggTarget = null
         const under = snap.mode === 'swim' && snap.submerge > 0.7;
         const sheltered = (S.id === 'strand' && snap.x > h(89)) || (S.id === 'skog' && snap.x > h(74.3) && snap.x < h(87.7) && snap.y > h(-0.95));
         rain.visible = stormShown > 0.03 && S.def.sky !== 'cave';
+        // and how loud it is (main.mjs gives it to the audio engine's rain bed): softer under shelter and gone in the cave
+        rainLevel = rain.visible ? stormShown * (sheltered ? 0.35 : 1) : 0;
         const nRain = Math.round(drops.length * stormShown * (rm ? 0.35 : 1));
         // leaves torn loose by the storm blow across the forest pages
         if (!rm && stormShown > 0.4 && (S.def.sky === 'forest' || S.def.sky === 'river') && Math.random() < dt * 1.6 * stormShown) {
@@ -2434,6 +2436,7 @@ export function createView(PIXI, app, { assets, G, heroFactory, eggTarget = null
         /** Eggs picked up but still flying to the count (main shows the count without them until they land). */
         get eggsArriving() { return pickups.length; },
         get eggsLanded() { return eggsLanded; },
+        get rainLevel() { return rainLevel; },
         fadeNow(v) { fade = fadeTarget = v; },
         heroScreen() {
             const p = hero.view;
