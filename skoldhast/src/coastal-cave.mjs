@@ -60,7 +60,7 @@ export function createCoastalCave(PIXI, { def, texture = () => null }) {
     container.addChild(details);
     // Under the water the cave has walls too: its far wall in the dim, darker toward the back, with strata and weed
     // hanging from its ceiling, ending in the mouth's rim toward the kelp. (The roof lies above the surface, so in a
-    // phone held sideways the cave read as open water, 7 November.)
+    // phone held sideways the cave read as open water, 6 November.)
     const wall = new PIXI.Graphics(); wall.label = 'cave-under-wall';
     const ground = (x) => heightOn(floor.pts, Math.min(Math.max(x, floor.pts[0][0]), floor.pts.at(-1)[0])) ?? h(4);
     const rim = [];

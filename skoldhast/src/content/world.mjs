@@ -449,7 +449,7 @@ SCENES.kelp = {
         { kelp: 5, x0: h(8.5), x1: h(21), layer: 'fore' },
         { kelp: 8, x0: h(23), x1: h(46), layer: 'mid', chapter: 2 },
         // Kelphjärtat is a clearing in the thickest of the kelp: a denser stand on either side of it (the puzzle's own
-        // stretch stays clear), so the place reads as the forest's heart and not as open water (7 November)
+        // stretch stays clear), so the place reads as the forest's heart and not as open water (6 November)
         { kelp: 6, x0: h(30.6), x1: h(34.1), layer: 'mid', chapter: 2 },
         { kelp: 6, x0: h(41), x1: h(44.5), layer: 'mid', chapter: 2 },
         { sprite: 'kelp-bed', x: h(15.1), y: h(6.1), layer: 'mid' },
@@ -565,7 +565,7 @@ SCENES.viken = {
     pilings: [{ x: h(25.15), top: h(-0.62) + 30, width: 20 }],
     // Strömröret above the water: the tube the current climbs, from its drawn lower part up into the gallery basin
     // foot: the drawn lower part ends a little above the bay's bed, so the pipe runs on behind it into the bed
-    // (it floated, its lower edge in open water, 7 November)
+    // (it floated, its lower edge in open water, 6 November)
     tubes: [{ x: h(26.5), y0: h(-7.24), y1: h(1.0), width: 128, foot: { y0: h(4.4), y1: h(6.1), width: 170 } }],
     dashed: [
         // runways of about 4 HL (shore and pier start), 1.4 HL and 1.4 HL between the segments; each is at most 10 HL

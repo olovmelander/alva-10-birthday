@@ -1219,7 +1219,7 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
 
     /**
      * A gap's own walls and floor (Streckbron's gully, the ditch, the cleft below the plateau): the ground was cut
-     * square, a ruled vertical face and a ruled floor, and the gap read as a box (7 November). A jagged band of the
+     * square, a ruled vertical face and a ruled floor, and the gap read as a box (6 November). A jagged band of the
      * high ground's soil now covers each face, with its own uneven pencil edge, and earth fallen from it lies in a
      * slope at its foot, so the inner corners are not right angles. Drawn over the outline; the walking lines are
      * unchanged.
@@ -1297,7 +1297,7 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
     }
 
     /**
-     * The bay's bed under the pier: a ruled slab before (7 November). Its edge now has an uneven skin of sand with
+     * The bay's bed under the pier: a ruled slab before (6 November). Its edge now has an uneven skin of sand with
      * ripples, and pebbles, small shells and tufts of weed lie on it. Drawn over the outline; the bed's line is unchanged.
      */
     function seabedLife(shape, lines) {
@@ -1516,7 +1516,7 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
                 const band = [...rim.map(([x, y]) => [x, Math.max(y, y0 + Math.sin(x * .013 + k) * 10)]), [bk.x1 + 6, bk.floor + 60], [bk.x0 - 6, bk.floor + 60]];
                 g.poly(band.flat()).fill(pen.hatch(0x3b2a1a, .1));
             }
-            // its own texture, so a deep gap reads as rock (or earth) going down, not as one flat panel (7 November):
+            // its own texture, so a deep gap reads as rock (or earth) going down, not as one flat panel (6 November):
             // cracks and ledges in rock, small stones and roots in earth, and darker toward the foot
             {
                 const hsh = (n) => { const v = Math.sin(n * 71.3 + 9.1) * 43758.5453; return v - Math.floor(v); };
