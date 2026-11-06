@@ -24,8 +24,10 @@ in landscape, and the browser checks for its area were run alone.
   lysa upp den?"). Then each crystal cluster casts a pool of its colour and a soft glow (`buildCaveLight`, faded
   in on `k1_lit`).
 - **Äventyr 1 under water:**
-  - In Spegelviken, fish swim deep under the pier and bubbles rise beside the pipe (`bayFish`, `bayBubbles` in
-    `content/world.mjs`). Both stay well under the surface, away from the lighthouse's reflection.
+  - In Spegelviken, bubbles rise beside the pipe, where the current goes up ("Här går den upp genom röret!";
+    `bayBubbles` in `content/world.mjs`). They stay well under the surface, away from the lighthouse's reflection.
+    No loose fish were added: in this story fish are characters with a part to play (the lantern fish, the shy
+    ones), and fish in Spegelviken would promise a puzzle that is not there.
   - The light on the bed is closer together, there are a few more drifting specks, and the light shafts are
     slightly brighter (`MOODS.a1Under`).
 - **Äventyr 2's mountain:** the storm's mist drifts slowly across its flanks and thins as the storm calms.

@@ -1701,19 +1701,7 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
             O.glimpse = heroFactory({ mini: true }); O.glimpse.view.scale.set(0.3); L.far.addChild(O.glimpse.view); O.glimpse.view.visible = false;
         }
         if (def.id === 'viken') {
-            // life in the bay under the pier (6 November): small schools of fish in the deep water, far from the
-            // surface where the lighthouse is mirrored, and bubbles rising round the pipe's foot
-            O.bayFish = (def.bayFish || []).map((sc) => {
-                const fish = [];
-                for (let i = 0; i < sc.count; i++) {
-                    const f = spr('fish-' + (1 + (i % 2)));
-                    if (f._placeholder) { f.destroy(); continue; }
-                    f.anchor?.set?.(0.5); f.scale.set(0.8 + (i % 3) * 0.1); f.alpha = 0.7; f.tint = 0xd2e0e2;
-                    L.far.addChild(f);
-                    fish.push({ f, ox: ((i * 37) % 11 - 5) * 22, oy: ((i * 23) % 7 - 3) * 16, ph: i * 1.3 });
-                }
-                return { sc, fish, prevX: sc.x };
-            });
+            // bubbles rising beside the pipe, where the current goes up (6 November)
             O.bayBubbles = [];
             for (const b of def.bayBubbles || []) for (let i = 0; i < b.count; i++) {
                 const g = new PIXI.Graphics(); const r = 11 + (i % 3) * 5;
@@ -2571,12 +2559,6 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
         }
         if (def.id === 'viken') {
             {
-                const t = G.lessMotion ? 0 : time;
-                for (const sc of O.bayFish) {
-                    const gx = sc.sc.x + Math.sin(t * 0.09 + sc.sc.x) * sc.sc.range, gy = sc.sc.y + Math.sin(t * 0.27) * h(0.3);
-                    const dir = gx >= sc.prevX ? 1 : -1; sc.prevX = gx;
-                    for (const q of sc.fish) { q.f.x = gx + q.ox + Math.sin(t * 1.7 + q.ph) * 10; q.f.y = gy + q.oy + Math.sin(t * 2.3 + q.ph) * 6; q.f.scale.x = Math.abs(q.f.scale.x) * -dir; }
-                }
                 for (const q of O.bayBubbles) {
                     const u = G.lessMotion ? q.o : (time * q.b.speed + q.o) % 1;
                     q.g.x = q.b.x + q.dx + Math.sin(u * 9 + q.o * 6) * 6; q.g.y = lerp(q.b.y0, q.b.y1, u);

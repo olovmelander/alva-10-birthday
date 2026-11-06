@@ -561,10 +561,10 @@ SCENES.viken = {
         { id: 'stair', x: h(26.6), y: h(-7.3), to: 'stairFoot', label: CONTEXT_LABELS.down, opens: 'stair_open' },
         { id: 'stair-up', x: h(23.7), y: h(-0.62), to: 'stairTop', label: CONTEXT_LABELS.up, when: 'stair_open' }
     ],
-    // life in the bay (view only): fish deep under the pier, bubbles round the pipe's foot. Kept off the surface
-    // where the lighthouse is mirrored.
-    bayFish: [{ x: h(13.5), y: h(4.2), count: 6, range: h(2.2) }, { x: h(20), y: h(4.9), count: 5, range: h(1.8) }],
-    // (beside the pipe, on the pier's side: behind it they were hidden)
+    // bubbles rising beside the pipe, where the current goes up ("Här går den upp genom röret!"); view only, kept
+    // off the surface where the lighthouse is mirrored. (No fish here: in this story fish are characters with a part
+    // to play, the lantern fish and the shy ones, and loose fish in Spegelviken would promise a puzzle that is not
+    // there.)
     bayBubbles: [{ x: h(25.75), y0: h(4.6), y1: h(1.4), count: 6, speed: 0.16 }],
     // the stair's post continues down into the bay
     pilings: [{ x: h(25.15), top: h(-0.62) + 30, width: 20 }],
