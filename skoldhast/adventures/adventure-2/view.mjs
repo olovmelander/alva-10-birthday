@@ -671,9 +671,36 @@ export function createView(PIXI, app, { assets, G, heroFactory, eggTarget = null
         for (const a of solids) for (const b of solids) {
             if (a === b || Math.abs(a.pts.at(-1)[0] - b.pts[0][0]) > 2 || UNDER(a) === UNDER(b)) continue;
             const xb = b.pts[0][0], yb = b.pts[0][1];
-            const ca = (MAT[UNDER(a)] || [null, 0x8a6a4a])[1], cb = (MAT[UNDER(b)] || [null, 0x8a6a4a])[1];
-            L.terrain.addChild(softDark('side', xb, yb + h(0.3), xb + h(2), yb + h(2.9), { color: ca, alpha: 0.62 }));
-            L.terrain.addChild(softDark('side', xb - h(2), yb + h(0.3), xb, yb + h(2.9), { color: cb, alpha: 0.62, mirror: true }));
+            // the line between the two soils wanders: one reaches into the other in tongues, as two colours meet in a
+            // pencil drawing. (Before, a tint of each ran into the other; but its own edge was a ruled line, and a straight
+            // line between two textures stayed sharp under any tint, 6 November.)
+            {
+                const n = 18, edge = [], fade = [];
+                for (let i = 0; i <= n; i++) {
+                    const u = i / n, y = yb + h(0.06) + u * h(2.25);
+                    const wave = 0.5 + 0.5 * Math.sin(u * 9 + hash(xb, 195) * 6) * Math.cos(u * 4.3 + 1);
+                    const reach = h(0.1 + 0.55 * wave + hash(xb + i, 194) * 0.12) * Math.min(1, u * 6, (1 - u) * 6);
+                    (u < 0.62 ? edge : fade).push([xb - reach, y]);
+                }
+                const tongue = new PIXI.Graphics();
+                const full = [[xb, yb + h(0.06)], ...edge, [xb, edge.at(-1)[1]]];
+                poly(tongue, full).fill(material(UNDER(b)));
+                poly(tongue, full).fill({ color: UNDER(b) === 'earth' ? 0x5a3f2a : 0x6b6256, alpha: 0.18 }); // as the soil's own band
+                // below the soil's full colour it thins into the paper, and so does the tongue
+                poly(tongue, [[xb, edge.at(-1)[1]], edge.at(-1), ...fade, [xb, yb + h(2.31)]]).fill(material(UNDER(b), 0.45));
+                L.terrain.addChild(tongue);
+            }
+            // grass does not stop at a ruled edge either: its turf thins out a little way onto the other ground
+            const [ga, gb] = a.mat === 'grass' ? [a, 1] : b.mat === 'grass' ? [b, -1] : [null, 0]; // into the other ground
+            if (ga) {
+                const wedge = [], n = 8, len = h(0.9);
+                for (let i = 0; i <= n; i++) { const u = i / n, x = xb + gb * u * len; wedge.push([x, yb - 2 + (hash(x, 193) - 0.5) * 6]); }
+                for (let i = n; i >= 0; i--) { const u = i / n, x = xb + gb * u * len; wedge.push([x, yb + h(0.3) * (1 - u) ** 1.5]); }
+                const tuft = new PIXI.Graphics();
+                poly(tuft, wedge).fill(material('grass'));
+                for (let k = 0; k < 4; k++) { const x = xb + gb * len * (0.15 + k * 0.2); tuft.moveTo(x, yb + 2).quadraticCurveTo(x + 4, yb - 12, x + gb * 9, yb - 20 + k * 3).stroke(pen.line(0x5f7a4a, 2.2, 0.85)); }
+                L.terrain.addChild(tuft);
+            }
         }
         // the same where a bank runs on under the water (the river, the cave's islands): the two soils run into each
         // other a little way instead of meeting in a ruled line down the page (5 November)
