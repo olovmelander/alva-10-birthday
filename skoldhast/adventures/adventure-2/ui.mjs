@@ -129,8 +129,8 @@ export function createA2UI(host, { assetBase, handlers, voice = null }) {
     // its answer; what the research team has found out (facts the moon made untrue struck out in pencil); and the
     // secrets found after the story.
     const NB = NOTEBOOK;
-    const TAB_ICONS = ['shell', 'bulb', 'lens', 'cloud', 'note', 'star'];
-    const FIRST_PAGE = 1;
+    const TAB_ICONS = ['shell', 'bulb', 'lens', 'cloud', 'watch', 'note', 'star'];
+    const FIRST_PAGE = 1, SECRETS_PAGE = 6;
 
     /** The map: the forest and the river beach side by side, then the mountain with the crystal cave in its foot and
      *  Åsktoppen at its top. A page is named once the story has named it; its eggs show once it has been visited. */
@@ -186,7 +186,7 @@ export function createA2UI(host, { assetBase, handlers, voice = null }) {
     }
 
     function journal(state) {
-        const { objective, eggs, total, hatched, ended, hypotheses, answered, moon, clues, places, secrets, place } = state;
+        const { objective, eggs, total, hatched, ended, hypotheses, answered, moon, clues, places, secrets, measures = [], place } = state;
         const found = secrets.filter(s => s.found).length;
         let turn = () => {};
         const pages = [
@@ -211,7 +211,7 @@ export function createA2UI(host, { assetBase, handlers, voice = null }) {
                 if (place) c.append(el('p', 'sk-j-small a2-here', NB.here(place)));
                 if (ended) {
                     c.append(el('h4', '', NB.secrets), el('p', 'sk-j-recap', NB.secretsCount(found, secrets.length)));
-                    c.append(ui.button(NB.secretsOpen, () => turn(5), 'sk-j-help a2-to-secrets'));
+                    c.append(ui.button(NB.secretsOpen, () => turn(SECRETS_PAGE), 'sk-j-help a2-to-secrets'));
                 } else {
                     const box = el('div', 'a2-notes');
                     box.setAttribute('aria-live', 'polite');
@@ -283,6 +283,30 @@ export function createA2UI(host, { assetBase, handlers, voice = null }) {
                 face.setAttribute('aria-hidden', 'true');
                 face.innerHTML = FACES.tukan;
                 c.append(face);
+            },
+            // Häst eller sköldpadda? Klo's measurements, as in Äventyr 1: the hooves' things and the shell's, a tally with
+            // his sign, his other readings, and after the story the conclusion
+            (c) => {
+                c.append(el('h3', '', NB.measures), el('p', 'sk-j-small', NB.measuresIntro));
+                const of = (kind) => measures.filter(m => m.kind === kind);
+                const horse = of('horse'), turtle = of('turtle'), other = of('other');
+                if (!measures.length) c.append(el('p', 'sk-j-small', NB.measuresEmpty));
+                for (const [title, list] of [[NB.horseThings, horse], [NB.turtleThings, turtle], [NB.otherThings, other]]) {
+                    if (!list.length) continue;
+                    const ul = el('ul', 'sk-j-list sk-j-checks');
+                    for (const m of list) ul.append(el('li', '', NB.measure[m.id]));
+                    c.append(el('h4', '', title), ul);
+                }
+                if (horse.length || turtle.length) {
+                    const lean = ended ? 0 : horse.length - turtle.length;
+                    const verdict = el('div', 'sk-j-verdict');
+                    const words = `${NB.tally(horse.length, turtle.length)} ${lean > 0 ? NB.tallyHorse : lean < 0 ? NB.tallyTurtle : NB.tallyEven}`;
+                    verdict.append(el('p', 'sk-j-tally', ended ? NB.tally(horse.length, turtle.length) : words),
+                        ui.art('npcs', ended || lean === 0 ? 'klo-signs' : lean > 0 ? 'sign-hast' : 'sign-skoldpadda', 'sk-j-sign'));
+                    c.append(verdict);
+                }
+                if (ended) c.append(el('p', 'sk-j-conclusion', NB.measuresConclusion));
+                c.append(ui.art('npcs', 'klo-stopwatch', 'sk-j-klo'));
             },
             // what the research team has found out
             (c) => {

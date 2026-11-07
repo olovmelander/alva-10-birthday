@@ -47,6 +47,24 @@ const PUZZLES = [
 ];
 // the flag that frees each of these puzzles' eggs before it is picked up
 const FREED = { p1: 'p1_fallen', p5: 'p5_washed', p4: 'p4_lit' };
+/** Klo's measurements for the notebook's "Häst eller sköldpadda?": what was done with the hooves, with the shell, and
+ *  his other readings, each written in once it has happened (the flag that says so). */
+const MEASURES = [
+    { id: 'drum', kind: 'horse', flag: 'p1_fallen' },
+    { id: 'bridge', kind: 'horse', flag: 'p2_bridge' },
+    { id: 'leap', kind: 'horse', flag: 'b:leapDone' },
+    { id: 'crystals', kind: 'horse', flag: 'k1_lit' },
+    { id: 'lightBridge', kind: 'horse', flag: 't2_bridge' },
+    { id: 'falls', kind: 'turtle', flag: 'cave_reached' },
+    { id: 'seeds', kind: 'turtle', flag: 'p4_lit' },
+    { id: 'coin', kind: 'turtle', flag: 'coin_got' },
+    { id: 'wall', kind: 'turtle', flag: 'k2_through' },
+    { id: 'spring', kind: 'turtle', flag: 'topp_reached' },
+    { id: 'wind', kind: 'turtle', flag: 'wind_passed' },
+    { id: 'heart', kind: 'other', flag: 'b:love4' },
+    { id: 'bounce', kind: 'other', flag: 't:bounce' }, // (the sköldhäst's first 'Hoppsan!' on the mushroom)
+    { id: 'windForce', kind: 'other', flag: 'b:windCarried' }
+];
 /** The surprises after the story, in the notebook's "Hemliga upptäckter": each is written in once it has happened. */
 const SECRETS = [
     { id: 'hatchFollow', flag: 'b:hatchFollow', page: 'strand' },
@@ -381,6 +399,7 @@ export function createStory(G, io) {
             answered: F.has('cloud_met'), moon: F.has('moon'),
             clues: CLUE_ORDER.filter(id => F.has('clue_' + id)).map(id => ({ id, text: CLUES[id] })),
             places: places(),
+            measures: MEASURES.filter(m => F.has(m.flag)).map(m => ({ id: m.id, kind: m.kind })),
             secrets: SECRETS.map(s => ({ id: s.id, page: s.page, found: F.has(s.flag) }))
         };
     }
@@ -938,4 +957,4 @@ export function createStory(G, io) {
     };
 }
 
-export { PUZZLES, eggFlag, SECRETS };
+export { PUZZLES, eggFlag, SECRETS, MEASURES };
