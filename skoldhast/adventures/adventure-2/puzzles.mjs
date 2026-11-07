@@ -350,13 +350,15 @@ export function contextAction(G) {
             return { id: 'talk-dyvel', label: CONTEXT.talk, who: 'dyvel', run: () => G.emit('talk', { who: 'dyvel' }) };
         }
     }
-    // a word with a companion: their help for what we are doing now
-    for (const who of ['tukan', 'klo']) {
-        const a = G.actors[who];
-        if (!a?.visible || a.scene !== G.sceneId) continue;
-        if (Math.abs(p.x - a.x) < TALK && Math.abs(p.y - a.y) < 0.8 * HL) {
-            return { id: 'talk-' + who, label: CONTEXT.talk, who, run: () => G.emit('talk', { who }) };
-        }
+    // a word with a companion: their help for what we are doing now. They follow close behind and usually both stand
+    // within reach (Tukankrabban used to answer every time, 7 November): the nearer one first, then the other, so the
+    // next word is always with the one not just spoken to. The badge's face and the mark over a head show whose turn it is.
+    const near = ['klo', 'tukan'].map(who => G.actors[who])
+        .filter(a => a?.visible && a.scene === G.sceneId && Math.abs(p.x - a.x) < TALK && Math.abs(p.y - a.y) < 0.8 * HL)
+        .sort((a, b) => Math.abs(p.x - a.x) - Math.abs(p.x - b.x));
+    if (near.length) {
+        const who = (near.length > 1 && near[0].id === G.lastTalk ? near[1] : near[0]).id;
+        return { id: 'talk-' + who, label: CONTEXT.talk, who, run: () => { G.lastTalk = who; G.emit('talk', { who }); } };
     }
     return null;
 }

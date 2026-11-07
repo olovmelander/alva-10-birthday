@@ -1,3 +1,16 @@
+## Äventyr 2: "Prata" reaches both Klo and Tukankrabban (7 November)
+
+Pappa found it hard to tell whether "Prata" would talk to Klo or Tukankrabban. They follow close behind the sköldhäst,
+and when it stands still both are within reach. The code always tried Tukankrabban first, so she answered nearly every
+time and Klo could hardly be reached. That included his new conclusion after the story.
+
+- **Who answers:** the nearer one first, then the other, and back. The next word always goes to the one not just
+  spoken to (`G.lastTalk`; the companion part of `contextAction` in `puzzles.mjs`).
+- **Seeing who:** the "E Prata" badge already shows the face. A little pencil speech bubble with three dots now also
+  floats over that character's head in the picture while "Prata" is offered (`S.talkMark`, `TALK_HEAD` in the view).
+  This applies to Skatan and Tordyveln as well.
+- **Test:** `tests/skoldhast-a2-notebook.test.mjs` ("Prata reaches both companions").
+
 ## Äventyr 2's notebook: Forskningsdagbok – Den magiska skogen (7 November)
 
 An independent review rated the old "Vad vet vi?" card usable but the plainest part of Äventyr 2. Pappa asked for all of

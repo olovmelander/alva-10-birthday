@@ -134,3 +134,24 @@ test('After the story, the first talk with Klo gives his conclusion; before it, 
     await B.settle(); B.G.emit('talk', { who: 'klo' }); await B.settle();
     assert.ok(!B.log.some(l => l.kind === 'say' && l.lines.some(([, t]) => t === STORY.measureEnd[1][1])));
 });
+
+test('Prata reaches both companions when they stand close: the nearer first, then the other, and back', async () => {
+    const R = at(['b:arrive', 'b:firstEgg', 'egg_e1'], 'strand', 27);
+    await R.settle();
+    const { G } = R;
+    // as they stand when the sköldhäst stops: Klo about one length behind, Tukankrabban nearly two
+    Object.assign(G.actors.klo, { scene: 'strand', visible: true, x: G.player.x + 1.0 * HL, y: G.player.y, follow: false });
+    Object.assign(G.actors.tukan, { scene: 'strand', visible: true, x: G.player.x + 1.7 * HL, y: G.player.y, follow: false });
+    await R.hold(0.2);
+    assert.equal(G.context?.who, 'klo', 'the nearer one first (Tukankrabban used to answer every time)');
+    const talked = () => R.log.filter(l => l.kind === 'say' && !l.remark).map(l => l.lines[0][0]);
+    await R.act(); await R.settle(); await R.hold(0.2);
+    assert.equal(talked().at(-1), 'klo');
+    assert.equal(G.context?.who, 'tukan', 'then the other');
+    await R.act(); await R.settle(); await R.hold(0.2);
+    assert.equal(talked().at(-1), 'tukan');
+    assert.equal(G.context?.who, 'klo', 'and back');
+    // with only one of them near, it is always that one
+    G.actors.tukan.x = G.player.x + 6 * HL; await R.hold(0.2);
+    assert.equal(G.context?.who, 'klo');
+});

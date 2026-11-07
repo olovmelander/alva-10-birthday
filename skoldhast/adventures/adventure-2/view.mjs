@@ -24,6 +24,8 @@ import { EGG_TOTAL } from './content/world.mjs';
 
 const h = (v) => v * HL;
 const clamp = (v, a, b) => (v < a ? a : v > b ? b : v);
+/** How high over each one's feet the "Prata" bubble floats (horse lengths): just above the head. */
+const TALK_HEAD = { klo: 0.82, tukan: 1.12, skata: 0.95, dyvel: 0.85 };
 const EGG_SCALE = 1.5; // eggs in the world (the nest's are smaller)
 const lerp = (a, b, t) => a + (b - a) * t;
 const mixColor = (a, b, t) => {
@@ -1901,6 +1903,17 @@ export function createView(PIXI, app, { assets, G, heroFactory, eggTarget = null
         }
         L.actors.addChild(shellBall);
         S.shellBall = { c: shellBall, pop: 0 };
+        // whose turn it is to be talked to: a little pencil speech bubble over that head while "Prata" is offered
+        {
+            const g = new PIXI.Graphics();
+            g.roundRect(-20, -15, 40, 26, 10).fill(pen.fill(0xfbf7ec)).stroke(pen.line(0x3b3530, 2));
+            g.poly([-6, 10, 2, 10, -9, 20]).fill(pen.fill(0xfbf7ec));
+            g.moveTo(-6, 10).lineTo(-9, 20).lineTo(2, 10).stroke(pen.line(0x3b3530, 2));
+            for (const x of [-9, 0, 9]) g.circle(x, -2, 2.6).fill({ color: 0x3b3530 });
+            g.visible = false;
+            L.fx.addChild(g);
+            S.talkMark = g;
+        }
         S.A = { klo, hearts, tukan, skata, dyvel, moln };
         S.actors.push(tukan, skata, dyvel, moln, hearts);
         S.shadows = {};
@@ -2154,6 +2167,13 @@ export function createView(PIXI, app, { assets, G, heroFactory, eggTarget = null
 
         // actors
         const A = S.A, act = G.actors;
+        // the speech bubble over whoever "Prata" would talk to (not while anyone speaks)
+        if (S.talkMark) {
+            const c = G.context, who = c?.id?.startsWith('talk-') && !G.speaker ? c.who : null, a = who ? act[who] : null;
+            const on = !!a && a.scene === S.id && a.visible !== false;
+            S.talkMark.visible = on;
+            if (on) S.talkMark.position.set(a.x, a.y - h(TALK_HEAD[who] ?? 0.95) + (rm ? 0 : Math.sin(t * 3.2) * 3));
+        }
         const k = act.klo;
         if (k) {
             const kloActor = { ...k, pose: k.pose === 'love' ? 'happy' : k.pose === 'faint' ? 'awe' : k.pose, talking: G.speaker === 'klo' };
