@@ -536,7 +536,19 @@ export const STORY = {
         ['tukan', 'Mjölkchoklad! Du kom ihåg min favorit, Klo.'],
         ['klo', 'Självklart. Det står i anteckningsboken. Bredvid diagrammen.']
     ],
-    skataMimic: [['skata', 'Gnägg! … Hmm, nej. Det klär mig inte. Jag håller mig till mitt eget.']]
+    skataMimic: [['skata', 'Gnägg! … Hmm, nej. Det klär mig inte. Jag håller mig till mitt eget.']],
+    // Häst eller sköldpadda? Klo says a word as a measurement goes into his notebook (a bubble: play goes on), as in
+    // Äventyr 1, and once the story is over he gives his conclusion when he is talked to
+    measure: {
+        firstHorse: ['klo', 'Hovar! Jag antecknar en hästsak.'],
+        firstTurtle: ['klo', 'Skalet igen! Jag antecknar en sköldpaddssak.'],
+        leap: ['klo', 'Längre än någon sköldpadda har hoppat! En hästsak, utan tvekan.'],
+        even: ['klo', 'Det står lika. Mer forskning behövs!']
+    },
+    measureEnd: [
+        ['klo', 'Häst eller sköldpadda? Nu har jag räknat färdigt.'],
+        ['klo', 'Slutsats: både häst och sköldpadda – och båda behövdes i den magiska skogen.']
+    ]
 };
 
 // thoughts and refusals (short notes above the horse; never block play)
@@ -724,6 +736,6 @@ export const NOTEBOOK = {
 };
 
 export const CHATTER = {
-    klo: ['Jag antecknar allt. Särskilt … henne.', 'Häst eller sköldpadda? Jag forskar fortfarande.', 'Mitt hjärta tickar som ett stoppur. Fast stoppuret har hon nu.'],
+    klo: ['Jag antecknar allt. Särskilt … henne.', 'Häst eller sköldpadda? Både och. Det står i dagboken.', 'Mitt hjärta tickar som ett stoppur. Fast stoppuret har hon nu.'],
     tukan: ['Jag skulle säga något viktigt. Sen glittrade det.', 'Allt som glänser är intressant!', 'Ditt skal glänser! Nio av tio i glans.', 'Hypotes: ägg trivs bäst i varma skal.', 'Alva ritade mina klor. Är de inte fina?', 'Lilla Klo har redan börjat anteckna.']
 };

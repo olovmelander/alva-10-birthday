@@ -380,6 +380,8 @@ export function createA2UI(host, { assetBase, handlers, voice = null }) {
     const destroyBook = ui.destroy;
     return Object.assign(ui, {
         guide, setEggs, title, journal, ending, names: NAMES,
+        /** A word in a bubble with the speaker's face, read aloud, while play goes on: [who, text]. */
+        remark: ([who, text]) => guide.hint(text, who),
         /** Where a picked-up egg flies to: the count's egg, in the canvas's own units (view.mjs startPickup). */
         eggTarget(canvas, screen) {
             const r = eggIcon.getBoundingClientRect(), c = canvas?.getBoundingClientRect();
