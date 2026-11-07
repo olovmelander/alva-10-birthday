@@ -20,7 +20,7 @@ import { createAssets } from '../../src/assets.mjs';
 import { createUserCloud, cloudPoints, cloudColor } from '../../src/user-cloud.mjs';
 import { UI as BOOK, ADVENTURE_UI, CAPTIONS } from '../../src/content/sv.mjs';
 import { createGame as createLogic } from './game.mjs';
-import { createStory } from './story.mjs';
+import { createStory, SECRETS } from './story.mjs';
 import { createView } from './view.mjs';
 import { createA2UI } from './ui.mjs';
 import { createVoice } from '../../src/voice.mjs';
@@ -556,13 +556,16 @@ export function createGame({ host = document.body, assetBase = './skoldhast/', s
                     break;
                 }
                 case 'thunder': audio.sfx('thunder', { gain: 0.3 + e.strength * 0.6, delay: 0.5 + Math.random() * 0.9 }); audio.sfx('wind', { gain: 0.3 + e.strength * 0.35 }); break;
-                case 'clue': audio.sfx('write'); break;
+                // something new in the notebook: the pencil writes, and the notebook button shows it until it is opened
+                case 'clue': audio.sfx('write'); ui.pulse?.('journal'); break;
                 case 'bump': audio.sfx('thud'); break;
                 case 'skid': audio.sfx('hoof', { surface: 'sand', speed01: 1 }); break;
             }
         });
         G.on('checkpoint', () => saveNow());
         G.on('flag', ({ flag }) => { if (!flag.startsWith('b:') && !flag.startsWith('t:') && !flag.startsWith('visited_')) progressAt = G.time; });
+        // a secret found after the story is written into the notebook's last page
+        G.on('flag', ({ flag }) => { if (G.flags.has('ended') && SECRETS.some(s => s.flag === flag)) { audio?.sfx('write'); ui.pulse?.('journal'); } });
     }
 
     // --------------------------------------------------------------------------------
@@ -575,8 +578,7 @@ export function createGame({ host = document.body, assetBase = './skoldhast/', s
     function openJournal() {
         if (mode !== 'play' || ui.panelOpen()) return;
         pause(); audio?.sfx('page');
-        ui.journal({ objective: story.objective(), clues: story.clues(), eggsFound: G.eggs(), total: EGG_TOTAL, hint: () => story.hint(), place: placeName(),
-            hypothesis: story.hypothesis(), question: !G.flags.has('cloud_met'), places: story.places() });
+        ui.journal({ ...story.notebook(), hint: () => story.hint(), notes: () => story.notes(), place: placeName() });
     }
     // "Påminn mig om Klo": after a while with nothing solved, Klo offers the next hint once per puzzle
     let progressAt = 0, reminded = new Set();
