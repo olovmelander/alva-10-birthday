@@ -41,6 +41,7 @@
     border-radius: 14px; background: rgba(30, 28, 48, .45); }
 
 /* the journal's map of the four places */
-.a2-map-box { margin: 4px auto 6px; max-width: 540px; }
+/* width: the card centres its children, and an svg without a width falls back to 300 px */
+.a2-map-box { margin: 4px auto 6px; width: 100%; max-width: 540px; }
 .a2-map { display: block; width: 100%; height: auto; font-family: inherit; }
 .a2-question { font-style: italic; }

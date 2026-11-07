@@ -828,7 +828,8 @@ export function createStory(G, io) {
             if (F.has('lamp_lit')) return;
             const L = G.sceneDef.lamp;
             await s.cam({ x: L.x, y: L.y - h(.3), zoom: .95, t: .65, hold: .8 });
-            await s.say(STORY.k3.shutterOpened);
+            const open = ['shutter1', 'shutter2', 'shutter3'].filter(f => F.has(f)).length;
+            await s.say(STORY.k3.shutterOpened[Math.min(open, 2) - 1] || STORY.k3.shutterOpened[0]);
             s.camFree();
         }
     });

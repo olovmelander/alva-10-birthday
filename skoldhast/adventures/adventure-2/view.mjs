@@ -1827,7 +1827,16 @@ export function createView(PIXI, app, { assets, G, heroFactory }) {
         const lift = H > W * 1.15 ? Math.max(h(1.2), (H / zoom) * 0.2) : h(1.2); // portrait: ground at about 70 % of the height
         let tx = snap.x + (snap.facing || 1) * Math.min(h(1.6), W / zoom * 0.12), ty = snap.y - (p.mode === 'swim' ? h(0.2) : lift);
         const hint = G.camHint;
-        if (hint) { tx = hint.x; ty = hint.y; zoom *= hint.zoom || 1; }
+        if (hint) {
+            tx = hint.x; ty = hint.y; zoom *= hint.zoom || 1;
+            if (!hint.peak) {
+                // a talk is a group picture. Portrait: keep at least 7.5 lengths across, so everyone at the nest is in it.
+                if (H > W * 1.15) zoom = Math.min(zoom, W / h(7.5));
+                // Short landscape: the speech strip covers the bottom (skoldhast.css), so the picture is centred in the
+                // space above it, a little wider, and the ground with the hatchlings is not hidden under the words.
+                else if (W > H && H <= 520) { const strip = Math.min(110, H * 0.28); zoom *= 0.85; ty += strip / 2 / zoom; }
+            }
+        }
         const vw = W / zoom, vh = H / zoom;
         tx = vw >= b.x1 - b.x0 ? (b.x0 + b.x1) / 2 : clamp(tx, b.x0 + vw / 2, b.x1 - vw / 2);
         ty = vh >= b.y1 - b.y0 ? (b.y0 + b.y1) / 2 : clamp(ty, b.y0 + vh / 2, b.y1 - vh / 2);
@@ -1863,7 +1872,7 @@ export function createView(PIXI, app, { assets, G, heroFactory }) {
             case 'focus':
                 peakVistaOn = !!data?.peak;
                 if (!data) { G.camHint = null; return; }
-                G.camHint = { x: data.x, y: data.y, zoom: data.zoom || 1 };
+                G.camHint = { x: data.x, y: data.y, zoom: data.zoom || 1, peak: !!data.peak };
                 await waitGame(rm ? 0.3 : 0.9);
                 if (data.hold) await waitGame(data.hold);
                 return;
@@ -1896,7 +1905,8 @@ export function createView(PIXI, app, { assets, G, heroFactory }) {
                 const dur = rm ? 0.6 : 2.2;
                 const t0 = G.time;
                 m.x = from.x; m.y = from.y;
-                G.camHint = { x: to.x, y: to.y + h(2.2), zoom: 0.85 };
+                // between Tukankrabban and Klo at the nest, so the whole group is in the picture with the cloud
+                G.camHint = { x: (sp.tukanNest.x + sp.kloNest.x) / 2, y: to.y + h(2.2), zoom: 0.85 };
                 await until(() => { const u = Math.min(1, (G.time - t0) / dur), e = u * u * (3 - 2 * u); m.x = lerp(from.x, to.x, e); m.y = lerp(from.y, to.y, e); return u >= 1; });
                 return;
             }

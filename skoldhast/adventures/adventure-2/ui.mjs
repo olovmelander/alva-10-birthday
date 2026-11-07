@@ -125,6 +125,10 @@ export function createA2UI(host, { assetBase, handlers }) {
         const order = ['skog', 'strand', 'kristall', 'topp'];
         const P = order.map(id => places.find(p => p.id === id)).filter(Boolean);
         const pos = { skog: [70, 112], strand: [210, 120], kristall: [350, 118], topp: [470, 52] };
+        // "Här är vi" sits above each drawing (the top of its art), so it never covers the trees or the mountain
+        const above = { skog: 70, strand: 106, kristall: 86, topp: 18 };
+        // the name and the egg count go under each drawing (the mountain's foot is lower than its marker)
+        const below = { skog: 146, strand: 152, kristall: 152, topp: 154 };
         const art = {
             skog: '<path d="M44 128 L54 92 L64 128 Z M70 128 L84 78 L98 128 Z" fill="#4f7c50" stroke="#2f4f30" stroke-width="1.6"/><path d="M83 128 v-14" stroke="#6a4b2c" stroke-width="3"/>',
             strand: '<path d="M170 128 Q210 118 250 128" fill="none" stroke="#d9c08a" stroke-width="7"/><path d="M226 126 Q240 116 262 124" fill="none" stroke="#5d8eaa" stroke-width="6"/><ellipse cx="205" cy="124" rx="10" ry="4" fill="#c5a96f"/>',
@@ -138,11 +142,12 @@ export function createA2UI(host, { assetBase, handlers }) {
         for (const p of P) {
             const [x, y] = pos[p.id];
             body += `<g opacity="${p.visited ? 1 : 0.35}">${art[p.id]}</g>`;
-            body += `<text x="${x}" y="${y + 30}" text-anchor="middle" font-size="13" fill="#3b3530">${p.visited ? p.name : WORDS.mapUnknown}</text>`;
-            body += `<text x="${x}" y="${y + 45}" text-anchor="middle" font-size="12" fill="#6b5f4d">${p.visited ? WORDS.mapEggs(p.found, p.total) : ''}</text>`;
-            if (p.here) body += `<circle cx="${x}" cy="${y - 4}" r="17" fill="none" stroke="#c0392b" stroke-width="2.4"/><text x="${x}" y="${y - 26}" text-anchor="middle" font-size="12" fill="#c0392b">${WORDS.mapHere}</text>`;
+            // big enough to read when the map is drawn at phone width (about 310 px for 540 units)
+            body += `<text x="${x}" y="${below[p.id]}" text-anchor="middle" font-size="19" fill="#3b3530">${p.visited ? p.name : WORDS.mapUnknown}</text>`;
+            body += `<text x="${x}" y="${below[p.id] + 20}" text-anchor="middle" font-size="17" fill="#6b5f4d">${p.visited ? WORDS.mapEggs(p.found, p.total) : ''}</text>`;
+            if (p.here) body += `<circle cx="${x}" cy="${y - 4}" r="17" fill="none" stroke="#c0392b" stroke-width="2.4"/><text x="${x}" y="${above[p.id]}" text-anchor="middle" font-size="17" font-weight="bold" fill="#c0392b">${WORDS.mapHere}</text>`;
         }
-        return `<svg class="a2-map" viewBox="0 0 540 180" role="img" aria-label="${WORDS.map}">${links}${body}</svg>`;
+        return `<svg class="a2-map" viewBox="0 0 540 186" role="img" aria-label="${WORDS.map}">${links}${body}</svg>`;
     }
 
     // --- "Vad vet vi?": the mission, the question, the map, what we know, and help ------

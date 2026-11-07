@@ -213,12 +213,15 @@ export function createTable({ PIXI, app, assets, ui, audio, G, heroFactory }) {
 
     function show() {
         shown = true; root.visible = true; layoutDirty = true;
+        // as at Äventyr 1's table: the caption sits on paper at the top, clear of the speech box and the drawing buttons
+        ui.root.classList.add('table-mode');
         t = 0; zoom.s = 1; zoom.ox = zoom.oy = 0; veilAlpha = 0; fadingToWorld = false;
         buildPage(); layout();
         D.tukanActor = { visible: true, x: 410, y: 506, facing: 1, pose: 'idle', vx: 0, distance: 0 };
     }
     function hide() {
         shown = false; root.visible = false; opaque = false;
+        ui.root.classList.remove('table-mode');
         tweens.forEach(tw => tw.resolve()); tweens = [];
         page.removeChildren().forEach(c => c.destroy({ children: true }));
         D = null;
@@ -247,7 +250,7 @@ export function createTable({ PIXI, app, assets, ui, audio, G, heroFactory }) {
         D.alva.visible = true;
         await drawIn(D.alva, 'alva', 2.6);
         ui.caption(TABLE.alvaDraws, 3200);
-        await wait(1.2);
+        await wait(2.4); // time to read it before the drawing covers the top
         const eggGeometry = () => {
             const [cx, cy] = toCss(660, 380), rx = Math.max(38, 64 * pageScale), ry = rx * 1.3;
             const anchors = [];
