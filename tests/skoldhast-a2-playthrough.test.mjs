@@ -12,6 +12,7 @@ import { SCENES, CHECKPOINTS, EGG_IDS, EGG_TOTAL } from '../skoldhast/adventures
 import { STORY, TABLE, HINTS, GOALS } from '../skoldhast/adventures/adventure-2/content/sv.mjs';
 import { heightOn } from '../skoldhast/src/sim.mjs';
 import { unvoiced } from './skoldhast-voice-coverage.mjs';
+import { MEASURES } from '../skoldhast/adventures/adventure-2/story.mjs';
 
 async function begin(R) {
     R.G.goto('strand', 'start');
@@ -302,6 +303,9 @@ test('Äventyr 2: a robot plays the whole adventure over four pages, to the moon
     t.diagnostic(`the end at ${(G.time / 60).toFixed(1)} min of game time; ${R.log.filter(l => l.kind === 'say').reduce((n, l) => n + l.lines.length, 0)} dialogue boxes`);
     for (const f of ['eggs_in_nest', 'moon', 'alva_stars', 'hatched', 'watch_given', 'skata_gift', 'ended']) assert.ok(R.has(f), f);
     for (const p of ['strand', 'skog', 'kristall', 'topp']) assert.ok(R.has('visited_' + p), 'visited ' + p);
+    // Klo's "Häst eller sköldpadda?" in the notebook: every measurement it lists happens on the way through the story
+    const missing = MEASURES.filter(m => !R.has(m.flag)).map(m => `${m.id} (${m.flag})`);
+    assert.deepEqual(missing, [], 'measurements never written in');
     assert.equal(G.storm, 0, 'the storm is over');
     assert.ok(R.saves.some(s => s.ended), 'the ending saves its completion');
     const fx = R.log.filter(l => l.kind === 'fx').map(l => l.name);

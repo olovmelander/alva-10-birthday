@@ -7,7 +7,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { createRobot, HL } from './skoldhast-a2-robot.mjs';
 import { HINTS, NOTEBOOK, NEXT_EGG } from '../skoldhast/adventures/adventure-2/content/sv.mjs';
-import { SECRETS } from '../skoldhast/adventures/adventure-2/story.mjs';
+import { SECRETS, MEASURES } from '../skoldhast/adventures/adventure-2/story.mjs';
 
 function at(flags, scene, x, y = -0.6) {
     const R = createRobot();
@@ -90,4 +90,15 @@ test('The facts the moon made untrue are the ones the notebook strikes out', () 
     for (const id of Object.keys(NOTEBOOK.struck)) assert.ok(ids.includes(id), `${id} is listed, to be struck out with "${NOTEBOOK.struck[id]}"`);
     for (const id of Object.keys(NOTEBOOK.answered)) if (ids.includes(id)) assert.ok(NOTEBOOK.answered[id], id);
     assert.ok(!Object.keys(NOTEBOOK.struck).includes('moonRule'), 'what is still true is never struck out');
+});
+
+test('Häst eller sköldpadda?: Klo writes in what was done with the hooves and with the shell, as it happens', () => {
+    for (const m of MEASURES) assert.ok(NOTEBOOK.measure[m.id], 'every measurement has its line: ' + m.id);
+    assert.ok(MEASURES.filter(m => m.kind === 'horse').length >= 4 && MEASURES.filter(m => m.kind === 'turtle').length >= 4, 'both sides have room to win');
+    const R = at(['b:arrive', 'b:firstEgg'], 'strand', 27);
+    assert.deepEqual(R.story.notebook().measures, [], 'nothing measured yet');
+    for (const f of ['p1_fallen', 'p2_bridge', 'cave_reached', 'b:love4']) R.G.flags.add(f);
+    const got = R.story.notebook().measures;
+    assert.deepEqual(got.map(m => m.id), ['drum', 'bridge', 'falls', 'heart']);
+    assert.deepEqual(got.map(m => m.kind), ['horse', 'horse', 'turtle', 'other']);
 });

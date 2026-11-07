@@ -20,7 +20,7 @@ import { createAssets } from '../../src/assets.mjs';
 import { createUserCloud, cloudPoints, cloudColor } from '../../src/user-cloud.mjs';
 import { UI as BOOK, ADVENTURE_UI, CAPTIONS } from '../../src/content/sv.mjs';
 import { createGame as createLogic } from './game.mjs';
-import { createStory, SECRETS } from './story.mjs';
+import { createStory, SECRETS, MEASURES } from './story.mjs';
 import { createView } from './view.mjs';
 import { createA2UI } from './ui.mjs';
 import { createVoice } from '../../src/voice.mjs';
@@ -564,8 +564,12 @@ export function createGame({ host = document.body, assetBase = './skoldhast/', s
         });
         G.on('checkpoint', () => saveNow());
         G.on('flag', ({ flag }) => { if (!flag.startsWith('b:') && !flag.startsWith('t:') && !flag.startsWith('visited_')) progressAt = G.time; });
-        // a secret found after the story is written into the notebook's last page
-        G.on('flag', ({ flag }) => { if (G.flags.has('ended') && SECRETS.some(s => s.flag === flag)) { audio?.sfx('write'); ui.pulse?.('journal'); } });
+        // a secret found after the story, or a new measurement of Klo's, is written into the notebook: the pencil writes
+        // and the notebook button shows it until it is opened
+        G.on('flag', ({ flag }) => {
+            const secret = G.flags.has('ended') && SECRETS.some(s => s.flag === flag);
+            if (secret || MEASURES.some(m => m.flag === flag)) { audio?.sfx('write', { delay: 0.4 }); ui.pulse?.('journal'); }
+        });
     }
 
     // --------------------------------------------------------------------------------

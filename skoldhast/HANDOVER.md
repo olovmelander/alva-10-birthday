@@ -6,7 +6,7 @@ it to be fixed, the story to get its payoff in the notebook, and Äventyr 1's bo
 - **One book, two adventures.** Äventyr 1's journal shell is now `book()` in `src/ui.mjs`. It has the green cloth
   cover, grid paper, tabs, one page on a phone and a spread on a wide screen, 3D page turns, the keyboard and the spine
   name. Äventyr 1's `journal()` fills it with its seven pages exactly as before. Äventyr 2's `journal()` in
-  `adventures/adventure-2/ui.mjs` fills it with six pages:
+  `adventures/adventure-2/ui.mjs` fills it with seven pages:
   - **Framsida:** "Forskningsdagbok · Den magiska skogen", Tukankrabban, "En ny sida i forskningsdagboken.", the team.
   - **Vad vet vi?:** Vårt uppdrag, Därför, then the egg row. After the moon the eggs become ten little tukankrabbor,
     with Lilla Klo the smallest. Then Här är vi, and Nästa steg with Klo's notes.
@@ -21,6 +21,15 @@ it to be fixed, the story to get its payoff in the notebook, and Äventyr 1's bo
   - **Det vet vi:** the clues. After the moon, "Det finns ingen måne …" and "Det mullrar mest …" are struck out in
     pencil, with "Nu finns det en måne!" / "Stormen har tystnat." beside them. The lightning and the crying cloud get
     "Det var Molnet!" / "Nu gråter det inte längre.".
+  - **Mätningar – Häst eller sköldpadda?** (added at Pappa's wish, as in Äventyr 1): Professor Klo measures on in the
+    forest. Each item is written in when it happens, with the pencil sound and a mark on the notebook button:
+    - Hästsaker: the drum, Miras bro, the leap over the ravine, the crystal plates, the light bridge.
+    - Sköldpaddssaker: sinking under the falls, the still shell by the moonshine flowers, the whirlpool's coin, the
+      current under the wall, the spring, the gusts.
+    - Övriga mätningar: his heartbeats, the mushroom's bounce, the wind on the top.
+    - A tally ("Lutar åt häst/sköldpadda", "Det står lika") with Klo's sign from Äventyr 1.
+    - After the end the conclusion: "både häst och sköldpadda – och båda behövdes i den magiska skogen".
+    - `MEASURES` in `story.mjs`; the full playthrough test asserts every one is written in on the way.
   - **Hemligt:** "Hemliga upptäckter". Before the end it is a sealed note. After the end it lists the eight surprises,
     each written in once found, and the missing ones show only where to look ("Något hemligt i Djupa skogen …"). The
     mission page shows "n av 8" with a button to it. A found secret is written in with the pencil sound and marks the

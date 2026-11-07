@@ -652,7 +652,7 @@ export const NOTEBOOK = {
     title: 'Forskningsdagbok',
     subtitle: 'Den magiska skogen',
     team: 'Forskarlaget: Sköldhästen, Professor Klo och Tukankrabban',
-    tabs: ['Framsida', 'Vad vet vi?', 'Kartan', 'Frågan', 'Det vet vi', 'Hemligt'],
+    tabs: ['Framsida', 'Vad vet vi?', 'Kartan', 'Frågan', 'Mätningar', 'Det vet vi', 'Hemligt'],
     mission: 'Vårt uppdrag', why: 'Därför', next: 'Nästa steg',
     eggs: 'Tukankrabbans ägg', eggsAria: (n, total) => `${n} av ${total} ägg hittade`,
     hatched: 'Tio små tukankrabbor', lillaKlo: 'Lilla Klo',
@@ -675,6 +675,29 @@ export const NOTEBOOK = {
     ],
     confirmed: 'Stämmer!',
     hypMore: 'Fler hypoteser kommer när vi forskar vidare.',
+    // Häst eller sköldpadda? Klo measures on in the magic forest, as in Äventyr 1: what the sköldhäst did with its
+    // hooves and what it did with its shell, written in as it happens, and which way it leans
+    measures: 'Häst eller sköldpadda?', measuresIntro: 'Professor Klo mäter vidare i den magiska skogen.',
+    horseThings: 'Hästsaker', turtleThings: 'Sköldpaddssaker', otherThings: 'Övriga mätningar', measuresEmpty: 'Inga mätningar än.',
+    tally: (h, t) => `Hästsaker: ${h}. Sköldpaddssaker: ${t}.`,
+    tallyHorse: 'Lutar åt häst.', tallyTurtle: 'Lutar åt sköldpadda.', tallyEven: 'Det står lika.',
+    measuresConclusion: 'Slutsats: både häst och sköldpadda – och båda behövdes i den magiska skogen. Forskningen fortsätter.',
+    measure: {
+        drum: 'Trumtestet: hovarna trummade på stocken så att hela trädet skakade.',
+        bridge: 'Rittestet: i full galopp ritar hovarna klart Miras streck.',
+        leap: 'Språnget över ravinen: längre än någon sköldpadda har hoppat.',
+        crystals: 'Klangtestet: hovarna fick alla tre kristallerna att lysa.',
+        lightBridge: 'Blixtbron: galopp på ett streck av ljus, precis när det blixtrade.',
+        falls: 'Sjunktestet: skalet sjönk under forsen. Hästar flyter.',
+        seeds: 'Stillhetstestet: så stilla i skalet att blommorna vågade slå ut.',
+        coin: 'Virveltestet: ett tungt skal snurrar ända ner till botten av Djuphålan.',
+        wall: 'Strömtestet: skalet följde strömmen under klippväggen.',
+        spring: 'Källtestet: källan bar skalet ända upp genom berget.',
+        wind: 'Vindtestet: i skalet blåser man inte bort.',
+        heart: 'Klos hjärtslag: hundrafyrtio i minuten. Ett vetenskapligt mysterium.',
+        bounce: 'Svampstudsen: nästan tre hästlängder rakt upp.',
+        windForce: 'Vindstyrka på Åsktoppen: väldigt.'
+    },
     // what we know: facts that the moon has made untrue are struck out in pencil, answered ones get their answer
     clues: 'Det här vet vi', cluesEmpty: 'Inget än. Vi har precis börjat forska.',
     struck: { noMoon: 'Nu finns det en måne!', darkStorm: 'Stormen har tystnat.' },
