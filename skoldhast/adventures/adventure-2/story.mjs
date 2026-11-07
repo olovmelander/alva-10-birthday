@@ -94,6 +94,8 @@ export function createStory(G, io) {
     const done = (id) => F.has('b:' + id);
     const ui = () => io.ui;
     const say = async (lines) => { if (lines?.length) await ui().say(lines); };
+    /** A word in a bubble that does not stop play (Klo's measurements). */
+    const remark = (line) => ui().remark?.(line);
     const fx = async (name, data) => { try { return await io.fx?.(name, data); } catch (err) { console.warn('fx', name, err); return null; } };
     const clue = (id) => { if (!F.has('clue_' + id)) { G.flag('clue_' + id); G.emit('clue', { id }); } };
 
@@ -343,7 +345,25 @@ export function createStory(G, io) {
         return ladder('more');
     }
     let chatter = 0;
+    // Häst eller sköldpadda?: as a measurement goes into his notebook Klo says a word about it, in a bubble while play
+    // goes on: the first hästsak, the first sköldpaddssak, the leap over the ravine, and the first time it stands even
+    function measureSaid({ flag }) {
+        const m = MEASURES.find(x => x.flag === flag);
+        if (!m || m.kind === 'other' || F.has('ended')) return;
+        const count = (kind) => MEASURES.filter(x => x.kind === kind && F.has(x.flag)).length;
+        const h = count('horse'), t = count('turtle');
+        const id = m.id === 'leap' ? 'leap' : m.kind === 'horse' && h === 1 ? 'firstHorse' : m.kind === 'turtle' && t === 1 ? 'firstTurtle' : h === t ? 'even' : null;
+        if (!id || done('measure_' + id)) return;
+        beat('measure_' + id, async () => {
+            // after what made the measurement has been said and seen
+            await G.wait(1.4);
+            for (let i = 0; i < 24 && ui().dialogueOpen?.(); i++) await G.wait(0.5);
+            remark(STORY.measure[id]);
+        }, { lock: false });
+    }
     function talk(who) {
+        // once the story is over, Klo has finished counting
+        if (who === 'klo' && F.has('ended') && !done('measureEnd')) return beat('measureEnd', () => say(STORY.measureEnd));
         if (who === 'skata') return beat('skataTalk', () => say(F.has('coin_given') ? STORY.skataAfter : STORY.skataTalk), { once: false });
         // after the story Tordyveln has rolled his finest ball yet, from the hatched eggs' shells (an easter egg)
         if (who === 'dyvel' && F.has('hatched')) {
@@ -828,6 +848,7 @@ export function createStory(G, io) {
 
     const offs = [
         G.on('neigh', cloudJoy),
+        G.on('flag', measureSaid),
         G.on('cocoaFall', cocoaAgain),
         G.on('egg', onEgg),
         G.on('enter', onEnter),

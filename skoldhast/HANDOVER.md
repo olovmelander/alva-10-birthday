@@ -1,3 +1,16 @@
+## Äventyr 2: "Prata" reaches both Klo and Tukankrabban (7 November)
+
+Pappa found it hard to tell whether "Prata" would talk to Klo or Tukankrabban. They follow close behind the sköldhäst,
+and when it stands still both are within reach. The code always tried Tukankrabban first, so she answered nearly every
+time and Klo could hardly be reached. That included his new conclusion after the story.
+
+- **Who answers:** the nearer one first, then the other, and back. The next word always goes to the one not just
+  spoken to (`G.lastTalk`; the companion part of `contextAction` in `puzzles.mjs`).
+- **Seeing who:** the "E Prata" badge already shows the face. A little pencil speech bubble with three dots now also
+  floats over that character's head in the picture while "Prata" is offered (`S.talkMark`, `TALK_HEAD` in the view).
+  This applies to Skatan and Tordyveln as well.
+- **Test:** `tests/skoldhast-a2-notebook.test.mjs` ("Prata reaches both companions").
+
 ## Äventyr 2's notebook: Forskningsdagbok – Den magiska skogen (7 November)
 
 An independent review rated the old "Vad vet vi?" card usable but the plainest part of Äventyr 2. Pappa asked for all of
@@ -30,6 +43,11 @@ it to be fixed, the story to get its payoff in the notebook, and Äventyr 1's bo
     - A tally ("Lutar åt häst/sköldpadda", "Det står lika") with Klo's sign from Äventyr 1.
     - After the end the conclusion: "både häst och sköldpadda – och båda behövdes i den magiska skogen".
     - `MEASURES` in `story.mjs`; the full playthrough test asserts every one is written in on the way.
+    - Klo also says it aloud, as in Äventyr 1 (recorded; a bubble with his face while play goes on, `ui.remark`):
+      "Hovar! Jag antecknar en hästsak." at the first hästsak, "Skalet igen! Jag antecknar en sköldpaddssak." at the
+      first sköldpaddssak, "Längre än någon sköldpadda har hoppat! …" at the leap, and "Det står lika. Mer forskning
+      behövs!" the first time it stands even (`measureSaid`). After the story, the first talk with Klo gives his
+      conclusion (`STORY.measureEnd`), and his chatter became "Häst eller sköldpadda? Både och. Det står i dagboken."
   - **Hemligt:** "Hemliga upptäckter". Before the end it is a sealed note. After the end it lists the eight surprises,
     each written in once found, and the missing ones show only where to look ("Något hemligt i Djupa skogen …"). The
     mission page shows "n av 8" with a button to it. A found secret is written in with the pencil sound and marks the

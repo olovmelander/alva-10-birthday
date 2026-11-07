@@ -102,3 +102,56 @@ test('Häst eller sköldpadda?: Klo writes in what was done with the hooves and 
     assert.deepEqual(got.map(m => m.id), ['drum', 'bridge', 'falls', 'heart']);
     assert.deepEqual(got.map(m => m.kind), ['horse', 'horse', 'turtle', 'other']);
 });
+
+test('Klo says a word as he writes his measurements: the first hästsak, the first sköldpaddssak, the leap, an even score', async () => {
+    const { STORY } = await import('../skoldhast/adventures/adventure-2/content/sv.mjs');
+    const R = at(['b:arrive', 'b:firstEgg'], 'strand', 27);
+    await R.settle();
+    const remarks = () => R.log.filter(l => l.remark).map(l => l.lines[0][1]);
+    R.G.flag('p1_fallen'); await R.hold(2); await R.settle();
+    assert.deepEqual(remarks(), [STORY.measure.firstHorse[1]], 'the first hästsak');
+    R.G.flag('cave_reached'); await R.hold(2); await R.settle();
+    assert.deepEqual(remarks().slice(1), [STORY.measure.firstTurtle[1]], 'the first sköldpaddssak (and it stands even: one line at a time)');
+    R.G.flag('p2_bridge'); await R.hold(2); R.G.flag('p4_lit'); await R.hold(2); await R.settle();
+    assert.ok(remarks().includes(STORY.measure.even[1]), 'two against two: it stands even');
+    R.G.flag('k1_lit'); R.G.flag('coin_got'); await R.hold(2); await R.settle();
+    assert.equal(remarks().filter(t => t === STORY.measure.even[1]).length, 1, 'said once');
+    R.G.flag('b:leapDone'); await R.hold(2); await R.settle();
+    assert.equal(remarks().at(-1), STORY.measure.leap[1], 'the leap over the ravine');
+    assert.equal(R.G.busy, 0, 'none of it stops play');
+});
+
+test('After the story, the first talk with Klo gives his conclusion; before it, he says nothing of the kind', async () => {
+    const { STORY } = await import('../skoldhast/adventures/adventure-2/content/sv.mjs');
+    const R = at(['b:arrive', 'b:firstEgg', 'cloud_met', 'eggs_in_nest', 'moon', 'alva_stars', 'hatched', 'ended', 'b:finale'], 'strand', 27);
+    await R.settle();
+    R.G.emit('talk', { who: 'klo' }); await R.settle();
+    for (const line of STORY.measureEnd) assert.ok(R.log.some(l => l.kind === 'say' && l.lines.some(([w, t]) => w === line[0] && t === line[1])), line[1]);
+    const n = R.log.length;
+    R.G.emit('talk', { who: 'klo' }); await R.settle();
+    assert.ok(!R.log.slice(n).some(l => l.kind === 'say' && l.lines.some(([, t]) => t === STORY.measureEnd[1][1])), 'only once; then his usual chatter');
+    const B = at(['b:arrive', 'b:firstEgg'], 'strand', 27);
+    await B.settle(); B.G.emit('talk', { who: 'klo' }); await B.settle();
+    assert.ok(!B.log.some(l => l.kind === 'say' && l.lines.some(([, t]) => t === STORY.measureEnd[1][1])));
+});
+
+test('Prata reaches both companions when they stand close: the nearer first, then the other, and back', async () => {
+    const R = at(['b:arrive', 'b:firstEgg', 'egg_e1'], 'strand', 27);
+    await R.settle();
+    const { G } = R;
+    // as they stand when the sköldhäst stops: Klo about one length behind, Tukankrabban nearly two
+    Object.assign(G.actors.klo, { scene: 'strand', visible: true, x: G.player.x + 1.0 * HL, y: G.player.y, follow: false });
+    Object.assign(G.actors.tukan, { scene: 'strand', visible: true, x: G.player.x + 1.7 * HL, y: G.player.y, follow: false });
+    await R.hold(0.2);
+    assert.equal(G.context?.who, 'klo', 'the nearer one first (Tukankrabban used to answer every time)');
+    const talked = () => R.log.filter(l => l.kind === 'say' && !l.remark).map(l => l.lines[0][0]);
+    await R.act(); await R.settle(); await R.hold(0.2);
+    assert.equal(talked().at(-1), 'klo');
+    assert.equal(G.context?.who, 'tukan', 'then the other');
+    await R.act(); await R.settle(); await R.hold(0.2);
+    assert.equal(talked().at(-1), 'tukan');
+    assert.equal(G.context?.who, 'klo', 'and back');
+    // with only one of them near, it is always that one
+    G.actors.tukan.x = G.player.x + 6 * HL; await R.hold(0.2);
+    assert.equal(G.context?.who, 'klo');
+});
