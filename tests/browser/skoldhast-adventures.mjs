@@ -163,6 +163,15 @@ try {
         await page.locator('.sk-title').getByRole('button', { name: UI.cont, exact: true }).click();
         await settle(page, 'viken');
         for (const flag of original.flags) assert.equal(await page.evaluate(f => window.__skoldhast.debug.G.has(f), flag), true);
+        // Stand still on the pier first. The checkpoint brings the sköldhäst in swimming from the kelp page, still
+        // drifting up, and a swimmer that drifted on after the return read as a moved world (a timing flake). On
+        // the pier, at rest, a world rebuilt from its checkpoint would put it back in the water, far from here.
+        await page.evaluate(() => { const { G, view } = window.__skoldhast.debug; G.goto('viken', { x: 12 * 200, y: -0.62 * 200, facing: 1 }); view.cam.snap = true; });
+        await settle(page, 'viken');
+        await page.waitForFunction(() => {
+            const p = window.__skoldhast.debug.G.player;
+            return p.mode === 'ground' && Math.abs(p.vx) < 1 && Math.abs(p.vy) < 1;
+        }, null, { timeout: 20000, polling: 120 });
         await page.locator('.sk-pause-btn').click();
         const before = await page.evaluate(() => {
             const { G } = window.__skoldhast.debug;

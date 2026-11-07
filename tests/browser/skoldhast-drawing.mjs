@@ -54,6 +54,9 @@ try {
         await touch('touchEnd', [at(0.8, 0.8, 2)]);
         assert.equal(await page.locator('.sk-draw.drawing').count(), 1, 'primary finger still owns the stroke: ' + JSON.stringify(await page.evaluate(() => window.__touchLog)));
         await touch('touchMove', [at(0.8, 0.7)]);
+        // the finger rests before it lifts: lifted mid-motion it would start a fling, and the tap on
+        // Rita om below could go unheard (finger.mjs)
+        await page.waitForTimeout(150);
         await touch('touchEnd', []);
         await page.waitForSelector('.sk-draw.preview');
         assert.equal(await page.evaluate(() => window.__drawingResult), null, 'a stroke is a preview until Klar');

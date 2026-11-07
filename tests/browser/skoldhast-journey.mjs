@@ -14,6 +14,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import { serve, launch } from '../../scripts/skoldhast-shot.mjs';
+import { stroke } from './finger.mjs';
 
 process.env.NO_TEST = '1';
 const { meetKlo, openCave, landApproach, caveReveal, kelpFragment, seaFragment, returnToLand, landFragment, chapter1, chapter2, chapter3 } = await import('../skoldhast-playthrough.test.mjs');
@@ -65,13 +66,10 @@ try {
             if (state.preview) await pg.locator('.sk-draw-done')[touchMode ? 'tap' : 'click']();
             else if (touchMode && state.points?.length) {
                 // A real touch trace for Alva's three prologue drawings.
-                const cdp = await ctx.newCDPSession(pg);
                 const points = state.points;
                 assert.ok(points.every(([x, y]) => x >= 0 && x <= width && y >= 0 && y <= height), `${state.prompt}: every drawing point is reachable on the ${width}x${height} screen`);
-                await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x: points[0][0], y: points[0][1], id: 1 }] });
-                for (const [x, y] of points.slice(1)) await cdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x, y, id: 1 }] });
-                await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
-                await cdp.detach();
+                // a finger that rests before it lifts, so the tap on Klar right after is heard (finger.mjs)
+                await stroke(pg, points);
                 if (await pg.locator('.sk-draw.on.free.preview').count()) await pg.locator('.sk-draw-done').tap();
             } else await pg.keyboard.press('Enter');
         }
