@@ -54,7 +54,10 @@ export function createTable({ PIXI, app, assets, ui, audio, G, heroFactory }) {
         const portrait = H > W * 1.15;
         const pw = Math.min(W * 0.94, (H * (portrait ? 0.5 : 0.78)) * (PAGE_W / PAGE_H));
         pageScale = pw / PAGE_W;
-        pageX = (W - pw) / 2; pageY = portrait ? H * 0.1 : Math.max(10, (H * 0.78 - pw * PAGE_H / PAGE_W) / 2);
+        // portrait: the page sits in the middle, between the caption at the top and the speech box at the
+        // bottom (at 10 % of the height the drawing prompt covered its top, and the lower half was empty wood)
+        const ph = pw * PAGE_H / PAGE_W;
+        pageX = (W - pw) / 2; pageY = portrait ? Math.max(H * 0.1, (H - 160 - ph) / 2 + 40) : Math.max(10, (H * 0.78 - ph) / 2);
         page.position.set(pageX + zoom.ox, pageY + zoom.oy); page.scale.set(pageScale * zoom.s);
         windowArt.visible = mode === 'epilogue';
         windowArt.scale.set(Math.min(W / 906, H / 626) * (portrait ? 0.7 : 0.42));

@@ -314,8 +314,8 @@ export function createStory(G, io) {
             }
             G.hideHero = false;
             const k0 = G.actors.klo; k0.visible = true; k0.y = kloAt.y;
-            // between Tukankrabban and Klo, so both are in the picture on a narrow phone too
-            await fx('focus', { x: (sp.tukanNest.x + kloAt.x) / 2, y: sp.nest.y, zoom: 1.15 });
+            // Tukankrabban, Klo and the sköldhäst all in the picture, on a narrow phone too (fit)
+            await fx('focus', { x: (sp.tukanNest.x + kloAt.x) / 2, y: sp.nest.y, zoom: 1.15, fit: ['tukan', 'klo'] });
             await say(STORY.arrive);
             G.actors.klo.pose = 'love';
             await say(STORY.arrive2);
@@ -523,7 +523,7 @@ export function createStory(G, io) {
     async function finale() {
         const sp = G.scenes.strand.spots;
         G.player.vx = 0;
-        await fx('focus', { x: (sp.tukanNest.x + sp.kloNest.x) / 2, y: sp.nest.y - 0.6 * HL, zoom: 1.0 });
+        await fx('focus', { x: sp.nest.x, y: sp.nest.y - 0.6 * HL, zoom: 1.0, fit: ['tukan', 'klo'] });
         await say(STORY.finale);
         await fx('eggsToNest', {});
         G.flag('eggs_in_nest');

@@ -1829,6 +1829,13 @@ export function createView(PIXI, app, { assets, G, heroFactory }) {
         const hint = G.camHint;
         if (hint) {
             tx = hint.x; ty = hint.y; zoom *= hint.zoom || 1;
+            if (hint.fit) {
+                // a group picture, live: the point, the sköldhäst and these actors, wherever they stand now
+                const xs = [hint.x, p.x, ...hint.fit.map(id => G.actors[id]).filter(a => a?.visible && (!a.scene || a.scene === S.id)).map(a => a.x)];
+                const x0 = Math.min(...xs) - h(0.9), x1 = Math.max(...xs) + h(0.9);
+                tx = (x0 + x1) / 2;
+                zoom = Math.min(zoom, W * 0.94 / (x1 - x0));
+            }
             if (!hint.peak) {
                 // a talk is a group picture. Portrait: keep at least 7.5 lengths across, so everyone at the nest is in it.
                 if (H > W * 1.15) zoom = Math.min(zoom, W / h(7.5));
@@ -1872,7 +1879,7 @@ export function createView(PIXI, app, { assets, G, heroFactory }) {
             case 'focus':
                 peakVistaOn = !!data?.peak;
                 if (!data) { G.camHint = null; return; }
-                G.camHint = { x: data.x, y: data.y, zoom: data.zoom || 1, peak: !!data.peak };
+                G.camHint = { x: data.x, y: data.y, zoom: data.zoom || 1, peak: !!data.peak, fit: data.fit || null };
                 await waitGame(rm ? 0.3 : 0.9);
                 if (data.hold) await waitGame(data.hold);
                 return;
@@ -1905,8 +1912,8 @@ export function createView(PIXI, app, { assets, G, heroFactory }) {
                 const dur = rm ? 0.6 : 2.2;
                 const t0 = G.time;
                 m.x = from.x; m.y = from.y;
-                // between Tukankrabban and Klo at the nest, so the whole group is in the picture with the cloud
-                G.camHint = { x: (sp.tukanNest.x + sp.kloNest.x) / 2, y: to.y + h(2.2), zoom: 0.85 };
+                // the whole group at the nest is in the picture with the cloud (fit)
+                G.camHint = { x: to.x, y: to.y + h(2.2), zoom: 0.85, fit: ['tukan', 'klo'] };
                 await until(() => { const u = Math.min(1, (G.time - t0) / dur), e = u * u * (3 - 2 * u); m.x = lerp(from.x, to.x, e); m.y = lerp(from.y, to.y, e); return u >= 1; });
                 return;
             }
