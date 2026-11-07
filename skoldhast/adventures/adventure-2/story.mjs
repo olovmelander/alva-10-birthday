@@ -17,7 +17,7 @@
  * is afraid of the dark and has kept the last egg. It carries everyone home.
  */
 import { HL } from '../../src/sim.mjs';
-import { STORY, HINTS, GOALS, WHERE, NEXT_EGG, CLUES, CLUE_ORDER, CHATTER, BALK, WORDS, HYPOTHESIS } from './content/sv.mjs';
+import { STORY, HINTS, GOALS, WHERE, NEXT_EGG, CLUES, CLUE_ORDER, CHATTER, BALK, WORDS } from './content/sv.mjs';
 import { EGG_TOTAL } from './content/world.mjs';
 import { eggsFound, eggFlag, collectEgg } from './puzzles.mjs';
 
@@ -47,6 +47,17 @@ const PUZZLES = [
 ];
 // the flag that frees each of these puzzles' eggs before it is picked up
 const FREED = { p1: 'p1_fallen', p5: 'p5_washed', p4: 'p4_lit' };
+/** The surprises after the story, in the notebook's "Hemliga upptäckter": each is written in once it has happened. */
+const SECRETS = [
+    { id: 'hatchFollow', flag: 'b:hatchFollow', page: 'strand' },
+    { id: 'molnJoy', flag: 'b:molnJoy', page: 'strand' },
+    { id: 'skataMimic', flag: 'b:skataMimic', page: 'strand' },
+    { id: 'cocoaAgain', flag: 'b:cocoaAgain', page: 'strand' },
+    { id: 'mushroomGiggle', flag: 'b:mushroomGiggle', page: 'skog' },
+    { id: 'rocket', flag: 'b:rocket', page: 'skog' },
+    { id: 'dyvelShells', flag: 'dyvel_shellball', page: 'kristall' },
+    { id: 'starFall', flag: 'b:starFall', page: 'topp' }
+];
 const EGG_PUZZLES = ['dig', 'p1', 'p5', 'coin', 'trade', 'p2', 'mush', 'p4', 'p7', 'k2', 'k3', 'summit'];
 const IN_MOUNTAIN = new Set(['k2', 'k3', 'summit']);
 const PEAK_PATH = ['k1', 'k2', 'k3', 'spring', 't1', 't2', 't3', 'summit'];
@@ -274,12 +285,30 @@ export function createStory(G, io) {
     function ladder(id) {
         const n = Math.min(2, hintLevel.get(id) || 0);
         if (!peeking) hintLevel.set(id, n + 1);
-        return { puzzle: id, level: n, text: HINTS[id][n] };
+        return { puzzle: id, level: n, text: HINTS[id][n], ladder: id };
     }
+    // a plain line (where the next egg is, or that it lies free) once it has been asked for: the notebook keeps it
+    let plainAsked = null;
     /** The next help line. With peek, read it without moving up the ladder (the goal note in guided help). */
     function hint({ peek = false } = {}) {
         peeking = peek;
-        try { return nextHint(); } finally { peeking = false; }
+        try {
+            const h = nextHint();
+            if (!peek && h?.text && !h.ladder) plainAsked = h.text;
+            return h;
+        } finally { peeking = false; }
+    }
+    /** Klo's notes in the notebook: every hint given so far for what is next (also those asked of Klo himself),
+     *  and whether there is one more. None after the story. */
+    function notes() {
+        if (F.has('ended')) return null;
+        const next = hint({ peek: true });
+        if (!next?.text) return null;
+        if (next.ladder) {
+            const all = HINTS[next.ladder], given = Math.min(all.length, hintLevel.get(next.ladder) || 0);
+            return { given: all.slice(0, given), more: given < all.length };
+        }
+        return { given: plainAsked === next.text ? [next.text] : [], more: plainAsked !== next.text };
     }
     function nextHint() {
         if (F.has('ended')) return { puzzle: null, text: null };
@@ -329,19 +358,31 @@ export function createStory(G, io) {
         if (F.has('storm_source')) return { id: 'peak', text: GOALS.peak, why: !F.has('lantern') ? GOALS.peakDark : G.sceneId === 'kristall' ? GOALS.peakInside : GOALS.peakWhy };
         return { id: 'eggs', text: GOALS.eggs(n, EGG_TOTAL), why: GOALS.eggsWhy };
     }
-    function hypothesis() {
-        if (F.has('cloud_met')) return HYPOTHESIS.done;
-        if (F.has('storm_source')) return HYPOTHESIS.source;
-        if (F.has('clue_darkStorm')) return HYPOTHESIS.dark;
-        return HYPOTHESIS.start;
-    }
-    /** Per page: eggs found / eggs there, and whether it has been visited (for the journal's map). */
+    /** Per page: eggs found / eggs there, whether it has been visited, and whether the story has named it yet
+     *  (the notebook's map writes a page's name once someone has said it, its eggs once it has been visited). */
     function places() {
+        const named = { strand: true, skog: F.has('p2_bridge'), kristall: F.has('cave_reached'), topp: F.has('storm_source') || F.has('topp_reached') };
         return Object.values(G.scenes).map(sc => {
-            const eggs = (sc.eggs || []).map(e => e.id);
-            return { id: sc.id, name: WORDS.pages[sc.id], visited: F.has('visited_' + sc.id), here: G.sceneId === sc.id,
+            const eggs = (sc.eggs || []).map(e => e.id), visited = F.has('visited_' + sc.id);
+            return { id: sc.id, name: WORDS.pages[sc.id], visited, named: visited || !!named[sc.id], here: G.sceneId === sc.id,
                 found: eggs.filter(id => F.has(eggFlag(id))).length, total: eggs.length };
         });
+    }
+    /** Everything the research notebook shows, as far as the story has come. */
+    function notebook() {
+        return {
+            objective: objective(), eggs: eggsFound(G), total: EGG_TOTAL, hatched: F.has('hatched'), ended: F.has('ended'),
+            // Tukankrabban's hypotheses, numbered as she says them; each is stamped once the story shows it right
+            hypotheses: [
+                { said: F.has('b:arrive'), confirmed: F.has('storm_source') || F.has('topp_reached') },
+                { said: F.has('clue_darkStorm') || F.has('cloud_met'), confirmed: F.has('cloud_met') },
+                { said: F.has('b:medvind') || F.has('gap_crossed'), confirmed: F.has('gap_crossed') }
+            ],
+            answered: F.has('cloud_met'), moon: F.has('moon'),
+            clues: CLUE_ORDER.filter(id => F.has('clue_' + id)).map(id => ({ id, text: CLUES[id] })),
+            places: places(),
+            secrets: SECRETS.map(s => ({ id: s.id, page: s.page, found: F.has(s.flag) }))
+        };
     }
 
     // --------------------------------------------------------------------------
@@ -886,7 +927,8 @@ export function createStory(G, io) {
         running: () => !!current || queue.length > 0,
         objective,
         hint,
-        hypothesis,
+        notes,
+        notebook,
         places,
         activePuzzle: () => activePuzzle()?.id || null,
         clues: () => CLUE_ORDER.filter(id => F.has('clue_' + id)).map(id => CLUES[id]),
@@ -896,4 +938,4 @@ export function createStory(G, io) {
     };
 }
 
-export { PUZZLES, eggFlag };
+export { PUZZLES, eggFlag, SECRETS };

@@ -1,3 +1,60 @@
+## Äventyr 2's notebook: Forskningsdagbok – Den magiska skogen (7 November)
+
+An independent review rated the old "Vad vet vi?" card usable but the plainest part of Äventyr 2. Pappa asked for all of
+it to be fixed, the story to get its payoff in the notebook, and Äventyr 1's book.
+
+- **One book, two adventures.** Äventyr 1's journal shell is now `book()` in `src/ui.mjs`. It has the green cloth
+  cover, grid paper, tabs, one page on a phone and a spread on a wide screen, 3D page turns, the keyboard and the spine
+  name. Äventyr 1's `journal()` fills it with its seven pages exactly as before. Äventyr 2's `journal()` in
+  `adventures/adventure-2/ui.mjs` fills it with six pages:
+  - **Framsida:** "Forskningsdagbok · Den magiska skogen", Tukankrabban, "En ny sida i forskningsdagboken.", the team.
+  - **Vad vet vi?:** Vårt uppdrag, Därför, then the egg row. After the moon the eggs become ten little tukankrabbor,
+    with Lilla Klo the smallest. Then Här är vi, and Nästa steg with Klo's notes.
+  - **Kartan:** the forest, the beach, and the mountain with Kristallgrottan in its foot and Åsktoppen on top, with
+    the routes between them. The map fills the page's width with labels you can read, and the places are also listed
+    underneath in ordinary text. A page is named once the story has named it, and its eggs show once you have been
+    there.
+  - **Frågan:** the question, and Svaret once the cloud is met (and again after the moon). Below it are
+    Tukankrabban's hypotheses numbered as she says them ("Hypotes nummer ett/två/tre"). Each gets a red **Stämmer!**
+    stamp when the story proves it: from the crown or the top, when the cloud is met, and when the wind carries you
+    over.
+  - **Det vet vi:** the clues. After the moon, "Det finns ingen måne …" and "Det mullrar mest …" are struck out in
+    pencil, with "Nu finns det en måne!" / "Stormen har tystnat." beside them. The lightning and the crying cloud get
+    "Det var Molnet!" / "Nu gråter det inte längre.".
+  - **Hemligt:** "Hemliga upptäckter". Before the end it is a sealed note. After the end it lists the eight surprises,
+    each written in once found, and the missing ones show only where to look ("Något hemligt i Djupa skogen …"). The
+    mission page shows "n av 8" with a button to it. A found secret is written in with the pencil sound and marks the
+    notebook button.
+- **Fixes from the review:**
+  - The map was about 300 px with 7 px labels; it now fills the page and fits a low landscape page.
+  - Klo's notes keep every hint given so far as taped slips with his claw. This includes the hints Klo gave when
+    called, because `story.notes()` reads the same ladder. They never repeat, and the button goes when there is no
+    more and after the end.
+  - The first focus is the open page's tab (the top of the book), not a hint button half-way down.
+  - The egg row is `role="img"`, and the map has a full spoken description.
+  - The mark on the notebook button goes however the book is opened, and a new clue puts it back.
+  - The old stale "ingen måne" fact, the lone "Slutsats" under "hypotes", and the silent end are gone.
+- **Story data:** `story.notebook()` (hypotheses, answer, clues, places with `named`, secrets) and `story.notes()`. The
+  texts are in `NOTEBOOK` in `adventures/adventure-2/content/sv.mjs`. They are read, not heard: the voice script does
+  not take them. Tested in `tests/skoldhast-a2-notebook.test.mjs`.
+
+## Two old notes settled: Åsktoppen from the crown, and the flaky browser checks (7 November)
+
+- **Åsktoppen seen from Jätteträdet's crown** is no longer "a plain triangle" (the 4 November note further down is
+  stale). In the crown's story moment the picture turns to the mountain: jagged ridge, snow, a dark and a lit face, the
+  falls at its foot and the storm's whirl above, upright and in landscape. Afterwards, in landscape, the tree's own
+  crown hides it from the branch; upright it stays in view. Left as it is.
+- **The flaky checks** were faults in the checks, not the game, and are fixed (#29):
+  - A touch stroke lifted mid-motion reads to Chrome as a fling, which swallows the next tap's click. The resting
+    finger the opening check got on 1 October now lives in `tests/browser/finger.mjs` (60 Hz moves with their own
+    times, 0.1 s rest before the lift), and awakening, journey, cloud-color and opening use it; the drawing check's
+    two-finger stroke rests before it lifts. The "Not fixed yet" note under 1 October is done. (Touch and companion
+    already held still or only tapped.)
+  - `skoldhast-adventures`' "selector return preserves position" measured a sköldhäst still drifting up from the
+    kelp page's swim. It now stands still on the pier first.
+  - All six changed checks pass, run one at a time.
+- **Äventyr 2's notebook** was reviewed the same day and rebuilt; see the section above.
+
 # Sköldhästen – handover
 
 ## Small surprises after the story: easter eggs on every page (6 November, evening)

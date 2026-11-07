@@ -27,9 +27,6 @@ export const WORDS = {
     eggAria: (n, total) => `${n} av ${total} ägg hittade`,
     eggToast: (n, total) => `Ägg ${n} av ${total}!`,
     goalLabel: 'Mål',
-    known: 'Vad vet vi?', knownEmpty: 'Inget än. Vi har precis börjat forska.',
-    knownTitle: 'Det här har forskarlaget kommit fram till',
-    hint: 'Visa en ledtråd', hintMore: 'En ledtråd till', noHint: 'Utforska fritt – allt är klart!',
     stuckDone: 'Du är tillbaka på en trygg plats.',
     endingTitle: 'Tio små tukankrabbor!',
     endingBody: 'Du hittade alla tio äggen och hjälpte molnet som var rädd för mörkret. Mira ritade månen och Alva stjärnorna.',
@@ -39,7 +36,6 @@ export const WORDS = {
     drawEgg: 'Rita det första ägget med Alvas penna! Följ prickarna.',
     drawStars: 'Rita en stjärna med Alvas penna! Följ prickarna.',
     pages: { strand: 'Flodstranden', skog: 'Djupa skogen', kristall: 'Kristallgrottan', topp: 'Åsktoppen' },
-    map: 'Kartan', mapHere: 'Här är vi', mapUnknown: '?', mapEggs: (n, t) => `${n}/${t} ägg`,
     places: {
         nest: 'boet', grove: 'Kakaolunden', klyft: 'Klyftan', river: 'Glimmerfloden', deep: 'Djuphålan',
         beetle: 'Tordyvelbacken', magtree: 'Skatträdet', fors: 'Forsen', cave: 'grottan bakom forsen',
@@ -48,8 +44,7 @@ export const WORDS = {
         'k-arrive': 'Kristallgrottan', 'k-plates': 'Kristallklangen', 'k-lake': 'Kristallsjön', 'k-east': 'Kristallsjön',
         'k-beetle': 'dammen vid porten', 'k-gate': 'porten', 'k-spring': 'Källan',
         't-arrive': 'Åsktoppen', 't-wind': 'Vindkanten', 't-chasm': 'Blixtbron', 't-gap': 'Klippan', 't-climb': 'stigen mot toppen', 't-summit': 'Stormens öga'
-    },
-    here: place => `Här är vi: ${place}`
+    }
 };
 
 export const CONTEXT = { dig: 'Gräv', push: 'Knuffa', give: 'Ge myntet', talk: 'Prata', pull: 'Dra i lianen' };
@@ -647,14 +642,62 @@ export const CLUES = {
 };
 export const CLUE_ORDER = ['moonRule', 'noMoon', 'lightning', 'darkStorm', 'cloudCries', 'source', 'lantern', 'afraid', 'moon'];
 
-/** Tukankrabban's hypothesis about the storm, as far as the research has come. */
-export const HYPOTHESIS = {
-    start: 'Hypotes: stormen kommer någonstans ifrån. Men varifrån?',
-    dark: 'Hypotes: stormen är värst när det är som mörkast.',
-    source: 'Hypotes: stormen kommer från Åsktoppen – och den är värst när det är som mörkast.',
-    done: 'Slutsats: molnet är rädd för mörkret. Det blixtrar för att kunna se.',
-    label: 'Tukankrabbans hypotes',
-    question: 'Frågan: vem är det som stormar – och varför?'
+// ---------------------------------------------------------------------------
+// The research notebook: Forskningsdagbok – Den magiska skogen (ui.mjs journal). Read, not heard: nothing here is
+// recorded. Its pages: the title page, what we know now (the mission, the eggs, Klo's notes), the map, the question
+// with Tukankrabban's numbered hypotheses, what we have found out, and the secrets found after the story.
+// ---------------------------------------------------------------------------
+export const NOTEBOOK = {
+    head: 'Forskningsdagbok – Den magiska skogen',
+    title: 'Forskningsdagbok',
+    subtitle: 'Den magiska skogen',
+    team: 'Forskarlaget: Sköldhästen, Professor Klo och Tukankrabban',
+    tabs: ['Framsida', 'Vad vet vi?', 'Kartan', 'Frågan', 'Det vet vi', 'Hemligt'],
+    mission: 'Vårt uppdrag', why: 'Därför', next: 'Nästa steg',
+    eggs: 'Tukankrabbans ägg', eggsAria: (n, total) => `${n} av ${total} ägg hittade`,
+    hatched: 'Tio små tukankrabbor', lillaKlo: 'Lilla Klo',
+    hatchedAria: 'Tio kläckta tukankrabbor. Den minsta är Lilla Klo.',
+    hint: 'Visa en ledtråd', hintMore: 'En ledtråd till', hintsAll: 'Mer vet jag inte här. Prova!',
+    noteFrom: 'Klos lapp',
+    // the map
+    map: 'Kartan', mapUnknown: '?', mapEggs: (n, t) => `${n} av ${t} ägg`, mapEggsUnknown: '? ägg', mapHere: 'Här är vi',
+    mapAria: (lines) => `Kartan: ${lines}`,
+    here: place => `Här är vi: ${place}`,
+    // the question, and Tukankrabban's hypotheses as the story numbers them
+    question: 'Frågan', questionText: 'Vem är det som stormar – och varför?',
+    answer: 'Svaret', answerText: 'Det är Molnet som stormar. Det är rädd för mörkret och blixtrar för att kunna se.',
+    answerMoon: 'Nu har Mira ritat månen. Molnet är inte rädd längre – det blixtrar bara av glädje.',
+    hypotheses: 'Tukankrabbans hypoteser',
+    hyp: [
+        ['Hypotes nummer ett', 'Stormen kommer någonstans ifrån.'],
+        ['Hypotes nummer två', 'Stormen är värst när det är som mörkast.'],
+        ['Hypotes nummer tre', 'Om stormen snurrar, blåser den åt andra hållet högst upp.']
+    ],
+    confirmed: 'Stämmer!',
+    hypMore: 'Fler hypoteser kommer när vi forskar vidare.',
+    // what we know: facts that the moon has made untrue are struck out in pencil, answered ones get their answer
+    clues: 'Det här vet vi', cluesEmpty: 'Inget än. Vi har precis börjat forska.',
+    struck: { noMoon: 'Nu finns det en måne!', darkStorm: 'Stormen har tystnat.' },
+    answered: { lightning: 'Det var Molnet!', cloudCries: 'Nu gråter det inte längre.' },
+    // the secrets, found after the story (each line is written in when it is found)
+    secrets: 'Hemliga upptäckter',
+    secretsLocked: 'Hemligt! Den här sidan fylls i när äggen har kläckts.',
+    secretsIntro: 'Skogen har fler hemligheter. Leta, lyssna och prova!',
+    secretsCount: (n, t) => `${n} av ${t} hemliga upptäckter`,
+    secretsAll: 'Alla hemligheter hittade. Riktiga forskare!',
+    secretsOpen: 'Till de hemliga upptäckterna',
+    secretUnknown: where => `Något hemligt ${where} …`,
+    secretWhere: { strand: 'på Flodstranden', skog: 'i Djupa skogen', kristall: 'i Kristallgrottan', topp: 'på Åsktoppen' },
+    secret: {
+        hatchFollow: 'Göm dig vid boet, så följer tio små forskare efter dig – Lilla Klo först.',
+        molnJoy: 'Gnägg under Molnet, så blixtrar det av glädje.',
+        skataMimic: 'Skatan härmar gnägg. Det klär henne inte, tycker hon.',
+        cocoaAgain: 'Stocken i Kakaolunden är fortfarande en trumma. Klo ger bort kakaofrukter.',
+        mushroomGiggle: 'Svampen fnissar när den studsar. Hypotes nummer fyra: svampar är kittliga.',
+        rocket: 'Från Utsiktskullen såg vi en raket flyga förbi månen. Vart då?',
+        dyvelShells: 'Tordyveln har rullat en boll av äggskalen. Den finaste hittills.',
+        starFall: 'Den som står stilla i Stormens öga får se ett stjärnfall. Klos önskan är hemlig.'
+    }
 };
 
 export const CHATTER = {

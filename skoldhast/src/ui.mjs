@@ -415,7 +415,6 @@ export function createUI(host, { assetBase, handlers, voice = null }) {
     // with the inside of the cover to its left). Tabs jump to a page; pages turn in 3D.
     const spreadQuery = window.matchMedia?.('(min-width: 900px) and (min-height: 520px)');
     function journal(state) {
-        let page = Math.max(0, Math.min(6, state.page ?? 2));
         let showJournalPage = () => {};
         const pages = [
             (c) => {
@@ -538,7 +537,6 @@ export function createUI(host, { assetBase, handlers, voice = null }) {
                 c.append(art('table', 'pencils-lying', 'sk-j-crayons'));
             }
         ];
-        const N = pages.length;
         // the inside of the front cover, left of the first page on a spread
         const insideCover = (c) => {
             c.classList.add('sk-j-inside');
@@ -547,26 +545,48 @@ export function createUI(host, { assetBase, handlers, voice = null }) {
             c.append(doodle('cloud', 'd-cloud'), doodle('gull', 'd-g1'), doodle('gull2', 'd-g2'), doodle('fish', 'd-fish'), doodle('wave', 'd-wave'));
         };
 
+        book({
+            pages, tabs: MENU.tabs.slice(0, pages.length).map((label, i) => ({ label, icon: TAB_ICONS[i] })), head: UI.journal,
+            page: Math.max(0, Math.min(6, state.page ?? 2)), insideCover, bind: (go) => { showJournalPage = go; }, onClose: () => state.onClose?.()
+        });
+    }
+
+    /**
+     * A notebook with tabs: one page on a phone, a two-page spread on a wide screen (the first page is a right-hand
+     * page, with the inside of the cover to its left). Tabs jump to a page; pages turn in 3D. Äventyr 1's
+     * Forskningsdagbok and Äventyr 2's are both this book with their own pages.
+     *   pages: functions that fill a page element; tabs: [{ label, icon }]; head: the name on the spine;
+     *   page: where it opens; insideCover(c): the endpaper left of the first page; bind(go): lets a page turn the book;
+     *   focusTab: the open page's tab takes the first focus (otherwise a page's [data-focus], or its first button);
+     *   cls: extra classes on the book; onClose: after it closes.
+     */
+    function book({ pages, tabs: tabDefs, head, page: start = 0, insideCover = () => {}, bind, focusTab = false, cls = '', onClose }) {
+        const N = pages.length;
+        let page = Math.max(0, Math.min(N - 1, start));
         let settle = () => {}, unlisten = () => {};
+        hintMark.classList.remove('on'); // however it was opened (button, goal note, key), what was new is being read
         openPanel((card, sheet) => {
             card.classList.add('sk-journal');
+            if (cls) card.classList.add(...cls.split(' '));
             sheet.classList.add('sk-sheet-journal');
             const tabs = el('div', 'sk-j-tabs');
             tabs.setAttribute('role', 'tablist');
-            tabs.setAttribute('aria-label', UI.journal);
-            const tabBtns = MENU.tabs.slice(0, N).map((label, i) => {
+            tabs.setAttribute('aria-label', head);
+            const tabBtns = tabDefs.slice(0, N).map(({ label, icon: name }, i) => {
                 const b = el('button', `sk-j-tab t${i}`);
                 b.type = 'button';
                 b.setAttribute('role', 'tab');
                 b.title = label;
-                b.append(icon(TAB_ICONS[i]), el('span', 'sk-j-tab-label', label));
+                b.append(icon(name), el('span', 'sk-j-tab-label', label));
                 b.addEventListener('click', () => go(i));
                 tabs.append(b);
                 return b;
             });
-            const book = el('div', 'sk-j-book');
+            // the open page's tab takes the first focus: the top of the book, not a button half-way down a page
+            if (focusTab) tabBtns[page].dataset.focus = '';
+            const leaves = el('div', 'sk-j-book');
             const slotL = el('div', 'sk-j-leaf l'), slotR = el('div', 'sk-j-leaf r');
-            book.append(slotL, slotR);
+            leaves.append(slotL, slotR);
             const nav = el('div', 'sk-j-nav');
             const prev = btn('‹', () => step(-1), 'sk-j-arrow');
             prev.setAttribute('aria-label', UI.prev);
@@ -575,7 +595,7 @@ export function createUI(host, { assetBase, handlers, voice = null }) {
             const closeB = btn(UI.close, closePanel, 'sk-close');
             const dots = el('span', 'sk-j-dots');
             nav.append(prev, dots, next, closeB);
-            card.append(el('div', 'sk-j-head', UI.journal), tabs, book, nav);
+            card.append(el('div', 'sk-j-head', head), tabs, leaves, nav);
 
             let spread = false;
             const spreadOf = (p) => Math.floor((p + 1) / 2);
@@ -652,7 +672,7 @@ export function createUI(host, { assetBase, handlers, voice = null }) {
                     frames = [{ transform: 'rotateY(-92deg)' }, { transform: 'rotateY(0deg)' }];
                 }
                 front.append(shades[0]); back.append(shades[1]);
-                book.append(leaf);
+                leaves.append(leaf);
                 // the turning page darkens as it leaves the light, and brightens as it lands
                 const opts = { duration: spread ? 620 : 460, easing: 'cubic-bezier(.45,.05,.3,1)' };
                 const dark = spread ? [{ opacity: 0 }, { opacity: 0.32, offset: 0.5 }, { opacity: 0 }]
@@ -678,7 +698,7 @@ export function createUI(host, { assetBase, handlers, voice = null }) {
                 const s = spreadOf(page) + d;
                 go(s <= 0 ? 0 : 2 * s - 1);
             }
-            showJournalPage = go;
+            bind?.(go);
             layout();
             // turning the phone (or resizing the window) switches between one page and a spread
             const onMode = () => { if (card.isConnected) layout(); else unlisten(); };
@@ -690,7 +710,7 @@ export function createUI(host, { assetBase, handlers, voice = null }) {
                 if (e.key === 'ArrowRight' || e.key === 'PageDown') { e.preventDefault(); step(1); }
                 else if (e.key === 'ArrowLeft' || e.key === 'PageUp') { e.preventDefault(); step(-1); }
             });
-        }, { onClose: () => { settle(); unlisten(); state.onClose?.(); }, kind: 'journal' });
+        }, { onClose: () => { settle(); unlisten(); onClose?.(); }, kind: 'journal' });
     }
 
     /** The word code on a yellow sticky note (the text stays "Kod: KELP MÅS SKAL"). */
@@ -979,7 +999,7 @@ export function createUI(host, { assetBase, handlers, voice = null }) {
     // ---------------------------------------------------------------------------
     return {
         root, hud, controls, stickZone, stickBase, stickKnob, hopBtn, actBtn, hideBtn, portrait, updateSpeaker,
-        say, choice, toast, caption: captionShow, pulse, report, ending, journal, pauseMenu, settings, title, adventurePicker, slotPicker, draw,
+        say, choice, toast, caption: captionShow, pulse, report, ending, journal, book, pauseMenu, settings, title, adventurePicker, slotPicker, draw,
         closePanel, voice,
         // the notebook's own pieces, for another adventure's panels
         openPanel, button: btn, art, tape, icon,
