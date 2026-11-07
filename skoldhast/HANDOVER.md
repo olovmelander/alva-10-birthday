@@ -1,3 +1,25 @@
+## Two old notes settled: Åsktoppen from the crown, and the flaky browser checks (7 November)
+
+- **Åsktoppen seen from Jätteträdet's crown** is no longer "a plain triangle" (the 4 November note further down is
+  stale). In the crown's story moment the picture turns to the mountain: jagged ridge, snow, a dark and a lit face, the
+  falls at its foot and the storm's whirl above, upright and in landscape. Afterwards, in landscape, the tree's own
+  crown hides it from the branch; upright it stays in view. Left as it is.
+- **The flaky checks** were faults in the checks, not the game, and are fixed (#29):
+  - A touch stroke lifted mid-motion reads to Chrome as a fling, which swallows the next tap's click. The resting
+    finger the opening check got on 1 October now lives in `tests/browser/finger.mjs` (60 Hz moves with their own
+    times, 0.1 s rest before the lift), and awakening, journey, cloud-color and opening use it; the drawing check's
+    two-finger stroke rests before it lifts. The "Not fixed yet" note under 1 October is done. (Touch and companion
+    already held still or only tapped.)
+  - `skoldhast-adventures`' "selector return preserves position" measured a sköldhäst still drifting up from the
+    kelp page's swim. It now stands still on the pier first.
+  - All six changed checks pass, run one at a time.
+- **Next (asked 7 November):** an independent review of Äventyr 2's notebook ("Vad vet vi?") rated it usable but the
+  plainest part of the adventure: the map renders about 300 px wide with 7 px labels (`.a2-map-box`'s auto margins),
+  stale facts after the moon ("Det finns ingen måne på den här sidan."), a hint button that repeats itself and stays
+  after the end, hypotheses not numbered as the story numbers them, no payoff at the end, and a look unlike Äventyr 1's
+  Forskningsdagbok. Proposed to Pappa: fix the faults, give the story its payoff in the notebook (Stämmer!-stamps,
+  Frågan → Svaret, hatchlings, a "Hemliga upptäckter" list for the easter eggs), and optionally Äventyr 1's book shell.
+
 # Sköldhästen – handover
 
 ## Small surprises after the story: easter eggs on every page (6 November, evening)
