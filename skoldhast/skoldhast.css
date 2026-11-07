@@ -155,7 +155,7 @@ html.skoldhast-lock, html.skoldhast-lock body { overflow: hidden !important; ove
 .sk-stick-base { position: absolute; width: 132px; height: 132px; margin: -66px 0 0 -66px; background-size: contain; background-repeat: no-repeat;
     opacity: 0; transition: opacity .15s; left: 90px; top: 60%; pointer-events: none; }
 .sk-stick-base.on { opacity: 0.9; }
-.sk-stick-base.idle { opacity: 0.35; }
+.sk-stick-base.idle:not(.on) { opacity: 0.35; }
 .sk-stick-knob { position: absolute; left: 50%; top: 50%; width: 62px; height: 62px; margin: -31px 0 0 -31px; background-size: contain; background-repeat: no-repeat; }
 .sk-btns { position: absolute; right: max(14px, env(safe-area-inset-right)); bottom: max(18px, env(safe-area-inset-bottom)); width: 184px; height: 184px; pointer-events: none; }
 .sk-btn { pointer-events: auto; position: absolute; width: 84px; height: 84px; border-radius: 50%; border: 0; cursor: pointer;
@@ -212,7 +212,9 @@ html.skoldhast-lock, html.skoldhast-lock body { overflow: hidden !important; ove
 .sk-speaking[data-speaker="kv"] .sk-speaking-dots { stroke: #2b4a78; }
 .sk-speaking[data-speaker="signe"] .sk-speaking-dots { stroke: #466136; }
 /* on a phone the tab starts right of the journal button, which it would otherwise touch */
-@media (max-width: 560px) { .sk-dlg-name { left: 52px; } }
+@media (max-width: 560px) { .sk-dlg-name { left: 52px; }
+    /* the name tab lands on the dimmed "Ropa på Klo" button: it is not usable while someone speaks anyway */
+    .sk-ui:has(.sk-dialogue.on) .sk-klo-call { visibility: hidden; } }
 .sk-dialogue.who-klo .sk-dlg-name { --tab: var(--sk-peach); --tab-ink: #9e2f1c; }
 .sk-dialogue.who-kv .sk-dlg-name { --tab: var(--sk-sky); --tab-ink: var(--sk-navy); }
 .sk-dialogue.who-alva .sk-dlg-name, .sk-dialogue.who-mira .sk-dlg-name { --tab: var(--sk-leaf); --tab-ink: var(--sk-green-dark); }
@@ -411,6 +413,10 @@ html.skoldhast-lock, html.skoldhast-lock body { overflow: hidden !important; ove
 .sk-j-book::before { content: ''; position: absolute; inset: 0 0 0 0; border-radius: 0 4px 4px 0; background: #efe7d6;
     box-shadow: 1px 1px 0 #ddd2bc, 2px 2px 0 #f4eddf, 3px 3px 0 #d9ceb7, 4px 4px 0 #f1eadb, 5px 4px 0 #cfc3aa; }
 .sk-j-leaf { position: absolute; top: 0; bottom: 0; left: 0; right: 0; }
+/* more of the page below (ui.mjs toggles .more while the page can scroll further) */
+.sk-j-leaf.more::after { content: '▾'; position: absolute; left: 0; right: 0; bottom: 0; height: 34px; z-index: 3; pointer-events: none;
+    display: grid; place-items: end center; padding-bottom: 1px; box-sizing: border-box; font-size: 24px; line-height: 1; color: var(--sk-rust);
+    background: linear-gradient(rgba(253, 250, 243, 0), rgba(253, 250, 243, 0.96) 70%); border-radius: 0 0 3px 0; }
 .sk-j-page { position: absolute; inset: 0; box-sizing: border-box; overflow: hidden auto; overscroll-behavior: contain; display: flex; flex-direction: column; align-items: flex-start;
     padding: 16px 18px 12px 26px; border-radius: 0 3px 3px 0;
     background:
@@ -720,6 +726,8 @@ html.skoldhast-lock, html.skoldhast-lock body { overflow: hidden !important; ove
 .sk-draw { z-index: 6; }
 .sk-toasts { z-index: 7; }
 .sk-panel { z-index: 8; }
+/* an open card has its own ✕: the HUD's look-alike round pause button beside it (or under it) is hidden */
+.sk-ui:has(.sk-panel.on) .sk-hud { visibility: hidden; }
 .sk-message { z-index: 10; }
 
 /* at Alva's table the speech sits at the bottom, so her picture stays in view */
@@ -727,6 +735,7 @@ html.skoldhast-lock, html.skoldhast-lock body { overflow: hidden !important; ove
 .sk-ui.table-mode .sk-dialogue:not(.on) { visibility: hidden; }
 .sk-ui.table-mode .sk-choice { bottom: max(20px, env(safe-area-inset-bottom)); width: max-content; max-width: calc(100% - 32px); gap: 14px; }
 .sk-ui.table-mode .sk-choice-btn { min-width: 0; flex: 1; }
+@media (min-width: 680px) { .sk-ui.table-mode .sk-choice-btn { white-space: nowrap; } } /* "Vem gjorde det?" on one line */
 /* skip Alva's notes at the start of a new game */
 .sk-notes-skip { position: absolute; top: max(12px, env(safe-area-inset-top)); left: max(12px, env(safe-area-inset-left));
     z-index: 6; pointer-events: auto; min-height: 44px; padding: 6px 16px; font-size: calc(18px * var(--fz)); }
@@ -889,6 +898,11 @@ html.skoldhast-lock, html.skoldhast-lock body { overflow: hidden !important; ove
     .sk-adventure-cover > .sk-ic { width: 40px; height: 40px; }
     .sk-adventure-cover > .sk-adventure-check { width: 25px; height: 25px; bottom: 4px; }
     .sk-adventure-card .sk-adventure-name { font-size: calc(24px * var(--fz)); }
+    /* a phone on its side: the play buttons must fit without scrolling (the card was 130 px too tall) */
+    .sk-adventures .sk-adventures-intro { display: none; }
+    .sk-adventure-cover { position: absolute; top: 8px; right: 8px; width: 44px; min-height: 44px; border: 0; background: none; }
+    .sk-adventure-card .sk-adventure-number, .sk-adventure-card .sk-adventure-name { padding-right: 48px; }
+    .sk-adventure-card .sk-adventure-name { min-height: 0; }
 }
 .sk-goal-label { flex: none; font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: #9c4318; }
 .sk-goal-label { font-size: 13px; letter-spacing: 0.03em; text-transform: none; }

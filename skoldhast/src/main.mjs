@@ -681,7 +681,7 @@ export function createGame({ host = document.body, assetBase = './skoldhast/', r
             kloUI.availability({ visible: mode === 'play' && !ui.panelOpen() && !G.vista && !G.hideHero,
                 enabled: !G.busy && !story.running() && !ui.dialogueOpen() });
             if (free && !story.running() && G.flags.has('rule_demo') && !G.flags.has('tip_callKlo')) {
-                G.flag('tip_callKlo'); kloUI.pulse(); guide.tip(KLO_COMPANION.ui.callTip, { ms: 4800 });
+                G.flag('tip_callKlo'); kloUI.pulse(); guide.tip(KLO_COMPANION.ui.callTip, { ms: 4800, at: 'klo' }); // it says "här uppe": point at the button
             }
             if (audio) {
                 const p = G.player;

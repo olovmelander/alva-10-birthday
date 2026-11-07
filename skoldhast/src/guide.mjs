@@ -5,7 +5,7 @@
  *   guide.goal(text)            // the current goal as a small note at the top ('' hides it)
  *   guide.hint(text, who)       // a non-blocking speech bubble (Klo's hint when you are stuck)
  *   guide.think(text)           // a thought bubble beside the sköldhäst's head (why it refused)
- *   guide.tip(text, { at })     // a one-off tip card; at = 'stick' | 'act' | 'hide' | 'journal' points at that control
+ *   guide.tip(text, { at })     // a one-off tip card; at = 'stick' | 'act' | 'hide' | 'journal' | 'klo' points at that control
  *   guide.context(cue)         // current task instruction and progress, from guidance-state.mjs
  *   guide.update()              // each frame: keeps the bubbles in place
  *   guide.show(on)              // hide everything during cutscenes and the table
@@ -176,7 +176,8 @@ export function createGuide(root, { img, portrait, heroScreen, onGoalTap, onDism
         stick: () => root.querySelector('.sk-stick-base'),
         act: () => root.querySelector('.sk-act'),
         hide: () => root.querySelector('.sk-hide'),
-        journal: () => root.querySelector('.sk-journal-btn')
+        journal: () => root.querySelector('.sk-journal-btn'),
+        klo: () => root.querySelector('.sk-klo-call')
     };
     function placeTip() {
         const r = box();
@@ -198,7 +199,7 @@ export function createGuide(root, { img, portrait, heroScreen, onGoalTap, onDism
                 x = q.left - r.left + q.width / 2 - tw + 40; ax = tw - 40;
                 y = Math.min(q.top, btns?.top ?? q.top) - r.top - th - 12; pt = 'pt-down';
             }
-        } else if (q && q.width && tipAt === 'journal') {
+        } else if (q && q.width && (tipAt === 'journal' || tipAt === 'klo')) {
             x = q.left - r.left; y = Math.max(q.bottom - r.top, stackBottom()) + 12; pt = 'pt-up'; ax = q.width / 2;
         } else {
             // no control to point at: low in the middle, clear of the buttons
@@ -308,7 +309,10 @@ export function createGuide(root, { img, portrait, heroScreen, onGoalTap, onDism
             if (!text) return;
             tipText.textContent = text;
             tipAt = at;
-            showFor(tipEl, ms, () => { tipAt = null; });
+            // the stick is invisible at rest: show it faintly while a tip points at it ("Dra spaken …")
+            const stick = at === 'stick' ? anchors.stick() : null;
+            stick?.classList.add('idle');
+            showFor(tipEl, ms, () => { tipAt = null; stick?.classList.remove('idle'); });
             placeTip();
         },
         /** each frame while playing */
@@ -326,7 +330,7 @@ export function createGuide(root, { img, portrait, heroScreen, onGoalTap, onDism
             layer.classList.toggle('off', !on);
             freeTop();
         },
-        clear() { hide(hintEl); hide(thinkEl); hide(tipEl); thinking = false; context(null); },
+        clear() { hide(hintEl); hide(thinkEl); hide(tipEl); anchors.stick()?.classList.remove('idle'); thinking = false; context(null); },
         destroy() { topSize?.disconnect(); for (const t of timers.values()) clearTimeout(t); root.style.removeProperty('--sk-guide-free'); layer.remove(); }
     };
 }

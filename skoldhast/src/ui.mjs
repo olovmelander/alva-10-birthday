@@ -522,6 +522,11 @@ export function createUI(host, { assetBase, handlers }) {
                 if (i < 0) insideCover(p);
                 else if (i >= N) p.classList.add('blank');
                 else { p.dataset.page = String(i); pages[i](p); p.append(el('span', 'sk-j-num', String(i + 1))); }
+                // a page that scrolls says so: a fade and an arrow at its foot until the end is reached
+                // (on a phone on its side most pages are taller than the window, and the hint button was out of sight)
+                const cue = () => p.parentElement?.classList.toggle('more', p.scrollHeight - p.scrollTop - p.clientHeight > 6);
+                p.addEventListener('scroll', cue, { passive: true });
+                requestAnimationFrame(cue); setTimeout(cue, 400);
                 return p;
             }
             function marks() {
@@ -855,7 +860,7 @@ export function createUI(host, { assetBase, handlers }) {
                 card.setAttribute('aria-label', `${ADVENTURE_UI.number(adventure.number)}: ${name}`);
                 const cover = el('div', 'sk-adventure-cover');
                 cover.setAttribute('aria-hidden', 'true');
-                cover.append(icon(adventure.released ? 'wave' : 'pencil'));
+                cover.append(icon(adventure.released ? ({ 'adventure-2': 'cloud' }[adventure.id] || 'wave') : 'pencil')); // each its own: the sea, Mira's cloud
                 if (adventure.completed) cover.append(icon('check', 'sk-adventure-check'));
                 card.append(cover, el('p', 'sk-adventure-number', ADVENTURE_UI.number(adventure.number)), el('h3', 'sk-adventure-name', name));
                 const status = adventure.completed ? ADVENTURE_UI.completed

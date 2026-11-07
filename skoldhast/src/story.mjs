@@ -237,7 +237,9 @@ export function createStory(G, io) {
         async run(s) {
             G.actors.klo.pose = 'stopwatch';
             s.sfx('stopwatch');
-            await s.cam({ x: (P().x + G.actors.klo.x) / 2, y: P().y - h(0.8), zoom: 1.05, t: 0.6, hold: 0.6 });
+            // The gallop carries the sköldhäst on (it can start 9 lengths away), so the picture keeps
+            // both in view, live (fit), instead of a point fixed at the start: that held an empty beach.
+            await s.cam({ x: (P().x + G.actors.klo.x) / 2, y: P().y - h(0.8), zoom: 1.05, t: 0.6, hold: 0.6, fit: ['klo'] });
             await s.say(STORY.k1.stopwatch);
             s.experiment('fart', 'hast');
             // the sköldhäst stamps, the crab dives into its hole
