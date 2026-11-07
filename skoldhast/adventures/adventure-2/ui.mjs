@@ -160,6 +160,16 @@ export function createA2UI(host, { assetBase, handlers }) {
                 c.append(el('p', 'sk-j-question sk-j-mission', objective.text));
                 if (objective.why) c.append(el('p', 'sk-j-recap', objective.why));
             }
+            // help right under the goal: on a phone on its side the card scrolls two or three screens,
+            // and a stuck player should not have to scroll past the map and every clue to find it
+            const hintBox = el('p', 'sk-j-help a2-hint');
+            hintBox.setAttribute('aria-live', 'polite');
+            const more = ui.button(WORDS.hint, () => {
+                const h = hint();
+                hintBox.textContent = h?.text || WORDS.noHint;
+                more.textContent = WORDS.hintMore;
+            });
+            c.append(hintBox, more);
             const row = el('div', 'a2-egg-row');
             for (let i = 0; i < total; i++) { const e = el('span', 'a2-egg' + (i < eggsFound ? ' found' : '')); e.innerHTML = EGG_ICON; row.append(e); }
             row.setAttribute('aria-label', WORDS.eggAria(eggsFound, total));
@@ -175,14 +185,7 @@ export function createA2UI(host, { assetBase, handlers }) {
             c.append(el('h3', '', WORDS.knownTitle));
             if (clues.length) { const ul = el('ul', 'sk-j-list'); for (const k of clues) ul.append(el('li', '', k)); c.append(ul); }
             else c.append(el('p', 'sk-j-small', WORDS.knownEmpty));
-            const hintBox = el('p', 'sk-j-help a2-hint');
-            hintBox.setAttribute('aria-live', 'polite');
-            const more = ui.button(WORDS.hint, () => {
-                const h = hint();
-                hintBox.textContent = h?.text || WORDS.noHint;
-                more.textContent = WORDS.hintMore;
-            });
-            c.append(hintBox, more, ui.button(WORDS.close, () => ui.closePanel(), 'primary'));
+            c.append(ui.button(WORDS.close, () => ui.closePanel(), 'primary'));
         }, { kind: 'journal', onClose: handlers.resume });
     }
 

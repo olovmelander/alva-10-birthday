@@ -39,6 +39,14 @@
 /* the egg count sits by the pause button, clear of the goal note */
 .sk-hud .a2-eggs { position: absolute; top: max(14px, env(safe-area-inset-top)); right: calc(max(12px, env(safe-area-inset-right)) + 62px); padding: 6px 12px;
     border-radius: 14px; background: rgba(30, 28, 48, .45); }
+/* a narrow phone: the goal note needs the width (it covered the count), so the count sits small under the pause button */
+@media (max-width: 560px) {
+    .sk-hud .a2-eggs { top: calc(max(14px, env(safe-area-inset-top)) + 54px); right: max(10px, env(safe-area-inset-right)); width: 52px; box-sizing: border-box;
+        flex-direction: column; gap: 0; padding: 4px 2px 5px; font-size: calc(14px * var(--fz, 1)); line-height: 1.1; text-align: center; white-space: nowrap; }
+    .sk-hud .a2-eggs .a2-egg-icon { width: 18px; height: 22px; }
+    /* the speech box sits at the top here; the toast "Ägg n av 10!" tells the count meanwhile */
+    .sk-ui:has(.sk-dialogue.on) .a2-eggs { visibility: hidden; }
+}
 
 /* the journal's map of the four places */
 /* width: the card centres its children, and an svg without a width falls back to 300 px */

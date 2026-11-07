@@ -352,7 +352,10 @@ export function createGame({ host = document.body, assetBase = './skoldhast/', s
             }
             case 'starsDraw': {
                 // a five-pointed star beside the moon, traced with Alva's pencil
-                const m = view.moonScreen(), cx = m.x - m.r * 2.6, cy = m.y + m.r * 0.3, R = m.r * 0.95;
+                // On a phone the moon is small (r 35 px), and a star of the same size had its dots touching:
+                // at least 17 % of the short side there (desktop unchanged), and clear of the moon on its left.
+                const m = view.moonScreen(), short = Math.min(app.screen.width, app.screen.height);
+                const R = Math.max(m.r * 0.95, Math.min(70, short * 0.17)), cx = m.x - m.r - R - 18, cy = m.y + m.r * 0.3;
                 const anchors = [];
                 for (let i = 0; i <= 10; i++) { const a = -Math.PI / 2 + i * Math.PI / 5, r = i % 2 ? R * 0.42 : R; anchors.push([cx + Math.cos(a) * r, cy + Math.sin(a) * r]); }
                 ui.showControls(false); ui.guide.show(false);

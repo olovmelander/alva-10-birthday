@@ -32,7 +32,7 @@ export const WORDS = {
     hint: 'Visa en ledtråd', hintMore: 'En ledtråd till', noHint: 'Utforska fritt – allt är klart!',
     stuckDone: 'Du är tillbaka på en trygg plats.',
     endingTitle: 'Tio små tukankrabbor!',
-    endingBody: 'Du hittade alla tio äggen och hjälpte molnet som var rädd för mörkret. Mira ritade månen och Alva stjärnorna.',
+    endingBody: 'Du hittade alla tio äggen och hjälpte molnet som var rädt för mörkret. Mira ritade månen och Alva stjärnorna.',
     endingExplore: 'Utforska den månljusa skogen',
     drawCloud: 'Rita ett litet moln med Miras penna!',
     drawMoon: 'Rita månen med Miras penna! Följ prickarna.',
@@ -599,17 +599,17 @@ export const CLUES = {
     cloudCries: 'Skatan har hört ett moln gråta högt uppe i stormen.',
     source: 'Stormen kommer från Åsktoppen, berget bakom forsen.',
     lantern: 'Ett månskensfrö lyser som en lykta i mörkret.',
-    afraid: 'Molnet är rädd för mörkret. Därför blixtrar det – och därför stormar det.',
+    afraid: 'Molnet är rädt för mörkret. Därför blixtrar det – och därför stormar det.',
     moon: 'Mira ritade månen och Alva stjärnorna. Stormen tystnade och äggen kläcktes.'
 };
 export const CLUE_ORDER = ['moonRule', 'noMoon', 'lightning', 'darkStorm', 'cloudCries', 'source', 'lantern', 'afraid', 'moon'];
 
 /** Tukankrabban's hypothesis about the storm, as far as the research has come. */
 export const HYPOTHESIS = {
-    start: 'Hypotes: stormen kommer någonstans ifrån. Men varifrån?',
-    dark: 'Hypotes: stormen är värst där det är mörkast.',
-    source: 'Hypotes: stormen kommer från Åsktoppen – och den är värst där det är mörkast.',
-    done: 'Slutsats: molnet är rädd för mörkret. Det blixtrar för att kunna se.',
+    start: 'Stormen kommer någonstans ifrån. Men varifrån?', // under the heading "Tukankrabbans hypotes"
+    dark: 'Stormen är värst där det är mörkast.',
+    source: 'Stormen kommer från Åsktoppen – och den är värst där det är mörkast.',
+    done: 'Slutsats: molnet är rädt för mörkret. Det blixtrar för att kunna se.',
     label: 'Tukankrabbans hypotes',
     question: 'Frågan: vem är det som stormar – och varför?'
 };
