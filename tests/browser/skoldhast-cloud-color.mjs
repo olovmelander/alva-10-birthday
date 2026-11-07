@@ -5,6 +5,7 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import { serve, launch } from '../../scripts/skoldhast-shot.mjs';
 import { UI, DRAWING } from '../../skoldhast/src/content/sv.mjs';
+import { stroke } from './finger.mjs';
 
 const outAt = process.argv.indexOf('--out'), out = outAt >= 0 ? process.argv[outAt + 1] : '/tmp/skoldhast-cloud-color';
 await fs.mkdir(out, { recursive: true });
@@ -45,12 +46,13 @@ try {
         const at = (x, y) => [pad.x + x * pad.width, pad.y + y * pad.height];
         await touch('touchStart', [at(.2, .3)]); await touch('touchMove', [at(.6, .7)]); await touch('touchCancel', []);
         assert.equal(await page.locator('.sk-draw.preview').count(), 0, 'canceled cloud stays unfinished');
+        // a cloud drawn by a finger that rests before it lifts, so the taps on the colours after it are heard (finger.mjs)
+        const cloud = [];
         for (let i = 0; i <= 36; i++) {
             const a = i / 36 * Math.PI * 2, r = 1 + .16 * Math.sin(5 * a);
-            const p = at(.5 + Math.cos(a) * .34 * r, .5 + Math.sin(a) * .26 * r);
-            await touch(i ? 'touchMove' : 'touchStart', [p]);
+            cloud.push(at(.5 + Math.cos(a) * .34 * r, .5 + Math.sin(a) * .26 * r));
         }
-        await touch('touchEnd', []); await page.waitForSelector('.sk-draw.preview');
+        await stroke(page, cloud); await page.waitForSelector('.sk-draw.preview');
         const beforeColor = await page.locator('.sk-draw canvas').evaluate(c => c.toDataURL());
         await page.getByRole('button', { name: DRAWING.cloudColors.peach, exact: true }).tap();
         const afterColor = await page.locator('.sk-draw canvas').evaluate(c => c.toDataURL());

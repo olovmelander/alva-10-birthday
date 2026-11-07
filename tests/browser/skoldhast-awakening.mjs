@@ -5,6 +5,7 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import { serve, launch } from '../../scripts/skoldhast-shot.mjs';
 import { UI, STORY, HER_TEXT } from '../../skoldhast/src/content/sv.mjs';
+import { stroke } from './finger.mjs';
 
 const outAt = process.argv.indexOf('--out');
 const out = outAt >= 0 ? process.argv[outAt + 1] : '/tmp/skoldhast-awakening';
@@ -73,15 +74,8 @@ async function drawWake(page, input) {
     assert.ok(geometry.anchors?.length >= 2, 'awakening provides a guided shell contour');
     assert.ok(geometry.anchors.every(([x, y]) => x >= 0 && x <= width && y >= 0 && y <= height), 'every awakening anchor is reachable');
     if (input === 'keyboard') await page.keyboard.press('Enter');
-    else {
-        const cdp = await page.context().newCDPSession(page);
-        try {
-            const [first, ...rest] = geometry.anchors;
-            await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x: first[0], y: first[1], id: 1 }] });
-            for (const [x, y] of rest) await cdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x, y, id: 1 }] });
-            await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
-        } finally { await cdp.detach(); }
-    }
+    // a finger that rests before it lifts, so the taps after the drawing are heard (finger.mjs)
+    else await stroke(page, geometry.anchors);
 }
 
 async function assertDormant(page) {
