@@ -885,6 +885,8 @@ html.skoldhast-lock, html.skoldhast-lock body { overflow: hidden !important; ove
 .sk-sheet-adventures { width: min(1050px, 100%); }
 .sk-card.sk-adventures { transform: none; gap: 10px; }
 .sk-adventures > h2 { margin-bottom: 4px; }
+/* a narrow phone with Större text: "Sköldhästens äventyr" on one line, above the card's red rule (it wrapped across it) */
+@media (max-width: 440px) { .sk-adventures > h2 { font-size: min(calc(32px * var(--fz)), 8.6vw); white-space: nowrap; } }
 .sk-adventures .sk-adventures-intro { color: var(--sk-soft); }
 .sk-adventures .sk-adventures-player { font-size: calc(18px * var(--fz)); color: var(--sk-navy); }
 .sk-adventure-list { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; margin-top: 10px; padding: 4px; }

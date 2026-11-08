@@ -57,9 +57,14 @@ quieter "E Prata" label was dropped, since #32 deliberately shows who will answe
 - Äventyr 2 with the real keyboard at 844×390: the bridge, the mushroom, the seeds, the leap, the ball (a 0.75-length
   push window, facing the ball), the whirl's coin, Skatan's tree branch by branch, the trade, the waterfall, K1–K3, the
   spring, the gusts and their warning, the light bridge, the wind over the gap, the summit. No page errors.
+- After the merge (a second round, #34): the lines upstream added or changed today were read in play order (the voice
+  audit's rewrites, Klo's measurements, the hypotheses) and are good Swedish; Äventyr 2's new notebook reads well at
+  390×844 and 844×390 (with the scroll cue); the summit at 844×390 with `frameSpeaker` and the group fit together frames
+  the group and the cloud. With Större text at 390×844, "Sköldhästens äventyr" now fits on one line above the card's
+  red rule (it wrapped across it).
 - Small things left: the settings card scrolls a little at 844×390 to reach "Tangenter och handkontroll"; Klo's hint
-  bubble at 844×390 lies over the "Ropa på Klo" button while he speaks; with Större text at 390×844 the red rule under
-  "Sköldhästens äventyr" falls between its two lines.
+  bubble at 844×390 lies over the "Ropa på Klo" button while he speaks (the bubble carries his conversation, so moving
+  it needs care with how a touch player closes it).
 - A spoken line this session would still change, but cannot without recording (no ElevenLabs key here): the map hint
   "där står hur många ägg varje plats har kvar" (`HINTS.more`); the map shows eggs found, not eggs left.
 
