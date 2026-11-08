@@ -957,6 +957,8 @@ html.skoldhast-lock, html.skoldhast-lock body { overflow: hidden !important; ove
 @media (orientation: landscape) and (max-height: 520px) {
     .sk-guide-top.hinting .sk-goal { display: none; }
     .sk-hintbubble { width: min(640px, calc(100% - 136px)); padding: 6px 14px 7px 8px; }
+    /* centred, it lay over the "Ropa på Klo" button (to x ≈ 214): start right of it (placeHint's side placement is left alone) */
+    .sk-has-klo-ui .sk-hintbubble:not([style*="align-self"]) { margin-left: 222px; width: min(640px, calc(100% - 318px)); }
     .sk-hint-face { width: 34px; height: 34px; }
     .sk-hint-text { font-size: 15px; }
     .sk-hint-text { font-size: 18px; }

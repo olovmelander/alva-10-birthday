@@ -62,9 +62,9 @@ quieter "E Prata" label was dropped, since #32 deliberately shows who will answe
   390×844 and 844×390 (with the scroll cue); the summit at 844×390 with `frameSpeaker` and the group fit together frames
   the group and the cloud. With Större text at 390×844, "Sköldhästens äventyr" now fits on one line above the card's
   red rule (it wrapped across it).
-- Small things left: the settings card scrolls a little at 844×390 to reach "Tangenter och handkontroll"; Klo's hint
-  bubble at 844×390 lies over the "Ropa på Klo" button while he speaks (the bubble carries his conversation, so moving
-  it needs care with how a touch player closes it).
+- On a phone on its side, Klo's centred hint bubble lay over the "Ropa på Klo" button; it now starts right of it, with
+  and without Större text (#35; tapping the bubble still closes it, and the side placement beside the head is unchanged).
+- Small thing left: the settings card scrolls a little at 844×390 to reach "Tangenter och handkontroll".
 - A spoken line this session would still change, but cannot without recording (no ElevenLabs key here): the map hint
   "där står hur många ägg varje plats har kvar" (`HINTS.more`); the map shows eggs found, not eggs left.
 
