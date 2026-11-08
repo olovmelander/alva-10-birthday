@@ -74,9 +74,9 @@ quieter "E Prata" label was dropped, since #32 deliberately shows who will answe
   `skoldhast-launch`, `skoldhast-adventures`, `skoldhast-notebook`, `skoldhast-mapbook`, `skoldhast-dialogue`,
   `skoldhast-opening`. With ten or more of them at once on one machine the title page can take over 30 s under software
   WebGL: four timed out that way here and passed when run again on their own.
-- Still failing on untouched `main` too: `skoldhast-journey.mjs` (touch, 844×390) plays all of Kapitel 1–3 and stops at
-  its last assertion, "the page unfolds before the splash lands" (not looked into; the pure robot checks the same order
-  and passes).
+- `skoldhast-journey.mjs` (touch, 844×390) passes on the merged `main` (all three chapters, the ending, the shell tune
+  and the extras: 49 319 steps). It had stopped at "the page unfolds before the splash lands" on the older `main` this
+  branch started from; #17–#32 brought it up to date.
 - **Contact sheets:** `docs/skoldhast/shots/night/` (taken on the merged tree).
 
 **Frågor till Pappa**
