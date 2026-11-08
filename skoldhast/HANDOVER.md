@@ -31,6 +31,8 @@ and big text / less motion). Most of what they found is about phones, where Alva
 - **"E Prata"** floated over the sköldhäst's head in almost every frame, because Klo and Tukankrabban walk beside it.
   The label now waits until it stands still for 0.7 s; E works all the time, and touch shows it on the button as
   before. Puzzle prompts (Gräv, Knuffa, Dra i lianen …) are unchanged.
+- **K (pad: Y) did nothing in Äventyr 2**, though the key list in the settings says "K: ropa på Klo". It now gives
+  Klo's word about what we are doing now, the same as "Prata" beside him.
 - **Swedish:** "molnet är rädt" (neuter, three places); the hypothesis no longer repeats its heading ("Hypotes: …"
   under "Tukankrabbans hypotes"); the map hint said the map shows eggs *left*, it shows eggs found; Alva's glitter fact
   now ties to Skatan ("Precis som tukankrabbor!").
@@ -51,12 +53,51 @@ and big text / less motion). Most of what they found is about phones, where Alva
   one line on wide screens.
 - **Lines:** "spana efter kartbiten" four times in a row, "rivkanterna" twice in a row and the shutter line twice are
   varied; "Så det var vikningen som rev sönder kartan."
+- **"Det finns fler!"** on the steppe had the same fixed frame as the stopwatch; it uses the live fit too (which now
+  also takes a fixed x in the world). In landscape the fit frames the pair left of the touch buttons.
+
+**Both adventures**
+- **Under an open card** (the journal, pause, settings) the game is paused, so its loop never cleared the goal note,
+  a key prompt or the HUD: they hide while a card is open.
+- **Större text:** a card taller than the screen scrolls, and its heading no longer shrinks under its own words (the
+  reports and Välj äventyr printed the title over the first line on a phone). A thought bubble that would land on the
+  touch buttons goes beside the head on the far side. The report's Klo has room on top in portrait. The notebook tab
+  label cut the g in "Mätningar". Mindre rörelse was checked in both adventures (the prologue, the finale with both
+  settings on): nothing stalls.
 
 **Checked and left as it was**
 - Both stories read well in play order: the red threads, the jokes and the payoffs hold. Äventyr 1's help, recaps,
   goals and clue texts are correct Swedish.
 - Äventyr 2's mountain, played with the keyboard at 844×390: K1's turns, K2's white current, K3's ball and plate, the
   spring, the gusts with their warning, the light bridge in the flash. No page errors anywhere.
+- Äventyr 1 played through on touch at 844×390 (the journey check, with a picture of every speech box: 84): every
+  line reads well over its scene, the new lines included.
+- Small things left: the settings card scrolls a little at 844×390 to reach "Tangenter och handkontroll"; Klo's hint
+  bubble at 844×390 lies over the "Ropa på Klo" button while he speaks; with Större text at 390×844 the red rule under
+  "Sköldhästens äventyr" falls between its two lines.
+
+**Verification**
+- `npm test` passes (419). The robots are unchanged and both still finish.
+- Browser checks that pass: `skoldhast-launch`, `skoldhast-adventures`, `skoldhast-a2` (prologue, all four pages,
+  finale), `skoldhast-notebook`, `skoldhast-mapbook`, `skoldhast-opening`, `skoldhast-finale`, `skoldhast-dialogue`,
+  `skoldhast-touch`.
+- **Two checks fail on untouched `main` too**, at the same line, so they are older than this night:
+  - `skoldhast-guide.mjs:55` waits for the gallop tip with the keyboard, but `tipOnce` in `src/story.mjs` shows the
+    gallop, act, hide, swim and journal tips only on touch (on purpose: the keyboard has the key list). The check
+    expects the old behaviour.
+  - `skoldhast-journey.mjs` (touch, 844×390) plays all of Kapitel 1–3 and stops at its last assertion, "the page
+    unfolds before the splash lands" (the cause was not looked into). The pure robot in `npm test` checks the same
+    order and passes.
+  - `skoldhast-touch.mjs` failed once in a parallel run ("a tap on the sköldhäst neighs") and passed alone, on this
+    branch and on `main`: a timing flake under load.
+- **Contact sheets:** `docs/skoldhast/shots/night/` (before and after at 390×844 and 844×390, the finale at both
+  phone sizes, the journal at 1440×900).
+
+**Frågor till Pappa**
+1. Is "E Prata" waiting until the sköldhäst stands still right? A child on a keyboard may never see "Prata" while
+   walking with Klo; E still works.
+2. The finale's group pictures zoom out further on a phone to fit everyone. Is the hatching big enough on Alva's
+   device?
 
 ## Äventyr 2 after a critic's read: the logic, the start, the mountain top and the view (4 November, night)
 
