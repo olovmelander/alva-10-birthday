@@ -91,7 +91,8 @@ assert.ok(await D(() => window.__skoldhast.debug.G.flags.has('klo_ja')), 'hiding
 // a refusal shows a thought bubble with the reason
 await D(() => { const { G } = window.__skoldhast.debug; G.emit('balk', { reason: 'thin', id: 'test' }); });
 await pg.waitForFunction(() => document.querySelector('.sk-think.on'), null, { timeout: 5000 });
-assert.equal(await text('.sk-think-text'), BALK.thin);
+// the first refusal at an unfinished line tells the world's rule (sv.mjs STORY.k1.thinRule); later ones say BALK.thin
+assert.ok([STORY.k1.thinRule, BALK.thin].includes(await text('.sk-think-text')), 'the refusal says why');
 await shot('3-think');
 
 assert.deepEqual(errors, []);

@@ -1341,7 +1341,8 @@ export function createStory(G, io) {
         const text = controlTip(id, { touch: io.touch, device: io.device, ...io.settings?.() });
         if (F.has('tip_' + id) || !text) return;
         F.add('tip_' + id);
-        if (!io.touch && ['gallop', 'act', 'hide', 'swim', 'journal'].includes(id)) return;
+        // keyboard play shows no key reminders (Pappa, 30 September) – unless the player asked to be guided (Guida mig)
+        if (!io.touch && !guided() && ['gallop', 'act', 'hide', 'swim', 'journal'].includes(id)) return;
         io.guide?.tip(text, { at: io.touch || id === 'journal' ? TIP_AT[id] : null });
     }
     // Earned feedback is still useful. Everything else here explains a future
