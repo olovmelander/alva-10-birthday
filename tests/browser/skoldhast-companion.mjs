@@ -180,11 +180,32 @@ try {
     // Touch/mouse taps on the actor share the global call, including under the
     // movement surface and with optional follow-finger steering enabled.
     const cdp = await page.context().newCDPSession(page);
-    const touch = (type, points) => cdp.send('Input.dispatchTouchEvent', {
-        type, touchPoints: points.map(([x, y], id) => ({ x, y, id }))
+    const touch = (type, points, timestamp) => cdp.send('Input.dispatchTouchEvent', {
+        type, touchPoints: points.map(([x, y], id) => ({ x, y, id })), ...(timestamp ? { timestamp } : {})
     });
+    // A quick tap (input.mjs counts one under 350 ms). Its times are given, so a slow software-rendered
+    // frame between sending the two events cannot turn it into a press.
+    const tap = async ([x, y]) => { const t = Date.now() / 1000; await touch('touchStart', [[x, y]], t); await touch('touchEnd', [], t + .08); };
+    // A key press (K, Escape) puts the on-screen controls away, as it does for a player, and a touch
+    // anywhere brings them back (input.mjs). So touch an empty part of the picture first, the way a
+    // player would, before looking for the movement surface.
+    async function touchMode() {
+        const spot = await page.evaluate(() => {
+            const canvas = document.querySelector('canvas');
+            for (const [fx, fy] of [[.78, .42], [.7, .3], [.85, .55], [.6, .25]]) {
+                const x = innerWidth * fx, y = innerHeight * fy;
+                if (document.elementFromPoint(x, y) === canvas) return [x, y];
+            }
+            return null;
+        });
+        assert.ok(spot, 'an empty part of the picture to touch');
+        await touch('touchStart', [spot]); await touch('touchEnd', []);
+        await page.waitForFunction(() => document.querySelector('.sk-ui')?.classList.contains('sk-touch')
+            && document.querySelector('.sk-stick-zone')?.getClientRects().length > 0);
+    }
     async function actorInStickBand() {
         await stage(places[0]);
+        await touchMode();
         const zone = await page.locator('.sk-stick-zone').boundingBox();
         await page.evaluate(({ x, y }) => {
             const { G, view } = window.__skoldhast.debug, world = view.world;
@@ -208,7 +229,7 @@ try {
         }
         const spot = await actorInStickBand();
         if (kind === 'mouse') await page.mouse.click(spot.x, spot.y);
-        else { await touch('touchStart', [[spot.x, spot.y]]); await touch('touchEnd', []); }
+        else await tap([spot.x, spot.y]);
         await waitReady();
         assert.equal(await page.evaluate(() => window.__skoldhast.debug.input.state().x), 0, kind + ' does not leave steering held');
         await page.keyboard.press('Escape');

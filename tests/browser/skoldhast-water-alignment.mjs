@@ -34,8 +34,9 @@ async function inspect(page) {
         const { G, view, app } = window.__skoldhast.debug, p = G.player;
         const ropes = view.layers.waterFront.children.filter(c => c._pts);
         const air = view.layers.far.children.find(c => c.label === 'water-air');
-        const airRects = air?.context.instructions.flatMap(i => i.data.path?.instructions || [])
-            .filter(i => i.action === 'rect').map(i => i.data.slice(0, 4)) || [];
+        // each air rect is drawn twice since 1 October (the colour, then the pencil hatch): count each once
+        const airRects = [...new Map((air?.context.instructions.flatMap(i => i.data.path?.instructions || [])
+            .filter(i => i.action === 'rect').map(i => i.data.slice(0, 4)) || []).map(r => [r.join(','), r])).values()];
         // the highest solid ground at x (thin planks and drawn-only tails excluded)
         const ground = x => {
             let best = null;
@@ -171,9 +172,14 @@ try {
                     if (before.scene === 'kelp' && after.scene === 'kelp' && before.water && after.water && before.water !== after.water) window.__waterSteps.push({ before, after });
                 };
             });
-            await page.waitForFunction(() => window.__skoldhast.debug.G.context?.id === 'exit');
+            // Back on land after Kapitel 1, Klo opens Kapitel 2 (k2_open, since 1 October): read it through.
+            await page.waitForFunction(() => {
+                const { G, ui } = window.__skoldhast.debug;
+                if (ui.dialogueOpen()) ui.advance();
+                return G.context?.id === 'exit';
+            }, null, { polling: 150 });
             await capture('land-cave-mouth');
-            await page.keyboard.press('Space');
+            await page.keyboard.press('e'); // "Simma in" is the context button: E (Space is Hoppa since 1 October)
             await settledScene(page, 'kelp');
             const entry = await page.evaluate(() => window.__waterEntrance);
             assert.equal(entry.mode, 'swim', 'Simma in starts swimming');

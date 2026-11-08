@@ -51,10 +51,14 @@ export const MOODS = {
         grade: { color: 0xb8e2ee, alpha: 0.14, blend: 'multiply' }
     },
     // Äventyr 2: the storm night, the moonlit night, the crystal cave, the mountain top
+    // (Äventyr 2's page is dark because Mira forgot the moon: before she draws it there is no light in the sky, and no
+    // fireflies; only the lightning, the moonshine seeds and the lantern light it. The soft glow at the top of the
+    // sky read as a moon behind the clouds, and the fireflies as light the story says is not there, 6 November.
+    // Both come with the moon, in 'moonlit'.)
     storm: {
-        light: { x: 0.5, y: -0.2, color: 0x9aa4d8, alpha: 0.25, size: 1.4 },
+        light: { x: 0.5, y: -0.2, color: 0x9aa4d8, alpha: 0, size: 1.4 },
         haze: { color: 0x8c8cb6, alpha: 0.2, y: 0.62, h: 0.3 },
-        motes: { kind: 'firefly', n: 10, color: 0xffd860, alpha: 0.9 },
+        motes: { kind: 'dust', n: 10, color: 0x8e93b8, alpha: 0.35 },
         vignette: { color: 0x0c0c1a, alpha: 0.5 },
         grade: { color: 0xc6c8ea, alpha: 0.12, blend: 'multiply' }
     },
@@ -74,7 +78,7 @@ export const MOODS = {
         grade: { color: 0xd6ccff, alpha: 0.08, blend: 'multiply' }
     },
     peak: {
-        light: { x: 0.5, y: -0.25, color: 0xa8b0e0, alpha: 0.22, size: 1.4 },
+        light: { x: 0.5, y: -0.25, color: 0xa8b0e0, alpha: 0, size: 1.4 },
         haze: { color: 0x9a9cc6, alpha: 0.26, y: 0.66, h: 0.32 },
         motes: { kind: 'snow', n: 40, color: 0xf2f4ff, alpha: 0.85 },
         vignette: { color: 0x0c0c1a, alpha: 0.5 },
@@ -85,7 +89,8 @@ export const MOODS = {
 // Äventyr 1's page already has its own soft lamp vignette, and faint shafts and plankton under water
 MOODS.a1Day = { ...MOODS.day, vignette: { ...MOODS.day.vignette, alpha: 0.1 } };
 MOODS.a1Evening = { ...MOODS.evening, vignette: { ...MOODS.evening.vignette, alpha: 0.16 } };
-MOODS.a1Under = { ...MOODS.underwater, rays: { ...MOODS.underwater.rays, alpha: 0.12 }, motes: { ...MOODS.underwater.motes, n: 8 }, vignette: { ...MOODS.underwater.vignette, alpha: 0.26 } };
+// (a few more drifting specks and slightly brighter shafts than at first: the water read as one still blue, 6 November)
+MOODS.a1Under = { ...MOODS.underwater, rays: { ...MOODS.underwater.rays, alpha: 0.15 }, motes: { ...MOODS.underwater.motes, n: 15 }, vignette: { ...MOODS.underwater.vignette, alpha: 0.26 } };
 MOODS.a1UnderEvening = { ...MOODS.a1Under, light: { ...MOODS.underwater.light, color: 0xffe2c0 }, rays: { ...MOODS.a1Under.rays, color: 0xffe8c8 } };
 
 const PARTS = ['light', 'rays', 'haze', 'motes', 'vignette', 'grade', 'shade'];

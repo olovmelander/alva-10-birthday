@@ -112,3 +112,31 @@ test('an older save that is already past the dunes is never held there, and Klo 
     await R.flag('klo_ja', {}, 10);
     assert.ok(Math.abs(G.actors.klo.x - G.player.x) < 3 * HL, 'he speaks from the hole, not from the note');
 });
+
+test('"Jag har fastnat" never skips a puzzle, and the sköldhäst it moves is the same one', async () => {
+    // 6 November: the checkpoints on the far side of Streckbron, on the unopened hill and over the cleft were picked
+    // whatever the flags; and G.goto's new player made a close-up or Klo at the map corner wait for ever
+    const to = (flags, x, y) => {
+        const R = start([...KLO_DONE, ...flags], 'land', { x: x * HL, y: y * HL, facing: -1 });
+        const s = R.G.safeSpot();
+        return s ? s.x / HL : null;
+    };
+    for (const x of [74, 80, 86]) { const t = to(['note1_read'], x, -0.66); assert.ok(t === null || t > 80.02, `before Streckbron is drawn, from ${x}: ${t}`); }
+    for (const x of [40, 48]) assert.notEqual(to(['note1_read', 'p1_inked'], x, -0.8), 35.2, `not onto the unopened hill from ${x}`);
+    assert.notEqual(to(['note1_read', 'p1_inked', 'p3_t1', 'p3_t2', 'p3_t3', 'p3_done'], 35, -4.0), 5.5, 'not over the cleft before the leap');
+    assert.equal(to(['note1_read', 'p1_inked', 'p3_t1', 'p3_t2', 'p3_t3', 'p3_done', 'p4_leap'], 3, -4.0), 5.5, 'Klippudden once leapt');
+    const R = start(KLO_DONE, 'land', { x: 86 * HL, y: -0.3 * HL, facing: -1 }), { G } = R;
+    const me = G.player;
+    G.relocate({ x: 95 * HL, y: -0.4 * HL, facing: 1 });
+    assert.equal(G.player, me, 'the same player, moved');
+    assert.ok(Math.abs(G.player.x - 95 * HL) < 1 && G.player.vx === 0);
+});
+
+test('a save while a discovery is told does not lose it: it comes back at the same place', async () => {
+    // 6 November: a save (the tablet locked mid-sentence) between the event and the beat's end lost the beat for
+    // good, since the event never comes again; the arch, the mirror and the glimpse come back by `when`
+    const R = start([...KLO_DONE, 'p2_seen', 'p2_plank', 'p2_stone', 'p2_open'], 'land', { x: 101 * HL, y: -0.1 * HL, facing: -1 });
+    await R.until(() => R.has('b:k1_arch'), {}, 20, 'the arch is opened and told again');
+    assert.ok(R.log.some(l => l.kind === 'say' && JSON.stringify(l.lines).includes(STORY.k1.archDone[1].slice(0, 20))));
+    assert.equal(R.G.checkpoint, 'pool');
+});

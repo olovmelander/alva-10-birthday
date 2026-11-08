@@ -24,6 +24,9 @@ import { EGG_TOTAL } from './content/world.mjs';
 
 const h = (v) => v * HL;
 const clamp = (v, a, b) => (v < a ? a : v > b ? b : v);
+/** How tall each one stands (horse lengths): the "Prata" bubble floats just above that. */
+const TALK_HEAD = { klo: 0.34, tukan: 0.5, skata: 0.5, dyvel: 0.42 };
+const EGG_SCALE = 1.5; // eggs in the world (the nest's are smaller)
 const lerp = (a, b, t) => a + (b - a) * t;
 const mixColor = (a, b, t) => {
     const ar = a >> 16 & 255, ag = a >> 8 & 255, ab = a & 255, br = b >> 16 & 255, bg = b >> 8 & 255, bb = b & 255;
@@ -48,7 +51,7 @@ const DASH_TONE = {
     light: { dash: 0xf3c94a, glow: 0xfff0b0, ink: 0xffe27a, edge: 0xb8862c }
 };
 
-export function createView(PIXI, app, { assets, G, heroFactory }) {
+export function createView(PIXI, app, { assets, G, heroFactory, eggTarget = null }) {
     const T = (name) => assets.tex(name);
     const pen = pencilStyle(T);
     const RAW = PIXI;
@@ -58,10 +61,13 @@ export function createView(PIXI, app, { assets, G, heroFactory }) {
     app.stage.addChild(root);
     const skyLayer = new PIXI.Container();
     const farLayer = new PIXI.Container();
+    // Mira's moon and Alva's stars: in front of the distant forest and Åsktoppen, which hid them on
+    // phones (the mountain in portrait, the forest bands in landscape), but behind the air and the world
+    const moonLayer = new PIXI.Container(); moonLayer.label = 'moon-layer';
     const world = new PIXI.Container(); world.label = 'world';
     const overlay = new PIXI.Container();
     const atmoBack = new RAW.Container(), atmoFront = new RAW.Container();
-    root.addChild(skyLayer, farLayer, atmoBack, world, atmoFront, overlay);
+    root.addChild(skyLayer, farLayer, moonLayer, atmoBack, world, atmoFront, overlay);
     const atmo = createAir(RAW, app, { back: atmoBack, front: atmoFront });
     const L = {};
     for (const name of ['back', 'water', 'terrain', 'mid', 'objects', 'actors', 'hero', 'waterFront', 'fore', 'fx']) {
@@ -75,7 +81,7 @@ export function createView(PIXI, app, { assets, G, heroFactory }) {
     L.hero.addChild(hero.view);
     let cloudTexture = null;
     let storm = 1, stormShown = 1;
-    let flash = 0, nextLightning = 4;
+    let flash = 0, nextLightning = 4, rainLevel = 0;
     let fade = 0, fadeTarget = 0, fadeRate = 3;
     const waiters = new Set();
 
@@ -91,7 +97,17 @@ export function createView(PIXI, app, { assets, G, heroFactory }) {
         streak: texFrom(g => g.moveTo(0, -14).lineTo(-3, 14).stroke({ width: 2, color: 0xc9d6ee, alpha: 0.85, cap: 'round' }), 10, 32),
         drop: texFrom(g => g.circle(0, 0, 4).fill({ color: 0xbcd6ea, alpha: 0.9 }), 10, 10),
         star: texFrom(g => { g.moveTo(-8, 0).lineTo(8, 0).moveTo(0, -8).lineTo(0, 8).stroke({ width: 2.2, color: 0xfff6cf, cap: 'round' }); g.circle(0, 0, 2).fill(0xffffff); }, 20, 20),
+        // Alva's stars: five points, as she draws them, pale gold with a pencil edge and a soft halo (they were thick
+        // flat yellow crosses, 5 November)
+        alvaStar: texFrom(g => {
+            for (let i = 5; i >= 1; i--) g.circle(0, 0, 6 + i * 3.2).fill({ color: 0xfff1b0, alpha: 0.06 });
+            const pts = []; for (let i = 0; i < 10; i++) { const a = -Math.PI / 2 + i * Math.PI / 5, r = i % 2 ? 4.6 : 11; pts.push(Math.cos(a) * r, Math.sin(a) * r); }
+            g.poly(pts).fill({ color: 0xffe9a0 }).stroke({ width: 1.4, color: 0x8a6a2a, alpha: 0.85 });
+            g.circle(-1.5, -2, 1.6).fill({ color: 0xffffff, alpha: 0.9 });
+        }, 44, 44),
         mote: texFrom(g => { for (let i = 6; i >= 1; i--) g.circle(0, 0, i * 2.2).fill({ color: 0xfff1b0, alpha: 0.07 }); g.circle(0, 0, 2.4).fill({ color: 0xfffbe6 }); }, 30, 30),
+        // a soft round puff of smoke (the rocket's trail)
+        puff: texFrom(g => { for (let i = 8; i >= 1; i--) g.circle(0, 0, i * 2).fill({ color: 0xffffff, alpha: 0.1 }); }, 36, 36),
         leaf: texFrom(g => g.moveTo(-7, 0).quadraticCurveTo(0, -6, 7, 0).quadraticCurveTo(0, 6, -7, 0).fill({ color: 0x6f9a4f }).stroke({ width: 1, color: 0x3f5f33 }), 18, 14),
         bubble: texFrom(g => g.circle(0, 0, 4.5).stroke({ width: 1.3, color: 0xcfe6ef, alpha: 0.9 }), 12, 12),
         dust: texFrom(g => g.circle(0, 0, 3).fill({ color: 0xc9b58f, alpha: 0.85 }), 8, 8),
@@ -134,7 +150,10 @@ export function createView(PIXI, app, { assets, G, heroFactory }) {
         s.position.set(hash(i, 1), hash(i, 2) * 0.55); s.scale.set(0.25 + hash(i, 3) * 0.5); s._tw = hash(i, 4) * 6;
         stars.addChild(s);
     }
-    const moon = new PIXI.Container(); moon.label = 'moon'; skyLayer.addChild(moon);
+    // after the story a star may fall from Alva's stars over Åsktoppen's summit (fx 'starFall')
+    const shootG = new RAW.Graphics(); moonLayer.addChild(shootG);
+    let shooting = null;
+    const moon = new PIXI.Container(); moon.label = 'moon'; moonLayer.addChild(moon);
     const moonGlow = new RAW.Sprite(TX.mote); moonGlow.anchor.set(0.5); moonGlow.scale.set(9); moonGlow.alpha = 0.55; moonGlow.tint = 0xfff2c4;
     const moonG = new PIXI.Graphics();
     moonG.circle(0, 0, 60).fill(pen.fill(0xf8ebb4)).stroke(pen.line(0xb79a4a, 3));
@@ -142,12 +161,125 @@ export function createView(PIXI, app, { assets, G, heroFactory }) {
     moonG.moveTo(-40, 30).quadraticCurveTo(-10, 52, 30, 44).stroke(pen.line(0xc9b064, 2, 0.6));
     moon.addChild(moonGlow, moonG);
     moon.visible = false;
-    const moonState = { shown: 0, target: 0 };
+    const moonState = { shown: 0, target: 0, rise: 0 };
     // the stars Alva draws round Mira's moon
-    const alvaStars = new RAW.Container(); alvaStars.visible = false; skyLayer.addChild(alvaStars);
+    const alvaStars = new RAW.Container(); alvaStars.visible = false; moonLayer.addChild(alvaStars);
     const ALVA_STARS = [[-2.6, 0.3, 1.9], [-1.4, -0.9, 1.1], [1.5, -0.7, 1.3], [2.3, 0.6, 1.0], [-3.6, -0.6, 0.9], [0.4, 1.7, 0.8]];
-    for (const [dx, dy, k] of ALVA_STARS) { const s = new RAW.Sprite(TX.star); s.anchor.set(0.5); s._d = [dx, dy, k]; alvaStars.addChild(s); }
+    for (const [dx, dy, k] of ALVA_STARS) { const s = new RAW.Sprite(TX.alvaStar); s.anchor.set(0.5); s._d = [dx, dy, k]; alvaStars.addChild(s); }
     const starsState = { shown: 0 };
+
+    // --- the rocket (after the story, from Utsiktskullen: a glimpse of the next adventure, out in space) -------------
+    // Drawn in pencil like everything on the page, in front of the moon: it rises from beyond the hill, crosses Mira's
+    // moon and grows small until it is only a twinkle among Alva's stars. Screen space, like the moon (fx 'rocket').
+    const rocketLayer = new RAW.Container(); rocketLayer.visible = false; moonLayer.addChild(rocketLayer);
+    const rocketTrail = new RAW.Container(); rocketLayer.addChild(rocketTrail);
+    const rocketShip = new PIXI.Container(); rocketLayer.addChild(rocketShip);
+    const rocketFlame = new RAW.Graphics(); rocketShip.addChild(rocketFlame);
+    {
+        const g = new PIXI.Graphics();
+        const ink = 0x3e3550;
+        // fins first, behind the body
+        g.poly([-11, 4, -21, 21, -20, 25, -10, 19]).fill(pen.fill(0xd65a4f)).stroke(pen.line(ink, 1.8));
+        g.poly([11, 4, 21, 21, 20, 25, 10, 19]).fill(pen.fill(0xd65a4f)).stroke(pen.line(ink, 1.8));
+        // the nozzle
+        g.poly([-6, 19, 6, 19, 8, 25, -8, 25]).fill(pen.fill(0x8d879c)).stroke(pen.line(ink, 1.6));
+        // the body: a fat paper-white ogive
+        g.moveTo(0, -34).bezierCurveTo(9, -27, 13, -14, 12.5, 2).lineTo(11, 19).lineTo(-11, 19).lineTo(-12.5, 2)
+            .bezierCurveTo(-13, -14, -9, -27, 0, -34).fill(pen.fill(0xf5f0e4)).stroke(pen.line(ink, 2));
+        // the red nose, and a band round the waist
+        g.moveTo(0, -34).bezierCurveTo(5.5, -30, 8.5, -24, 9.6, -18).quadraticCurveTo(0, -15.5, -9.6, -18)
+            .bezierCurveTo(-8.5, -24, -5.5, -30, 0, -34).fill(pen.fill(0xd65a4f)).stroke(pen.line(ink, 1.6));
+        g.moveTo(-12.4, 9).quadraticCurveTo(0, 11.5, 12.4, 9).stroke(pen.line(0xd65a4f, 2.4, 0.9));
+        // the round window, with a gleam (who is looking out?)
+        g.circle(0, -5, 5.8).fill(pen.fill(0x8ecbe8)).stroke(pen.line(ink, 1.8));
+        g.circle(-1.8, -6.9, 1.5).fill({ color: 0xffffff, alpha: 0.9 });
+        // a little gold star painted on its side, like Alva's
+        const st = []; for (let i = 0; i < 10; i++) { const a = -Math.PI / 2 + i * Math.PI / 5, r = i % 2 ? 1.6 : 3.8; st.push(4.2 + Math.cos(a) * r, 13.6 + Math.sin(a) * r); }
+        g.poly(st).fill({ color: 0xffd86b });
+        rocketShip.addChild(g);
+    }
+    const rocketGlow = new RAW.Sprite(TX.mote); rocketGlow.anchor.set(0.5); rocketGlow.tint = 0xffc27a; rocketLayer.addChildAt(rocketGlow, 1);
+    const rocketTwinkle = new RAW.Sprite(TX.alvaStar); rocketTwinkle.anchor.set(0.5); rocketTwinkle.visible = false; rocketLayer.addChild(rocketTwinkle);
+    let rocket = null;
+    const ROCKET_FLIGHT = 5.6;
+    /** Where the rocket is at progress u (0–1) on this screen: a curve from beyond the hill, across the moon, up
+     *  among Alva's stars. Returns the point and the direction it is flying. */
+    function rocketPath(u, W, H) {
+        const mp = moonScreen(W, H, moonState.rise), r = mp.r;
+        // it starts below the horizon (a little lower than the moon by the same measure on every screen), so it rises
+        // from beyond the hill instead of appearing in the open sky
+        const p0 = [mp.x + 2.3 * r, Math.min(H + 40, mp.y + 4.2 * r + 200)], c = [mp.x + 1.3 * r, mp.y + 0.6 * r];
+        const p2 = [mp.x - 1.6 * r, Math.max(18, mp.y - 1.7 * r)];
+        const a = (1 - u) * (1 - u), b = 2 * u * (1 - u), d = u * u;
+        const x = a * p0[0] + b * c[0] + d * p2[0], y = a * p0[1] + b * c[1] + d * p2[1];
+        const dx = 2 * (1 - u) * (c[0] - p0[0]) + 2 * u * (p2[0] - c[0]), dy = 2 * (1 - u) * (c[1] - p0[1]) + 2 * u * (p2[1] - c[1]);
+        return { x, y, dx, dy, r };
+    }
+    function drawRocket(W, H, dt, t) {
+        const rm = !!G.lessMotion;
+        if (!rocket) { if (rocketLayer.visible) { rocketLayer.visible = false; for (const q of rocketTrail.removeChildren()) q.destroy(); } return; }
+        rocketLayer.visible = true;
+        // (a check may hold the flight at a moment to look at it: rocketState().hold)
+        if (rocket.hold == null || rocket.t < rocket.hold) rocket.t = Math.min(rocket.t + dt, rocket.hold ?? Infinity);
+        const k = Math.max(0.9, Math.min(1.6, Math.min(W, H) / 390));
+        const tau = Math.min(1, rocket.t / ROCKET_FLIGHT);
+        // a slow lift-off, a climb, and seeming slower again as it grows small in the distance
+        const u = tau * tau * (3 - 2 * tau);
+        const P = rocketPath(u, W, H);
+        const flying = tau < 1;
+        const scale = k * (1.05 - 0.78 * u);
+        rocketShip.visible = rocketGlow.visible = flying;
+        if (flying) {
+            rocketShip.position.set(P.x, P.y);
+            rocketShip.rotation = Math.atan2(P.dy, P.dx) + Math.PI / 2;
+            rocketShip.scale.set(scale);
+            rocketShip.alpha = Math.min(1, tau / 0.06) * (tau > 0.9 ? (1 - tau) / 0.1 : 1);
+            // the flame flickers (steady with less motion)
+            const fl = rm ? 1 : 0.8 + 0.25 * Math.sin(t * 47) + 0.12 * Math.sin(t * 83 + 1);
+            rocketFlame.clear();
+            rocketFlame.moveTo(-6, 25).quadraticCurveTo(-5, 25 + 14 * fl, 0, 25 + 24 * fl).quadraticCurveTo(5, 25 + 14 * fl, 6, 25).fill({ color: 0xff9a3c, alpha: 0.9 });
+            rocketFlame.moveTo(-3.2, 25).quadraticCurveTo(-2.6, 25 + 8 * fl, 0, 25 + 14 * fl).quadraticCurveTo(2.6, 25 + 8 * fl, 3.2, 25).fill({ color: 0xfff1b0 });
+            // its light on the smoke
+            const nx = -Math.sin(rocketShip.rotation), ny = Math.cos(rocketShip.rotation);
+            rocketGlow.position.set(P.x + nx * 34 * scale, P.y + ny * 34 * scale);
+            rocketGlow.scale.set(3.2 * scale); rocketGlow.alpha = 0.8 * rocketShip.alpha;
+            // smoke: a puff from the nozzle now and then, which swells, drifts and fades into a curved trail
+            rocket.puffT -= dt;
+            while (rocket.puffT <= 0) {
+                rocket.puffT += rm ? 0.12 : 0.035;
+                const q = new RAW.Sprite(TX.puff); q.anchor.set(0.5); q.tint = 0xf1edf7;
+                q.position.set(P.x + nx * 30 * scale + (Math.random() - 0.5) * 4, P.y + ny * 30 * scale);
+                q._life = 0; q._s = scale; q._vx = (Math.random() - 0.5) * 10; q._vy = 6 + Math.random() * 6;
+                rocketTrail.addChild(q);
+            }
+        }
+        for (let i = rocketTrail.children.length - 1; i >= 0; i--) {
+            const q = rocketTrail.children[i];
+            q._life += dt;
+            const v = q._life / 2.8;
+            if (v >= 1) { q.destroy(); continue; }
+            q.x += q._vx * dt; q.y += q._vy * dt;
+            q.scale.set(q._s * (0.5 + 1.7 * Math.sqrt(v)));
+            q.alpha = 0.78 * (1 - v) * (1 - v);
+        }
+        // at the end it is only a twinkle among the stars, which fades as the trail does
+        if (!flying) {
+            const e = rocket.t - ROCKET_FLIGHT;
+            const end = rocketPath(1, W, H);
+            rocketTwinkle.visible = true;
+            rocketTwinkle.position.set(end.x, end.y);
+            rocketTwinkle.scale.set(k * (e < 0.35 ? 0.4 + 2.2 * e : Math.max(0.35, 1.17 - (e - 0.35) * 0.5)) * (rm ? 1 : 1 + 0.12 * Math.sin(t * 9)));
+            rocketTwinkle.rotation = rm ? 0 : e * 0.8;
+            rocketTwinkle.alpha = Math.max(0, Math.min(1, e / 0.15) * (1 - Math.max(0, e - 1.6) / 1.2));
+            if (e > 2.8 && !rocketTrail.children.length) { rocket = null; rocketTwinkle.visible = false; }
+        } else rocketTwinkle.visible = false;
+    }
+    /** For the hero's eyes: where on the page the rocket is, while it flies. */
+    function rocketWorld(W, H) {
+        if (!rocket || rocket.t >= ROCKET_FLIGHT + 1.2) return null;
+        const tau = Math.min(1, rocket.t / ROCKET_FLIGHT), P = rocketPath(tau * tau * (3 - 2 * tau), W, H);
+        return { x: cam.x + (P.x - W / 2) / cam.zoom, y: cam.y + (P.y - H / 2) / cam.zoom };
+    }
     const stormClouds = new PIXI.Container(); skyLayer.addChild(stormClouds);
     const cloudShapes = [];
     for (let i = 0; i < 6; i++) {
@@ -195,7 +327,7 @@ export function createView(PIXI, app, { assets, G, heroFactory }) {
         const W = 4200, step = kind === 'cave' ? 70 : 140, ridge = [[0, 0]];
         for (let x = 0; x <= W; x += step) {
             const r = hash(x, seed);
-            if (kind === 'cave') ridge.push([x, -baseH * (0.35 + r * 0.5)], [x + step * 0.5, -baseH * (0.1 + r * 0.2)]);
+            if (kind === 'cave') ridge.push([x + (hash(x, seed + 5) - 0.5) * step * 0.5, -baseH * (0.3 + r * 0.6)], [x + step * (0.35 + hash(x, seed + 6) * 0.3), -baseH * (0.08 + r * 0.2)]);
             else ridge.push([x, -baseH * (0.4 + r * 0.7)], [x + step * 0.45, -baseH * (0.2 + hash(x, seed + 1) * 0.3)]);
         }
         poly(c, [...ridge, [W, 0], [W, 900], [0, 900]]).fill(pen.fill(color));
@@ -204,9 +336,26 @@ export function createView(PIXI, app, { assets, G, heroFactory }) {
             const y = -baseH * (0.4 + hash(x, seed) * 0.7);
             c.moveTo(x - 18, y + 22).lineTo(x, y).lineTo(x + 16, y + 20).stroke(pen.line(0xd9dcec, 3, 0.55));
         }
-        if (kind === 'cave') for (let k = 0; k < 60; k++) {
-            const x = hash(k, seed + 3) * W, y = -baseH * (0.1 + hash(k, seed + 4) * 0.4);
-            c.poly([x, y, x + 5, y - 11, x + 10, y]).fill({ color: 0x9fd8ff, alpha: 0.55 });
+        if (kind === 'cave') {
+            // The far wall is crystal, not a row of fir trees (5 November): each spike gets a pale facet down one
+            // side and a darker one down the other; some catch the light at their tips, in the cave's three colours
+            const tints = [0xb79be6, 0x8fc9f0, 0xe6a6d8];
+            for (let i = 1; i < ridge.length - 1; i += 2) {
+                const [px, py] = ridge[i - 1], [tx, ty] = ridge[i], [nx, ny] = ridge[i + 1];
+                const midL = [(px + tx) / 2, (py + ty) / 2 + baseH * 0.08], midR = [(tx + nx) / 2, (ty + ny) / 2 + baseH * 0.08];
+                c.poly([px, py, tx, ty, ...midL]).fill({ color: 0xffffff, alpha: 0.1 });
+                c.poly([tx, ty, nx, ny, ...midR]).fill({ color: 0x05040a, alpha: 0.18 });
+                c.moveTo(tx, ty).lineTo((tx + midL[0]) / 2 + 4, (ty + midL[1]) / 2 + 10).stroke(pen.line(0xe8e4ff, 1.4, 0.35));
+                if (hash(tx, seed + 7) > 0.72) {
+                    const col = tints[Math.floor(hash(tx, seed + 8) * 3)];
+                    c.poly([tx, ty, tx - 7, ty + 22, tx + 7, ty + 22]).fill({ color: col, alpha: 0.6 });
+                    for (let r = 3; r >= 1; r--) c.circle(tx, ty + 8, 6 + r * 6).fill({ color: col, alpha: 0.05 });
+                }
+            }
+            for (let k = 0; k < 60; k++) {
+                const x = hash(k, seed + 3) * W, y = -baseH * (0.1 + hash(k, seed + 4) * 0.4);
+                c.poly([x, y, x + 5, y - 11, x + 10, y]).fill({ color: 0x9fd8ff, alpha: 0.55 });
+            }
         }
         return { c, W };
     }
@@ -281,7 +430,17 @@ export function createView(PIXI, app, { assets, G, heroFactory }) {
     const peakBolt = new PIXI.Graphics();
     peakBolt.moveTo(10, -380).lineTo(-12, -330).lineTo(6, -330).lineTo(-16, -270).stroke(pen.line(0xffe46b, 5));
     peakBolt.visible = false;
-    peak.addChild(peakArt, swirlTilt, peakBolt);
+    // mist drifting across the mountain's flanks (6 November: the same bare mountain stood in nearly every view): a
+    // few soft bands that slowly drift and part, so it never looks quite the same twice
+    const peakMist = [];
+    const mistLayer = new PIXI.Container();
+    for (let k = 0; k < 4; k++) {
+        const g = new PIXI.Graphics(), w = 220 + hash(k, 221) * 160, y = -230 + k * 52 + hash(k, 222) * 20;
+        for (let i = 0; i < 6; i++) g.ellipse((i - 2.5) * w * 0.28, (hash(k + i, 223) - 0.5) * 14, w * 0.32, 16 + hash(k + i, 224) * 10).fill({ color: 0xc8cbe6, alpha: 0.07 });
+        g.position.set((hash(k, 225) - 0.5) * 200, y);
+        mistLayer.addChild(g); peakMist.push({ g, x0: g.x, o: hash(k, 226) * 6, v: 0.04 + hash(k, 227) * 0.05, w });
+    }
+    peak.addChild(peakArt, swirlTilt, mistLayer, peakBolt);
     skyLayer.addChild(peak);
     let peakVista = 0, peakVistaOn = false; // the view from the crown (fx focus with peak)
     // a bolt across the sky when lightning strikes
@@ -297,7 +456,10 @@ export function createView(PIXI, app, { assets, G, heroFactory }) {
     const drops = [];
     for (let i = 0; i < 90; i++) {
         const s = new RAW.Sprite(TX.streak); s.anchor.set(0.5); rain.addChild(s);
-        drops.push({ s, x: hash(i, 11), y: hash(i, 12), v: 0.7 + hash(i, 13) * 0.6 });
+        // drops of different lengths, the faster ones longer (they were all one length, 6 November)
+        const v = 0.7 + hash(i, 13) * 0.6;
+        s.scale.y = 0.7 + (v - 0.7) * 0.9 + hash(i, 14) * 0.25;
+        drops.push({ s, x: hash(i, 11), y: hash(i, 12), v });
     }
     const flashG = new RAW.Graphics(); overlay.addChild(flashG);
     let tooth = null;
@@ -351,6 +513,10 @@ export function createView(PIXI, app, { assets, G, heroFactory }) {
 
     function clearScene() {
         if (!S) return;
+        // a coin still flying lives in L.fx, which is about to be destroyed: end its flight (and its waiting beat) first
+        if (coinFlight) { const c = coinFlight; coinFlight = null; c.done?.(); }
+        // and eggs still flying somewhere end their flights, so a beat waiting for them goes on
+        for (const f of S.flying || []) f.done?.();
         // every scene display (and its actors) lives in these layers; the hero is kept
         for (const l of Object.values(L)) if (l !== L.hero) l.removeChildren().forEach(c => c.destroy({ children: true }));
         parts.length = 0;
@@ -359,6 +525,8 @@ export function createView(PIXI, app, { assets, G, heroFactory }) {
 
     function buildScene(id) {
         clearScene();
+        // the sky's passers-by belong to the page they were seen from
+        rocket = null; shooting = null;
         const def = G.scenes[id];
         atmo.setMood(moodFor(def.sky, G.storm ?? 1), { instant: true });
         S = { id, def, actors: [], eggs: new Map(), surfaces: new Map(), when: [], dashed: new Map(), anim: [] };
@@ -367,6 +535,14 @@ export function createView(PIXI, app, { assets, G, heroFactory }) {
         for (const w of def.waters || []) {
             const wb = w.kind === 'pipe' ? w.bottom : bottom; // the spring's column ends in its pool
             const gw = new PIXI.Graphics();
+            if (w.kind === 'pipe') {
+                // the spring's column: water with wavering sides, not a ruled box (5 November)
+                const side = (x, ph) => { const pts = []; for (let y = w.top; y <= wb; y += h(0.2)) pts.push([x + Math.sin(y / HL * 2.3 + ph) * 13 + Math.sin(y / HL * 6.1 + ph) * 5, y]); return pts; };
+                const body = [...side(w.x0, 0), ...side(w.x1, 1.7).reverse()];
+                poly(gw, body).fill({ color: 0x3f6f8e, alpha: 0.85 });
+                poly(gw, body).fill(pen.material('mat-water', 0.35, 0x5d8eaa));
+                L.water.addChild(gw);
+            } else {
             gw.rect(w.x0, w.top, w.x1 - w.x0, wb - w.top).fill(material('wetsand', 0));
             gw.rect(w.x0, w.top, w.x1 - w.x0, wb - w.top).fill({ color: 0x3f6f8e, alpha: 0.85 });
             gw.rect(w.x0, w.top, w.x1 - w.x0, wb - w.top).fill(pen.material('mat-water', 0.35, 0x5d8eaa));
@@ -374,9 +550,11 @@ export function createView(PIXI, app, { assets, G, heroFactory }) {
             for (let k = 0; k < 9; k++) gw.rect(w.x0, w.top + h(0.45) * (k + 1), w.x1 - w.x0, wb - w.top - h(0.45) * (k + 1)).fill({ color: 0x0f2436, alpha: 0.07 });
             gw.rect(w.x0, w.top, w.x1 - w.x0, h(0.35)).fill({ color: 0x9cc8de, alpha: 0.16 }); // the lit skin of the water
             L.water.addChild(gw);
+            }
             // the surface: a pencil line and its light
             const surf = new PIXI.Graphics();
-            const wave = resampleX([[w.x0, w.top], [w.x1, w.top]], 40).map(([x, y], i) => [x, y + Math.sin(i * 0.9) * 4]);
+            // a gentle wave you can see at play zoom (at 4 units it read as a ruled line, 5 November)
+            const wave = resampleX([[w.x0, w.top], [w.x1, w.top]], 40).map(([x, y], i) => [x, y + Math.sin(i * 0.9) * 7 + Math.sin(i * 0.37) * 4]);
             lineAlong(surf, wave).stroke(pen.line(0x2c5776, 3, 0.9));
             lineAlong(surf, offset(wave, 7)).stroke(pen.line(0xb7d6e6, 2, 0.5));
             L.waterFront.addChild(surf);
@@ -395,23 +573,44 @@ export function createView(PIXI, app, { assets, G, heroFactory }) {
                 }
             }
             const front = new PIXI.Graphics();
-            if (w.kind === 'pipe') front.rect(w.x0, w.top + 6, w.x1 - w.x0, wb - w.top).fill({ color: 0x3d6d8f, alpha: 0.28 });
+            if (w.kind === 'pipe') {
+                const side = (x, ph) => { const pts = []; for (let y = w.top + 6; y <= wb; y += h(0.2)) pts.push([x + Math.sin(y / HL * 2.3 + ph) * 13 + Math.sin(y / HL * 6.1 + ph) * 5, y]); return pts; };
+                poly(front, [...side(w.x0, 0), ...side(w.x1, 1.7).reverse()]).fill({ color: 0x3d6d8f, alpha: 0.28 });
+            }
             else {
                 // only over the water itself: down to its bed, never over the banks
+                // where solid ground stands above the water's surface (a bank, a rock wall inside the water's
+                // span) there is no water: the veil stops at the surface (it used to run down over the rock as a
+                // pale ruled strip, 5 November)
                 const bedAt = (x) => {
                     let best = wb;
                     for (const q of def.surfaces) {
                         if (q.thin || q.hidden || x < q.pts[0][0] || x > q.pts.at(-1)[0]) continue;
                         const y = heightOn(q.pts, x);
-                        if (y > w.top && y < best) best = y;
+                        if (y === null) continue;
+                        if (y <= w.top + 6) return w.top + 2;
+                        if (y < best) best = y;
                     }
                     return best;
                 };
                 const xs = resampleX([[w.x0, 0], [w.x1, 0]], 24).map(([x]) => x);
-                const veil = [...xs.map(x => [x, w.top + 6]), ...xs.slice().reverse().map(x => [x, Math.max(w.top + 6, bedAt(x) + 4)])];
+                const veil = [...xs.map(x => [x, w.top + 6]), ...xs.slice().reverse().map(x => { const b = bedAt(x); return [x, b <= w.top + 2 ? w.top + 6 : Math.max(w.top + 6, b + 4)]; })];
                 poly(front, veil).fill({ color: 0x3d6d8f, alpha: 0.28 });
             }
             L.waterFront.addChildAt(front, 0);
+            // In Kristallgrottan the lit cave water: soft shafts of crystal light slanting down from the surface,
+            // and specks drifting in them (before, the lake was one flat blue box)
+            if (def.underground && w.kind !== 'pipe' && w.x1 - w.x0 > h(4)) {
+                const rays = new PIXI.Graphics();
+                const n = Math.max(3, Math.round((w.x1 - w.x0) / h(3.2)));
+                for (let k = 0; k < n; k++) {
+                    const x = lerp(w.x0, w.x1, (k + 0.5) / n) + (hash(k, w.x0) - 0.5) * h(1.2), wTop = h(0.35 + hash(k, 31) * 0.35), len = h(2.6 + hash(k, 32) * 1.6);
+                    rays.poly([x - wTop, w.top + 8, x + wTop, w.top + 8, x + wTop * 1.9 + h(0.7), w.top + len, x - wTop * 0.6 + h(0.7), w.top + len]).fill({ color: 0xcfeaff, alpha: 0.07 });
+                }
+                rays.blendMode = 'add';
+                L.water.addChild(rays);
+                for (let k = 0; k < 10; k++) twinkleAt(lerp(w.x0, w.x1, hash(k, 41)), w.top + h(0.6 + hash(k, 42) * 2.2), 0.2 + hash(k, 43) * 0.2, 0xdff2ff, L.water);
+            }
             // gentle current marks in the river
             if (w.kind === 'river') {
                 const cur = new PIXI.Container(); L.water.addChild(cur);
@@ -420,6 +619,39 @@ export function createView(PIXI, app, { assets, G, heroFactory }) {
                     c.moveTo(0, 0).quadraticCurveTo(h(0.4), -8, h(0.8), 0).stroke(pen.line(0x9cc3d8, 2, 0.5));
                     c.position.set(w.x0 + (w.x1 - w.x0) * hash(k, 21), w.top + h(0.4 + hash(k, 22) * 1.2));
                     cur.addChild(c); S.anim.push({ kind: 'current', c, x0: w.x0, x1: w.x1, v: 60 + hash(k, 23) * 40 });
+                }
+                // life on the river's bed (the deep river was an empty blue field over bare sand, 5 November):
+                // weed swaying in the current, pebbles, a sunken branch, and a few small fish
+                const bed = def.surfaces.find(q => q.underwater && q.pts[0][0] < w.x1 && q.pts.at(-1)[0] > w.x0);
+                if (bed) {
+                    const life = new PIXI.Graphics(); L.water.addChild(life);
+                    const at = (x) => heightOn(bed.pts, x);
+                    for (let x = bed.pts[0][0] + h(1.2); x < bed.pts.at(-1)[0] - h(1.2); x += h(0.6) + hash(x, 161) * h(1.1)) {
+                        const y = at(x); if (y === null || y < w.top + h(0.9)) continue;
+                        if (hash(x, 162) > 0.55) { // a pebble or two
+                            for (let k = 0; k < 2; k++) life.ellipse(x + k * 16, y - 4, 9 + hash(x + k, 163) * 8, 6).fill(pen.fill(k ? 0x7d7a6e : 0x948f80, 0.95)).stroke(pen.line(0x3e3c36, 1.2, 0.7));
+                            continue;
+                        }
+                        const weed = new PIXI.Graphics(), tall = h(0.5 + hash(x, 164) * 0.9);
+                        for (let k = 0; k < 3; k++) weed.moveTo((k - 1) * 6, 0).bezierCurveTo((k - 1) * 10 + 8, -tall * 0.35, (k - 1) * 4 - 8, -tall * 0.7, (k - 1) * 8 + 4, -tall).stroke(pen.line(k % 2 ? 0x4f7d55 : 0x3d6646, 3.2, 0.8));
+                        weed.position.set(x, y); L.water.addChild(weed);
+                        S.anim.push({ kind: 'sway', c: weed, o: hash(x, 165) * 6 });
+                    }
+                    // a sunken branch lying across the slope
+                    const bx = lerp(bed.pts[0][0], bed.pts.at(-1)[0], 0.68), by = at(bx);
+                    if (by !== null) {
+                        life.moveTo(bx - h(0.9), by - 6).quadraticCurveTo(bx, by - h(0.35), bx + h(1.1), by - 10).stroke(pen.line(0x4e3a24, 9, 0.9));
+                        life.moveTo(bx + h(0.2), by - h(0.18)).lineTo(bx + h(0.5), by - h(0.55)).stroke(pen.line(0x4e3a24, 5, 0.9));
+                    }
+                    for (let k = 0; k < 4; k++) {
+                        const fish = new PIXI.Graphics(), col = [0xe0a15a, 0xc6dbe8, 0xf0cd78, 0xb4d2a8][k];
+                        fish.ellipse(0, 0, 16, 7).fill(pen.fill(col, 0.95)).stroke(pen.line(0x2e3a40, 1.4, 0.8));
+                        fish.poly([-14, 0, -26, -8, -26, 8]).fill(pen.fill(col, 0.95)).stroke(pen.line(0x2e3a40, 1.2, 0.8));
+                        fish.circle(8, -2, 1.8).fill({ color: 0x1a1a1a });
+                        const fx = lerp(w.x0, w.x1, 0.2 + k * 0.18), fy = w.top + h(0.8 + hash(k, 166) * 1.6);
+                        fish.position.set(fx, fy); fish.scale.y = 1.9; fish._s = 1.9; L.water.addChild(fish);
+                        S.anim.push({ kind: 'fish', c: fish, x0: fx, y0: fy, r: h(1.2 + hash(k, 167) * 1.5), o: hash(k, 168) * 6, v: 0.25 + hash(k, 169) * 0.2 });
+                    }
                 }
             }
         }
@@ -431,9 +663,10 @@ export function createView(PIXI, app, { assets, G, heroFactory }) {
             const top = resampleX(s.pts, 24);
             const body = [...top, [top.at(-1)[0], bottom], [top[0][0], bottom]];
             const under = s.mat === 'grass' ? (s.edgeMat || 'earth') : s.mat === 'bark' ? 'earth' : s.mat;
-            if (s.underwater) {
-                poly(gr, body).fill(material(under));
-            } else {
+            // the bed under the water thins out into the paper just like the ground beside it (it used to be filled
+            // to the bottom of the page, so where a bank ran on under a river a ruled light/dark seam went down the
+            // page, 5 November)
+            {
                 // paper below; the soil's colour thins out about one and a half lengths down
                 if (def.underground) {
                     // inside the mountain the rock goes on down: no paper under a cave
@@ -446,16 +679,25 @@ export function createView(PIXI, app, { assets, G, heroFactory }) {
                 // the soil's lower edge is torn, not ruled: the colour runs out unevenly into the paper
                 const vnoise = (x, seed, cell = 150) => { const i = Math.floor(x / cell), f = x / cell - i, u = f * f * (3 - 2 * f); return lerp(hash(i, seed), hash(i + 1, seed), u); };
                 const rag = (dy, amp, seed) => top.map(([x, y]) => [x, y + dy + (vnoise(x, seed) - 0.5) * amp * 2 + (vnoise(x, seed + 9, 38) - 0.5) * amp * 0.4]);
-                const deepEdge = rag(h(1.5), h(0.3), 17), thinEdge = rag(h(2.3), h(0.5), 19);
-                const deep = [...top, ...deepEdge.reverse()], thin = [...rag(h(1.4), h(0.3), 17), ...thinEdge.reverse()];
-                poly(gr, deep).fill(material(under));
-                poly(gr, thin).fill(material(under, 0.45));
-                poly(gr, deep).fill({ color: under === 'earth' ? 0x5a3f2a : 0x6b6256, alpha: 0.18 });
+                // Åsktoppen is a mountain: its rock runs deep before the page shows through (with the soil's usual
+                // depth it read as a thin crust on a pale slab, 6 November)
+                const dk = def.sky === 'peak' ? 2.3 : 1;
+                const deepEdge = rag(h(1.5 * dk), h(0.3 * dk), 17), thinEdge = rag(h(2.3 * dk), h(0.5 * dk), 19);
+                const deep = [...top, ...deepEdge.reverse()], thin = [...rag(h(1.4 * dk), h(0.3 * dk), 17), ...thinEdge.reverse()];
+                // inside the mountain the rock is one rock all the way down: a lighter skin band ended square at each
+                // ledge's ends and stood out as a pale box on every island (6 November)
+                if (!def.underground) {
+                    poly(gr, deep).fill(material(under));
+                    poly(gr, thin).fill(material(under, 0.45));
+                    poly(gr, deep).fill({ color: under === 'earth' ? 0x5a3f2a : 0x6b6256, alpha: 0.18 });
+                }
                 // darker just under the surface, lighter deeper down: the ground has a skin
                 poly(gr, [...top, ...offset(top, h(0.45)).reverse()]).fill({ color: 0x2a1c12, alpha: under === 'earth' ? 0.16 : 0.1 });
                 // layers in the soil, drawn as long uneven pencil lines
                 // (each kind of mark is one path, stroked once: a page builds quickly even on a slow tablet)
-                for (const [dy, a, sd] of [[0.62, 0.28, 3], [1.02, 0.22, 5], [1.32, 0.16, 7]]) {
+                const strata = [[0.62, 0.28, 3], [1.02, 0.22, 5], [1.32, 0.16, 7]];
+                if (def.sky === 'peak') strata.push([1.9, 0.2, 11], [2.6, 0.17, 13], [3.3, 0.14, 15], [4.1, 0.1, 21]);
+                for (const [dy, a, sd] of strata) {
                     const line = rag(h(dy), h(0.18), sd);
                     let pen2 = false;
                     for (let i = 0; i < line.length - 1; i += 1) {
@@ -484,6 +726,51 @@ export function createView(PIXI, app, { assets, G, heroFactory }) {
                     gr.ellipse(x + r * 0.3, y - r * 0.3, r * 0.45, r * 0.22).fill({ color: 0xffffff, alpha: 0.22 });
                     poly(gr, [[x, y], ...pts.slice(2, 5)]).fill({ color: 0x1d1a20, alpha: 0.2 });
                 }
+                // Kristallgrottan's rock: veins of crystal running through it, and small crystals breaking out along its
+                // top, so a ledge in the cave reads as crystal rock, not a grey block (5 November)
+                if (def.underground && top.length > 2) {
+                    const veinCol = [0xb79be6, 0x8fc9f0, 0xe6a6d8];
+                    for (let x = top[0][0] + 40; x < top.at(-1)[0] - 40; x += h(1.1) + hash(x, 31) * h(1.6)) {
+                        const y0 = heightOn(s.pts, x) + h(0.5 + hash(x, 32) * 1.6), col = veinCol[Math.floor(hash(x, 33) * 3)];
+                        const vein = [[x, y0]];
+                        for (let k = 1; k <= 5; k++) vein.push([x + k * 22 + (hash(x + k, 34) - 0.5) * 16, y0 + (hash(x + k, 35) - 0.5) * 36]);
+                        lineAlong(gr, vein).stroke(pen.line(col, 4.5, 0.38));
+                        lineAlong(gr, vein).stroke(pen.line(0xffffff, 1.6, 0.25));
+                    }
+                    for (let x = top[0][0] + 60; x < top.at(-1)[0] - 60; x += h(1.6) + hash(x, 36) * h(2.4)) {
+                        const y = heightOn(s.pts, x);
+                        if (y === null || (def.waters || []).some(w => x > w.x0 - 30 && x < w.x1 + 30 && y > w.top - 10)) continue;
+                        const cc = veinCol[Math.floor(hash(x, 38) * 3)];
+                        crystalCluster(gr, x, y + 4, { size: 0.32 + hash(x, 37) * 0.22, color: cc, n: 3, seed: 11 });
+                        (S.crystalSpots ||= []).push({ x, y, color: cc, size: 1 });
+                    }
+                }
+                // Åsktoppen's rock (under the turf, out in the weather): cracks running down from the top, a pale lit
+                // edge on each, and lichen in small pale patches, so the mountain reads as rock, not as layered paper
+                // (5 November)
+                if (under === 'rock' && !def.underground && !s.cave && top.length > 2) {
+                    // (drawn into the ground's own Graphics: a Graphics cannot hold children in PixiJS 8)
+                    const cracks = [];
+                    for (let x = top[0][0] + 60; x < top.at(-1)[0] - 60; x += h(1.0) + hash(x, 51) * h(1.5)) {
+                        let cx = x, cy = heightOn(s.pts, x) + h(0.3);
+                        const crack = [[cx, cy]], n = (def.sky === 'peak' ? 6 : 3) + Math.floor(hash(x, 52) * 3);
+                        for (let k = 0; k < n; k++) { cx += (hash(x + k, 53) - 0.5) * 70; cy += h((def.sky === 'peak' ? 0.3 : 0.14) + hash(x + k, 54) * 0.18); crack.push([cx, cy]); }
+                        cracks.push({ crack, branch: hash(x, 55) > 0.5 ? (hash(x, 56) > 0.5 ? 22 : -22) : 0 });
+                    }
+                    // (thick enough to read at a phone's zoom)
+                    for (const { crack } of cracks) lineAlong(gr, crack.map(([px, py]) => [px + 5, py + 2]));
+                    gr.stroke(pen.line(0xb9b4c8, 3, 0.35));
+                    for (const { crack, branch } of cracks) {
+                        lineAlong(gr, crack);
+                        // a short branch off the crack
+                        if (branch) { const [bx, by] = crack[2]; gr.moveTo(bx, by).lineTo(bx + branch * 2, by + h(0.15)); }
+                    }
+                    gr.stroke(pen.line(0x221d2c, 5, 0.6));
+                    for (let x = top[0][0] + 40; x < top.at(-1)[0] - 40; x += h(0.6) + hash(x, 57) * h(1.1)) {
+                        const y = heightOn(s.pts, x) + h(0.38 + hash(x, 58) * 0.7 * (def.sky === 'peak' ? 3 : 1)), col = hash(x, 59) > 0.5 ? 0xc8c98c : 0x9fb57e;
+                        for (let k = 0; k < 5; k++) gr.circle(x + (hash(x + k, 60) - 0.5) * 60, y + (hash(x + k, 61) - 0.5) * 26, 6 + hash(x + k, 62) * 8).fill(pen.fill(col, 0.5));
+                    }
+                }
                 // under grass, fine roots hang down from the turf
                 if (s.mat === 'grass') {
                     for (let x = top[0][0] + 10; x < top.at(-1)[0] - 10; x += 16 + hash(x, 26) * 26) {
@@ -507,7 +794,10 @@ export function createView(PIXI, app, { assets, G, heroFactory }) {
                 gr.ellipse(ex, ey + h(0.27), h(0.13), h(0.27)).fill(pen.fill(0xc9a271)).stroke(pen.line(0x5b3c22, 2));
                 for (const r of [0.18, 0.1]) gr.ellipse(ex, ey + h(0.27), h(0.13 * r / 0.2), h(r)).stroke(pen.line(0x8a6a45, 1.4, 0.8));
             }
-            if (s.underwater) poly(gr, body).fill({ color: 0x2e5470, alpha: 0.32 });
+            // under the water the soil is tinted by it; deeper down, in the paper, it is the same page as beside it
+            if (s.underwater) {
+                for (const d of [0.8, 1.35, 1.9]) poly(gr, [...top, ...offset(top, h(d)).reverse()]).fill({ color: 0x2e5470, alpha: 0.07 });
+            }
             lineAlong(gr, s.pts).stroke(pen.line(s.underwater ? 0x2f4f5f : INK, 2.6, 0.9));
             L.terrain.addChild(gr);
             S.surfaces.set(s.id, gr);
@@ -518,14 +808,52 @@ export function createView(PIXI, app, { assets, G, heroFactory }) {
         for (const a of solids) for (const b of solids) {
             if (a === b || Math.abs(a.pts.at(-1)[0] - b.pts[0][0]) > 2 || UNDER(a) === UNDER(b)) continue;
             const xb = b.pts[0][0], yb = b.pts[0][1];
+            // the line between the two soils wanders: one reaches into the other in tongues, as two colours meet in a
+            // pencil drawing. (Before, a tint of each ran into the other; but its own edge was a ruled line, and a straight
+            // line between two textures stayed sharp under any tint, 6 November.)
+            {
+                const n = 18, edge = [], fade = [];
+                for (let i = 0; i <= n; i++) {
+                    const u = i / n, y = yb + h(0.06) + u * h(2.25);
+                    const wave = 0.5 + 0.5 * Math.sin(u * 9 + hash(xb, 195) * 6) * Math.cos(u * 4.3 + 1);
+                    const reach = h(0.1 + 0.55 * wave + hash(xb + i, 194) * 0.12) * Math.min(1, u * 6, (1 - u) * 6);
+                    (u < 0.62 ? edge : fade).push([xb - reach, y]);
+                }
+                const tongue = new PIXI.Graphics();
+                const full = [[xb, yb + h(0.06)], ...edge, [xb, edge.at(-1)[1]]];
+                poly(tongue, full).fill(material(UNDER(b)));
+                poly(tongue, full).fill({ color: UNDER(b) === 'earth' ? 0x5a3f2a : 0x6b6256, alpha: 0.18 }); // as the soil's own band
+                // below the soil's full colour it thins into the paper, and so does the tongue
+                poly(tongue, [[xb, edge.at(-1)[1]], edge.at(-1), ...fade, [xb, yb + h(2.31)]]).fill(material(UNDER(b), 0.45));
+                L.terrain.addChild(tongue);
+            }
+            // grass does not stop at a ruled edge either: its turf thins out a little way onto the other ground
+            const [ga, gb] = a.mat === 'grass' ? [a, 1] : b.mat === 'grass' ? [b, -1] : [null, 0]; // into the other ground
+            if (ga) {
+                const wedge = [], n = 8, len = h(0.9);
+                for (let i = 0; i <= n; i++) { const u = i / n, x = xb + gb * u * len; wedge.push([x, yb - 2 + (hash(x, 193) - 0.5) * 6]); }
+                for (let i = n; i >= 0; i--) { const u = i / n, x = xb + gb * u * len; wedge.push([x, yb + h(0.3) * (1 - u) ** 1.5]); }
+                const tuft = new PIXI.Graphics();
+                poly(tuft, wedge).fill(material('grass'));
+                for (let k = 0; k < 4; k++) { const x = xb + gb * len * (0.15 + k * 0.2); tuft.moveTo(x, yb + 2).quadraticCurveTo(x + 4, yb - 12, x + gb * 9, yb - 20 + k * 3).stroke(pen.line(0x5f7a4a, 2.2, 0.85)); }
+                L.terrain.addChild(tuft);
+            }
+        }
+        // the same where a bank runs on under the water (the river, the cave's islands): the two soils run into each
+        // other a little way instead of meeting in a ruled line down the page (5 November)
+        const beds = def.surfaces.filter(q => !q.thin && !q.hidden && q.underwater);
+        for (const a of [...solids, ...beds]) for (const b of [...solids, ...beds]) {
+            if (a === b || !!a.underwater === !!b.underwater || Math.abs(a.pts.at(-1)[0] - b.pts[0][0]) > 2) continue;
+            const xb = b.pts[0][0], yb = b.pts[0][1];
             const ca = (MAT[UNDER(a)] || [null, 0x8a6a4a])[1], cb = (MAT[UNDER(b)] || [null, 0x8a6a4a])[1];
-            L.terrain.addChild(softDark('side', xb, yb + h(0.3), xb + h(2), yb + h(2.9), { color: ca, alpha: 0.62 }));
-            L.terrain.addChild(softDark('side', xb - h(2), yb + h(0.3), xb, yb + h(2.9), { color: cb, alpha: 0.62, mirror: true }));
+            L.terrain.addChild(softDark('side', xb, yb + h(0.1), xb + h(1.8), yb + h(2.4), { color: ca, alpha: 0.5 }));
+            L.terrain.addChild(softDark('side', xb - h(1.8), yb + h(0.1), xb, yb + h(2.4), { color: cb, alpha: 0.5, mirror: true }));
         }
         // the puzzle drawings and places
         if (def.dashed) for (const d of def.dashed) buildDashed(d);
         buildPlaces(def);
         buildDecor(def);
+        buildNightLight(def);
         buildObjects(def);
         buildActors(def);
         refreshWhen();
@@ -790,7 +1118,9 @@ export function createView(PIXI, app, { assets, G, heroFactory }) {
             // the beetle's burrow
             mid.ellipse(h(63.9), h(-1.47), h(0.32), h(0.12)).fill({ color: 0x24170e, alpha: 0.85 });
             // Forsen: the cliff above the cave, the cave's dark inside, the waterfall
-            const caveIn = [[h(88.7), h(-1.9)], [h(91), h(-1.75)], [h(94), h(-1.85)], [h(96.2), h(-1.6)], [h(99.8), h(-1.7)], [h(99.8), h(0.4)], [h(88.7), h(0.4)]];
+            // (its left side starts behind the falls, under the overhang's lip: a straight edge beside the water read as
+            // a dark box, 6 November)
+            const caveIn = [[h(87.9), h(-2.5)], [h(88.6), h(-2.2)], [h(89.6), h(-2.0)], [h(91), h(-1.75)], [h(94), h(-1.85)], [h(96.2), h(-1.6)], [h(99.8), h(-1.7)], [h(99.8), h(0.4)], [h(87.9), h(0.4)]];
             poly(back, caveIn).fill(material('rock')); poly(back, caveIn).fill({ color: 0x14121d, alpha: 0.72 });
             for (let k = 0; k < 7; k++) back.moveTo(h(89.2 + k), h(-1.6)).quadraticCurveTo(h(89.4 + k), h(-1.1), h(89.3 + k), h(-0.8)).stroke(pen.line(0x3a3646, 3, 0.6));
             const cliff = [[h(88.3), h(-7.6)], [h(99.8), h(-7.6)], [h(99.8), h(-1.6)], [h(97.6), h(-1.45)], [h(97), h(-1.55)], [h(95.4), h(-1.75)], [h(94.1), h(-1.5)], [h(92.6), h(-1.85)], [h(91.1), h(-1.55)], [h(89.8), h(-1.9)], [h(88.9), h(-2.6)],
@@ -798,10 +1128,59 @@ export function createView(PIXI, app, { assets, G, heroFactory }) {
             poly(fore, cliff).fill(material('rock')); poly(fore, cliff).fill({ color: 0x2d2a36, alpha: 0.3 });
             for (let k = 0; k < 9; k++) { const y = h(-7 + k * 0.62); fore.moveTo(h(89.4), y).lineTo(h(96.8), y + h(0.12) * Math.sin(k)).stroke(pen.line(0x5a5668, 1.6, 0.45)); }
             for (let k = 0; k < 6; k++) fore.circle(h(90 + k * 1.2), h(-7.5) + 6, h(0.3 + hash(k, 55) * 0.2)).fill(pen.fill(0x3d6a45));
+            // the overhang above the cave was one plain grey slab (5 November): moss along its lip, ferns in its
+            // cracks, and water dripping from the edge where the falls keep it wet
+            const lip = cliff.slice(2, 11);
+            for (let i = 0; i < lip.length - 1; i++) {
+                const [x0, y0] = lip[i], [x1, y1] = lip[i + 1];
+                for (let k = 0; k < 3; k++) {
+                    const u = (k + 0.5) / 3, x = lerp(x0, x1, u), y = lerp(y0, y1, u);
+                    fore.ellipse(x, y - 4, h(0.18 + hash(x, 171) * 0.14), h(0.07)).fill(pen.fill(k % 2 ? 0x4f7a4a : 0x3d6646, 0.9));
+                    if (hash(x, 172) > 0.6) fore.moveTo(x, y).quadraticCurveTo(x + 6, y + h(0.25), x - 2, y + h(0.45 + hash(x, 173) * 0.4)).stroke(pen.line(0x4f7a4a, 2.4, 0.8)); // hanging moss
+                }
+            }
+            for (const [fx, fy] of [[h(91.2), h(-4.4)], [h(94.6), h(-5.9)], [h(97.8), h(-3.6)]]) {
+                fore.moveTo(fx - 30, fy + 6).lineTo(fx + 34, fy - 4).stroke(pen.line(0x2a2633, 2, 0.55)); // a crack
+                for (let k = 0; k < 4; k++) fore.moveTo(fx + k * 6, fy).quadraticCurveTo(fx + k * 6 - 18 + k * 10, fy - 26, fx + k * 6 - 26 + k * 16, fy - 34).stroke(pen.line(k % 2 ? 0x5f8a55 : 0x4a7444, 2.6, 0.85));
+            }
+            // cracks running down the face with a lit edge, and pale lichen, as on Åsktoppen: in a phone held upright
+            // the overhang fills half the screen and read as one flat grey slab (5 November)
+            const crs = [];
+            for (let k = 0; k < 7; k++) {
+                let cx = h(89.6 + k * 1.45 + hash(k, 175) * 0.6), cy = h(-7.3 + hash(k, 176) * 1.2);
+                const pts = [[cx, cy]], n = 4 + Math.floor(hash(k, 177) * 4);
+                for (let i = 0; i < n; i++) { cx += (hash(k + i, 178) - 0.5) * 90; cy += h(0.3 + hash(k + i, 179) * 0.3); if (cy > h(-2.4)) break; pts.push([cx, cy]); }
+                if (pts.length > 1) crs.push(pts);
+            }
+            // (thick enough to read at a phone's zoom, where the world is drawn at about a third of its size)
+            for (const pts of crs) lineAlong(fore, pts.map(([x, y]) => [x + 5, y + 2]));
+            fore.stroke(pen.line(0xb9b4c8, 3, 0.35));
+            for (const pts of crs) lineAlong(fore, pts);
+            fore.stroke(pen.line(0x221d2c, 5, 0.6));
+            for (let k = 0; k < 16; k++) {
+                const x = h(89.6 + hash(k, 181) * 9.8), y = h(-7.1 + hash(k, 182) * 4.6), col = hash(k, 183) > 0.5 ? 0xc8c98c : 0x9fb57e;
+                for (let i = 0; i < 5; i++) fore.circle(x + (hash(k + i, 184) - 0.5) * 60, y + (hash(k + i, 185) - 0.5) * 26, 6 + hash(k + i, 186) * 8).fill(pen.fill(col, 0.5));
+            }
             lineAlong(fore, cliff.slice(2).concat([cliff[0]])).stroke(pen.line(INK, 2.4));
+            for (const dx of [89.6, 91.8, 93.5, 95.9, 97.2]) {
+                const d = new PIXI.Graphics();
+                d.moveTo(0, -5).quadraticCurveTo(3.5, 1, 0, 4).quadraticCurveTo(-3.5, 1, 0, -5).fill({ color: 0xcfe6f2, alpha: 0.9 });
+                const x = h(dx), y0 = heightOn(cliff.slice(2, 11).map(([px, py]) => [px, py]).sort((a, b) => a[0] - b[0]), x) ?? h(-1.7);
+                d.position.set(x, y0); L.fore.addChild(d);
+                S.anim.push({ kind: 'drip', c: d, y0, y1: y0 + h(1.5), o: hash(dx, 174) });
+            }
             const falls = new PIXI.Container(); L.waterFront.addChild(falls);
             const fg = new PIXI.Graphics();
-            fg.moveTo(h(87.2), h(-7.5)).lineTo(h(88.8), h(-7.5)).lineTo(h(89.0), 0).lineTo(h(87.0), 0).closePath().fill({ color: 0xbcd8ea, alpha: 0.5 });
+            // the sheet of water: its edges waver as falling water does, fuller at the lip (5 November: it was a ruled
+            // pale strip with straight white edges)
+            const edgeL = [], edgeR = [];
+            for (let y = -7.5; y <= 0.001; y += 0.25) {
+                const u = (y + 7.5) / 7.5;
+                edgeL.push([h(87.2 - 0.2 * u) + Math.sin(y * 4.1) * 6 + Math.sin(y * 9.3) * 3, h(y)]);
+                edgeR.push([h(88.8 + 0.2 * u) + Math.sin(y * 3.7 + 1) * 6 + Math.sin(y * 8.1) * 3, h(y)]);
+            }
+            poly(fg, [...edgeL, ...edgeR.slice().reverse()]).fill({ color: 0xbcd8ea, alpha: 0.5 });
+            poly(fg, [...edgeL.slice(0, 8), ...edgeR.slice(0, 8).reverse()]).fill({ color: 0xe8f4fa, alpha: 0.35 }); // fuller where it pours over
             // the falling water drawn in long wavering strokes, lighter at the lip
             for (let k = 0; k < 14; k++) {
                 const x = h(87.25 + k * 0.11 + (hash(k, 59) - 0.5) * 0.05);
@@ -810,8 +1189,12 @@ export function createView(PIXI, app, { assets, G, heroFactory }) {
                 fg.stroke(pen.line(k % 3 ? 0xe8f4fa : 0x8fb6d0, 1.6 + (k % 2), 0.55));
             }
             fg.rect(h(87.2), h(-7.6), h(1.6), h(0.35)).fill({ color: 0xffffff, alpha: 0.35 });
-            fg.moveTo(h(87.2), h(-7.5)).lineTo(h(87.0), 0).moveTo(h(88.8), h(-7.5)).lineTo(h(89.0), 0).stroke(pen.line(0xe8f4fa, 3, 0.8));
+            lineAlong(fg, edgeL).stroke(pen.line(0xe8f4fa, 2.6, 0.75)); lineAlong(fg, edgeR).stroke(pen.line(0xe8f4fa, 2.6, 0.75));
+            // the lip: the water curls over the cliff's edge
+            fg.moveTo(h(87.0), h(-7.6)).quadraticCurveTo(h(88.0), h(-7.95), h(89.0), h(-7.6)).stroke(pen.line(0xf2f8fb, 5, 0.85));
             for (let k = 0; k < 7; k++) fg.circle(h(86.9 + k * 0.36), 6 + (k % 2) * 8, 16 + (k % 3) * 6).fill(pen.fill(0xf2f8fb, 0.85));
+            // spray mist rising at the foot
+            for (let k = 0; k < 9; k++) fg.circle(h(86.6 + hash(k, 57) * 2.8), -h(0.25 + hash(k, 58) * 0.9), 14 + hash(k, 56) * 22).fill({ color: 0xe8f2f8, alpha: 0.13 });
             falls.addChild(fg);
             for (let k = 0; k < 10; k++) {
                 const st = new PIXI.Graphics();
@@ -842,12 +1225,40 @@ export function createView(PIXI, app, { assets, G, heroFactory }) {
             poly(back, trunk).fill(material('bark')); poly(back, trunk).fill(pen.hatch(0x3e2814, 0.55));
             poly(back, [[h(13.2), h(-0.5)], [h(14.6), h(-9)], [h(15.2), h(-13.5)], [h(16.2), h(-13.5)], [h(15.6), h(-9)], [h(14.6), h(-0.5)]]).fill({ color: 0x1d140c, alpha: 0.38 });
             poly(back, [[h(19.4), h(-0.5)], [h(19.0), h(-9)], [h(18.8), h(-13.5)], [h(19.4), h(-13.5)], [h(20.0), h(-9)], [h(20.6), h(-0.5)]]).fill({ color: 0xe8dcc0, alpha: 0.1 });
-            lineAlong(back, trunk).stroke(pen.line(0x2e1d0e, 3));
-            for (let k = 0; k < 26; k++) {
-                const x = h(14.4 + hash(k, 61) * 5.6), y = h(-0.8 - hash(k, 62) * 12.4);
-                back.moveTo(x, y).quadraticCurveTo(x + 10, y - 40, x + 4, y - 80).stroke(pen.line(0x4e331c, 2, 0.6));
+            // Bark you can read even in the storm's dark (5 November; before, the trunk was one flat brown wedge):
+            // long furrows, each a dark groove with a pale ridge beside it, following the trunk's taper
+            const edgeAt = (u, side) => { // the trunk's left (side 0) or right (1) edge at height u (0 foot, 1 top)
+                const a = side ? [[0, 21.6], [0.6, 20.4], [1, 19.8]] : [[0, 13.2], [0.6, 14.6], [1, 15.2]];
+                return u < 0.6 ? lerp(a[0][1], a[1][1], u / 0.6) : lerp(a[1][1], a[2][1], (u - 0.6) / 0.4);
+            };
+            for (let k = 0; k < 34; k++) {
+                const f = (k + 0.5) / 34 + (hash(k, 63) - 0.5) * 0.02, pts = [];
+                const u0 = hash(k, 64) * 0.25, u1 = 0.55 + hash(k, 65) * 0.45;
+                for (let i = 0; i <= 10; i++) {
+                    const u = lerp(u0, u1, i / 10), x0 = edgeAt(u, 0), x1 = edgeAt(u, 1);
+                    pts.push([h(lerp(x0, x1, f)) + Math.sin(u * 23 + k) * 5, h(-0.5 - u * 13)]);
+                }
+                lineAlong(back, pts).stroke(pen.line(0x24170c, 2.6 + hash(k, 66) * 1.6, 0.75));
+                lineAlong(back, pts.map(([x, y]) => [x + 4, y])).stroke(pen.line(0xa98a64, 1.3, 0.35 + 0.25 * (f > 0.6 ? 1 : 0)));
             }
+            // moonlight on the right-hand edge, moss at the foot, and knots where old limbs broke off
+            const lit = []; for (let i = 0; i <= 12; i++) { const u = i / 12; lit.push([h(edgeAt(u, 1)) - 6, h(-0.5 - u * 13)]); }
+            lineAlong(back, lit).stroke(pen.line(0xd8d4e8, 5, 0.22));
+            // moss creeping up the foot, its top edge uneven (a regular zigzag read as distant hills)
+            const moss = []; for (let i = 0; i <= 28; i++) { const x = lerp(13.4, 21.4, i / 28); moss.push([h(x), h(-0.55 - 0.55 - hash(i, 67) * 0.75 - (i % 5 === 2 ? 0.35 : 0))]); }
+            poly(back, [...moss, [h(21.6), h(-0.5)], [h(13.2), h(-0.5)]]).fill(pen.fill(0x4f6e3e, 0.75));
+            poly(back, [...moss, [h(21.6), h(-0.5)], [h(13.2), h(-0.5)]]).fill(pen.hatch(0x7f9c5a, 0.6));
+            for (const [kx, ky, kr] of [[15.6, -3.4, 0.32], [19.1, -8.8, 0.28], [16.4, -10.9, 0.24]]) {
+                for (let r = 0; r < 3; r++) back.ellipse(h(kx), h(ky), h(kr) * (1 - r * 0.28), h(kr) * 1.3 * (1 - r * 0.28)).stroke(pen.line(r ? 0x6b4a2c : 0x24170c, r ? 1.6 : 2.6, 0.85));
+            }
+            // roots flaring out into the ground on both sides
+            for (const [x0, dir] of [[13.4, -1], [14.2, -1], [20.6, 1], [21.3, 1]]) {
+                back.moveTo(h(x0), h(-1.2)).quadraticCurveTo(h(x0 + dir * 0.5), h(-0.7), h(x0 + dir * 1.3), h(-0.45)).stroke(pen.line(0x3a2614, 14, 0.95));
+                back.moveTo(h(x0), h(-1.2)).quadraticCurveTo(h(x0 + dir * 0.5), h(-0.7), h(x0 + dir * 1.3), h(-0.45)).stroke(pen.line(0x7a5a38, 3, 0.5));
+            }
+            lineAlong(back, trunk).stroke(pen.line(0x2e1d0e, 3));
             back.ellipse(h(17.4), h(-6.2), h(0.5), h(0.7)).fill({ color: 0x1d140c, alpha: 0.9 }); // a hollow
+            back.ellipse(h(17.4), h(-6.2), h(0.56), h(0.77)).stroke(pen.line(0x8a6a44, 3, 0.7));
             for (const [cx, cy, cr] of [[11.6, -14.4, 2.3], [23.2, -14.4, 2.3], [14.2, -15.6, 2.7], [20.6, -15.6, 2.7], [17.4, -16.6, 3.0], [17.4, -14.2, 2.6]]) {
                 crownAt(back, h(cx), h(cy), h(cr), 0x2c5240, 0x5a8a5a, cx * 7.1);
             }
@@ -972,12 +1383,23 @@ export function createView(PIXI, app, { assets, G, heroFactory }) {
             const body = [...edge, [edge.at(-1)[0], h(-17)], [edge[0][0], h(-17)]];
             poly(fore, body).fill(material('rock')); poly(fore, body).fill({ color: 0x1a1726, alpha: 0.55 });
             for (let k = 0; k < edge.length; k += 3) { const [x, y] = edge[k]; fore.moveTo(x, y - h(0.3)).lineTo(x + 26, y - h(0.9)).stroke(pen.line(0x4a4560, 1.6, 0.4)); }
+            // crystal veins run through the roof as through the ledges: held upright, the roof fills the top third of
+            // the screen and was a plain grey slab (6 November)
+            for (let x = edge[0][0] + h(0.6); x < edge.at(-1)[0] - h(0.6); x += h(1.3) + hash(x, 108) * h(1.8)) {
+                const ey = heightOn(edge, x);
+                if (ey === null) continue;
+                const y0 = ey - h(0.7 + hash(x, 109) * 2.6), col = [0xb79be6, 0x8fc9f0, 0xe6a6d8][Math.floor(hash(x, 110) * 3)];
+                const vein = [[x, y0]];
+                for (let i = 1; i <= 5; i++) vein.push([x + i * 40 + (hash(x + i, 34) - 0.5) * 30, y0 + (hash(x + i, 35) - 0.5) * 70]);
+                lineAlong(fore, vein).stroke(pen.line(col, 5, 0.38));
+                lineAlong(fore, vein).stroke(pen.line(0xffffff, 1.8, 0.26));
+            }
             lineAlong(fore, edge).stroke(pen.line(INK, 2.6, 0.9));
             // stalactites, and crystals growing down from the roof
             for (let k = 2; k < edge.length - 2; k += 2 + Math.floor(hash(k, line.length) * 3)) {
                 const [x, y] = edge[k];
                 if (x > h(43.2) && x < h(47)) continue;
-                if (hash(x, 103) > 0.72) { crystalCluster(fore, x, y - 4, { dir: 1, size: 0.6 + hash(x, 104) * 0.5, color: [0xb79be6, 0x8fc9f0, 0xe6a6d8][k % 3], n: 3, seed: 7 }); twinkleAt(x, y + 40, 0.4, 0xdff2ff, L.fore); continue; }
+                if (hash(x, 103) > 0.52) { crystalCluster(fore, x, y - 4, { dir: 1, size: 0.6 + hash(x, 104) * 0.5, color: [0xb79be6, 0x8fc9f0, 0xe6a6d8][k % 3], n: 3, seed: 7 }); twinkleAt(x, y + 40, 0.4, 0xdff2ff, L.fore); continue; }
                 const len = h(0.2 + hash(x, 105) * 0.45), w = 10 + hash(x, 106) * 12;
                 fore.poly([x - w, y - 4, x + w, y - 4, x + hash(x, 107) * 6, y + len]).fill(material('rock')).stroke(pen.line(0x2a2638, 1.6, 0.8));
                 fore.poly([x - w, y - 4, x - w * 0.2, y - 4, x + hash(x, 107) * 6, y + len]).fill({ color: 0x14121d, alpha: 0.35 });
@@ -991,6 +1413,7 @@ export function createView(PIXI, app, { assets, G, heroFactory }) {
             if (gy === null) return;
             glowAt(h(x), gy - h(0.6), 5, col, 0.22, L.back);
             crystalCluster(back, h(x), gy - 4, { size: 1.1 + hash(i, 9) * 0.5, color: col, n: 5, seed: i });
+            (S.crystalSpots ||= []).push({ x: h(x), y: gy, color: col, size: 1.8 });
             twinkleAt(h(x) + 10, gy - h(0.9), 0.5, 0xffffff, L.back);
         });
         for (let k = 0; k < 26; k++) twinkleAt(h(-1 + hash(k, 111) * 77), h(-3.6 + hash(k, 112) * 2.4), 0.25 + hash(k, 113) * 0.3, 0xcfe6ff, L.back);
@@ -999,7 +1422,11 @@ export function createView(PIXI, app, { assets, G, heroFactory }) {
         ravine(back, h(12), h(18), h(-0.4), h(-0.4));
         // the air over it goes clear once lit; the pit itself stays deep
         const dark = softDark('down', h(11.9), h(-2.9), h(18.1), h(-0.38), { alpha: 0.95 }), pit = softDark('solid', h(11.95), h(-0.45), h(18.05), h(4.2), { alpha: 0.92 });
-        L.fore.addChild(dark, pit); S.chasmDark = dark; S.chasmPit = pit;
+        pit.label = 'chasm-pit';
+        // the pit's dark lies behind the chasm's walls (in front of them it hid the walls in a black box)
+        L.fore.addChild(dark);
+        if (back.parent) back.parent.addChildAt(pit, back.parent.getChildIndex(back)); else L.back.addChild(pit);
+        S.chasmDark = dark; S.chasmPit = pit;
         S.chasmGlow = glowAt(h(15), h(-0.3), 7, 0x9fd8ff, 0, L.back);
 
         // K2: the rock wall that comes down into the lake
@@ -1051,8 +1478,19 @@ export function createView(PIXI, app, { assets, G, heroFactory }) {
         const vent = new PIXI.Graphics(); vent.ellipse(def.spots.spring.x, def.spots.spring.y + 22, h(0.7), 16).fill({ color: 0x0b0a14, alpha: 0.85 }); L.objects.addChild(vent);
         const sp = def.waters.find(w => w.kind === 'pipe');
         if (sp) {
-            const edges = new PIXI.Graphics();
-            for (const x of [sp.x0 + 8, sp.x1 - 8]) edges.moveTo(x, sp.top).lineTo(x, h(0)).stroke(pen.line(0xe8f4fa, 3, 0.65));
+            // its sides waver like falling water and long strokes of it rise in the middle (they were two ruled
+            // lines down a blue box, 5 November)
+            const edges = new PIXI.Graphics(), wy = (y, ph) => Math.sin(y / HL * 2.3 + ph) * 13 + Math.sin(y / HL * 6.1 + ph) * 5;
+            for (let k = 0; k < 7; k++) {
+                const x = lerp(sp.x0, sp.x1, 0.2 + k * 0.1), pts = [];
+                for (let y = sp.top + 10; y <= h(0); y += h(0.25)) pts.push([x + wy(y, k * 1.3) * 0.8, y]);
+                lineAlong(edges, pts).stroke(pen.line(k % 3 ? 0x9cc3dc : 0xe8f4fa, 1.6 + (k % 2), k % 3 ? 0.3 : 0.4));
+            }
+            for (const [x, ph] of [[sp.x0 + 6, 0], [sp.x1 - 6, 1.7]]) {
+                const pts = [];
+                for (let y = sp.top; y <= h(0); y += h(0.2)) pts.push([x + wy(y, ph), y]);
+                lineAlong(edges, pts).stroke(pen.line(0xe8f4fa, 3, 0.7));
+            }
             L.waterFront.addChild(edges);
             for (let k = 0; k < 8; k++) {
                 const st = new PIXI.Graphics(), x = k % 2 ? sp.x0 + 14 + hash(k, 121) * 10 : sp.x1 - 14 - hash(k, 121) * 10;
@@ -1096,7 +1534,17 @@ export function createView(PIXI, app, { assets, G, heroFactory }) {
 
     function buildTopp(def, back, mid, fore) {
         // the spring's mouth at the bottom of the pool, bubbling up from Kristallgrottan
-        const vent = new PIXI.Graphics(); vent.ellipse(h(0.7), h(2.92), h(1.4), 18).fill({ color: 0x0b0a14, alpha: 0.85 }); L.objects.addChild(vent);
+        // (a ring of stones and the spring's own light, so it reads as a spring's mouth, not a black hole in the
+        // lake floor, 6 November)
+        const vent = new PIXI.Graphics(), vx = h(0.7), vy = h(2.92);
+        vent.ellipse(vx, vy, h(1.4), 18).fill({ color: 0x0c1826, alpha: 0.88 });
+        vent.ellipse(vx, vy - 2, h(0.8), 9).fill({ color: 0x7fb4d4, alpha: 0.22 });
+        for (let k = 0; k < 9; k++) {
+            const a = Math.PI * (k / 8), sx = vx + Math.cos(a) * h(1.45), sy = vy + 6 - Math.sin(a) * 14 + (k % 2) * 3;
+            vent.ellipse(sx, sy, 14 + hash(k, 191) * 10, 8 + hash(k, 192) * 4).fill(material('rock', 0.95)).stroke(pen.line(0x2a2638, 1.4, 0.8));
+            vent.ellipse(sx - 3, sy - 3, 6, 2.5).fill({ color: 0xffffff, alpha: 0.2 });
+        }
+        L.objects.addChild(vent);
         bubblesAlong([[h(0.7), h(2.8)], [h(0.7), h(0.1)]], { n: 9, speed: 200, tint: 0xe8f4fa, scale: 1.4 });
         // boulders on Vindkanten and Klippan: in their lee the gusts do not reach
         let seed = 0;
@@ -1106,10 +1554,8 @@ export function createView(PIXI, app, { assets, G, heroFactory }) {
         }
         // Blixtbron's ravine, deep and dark
         ravine(back, h(23.8), h(29.8), h(-3.1), h(-3.1));
-        L.back.addChild(softDark('down', h(23.7), h(-2.6), h(29.9), h(3.7), { color: 0x0b0a14, alpha: 0.85 }));
         // Klippan: the gap only the turned wind crosses
         ravine(back, h(37), h(39.8), h(-4.35), h(-5.33));
-        L.back.addChild(softDark('down', h(36.9), h(-4.1), h(39.9), h(3.7), { color: 0x0b0a14, alpha: 0.85 }));
         // rocks and a little snow up on the summit
         for (let k = 0; k < 7; k++) {
             const x = h(45 + k * 2.2 + hash(k, 131) * 1.2), y = groundY(def, x);
@@ -1120,10 +1566,23 @@ export function createView(PIXI, app, { assets, G, heroFactory }) {
         // the eye of the storm: a ring of clouds turning round the calm summit
         S.eye = { c: new PIXI.Container(), puffs: [], x: def.spots.cloud.x, y: def.spots.cloud.y - h(0.6) };
         L.back.addChild(S.eye.c);
+        // each puff a little storm cloud of its own: lobes, a pale lit rim on top, a shaded belly, sizes that vary
+        // (they were flat identical discs that read as overlapping coins, 5 November)
         for (let k = 0; k < 16; k++) {
-            const pf = new PIXI.Graphics(), r = h(0.7 + hash(k, 141) * 0.5);
-            pf.circle(0, 0, r).fill(pen.fill(k % 2 ? 0x4b4870 : 0x3d3a5e, 0.95)).stroke(pen.line(0x24223a, 2, 0.7));
-            pf.circle(-r * 0.3, -r * 0.35, r * 0.5).fill(pen.hatch(0x8f8cb4, 0.6));
+            const pf = new PIXI.Graphics(), r = h(0.55 + hash(k, 141) * 0.55), body = k % 2 ? 0x4b4870 : 0x3d3a5e;
+            const lobes = [];
+            const n = 4 + Math.floor(hash(k, 142) * 3);
+            for (let i = 0; i < n; i++) {
+                const u = (i + 0.5) / n, lx = (u - 0.5) * r * 2.6, lr = r * (0.55 + Math.sin(u * Math.PI) * 0.5 + hash(k + i, 143) * 0.15);
+                lobes.push([lx, -Math.sin(u * Math.PI) * r * 0.35, lr]);
+            }
+            for (const [lx, ly, lr] of lobes) pf.circle(lx, ly, lr).fill(pen.fill(body, 0.96));
+            pf.ellipse(0, r * 0.35, r * 1.5, r * 0.45).fill(pen.fill(mixColor(body, 0x14121f, 0.45), 0.9)); // the flat dark belly
+            for (const [lx, ly, lr] of lobes) {
+                pf.moveTo(lx - lr * 0.8, ly - lr * 0.45).quadraticCurveTo(lx, ly - lr * 1.12, lx + lr * 0.8, ly - lr * 0.45).stroke(pen.line(0xb8b4dc, 2.6, 0.55));
+                pf.circle(lx - lr * 0.25, ly - lr * 0.3, lr * 0.45).fill(pen.hatch(0x8f8cb4, 0.45));
+            }
+            pf.moveTo(-r * 1.4, r * 0.55).quadraticCurveTo(0, r * 0.85, r * 1.4, r * 0.55).stroke(pen.line(0x24223a, 2, 0.55));
             S.eye.c.addChild(pf); S.eye.puffs.push({ pf, a: k / 16 * Math.PI * 2 });
         }
         S.eyeGlow = glowAt(S.eye.x, S.eye.y, 9, 0xdfe4ff, 0.25, L.back);
@@ -1159,18 +1618,139 @@ export function createView(PIXI, app, { assets, G, heroFactory }) {
 
     // a gap in the ground: its two rock walls going down into the dark, the far forest above
     function ravine(gr, x0, x1, y0, y1) {
-        const depth = h(3.2);
+        // A gap you can see the inside of (5 November: it read as a black box with ruled sides): jagged rock walls
+        // with ledges, shaded darker as they go down and lost in the dark, roots or crystals at the lips
+        const depth = h(S?.def.sky === 'peak' ? 5.6 : 4.2), cave = !!S?.def.underground;
         const dk = softDark('down', x0 - h(0.1), Math.min(y0, y1) + h(0.1), x1 + h(0.1), Math.max(y0, y1) + depth + h(0.8), { color: 0x14121d, alpha: 0.92 });
         if (gr.parent) gr.parent.addChildAt(dk, gr.parent.getChildIndex(gr)); else L.back.addChild(dk);
         for (const [x, y, dir] of [[x0, y0, 1], [x1, y1, -1]]) {
-            const wall = [[x, y], [x + dir * h(0.35), y + h(0.6)], [x + dir * h(0.2), y + h(1.4)], [x + dir * h(0.45), y + h(2.2)], [x + dir * h(0.25), y + depth], [x, y + depth]];
-            poly(gr, wall).fill(material('rock')); poly(gr, wall).fill({ color: 0x2a2433, alpha: 0.45 });
-            lineAlong(gr, wall.slice(0, 5)).stroke(pen.line(INK, 2, 0.8));
+            const wall = [[x, y]];
+            for (let k = 1; k <= 9; k++) wall.push([x + dir * h(0.18 + hash(x + k, 141) * 0.42 + (k % 3 === 1 ? 0.12 : 0)), y + depth * k / 9]);
+            wall.push([x, y + depth]);
+            poly(gr, wall).fill(material('rock')); poly(gr, wall).fill({ color: 0x2a2433, alpha: 0.4 });
+            // ledges catching a little light, then the wall goes into the dark
+            for (let k = 1; k <= 6; k += 2) { const [wx, wy] = wall[k]; gr.moveTo(x, wy).lineTo(wx, wy).stroke(pen.line(0x8d88a0, 2, 0.35 * (1 - k / 9))); }
+            lineAlong(gr, wall.slice(0, 9)).stroke(pen.line(INK, 2, 0.8));
+            const fade = softDark('down', Math.min(x, wall[3][0]) - 4, y + h(0.8), Math.max(x, wall[3][0]) + h(0.5), y + depth, { color: 0x0e0c16, alpha: 0.8 });
+            if (gr.parent) gr.parent.addChildAt(fade, gr.parent.getChildIndex(gr) + 1); else L.back.addChild(fade);
+            if (cave) crystalCluster(gr, x + dir * h(0.22), y + h(1.1), { dir: -1, size: 0.3, color: dir > 0 ? 0x8fc9f0 : 0xb79be6, n: 3, seed: 17 });
+            else for (let k = 0; k < 3; k++) {
+                const rx = x + dir * h(0.05 + k * 0.12), ry = y + h(0.15 + k * 0.08);
+                gr.moveTo(rx, ry).quadraticCurveTo(rx + dir * h(0.3), ry + h(0.4), rx + dir * h(0.15), ry + h(0.75 + k * 0.2)).stroke(pen.line(0x5a3b20, 2.4, 0.8));
+            }
+        }
+        // Each ground ends square at the lip, so a straight cut ran down beside the gap (pale paper against the dark
+        // outdoors, rock against black in the cave). A jagged band of rock in front of the cut hides it, darker as it
+        // goes down and tapering out; outdoors, below the walls, the gap's dark gives way to the page itself
+        // (6 November)
+        const yb = Math.max(y0, y1), front = new PIXI.Graphics(), shades = [];
+        for (const [x, y, dir] of [[x0, y0, 1], [x1, y1, -1]]) {
+            const t0 = y + h(0.3), t1 = y + depth * (cave ? 1.25 : 1.02), n = 14;
+            const inner = [], outer = [];
+            for (let k = 0; k <= n; k++) {
+                const u = k / n, yy = lerp(t0, t1, u), taper = u > 0.8 ? (1 - u) / 0.2 : 1;
+                inner.push([x - dir * h(0.1 + hash(x + k, 151) * 0.24) * taper, yy]);
+                outer.push([x + dir * h(0.04 + hash(x + k, 152) * 0.12) * taper, yy]);
+            }
+            const band = [...inner, ...outer.reverse()];
+            poly(front, band).fill(material('rock')); poly(front, band).fill({ color: cave ? 0x0e0c16 : 0x2a2433, alpha: cave ? 0.55 : 0.4 });
+            lineAlong(front, inner.slice(0, n - 2)).stroke(pen.line(INK, 1.8, 0.55));
+            shades.push(softDark('down', Math.min(x, x - dir * h(0.4)) - 4, t0, Math.max(x, x - dir * h(0.4)) + h(0.25), t1, { color: 0x0e0c16, alpha: 0.75 }));
+        }
+        L.terrain.addChild(front, ...shades);
+        if (!cave) {
+            // the page below the gap: the same paper (and dusk) as below the ground beside it, the dark melting into it
+            const pg = new PIXI.Graphics(), bottomY = (S?.def.bounds.y1 ?? yb + h(8)) + h(4), py = yb + depth + h(0.2);
+            pg.rect(x0 - h(0.1), py, x1 - x0 + h(0.2), bottomY - py).fill(pen.material('mat-paper', 1, 0xf3ecdc));
+            pg.rect(x0 - h(0.1), py, x1 - x0 + h(0.2), bottomY - py).fill({ color: S?.def.sky === 'peak' ? 0x26263e : 0x2a2a46, alpha: 0.36 });
+            const melt = softDark('down', x0 - h(0.1), py - h(0.8), x1 + h(0.1), py + h(1.2), { color: 0x14121d, alpha: 0.92 });
+            melt.scale.y *= -1; melt.y = py + h(1.2); // dark at its top, fading down into the paper
+            if (gr.parent) { gr.parent.addChildAt(pg, gr.parent.getChildIndex(gr)); gr.parent.addChild(melt); } else L.back.addChild(pg, melt);
+        }
+        // in the cave, far down: a few dim crystals glinting, and a faint glow, so the dark reads as depth (6 November:
+        // held upright, the chasm under Kristallbron was a black quarter of the screen)
+        if (cave) {
+            const yb = Math.max(y0, y1);
+            for (let k = 0; k < 9; k++) twinkleAt(lerp(x0, x1, 0.1 + hash(k, x0 + 147) * 0.8), yb + h(1.2 + hash(k, 148) * 2.8), 0.55 + hash(k, 149) * 0.45, k % 2 ? 0x8fc9f0 : 0xb79be6, L.back);
+            glowAt((x0 + x1) / 2, yb + h(3.2), 9, 0x6f7fd0, 0.16, L.back);
+            // and small crystals far down on both walls, dimmer the deeper they are
+            const deep = new PIXI.Graphics();
+            for (let k = 0; k < 6; k++) {
+                const left = k % 2 === 0, wx = left ? x0 + h(0.35) : x1 - h(0.35), wy = yb + h(1.6 + k * 0.45);
+                crystalCluster(deep, wx, wy, { dir: -1, size: 0.35 + hash(k, 151) * 0.2, color: left ? 0x8fc9f0 : 0xb79be6, n: 3, seed: 23 + k });
+            }
+            deep.alpha = 0.55; L.back.addChild(deep);
         }
     }
     function createCoinShape(gr, x, y) {
         gr.circle(x, y, 7).fill(pen.fill(PAL.gold)).stroke(pen.line(PAL.goldLo, 1.4));
         gr.ellipse(x - 2, y - 2, 2.4, 1.4).fill({ color: PAL.goldHi });
+    }
+
+    /**
+     * Light in the stormy night (6 November): the pages were all one purple-grey, the sköldhäst the only warm thing in
+     * them. Fireflies glow low over the forest and the beach (behind every character), and when lightning strikes the
+     * edges of the ground and the rocks catch its light for a moment. Nothing here is drawn over a character or the
+     * water's reflections, and in Mindre rörelse the fireflies keep still.
+     */
+    function buildNightLight(def) {
+        if (def.underground) { buildCaveLight(def); return; }
+        if (def.sky === 'cave') return;
+        // the lightning's light along the top of the ground and the rocks
+        const rim = new PIXI.Graphics(); rim.label = 'bolt-rim';
+        for (const q of def.surfaces) {
+            if (q.thin || q.hidden || q.underwater) continue;
+            const top = resampleX(q.pts, 30);
+            lineAlong(rim, top.map(([x, y]) => [x, y + 3])).stroke(pen.line(0xeef2ff, 5, 0.9));
+            lineAlong(rim, top.map(([x, y]) => [x, y + 9])).stroke(pen.line(0xcfd8ff, 3, 0.5));
+        }
+        rim.blendMode = 'add'; rim.alpha = 0;
+        L.terrain.addChild(rim); S.boltRim = rim;
+        if (def.sky !== 'forest' && def.sky !== 'river') return;
+        // fireflies, low over the ground, in small loose groups
+        const n = Math.round((def.bounds.x1 - def.bounds.x0) / h(1.8));
+        for (let k = 0; k < n; k++) {
+            const x = lerp(def.bounds.x0 + h(1), def.bounds.x1 - h(1), hash(k, 201));
+            const gy = groundY(def, x);
+            if (gy === null || (def.waters || []).some(w => x > w.x0 && x < w.x1 && gy > w.top - 10)) continue;
+            const y = gy - h(0.35 + hash(k, 202) * 1.6);
+            const c = new RAW.Container(); c.position.set(x, y);
+            const halo = new RAW.Sprite(TX.mote); halo.anchor.set(0.5); halo.tint = 0xffc95a; halo.blendMode = 'add'; halo.scale.set(3.6); halo.alpha = 0.8;
+            const halo2 = new RAW.Sprite(TX.mote); halo2.anchor.set(0.5); halo2.tint = 0xffe08a; halo2.blendMode = 'add'; halo2.scale.set(1.8);
+            const core = new RAW.Sprite(TX.mote); core.anchor.set(0.5); core.tint = 0xfffbe0; core.blendMode = 'add'; core.scale.set(0.95);
+            c.addChild(halo, halo2, core);
+            L.mid.addChild(c);
+            S.anim.push({ kind: 'firefly', c, halo, x0: x, y0: y, o: hash(k, 203) * 6, r: h(0.25 + hash(k, 204) * 0.5) });
+        }
+    }
+
+    /**
+     * Kristallgrottan's crystals light the cave (6 November: they were small and the cave nearly black): a pool of
+     * their colour on the floor under each one and a soft glow over it, breathing slowly. All of it lies behind the
+     * characters and the water's front; in Mindre rörelse it holds still.
+     */
+    let lightTex = null;
+    /** A soft round light: full in the middle, gone at its rim (a canvas gradient, made once). */
+    function softLight() {
+        if (lightTex || typeof document === 'undefined') return lightTex || RAW.Texture.WHITE;
+        const cv = document.createElement('canvas'); cv.width = cv.height = 128;
+        const c = cv.getContext('2d'), gr = c.createRadialGradient(64, 64, 0, 64, 64, 64);
+        gr.addColorStop(0, 'rgba(255,255,255,1)'); gr.addColorStop(0.35, 'rgba(255,255,255,.55)'); gr.addColorStop(1, 'rgba(255,255,255,0)');
+        c.fillStyle = gr; c.fillRect(0, 0, 128, 128);
+        lightTex = RAW.Texture.from(cv);
+        return lightTex;
+    }
+    function buildCaveLight(def) {
+        for (const c of S.crystalSpots || []) {
+            const pool = new RAW.Sprite(softLight()); pool.anchor.set(0.5); pool.tint = c.color; pool.blendMode = 'add';
+            pool.position.set(c.x, c.y + 4); pool.width = h(2.4) * c.size; pool.height = h(0.42) * c.size;
+            const glow = new RAW.Sprite(softLight()); glow.anchor.set(0.5); glow.tint = c.color; glow.blendMode = 'add';
+            glow.position.set(c.x, c.y - h(0.3) * c.size); glow.width = glow.height = h(1.5) * c.size;
+            L.terrain.addChild(pool); L.back.addChild(glow);
+            const o = hash(c.x, 205) * 6;
+            S.anim.push({ kind: 'crystalGlow', s: pool, base: 0.42, o });
+            S.anim.push({ kind: 'crystalGlow', s: glow, base: 0.2, o: o + 0.8 });
+        }
     }
 
     function buildDecor(def) {
@@ -1266,14 +1846,15 @@ export function createView(PIXI, app, { assets, G, heroFactory }) {
 
     function buildObjects(def) {
         for (const egg of def.eggs || []) {
-            const e = createEgg(PIXI, pen); L.objects.addChild(e.view);
+            // an egg in the world is drawn half as big again as at first (on a phone it was a few pixels)
+            const e = createEgg(PIXI, pen, EGG_SCALE); L.objects.addChild(e.view);
             const mound = new PIXI.Graphics();
             if (egg.how === 'dig') { mound.ellipse(0, -4, 30, 10).fill(material('sand')); mound.ellipse(0, -4, 30, 10).stroke(pen.line(0x9a8460, 1.4, 0.8)); mound.position.set(egg.x, egg.y); L.objects.addChild(mound); }
             S.eggs.set(egg.id, { egg, e, mound });
         }
         if (def.ball) { S.ball = createBall(PIXI, pen); L.objects.addChild(S.ball.view); }
         if (def.id === 'strand') {
-            S.coin = createCoin(PIXI, pen, 1.2); S.coin.view.position.set(def.spots.coin.x, def.spots.coin.y - 12); L.objects.addChild(S.coin.view);
+            S.coin = createCoin(PIXI, pen, 1.8); S.coin.view.position.set(def.spots.coin.x, def.spots.coin.y - 16); L.objects.addChild(S.coin.view);
             S.whirl = new PIXI.Container(); S.whirl.position.set(h(43), h(4.2)); L.water.addChild(S.whirl);
             const wg = new PIXI.Graphics();
             for (let k = 0; k < 3; k++) {
@@ -1290,11 +1871,12 @@ export function createView(PIXI, app, { assets, G, heroFactory }) {
             }
             S.hatchlings = [];
             for (let i = 0; i < EGG_TOTAL; i++) {
-                const k = createHatchling(PIXI, pen); k.view.scale.set(1.8); k.view.visible = false; L.actors.addChild(k.view);
+                // the last one is the smallest, Lilla Klo (Tukankrabban names her so), and walks first in a row
+                const k = createHatchling(PIXI, pen); k.view.scale.set(i === EGG_TOTAL - 1 ? 1.45 : 1.8); k.view.visible = false; L.actors.addChild(k.view);
                 S.hatchlings.push({ k, home: def.nest.x - h(1.2) + i * h(0.26), t: 0 });
             }
         }
-        S.carryCoin = createCoin(PIXI, pen, 0.7); S.carryCoin.view.visible = false; L.fx.addChild(S.carryCoin.view);
+        S.carryCoin = createCoin(PIXI, pen, 1.2); S.carryCoin.view.visible = false; L.fx.addChild(S.carryCoin.view);
         S.flying = []; // eggs on their way somewhere (staged moments)
     }
 
@@ -1303,9 +1885,35 @@ export function createView(PIXI, app, { assets, G, heroFactory }) {
         L.actors.addChild(klo.container);
         const hearts = createHearts(PIXI, pen); L.actors.addChild(hearts.view);
         const tukan = createTukan(PIXI, pen); L.actors.addChild(tukan.view);
-        const skata = createMagpie(PIXI, pen); skata.view.scale.set(1.5); L.actors.addChild(skata.view);
+        const skata = createMagpie(PIXI, pen); skata.view.scale.set(2); L.actors.addChild(skata.view);
         const dyvel = createBeetle(PIXI, pen); dyvel.view.scale.set(1.5); L.actors.addChild(dyvel.view);
         const moln = createCloud(PIXI, pen, { texture: cloudTexture }); moln.view.scale.set(1.5); L.objects.addChild(moln.view);
+        // Tordyveln's ball of eggshells (after the story: dyvel_shellball): speckled white pieces, the finest yet
+        const shellBall = new PIXI.Container(); shellBall.label = 'shell-ball'; shellBall.visible = false;
+        {
+            const sb = new PIXI.Graphics(), R = 34; // as big as his old ball
+            sb.circle(0, -R, R).fill(pen.fill(0xf3eee0)).stroke(pen.line(0x6f6658, 2.2));
+            for (let i = 0; i < 9; i++) {
+                const a = i * 2.17, r = 8 + (i * 5) % 20, x = Math.cos(a) * r, y = -R + Math.sin(a) * r;
+                sb.poly([x - 6, y - 3, x + 4, y - 6, x + 7, y + 3, x - 2, y + 6]).fill(pen.fill(i % 3 ? 0xe8e1cc : 0xdfe8ef, 0.95)).stroke(pen.line(0x8a8070, 1.2, 0.8));
+            }
+            for (let i = 0; i < 6; i++) sb.circle(Math.cos(i * 1.9) * 15, -R + Math.sin(i * 1.9) * 12, 2).fill({ color: 0x9a8c74, alpha: 0.7 }); // the eggs' speckles
+            sb.ellipse(-8, -R - 10, 6, 3).fill({ color: 0xffffff, alpha: 0.6 });
+            shellBall.addChild(sb);
+        }
+        L.actors.addChild(shellBall);
+        S.shellBall = { c: shellBall, pop: 0 };
+        // whose turn it is to be talked to: a little pencil speech bubble over that head while "Prata" is offered
+        {
+            const g = new PIXI.Graphics();
+            g.roundRect(-20, -15, 40, 26, 10).fill({ color: 0xfffdf6 }).stroke(pen.line(0x3b3530, 2));
+            g.poly([-6, 10, 2, 10, -9, 20]).fill({ color: 0xfffdf6 });
+            g.moveTo(-6, 10).lineTo(-9, 20).lineTo(2, 10).stroke(pen.line(0x3b3530, 2));
+            for (const x of [-9, 0, 9]) g.circle(x, -2, 2.6).fill({ color: 0x3b3530 });
+            g.visible = false;
+            L.fx.addChild(g);
+            S.talkMark = g;
+        }
         S.A = { klo, hearts, tukan, skata, dyvel, moln };
         S.actors.push(tukan, skata, dyvel, moln, hearts);
         S.shadows = {};
@@ -1359,6 +1967,10 @@ export function createView(PIXI, app, { assets, G, heroFactory }) {
             peak.position.set(W * lerp(skyKind === 'river' ? 1.02 - u * 0.3 : lerp(1.2 - u * 0.35, 0.88, high), 0.5, peakVista), lerp(footY, H * 1.04, peakVista));
             swirl.rotation += dt * (rm ? 0.05 : 0.3) * stormShown;
             swirl.alpha = 0.15 + 0.85 * stormShown;
+            for (const m of peakMist) {
+                m.g.x = m.x0 + (rm ? 0 : Math.sin(t * m.v + m.o) * m.w * 0.45);
+                m.g.alpha = (rm ? 0.8 : 0.55 + 0.45 * Math.sin(t * m.v * 1.7 + m.o * 2)) * (0.15 + 0.85 * stormShown); // the storm's own cloud
+            }
             peakBolt.visible = !rm && stormShown > 0.5 && Math.sin(t * 2.3) > (peakVistaOn ? 0.9 : 0.985);
         }
         skyBolt.visible = boltT > 0; boltT = Math.max(0, boltT - dt);
@@ -1372,6 +1984,8 @@ export function createView(PIXI, app, { assets, G, heroFactory }) {
         }
         if (!skyHatch.texture.width || skyHatch.texture === RAW.Texture.EMPTY) { const ht = T('pencil-hatch'); if (ht) skyHatch.texture = ht; }
         skyHatch.width = W; skyHatch.height = H; skyHatch.tilePosition.x = -cam.x * cam.zoom * 0.05;
+        // the storm's heavy pencil hatching thins out as the storm calms: the moonlit ending is clear
+        skyHatch.alpha = 0.05 + 0.13 * stormShown;
 
         // water light: glints, dimmer in the storm; the moon's path across the river
         if (S.waterLights) for (const wl of S.waterLights) {
@@ -1395,10 +2009,32 @@ export function createView(PIXI, app, { assets, G, heroFactory }) {
         for (const a of S.anim) {
             if (a.kind === 'current') { a.c.x += a.v * dt; if (a.c.x > a.x1 - h(0.8)) a.c.x = a.x0; }
             else if (a.kind === 'fall') { const u = (t * (rm ? 0.6 : 1.8) + a.o) % 1; a.c.y = lerp(a.y0, a.y1, u); a.c.alpha = 0.3 + 0.6 * Math.sin(u * Math.PI); }
-            else if (a.kind === 'twinkle') { a.s.alpha = 0.3 + 0.7 * Math.max(0, Math.sin(t * 2 + a.o)) ** 4; }
+            else if (a.kind === 'crystalGlow') {
+                // the crystals light the cave once the three by the chasm are lit ("Kan kristallerna lysa upp den?"):
+                // before that the cave is dark and only glitters, and the lantern is its light (6 November)
+                a.lit = rm ? (F.has('k1_lit') ? 1 : 0) : lerp(a.lit ?? (F.has('k1_lit') ? 1 : 0), F.has('k1_lit') ? 1 : 0, 1 - Math.exp(-0.8 * dt));
+                a.s.alpha = a.lit * a.base * (rm ? 0.9 : 0.72 + 0.28 * Math.sin(t * 0.8 + a.o));
+            }
+            else if (a.kind === 'firefly') {
+                // only once Mira has drawn the moon: before that the page is dark, as the story says (6 November)
+                a.c.visible = F.has('moon');
+                if (!a.c.visible) continue;
+                // a slow wandering loop, blinking softly; still in Mindre rörelse; dimmer in the heaviest rain
+                const ph = t * 0.35 + a.o;
+                if (!rm) a.c.position.set(a.x0 + Math.sin(ph) * a.r + Math.sin(ph * 2.3) * a.r * 0.3, a.y0 + Math.sin(ph * 1.7 + 1) * a.r * 0.5);
+                a.c.alpha = (rm ? 0.75 : 0.35 + 0.65 * (0.5 + 0.5 * Math.sin(t * 1.3 + a.o * 3)) ** 2) * (1 - 0.35 * stormShown);
+            }
+            else if (a.kind === 'twinkle') { a.s.alpha = rm ? 0.55 : 0.3 + 0.7 * Math.max(0, Math.sin(t * 2 + a.o)) ** 4; } // still in Mindre rörelse
             else if (a.kind === 'foam' && !rm && Math.random() < dt * 14) emit('drop', a.x + (Math.random() - 0.5) * h(1.4), a.y, 1, { speed: 260, cone: 1.2, life: 0.6 });
             else if (a.kind === 'mist') { a.s.x = a.x0 + Math.sin(t * 0.05 + a.o) * h(1.2) * (rm ? 0.2 : 1); a.s.alpha = (a.base ?? 0.26) + 0.08 * Math.sin(t * 0.2 + a.o); }
             else if (a.kind === 'sway') a.c.rotation = rm ? 0 : Math.sin(t * 0.9 + a.o) * 0.025 + (stormShown > 0.5 ? Math.sin(t * 2.1 + a.o) * 0.02 : 0);
+            else if (a.kind === 'drip') { const u = rm ? 0.05 : (t * 0.55 + a.o) % 1; a.c.y = lerp(a.y0, a.y1, u * u); a.c.alpha = u < 0.85 ? 0.9 : (1 - u) * 6; }
+            else if (a.kind === 'fish') {
+                // a slow figure of eight, turning to face the way it swims
+                const ph = t * a.v * (rm ? 0.4 : 1) + a.o, nx = a.x0 + Math.sin(ph) * a.r, ny = a.y0 + Math.sin(ph * 2) * h(0.25);
+                const dir = Math.cos(ph) >= 0 ? 1 : -1;
+                a.c.position.set(nx, ny); a.c.scale.x = dir * (a.c._s || 1); a.c.rotation = rm ? 0 : Math.cos(ph * 2) * 0.12 * dir;
+            }
             else if (a.kind === 'along') {
                 const d = ((t * a.speed * (rm ? 0.5 : 1) / a.len + a.o) % 1) * a.len;
                 let i = 1; while (i < a.acc.length - 1 && a.acc[i] < d) i++;
@@ -1410,13 +2046,42 @@ export function createView(PIXI, app, { assets, G, heroFactory }) {
         stepNewPages(dt, t, F, rm, snap);
         if (S.whirl) { S.whirl.visible = !F.has('coin_got'); S.whirl.rotation += dt * (rm ? 0.6 : 2.2); }
         if (S.coin) { S.coin.view.visible = !F.has('coin_got'); S.coin.update(dt, t); }
-        S.carryCoin.view.visible = F.has('coin_got') && !F.has('coin_given');
-        if (S.carryCoin.view.visible) { S.carryCoin.view.position.set(snap.x - (snap.facing || 1) * 40, snap.y - h(0.8) + Math.sin(t * 3) * 4); S.carryCoin.update(dt, t); }
+        const carryAt = { x: snap.x - (snap.facing || 1) * 40, y: snap.y - h(0.8) + Math.sin(t * 3) * 4 };
+        S.carryCoin.view.visible = F.has('coin_got') && !F.has('coin_given') && !coinFlight;
+        if (S.carryCoin.view.visible) { S.carryCoin.view.position.set(carryAt.x, carryAt.y); S.carryCoin.update(dt, t); }
+        // the coin flies: up from the whirlpool's eye to the sköldhäst, or from the sköldhäst to Skatan's beak
+        if (coinFlight) {
+            const c = coinFlight;
+            c.t += dt / c.dur;
+            const u = clamp(c.t, 0, 1), e = u * u * (3 - 2 * u), to = c.to === 'carry' ? carryAt : c.to;
+            c.coin.view.position.set(lerp(c.from.x, to.x, e), lerp(c.from.y, to.y, e) - Math.sin(u * Math.PI) * c.arc);
+            c.coin.view.scale.set(lerp(c.s0, c.s1, e));
+            c.coin.update(dt, t * 3);
+            if (u >= 1) { c.coin.view.destroy({ children: true }); coinFlight = null; c.done?.(); }
+        }
 
         // the cocoa tree shakes while the hooves drum
         if (S.cocoa) {
             const n = G.puz.drum || 0, shaking = !F.has('p1_fallen') && n > 0;
-            S.cocoa.rotation = shaking && !rm ? Math.sin(t * 30) * 0.004 * Math.min(8, n) : 0;
+            // after the story it shakes again for each beat on the log (the easter egg in Kakaolunden)
+            S.cocoaShake = Math.max(0, (S.cocoaShake || 0) - dt);
+            const after = S.cocoaShake > 0 ? 0.004 * Math.min(8, 2 + (G.puz.drumAfter || 0)) : 0;
+            S.cocoa.rotation = rm ? 0 : shaking ? Math.sin(t * 30) * 0.004 * Math.min(8, n) : Math.sin(t * 30) * after;
+        }
+        // cocoa fruits shaken down after the story: they fall, bounce once, lie a while in the grass and are gone
+        if (S.cocoaPods) for (let i = S.cocoaPods.length - 1; i >= 0; i--) {
+            const q = S.cocoaPods[i];
+            q.t += dt;
+            if (!q.landed) {
+                q.vy += 1500 * dt; q.y += q.vy * dt; q.g.rotation += q.spin * dt;
+                if (q.y >= q.gy) {
+                    q.y = q.gy;
+                    if (q.vy > 260 && !rm) { q.vy *= -0.3; emit('leaf', q.x, q.gy - 6, 3, { speed: 70, gravity: 160, life: 0.8, cone: 2 }); }
+                    else { q.landed = true; q.lie = q.t; q.g.rotation = q.side * 1.35; }
+                }
+            }
+            q.g.position.set(q.x, q.y - (q.landed ? 16 : 0));
+            if (q.landed && q.t - q.lie > 7) { q.g.alpha -= dt; if (q.g.alpha <= 0) { q.g.destroy(); S.cocoaPods.splice(i, 1); } }
         }
         // the seeds and the tunnel
         if (S.seeds) {
@@ -1444,7 +2109,8 @@ export function createView(PIXI, app, { assets, G, heroFactory }) {
             if (!vis) continue;
             e.view.position.set(st.x, st.y + (st.state === 'buried' ? 16 : 0));
             e.view.alpha = st.state === 'dark' ? 0.25 : 1;
-            e.update(dt, t, { glow: st.state === 'buried' ? 1.4 : 1, wobble: st.state === 'tree' && (G.puz.drum || 0) > 0 ? 1 : 0 });
+            e.update(dt, t, { glow: st.state === 'buried' ? 1.4 : 1, wobble: st.state === 'tree' && (G.puz.drum || 0) > 0 ? 1 : 0,
+                lit: st.state === 'dark' ? 0 : 1 });
         }
         if (S.ball) S.ball.update(dt, ballPose(G), t);
         if (S.nestEggs) {
@@ -1458,9 +2124,21 @@ export function createView(PIXI, app, { assets, G, heroFactory }) {
                 k.k.view.visible = !!out;
                 if (!out) return;
                 k.t += dt;
-                const x = k.home + Math.sin(t * 0.6 + i) * h(0.25), y = heightOn(G.sceneDef.surfaces.find(s => s.id === 'sand').pts, x) ?? G.sceneDef.nest.y;
-                k.k.view.position.set(x, y);
-                k.k.update(dt, t, { facing: Math.cos(t * 0.6 + i) > 0 ? 1 : -1, reducedMotion: rm });
+                // after the story they can follow the sköldhäst in a row (G.hatchFollow, story.mjs): each trots after
+                // the one in front, the smallest, Lilla Klo, first; they wait at the water's edge
+                const p = G.player, f = p.facing || 1;
+                let tx = k.home + Math.sin(t * 0.6 + i) * h(0.25), face = Math.cos(t * 0.6 + i) > 0 ? 1 : -1;
+                if (G.hatchFollow) { tx = p.x - f * (h(0.75) + (EGG_TOTAL - 1 - i) * h(0.34)); face = Math.sign(p.x - (k.x ?? tx)) || f; }
+                k.x = k.x ?? tx;
+                // they trot, never jump: at most 4 HL a second (with less motion too), so a step can never carry one
+                // over the river or Klyftan, whatever the frame time
+                const want = rm ? tx : lerp(k.x, tx, 1 - Math.exp(-(G.hatchFollow ? 3.2 - i * 0.12 : 1.4) * dt));
+                const nx = k.x + clamp(want - k.x, -h(4) * dt, h(4) * dt);
+                const gy = groundY(G.sceneDef, nx);
+                if (gy !== null && !(G.sceneDef.waters || []).some(w => nx > w.x0 && nx < w.x1 && gy > w.top - 6)) k.x = nx;
+                const y = groundY(G.sceneDef, k.x) ?? G.sceneDef.nest.y;
+                k.k.view.position.set(k.x, y);
+                k.k.update(dt, t, { facing: face, reducedMotion: rm });
             });
         }
         for (let i = S.flying.length - 1; i >= 0; i--) {
@@ -1471,9 +2149,36 @@ export function createView(PIXI, app, { assets, G, heroFactory }) {
             f.e.update(dt, t, {});
             if (f.t >= 1) { f.e.destroy(); S.flying.splice(i, 1); f.done?.(); }
         }
+        stepPickups(dt, t, W, H, rm);
+        // the egg that falls from the cocoa tree lands with a little bounce and a puff of sand
+        for (const [id, rec] of S.eggs) {
+            const st = eggState(G, rec.egg).state;
+            if (rec.was === 'falling' && st === 'loose') { rec.bounce = 0; emit('dust', rec.egg.x, rec.egg.y, 8, { speed: 160, gravity: 400, tint: 0xe6d2a2 }); cam.shake = Math.max(cam.shake, 3); }
+            rec.was = st;
+            if (rec.bounce !== undefined && rec.e.view.visible) {
+                rec.bounce += dt;
+                const b = rm ? 0 : Math.max(0, 1 - rec.bounce / 0.45);
+                rec.e.view.y -= Math.abs(Math.sin(rec.bounce * 14)) * 14 * b;
+                rec.e.view.scale.set(EGG_SCALE * (1 + 0.12 * b * Math.cos(rec.bounce * 28)), EGG_SCALE * (1 - 0.1 * b * Math.cos(rec.bounce * 28)));
+                if (rec.bounce > 0.45) { rec.e.view.scale.set(EGG_SCALE); delete rec.bounce; }
+            }
+            void id;
+        }
 
         // actors
         const A = S.A, act = G.actors;
+        // the speech bubble over whoever "Prata" would talk to (not while anyone speaks)
+        if (S.talkMark) {
+            const c = G.context, who = c?.id?.startsWith('talk-') && !G.speaker ? c.who : null, a = who ? act[who] : null;
+            const on = !!a && a.scene === S.id && a.visible !== false;
+            S.talkMark.visible = on;
+            if (on) {
+                // the same size on every screen (about 40 px), its tail just over the head
+                const k = 1 / cam.zoom;
+                S.talkMark.scale.set(k);
+                S.talkMark.position.set(a.x, a.y - h(TALK_HEAD[who] ?? 0.45) - 24 * k + (rm ? 0 : Math.sin(t * 3.2) * 3 * k));
+            }
+        }
         const k = act.klo;
         if (k) {
             const kloActor = { ...k, pose: k.pose === 'love' ? 'happy' : k.pose === 'faint' ? 'awe' : k.pose, talking: G.speaker === 'klo' };
@@ -1488,6 +2193,15 @@ export function createView(PIXI, app, { assets, G, heroFactory }) {
             sh.visible = !!a && a.visible !== false && a.scene === S.id && !(id === 'klo' && a.pose === 'faint');
             if (sh.visible) sh.position.set(a.x, a.y + 2);
         }
+        if (S.shellBall) {
+            const d = act.dyvel, sb = S.shellBall, on = F.has('dyvel_shellball') && d?.visible && d.scene === S.id;
+            sb.c.visible = !!on;
+            if (on) {
+                sb.pop = Math.min(1, sb.pop + dt * 2.5);
+                const x = d.x + (d.facing || 1) * h(0.75), gy = groundY(S.def, x) ?? d.y;
+                sb.c.position.set(x, gy); sb.c.scale.set(rm ? 1 : 0.6 + 0.4 * sb.pop);
+            }
+        }
         for (const id of ['tukan', 'skata', 'dyvel', 'moln']) {
             const a = act[id], v = A[id];
             if (!a || a.scene !== S.id) { v.view.visible = false; continue; }
@@ -1495,6 +2209,9 @@ export function createView(PIXI, app, { assets, G, heroFactory }) {
         }
         // the hero
         if (G.speaker === 'horse' && !snap.action && !rm && !snap.hide) { snap.action = 'talk'; snap.actionT = (t * 1.5) % 1; }
+        // while the rocket flies the sköldhäst follows it with its eyes, wondering
+        const rw = rocketWorld(W, H);
+        if (rw && !snap.hide) { snap.lookAt = rw; snap.emote = 'surprised'; }
         hero.update(dt, ride ? { ...snap, facing: -1, action: null } : snap);
         hero.view.position.set(snap.x, snap.y);
         hero.view.visible = !G.hideHero;
@@ -1506,6 +2223,8 @@ export function createView(PIXI, app, { assets, G, heroFactory }) {
         const under = snap.mode === 'swim' && snap.submerge > 0.7;
         const sheltered = (S.id === 'strand' && snap.x > h(89)) || (S.id === 'skog' && snap.x > h(74.3) && snap.x < h(87.7) && snap.y > h(-0.95));
         rain.visible = stormShown > 0.03 && S.def.sky !== 'cave';
+        // and how loud it is (main.mjs gives it to the audio engine's rain bed): softer under shelter and gone in the cave
+        rainLevel = rain.visible ? stormShown * (sheltered ? 0.35 : 1) : 0;
         const nRain = Math.round(drops.length * stormShown * (rm ? 0.35 : 1));
         // leaves torn loose by the storm blow across the forest pages
         if (!rm && stormShown > 0.4 && (S.def.sky === 'forest' || S.def.sky === 'river') && Math.random() < dt * 1.6 * stormShown) {
@@ -1527,7 +2246,10 @@ export function createView(PIXI, app, { assets, G, heroFactory }) {
             s.visible = i < nRain;
             if (!s.visible) continue;
             d.y = (d.y + dt * d.v * (rm ? 0.5 : 1.6)) % 1;
-            s.position.set(((d.x + d.y * 0.15 - cam.x * cam.zoom * 0.0004) % 1 + 1) % 1 * W, d.y * H);
+            // the storm's wind blows west, away from Åsktoppen, as the torn leaves and the gusts on the mountain do;
+            // the rain leans the way it falls (it drifted east and was drawn upright, 6 November)
+            s.position.set(((d.x - d.y * 0.15 - cam.x * cam.zoom * 0.0004) % 1 + 1) % 1 * W, d.y * H);
+            s.rotation = Math.atan2(0.15 * W, H);
             s.alpha = (under ? 0.15 : 0.55) * stormShown * (sheltered ? 0.12 : 1);
         }
         // lightning: now and then over the forest; on the peak it follows the bridge's lightning schedule
@@ -1537,6 +2259,7 @@ export function createView(PIXI, app, { assets, G, heroFactory }) {
         }
         if (S.def.sky === 'peak' && F.has('flash')) flash = Math.max(flash, rm ? 0.12 : 0.22);
         flash = Math.max(0, flash - dt * 3.2);
+        if (S.boltRim) S.boltRim.alpha = Math.min(1, flash * (rm ? 1 : 1.8));
         flashG.clear();
         if (flash > 0) flashG.rect(0, 0, W, H).fill({ color: 0xe8eeff, alpha: flash * (rm ? 0.25 : 0.5) });
         if (tooth) { tooth.width = W; tooth.height = H; }
@@ -1563,6 +2286,10 @@ export function createView(PIXI, app, { assets, G, heroFactory }) {
             const lit = F.has('k1_lit');
             S.chasmDark.alpha = lerp(S.chasmDark.alpha, lit ? 0 : 1, 1 - Math.exp(-1.4 * dt));
             S.chasmPit.alpha = lerp(S.chasmPit.alpha, lit ? 0.5 : 1, 1 - Math.exp(-1.4 * dt));
+            // lit, the pit's dark sinks below the bridge's deck: the dashed bridge "syns", and the crystal
+            // bridge drawn over it is crystal, not a dark band (the deck lies in L.terrain, under L.fore)
+            const top = lerp(S.chasmPit.y, lit ? h(-0.03) : h(-0.45), 1 - Math.exp(-1.4 * dt));
+            S.chasmPit.y = top; S.chasmPit.height = h(4.2) - top;
             S.chasmGlow.alpha = lerp(S.chasmGlow.alpha, lit && !F.has('k1_bridge') ? 0.45 + 0.15 * Math.sin(t * 2) : lit ? 0.2 : 0, 1 - Math.exp(-2 * dt));
         }
         if (S.shimmer) for (const sh of S.shimmer) sh.alpha = rm ? 0.8 : 0.65 + 0.35 * Math.sin(t * 2.6);
@@ -1615,7 +2342,11 @@ export function createView(PIXI, app, { assets, G, heroFactory }) {
         if (S.mushroom) {
             const m = S.mushroom; m.t += dt;
             const k = m.t < 1.2 ? Math.exp(-6 * m.t) * Math.cos(16 * m.t) * (rm ? 0.12 : 0.28) : 0;
+            // after the story it giggles: a quick little shiver from side to side
+            if (m.giggle !== undefined) m.giggle += dt;
+            const gg = m.giggle < 1.1 && !rm ? Math.sin(m.giggle * 38) * 0.07 * (1 - m.giggle / 1.1) : 0;
             m.c.scale.set(1 + k * 0.6, 1 - k);
+            m.c.rotation = gg;
         }
         void snap;
     }
@@ -1793,27 +2524,87 @@ export function createView(PIXI, app, { assets, G, heroFactory }) {
         // the moon, where Mira drew it
         moonState.shown = lerp(moonState.shown, G.flags.has('moon') ? 1 : moonState.target, 1 - Math.exp(-1.6 * dt));
         moon.visible = moonState.shown > 0.01 && kind !== 'cave';
-        const mp = moonScreen(W, H);
+        // once Alva's stars are drawn, the moon and its stars rise into the open sky
+        const riseTo = G.flags.has('alva_stars') ? 1 : 0;
+        // it glides only while seen (the finale); a moon that fades in after a reload is already up
+        moonState.rise = G.lessMotion || moonState.shown < 0.02 ? riseTo : lerp(moonState.rise, riseTo, 1 - Math.exp(-0.9 * dt));
+        const mp = moonScreen(W, H, moonState.rise);
         moon.position.set(mp.x, mp.y); moon.scale.set(mp.r / 60); moon.alpha = moonState.shown;
         starsState.shown = lerp(starsState.shown, G.flags.has('alva_stars') ? 1 : 0, 1 - Math.exp(-2 * dt));
         alvaStars.visible = starsState.shown > 0.01 && kind !== 'cave';
         alvaStars.children.forEach((s, i) => {
             const [dx, dy, k] = s._d;
             s.position.set(mp.x + dx * mp.r, mp.y + dy * mp.r);
-            s.scale.set(k * mp.r / 26 * (1 + (G.lessMotion ? 0 : 0.12 * Math.sin(t * 2.5 + i))));
+            s.scale.set(k * mp.r / 30 * (1 + (G.lessMotion ? 0 : 0.12 * Math.sin(t * 2.5 + i))));
+            s.rotation = G.lessMotion ? 0 : Math.sin(t * 0.7 + i) * 0.15;
             s.alpha = starsState.shown;
-            s.tint = 0xffefb0;
         });
+        // a falling star: from the biggest of Alva's stars down across the sky, its tail fading behind it
+        shootG.clear();
+        if (shooting) {
+            shooting.t += dt;
+            const u = shooting.t / 2.2;
+            if (u >= 1 || kind === 'cave') shooting = null;
+            else {
+                const [dx, dy] = ALVA_STARS[0];
+                // a short arc down to the left, staying in the open sky above the horizon and away from the notes
+                const sx = mp.x + dx * mp.r, sy = mp.y + dy * mp.r, ex = sx - W * 0.3, ey = sy + Math.min(H * 0.16, mp.r * 1.6);
+                const e = G.lessMotion ? 0 : 1 - (1 - u) * (1 - u), fade = Math.sin(Math.PI * Math.min(1, u * 1.15));
+                const hx = sx + (ex - sx) * e, hy = sy + (ey - sy) * e, tail = G.lessMotion ? 0 : Math.min(0.5, e);
+                const tx = sx + (ex - sx) * (e - tail), ty = sy + (ey - sy) * (e - tail);
+                if (tail > 0) {
+                    shootG.moveTo(tx, ty).lineTo(hx, hy).stroke({ color: 0xfff3c8, width: 9, alpha: 0.22 * fade, cap: 'round' });
+                    shootG.moveTo(tx + (hx - tx) * 0.35, ty + (hy - ty) * 0.35).lineTo(hx, hy).stroke({ color: 0xfffbe8, width: 3.6, alpha: 0.9 * fade, cap: 'round' });
+                }
+                shootG.circle(hx, hy, 16).fill({ color: 0xfff3c8, alpha: 0.3 * fade });
+                shootG.circle(hx, hy, 6).fill({ color: 0xffffff, alpha: 0.95 * fade });
+            }
+        }
+        drawRocket(W, H, dt, t);
         // storm clouds drift and thin out
         for (const c of cloudShapes) {
             c.c.position.set(((c.x * (W + c.w * 2) - cam.x * cam.zoom * c.par + t * (G.lessMotion ? 2 : 8)) % (W + c.w * 2) + (W + c.w * 2)) % (W + c.w * 2) - c.w, c.y * H);
             c.c.alpha = 0.15 + 0.85 * stormShown;
         }
     }
-    function moonScreen(W = app.screen.width, H = app.screen.height) {
-        // below the drawing pad's prompt, so the dots to trace are never under it
+    function moonScreen(W = app.screen.width, H = app.screen.height, rise = 0) {
+        // While Mira and Alva draw: below the drawing pad's prompt, so the dots to trace are never under it.
+        // Risen: in landscape, up in the open sky above the treetops, which crossed it there. In portrait
+        // the speech boxes are at the top, so it stays (and the mountain is behind it, see moonLayer).
         const r = Math.max(34, Math.min(W, H) * 0.09);
-        return { x: W * 0.7, y: Math.max(r + 170, H * 0.27), r };
+        const drawn = Math.max(r + 170, H * 0.27), sky = W > H ? Math.max(r + 62, H * 0.17) : drawn;
+        const e = rise * rise * (3 - 2 * rise);
+        return { x: W * 0.7, y: drawn + (sky - drawn) * e, r };
+    }
+
+    /** In a conversation the camera keeps three things in the picture: the sköldhäst, the one speaking, and what
+     *  the lines are about (G.camLook, set by story.mjs about()). It slides over and steps back a little (to 75 %
+     *  of the usual zoom, 70 % for a thing talked about) until they fit. If they cannot all fit, what is talked
+     *  about comes first; a speaker too far away is shown by the edge badge (ui.mjs) and the sköldhäst stays. */
+    function frameSpeaker(tx, ty, zoom, W, H) {
+        const who = G.speaker, a = who && who !== 'horse' ? G.actors[who] : null, p = G.player;
+        const look = G.camLook && (!G.camLook.scene || G.camLook.scene === S.id) ? G.camLook : null; // only on its own page
+        const speaker = a && a.scene === S.id && a.visible !== false ? a : null;
+        if ((!speaker && !look) || G.hideHero) return { tx, ty, zoom };
+        // a little air round what is talked about, so its ends are not on the screen's edge
+        const boxes = look ? [{ x0: look.x0 - h(0.5), x1: look.x1 + h(0.5), y0: look.y0 - h(0.3), y1: look.y1 + h(0.2) }] : [];
+        if (speaker) {
+            const head = who === 'moln' ? h(0.6) : who === 'klo' ? h(0.45) : h(1.1);
+            const side = Math.min(h(1.1), W / zoom * 0.16);
+            boxes.push({ x0: speaker.x - side, x1: speaker.x + side, y0: speaker.y - head - h(0.35), y1: speaker.y + h(0.2) });
+        }
+        const union = bs => ({ x0: Math.min(...bs.map(b => b.x0)), x1: Math.max(...bs.map(b => b.x1)),
+            y0: Math.min(...bs.map(b => b.y0)), y1: Math.max(...bs.map(b => b.y1)) });
+        const them = union(boxes), all = union([{ x0: p.x - h(0.7), x1: p.x + h(0.7), y0: p.y - h(1.6), y1: p.y + h(0.2) }, ...boxes]);
+        zoom = Math.max(zoom * (look ? 0.7 : 0.75), Math.min(zoom, W / (all.x1 - all.x0), H / (all.y1 - all.y0)));
+        const vw = W / zoom, vh = H / zoom;
+        if (all.x1 - all.x0 <= vw) tx = clamp(tx, all.x1 - vw / 2, all.x0 + vw / 2);
+        // what is talked about first, as near the sköldhäst as it allows
+        else if (look) tx = them.x1 - them.x0 <= vw ? clamp(p.x, them.x1 - vw / 2, them.x0 + vw / 2) : (them.x0 + them.x1) / 2;
+        else tx = p.x + Math.sign(speaker.x - p.x) * (vw / 2 - h(0.9)); // as far toward them as keeps the sköldhäst in
+        if (all.y1 - all.y0 <= vh) ty = clamp(ty, all.y1 - vh / 2, all.y0 + vh / 2);
+        else if (look) ty = them.y1 - them.y0 <= vh ? clamp(p.y, them.y1 - vh / 2, them.y0 + vh / 2) : (them.y0 + them.y1) / 2;
+        return { tx, ty, zoom };
     }
 
     function updateCamera(dt, snap, W, H) {
@@ -1829,23 +2620,23 @@ export function createView(PIXI, app, { assets, G, heroFactory }) {
         const hint = G.camHint;
         if (hint) {
             tx = hint.x; ty = hint.y; zoom *= hint.zoom || 1;
-            // portrait is narrow (about 6 lengths): every story picture keeps the companions in it unless it says otherwise
-            const fit = hint.fit || (!hint.peak && H > W * 1.15 ? hint.portraitFit || ['klo', 'tukan'] : null);
-            if (fit) {
+            const portrait = H > W * 1.15;
+            const fit = hint.fit || (portrait ? hint.portraitFit : null);
+            if (fit && !hint.peak) {
                 // a group picture, live: the point, the sköldhäst and these actors, wherever they stand now
                 const xs = [hint.x, p.x, ...fit.map(id => G.actors[id]).filter(a => a?.visible && (!a.scene || a.scene === S.id)).map(a => a.x)];
                 const x0 = Math.min(...xs) - h(1.3), x1 = Math.max(...xs) + h(1.1); // the hatchlings spread round the nest
                 tx = (x0 + x1) / 2;
                 zoom = Math.min(zoom, W * 0.94 / (x1 - x0));
+                if (portrait) zoom = Math.min(zoom, W / h(7.5)); // a narrow phone: at least 7.5 lengths across
             }
-            if (!hint.peak) {
-                // a talk is a group picture. Portrait: keep at least 7.5 lengths across, so everyone at the nest is in it.
-                if (H > W * 1.15) zoom = Math.min(zoom, W / h(7.5));
-                // Short landscape: the speech strip covers the bottom (skoldhast.css), so the picture is centred in the
-                // space above it, a little wider, and the ground with the hatchlings is not hidden under the words.
-                else if (W > H && H <= 520) { const strip = Math.min(110, H * 0.28); zoom *= 0.85; ty += strip / 2 / zoom; }
-            }
+            // Short landscape: the speech strip covers the bottom (skoldhast.css), so a story picture is centred in the
+            // space above it, a little wider, and the ground (the hatchlings at the nest) is not hidden under the words.
+            if (!hint.peak && W > H && H <= 520) { const strip = Math.min(110, H * 0.28); zoom *= 0.85; ty += strip / 2 / zoom; }
         }
+        // a story's view that shows something far away keeps its frame; one around the sköldhäst
+        // (a conversation staged at the nest) still takes in the speaker
+        if (!hint || Math.abs(hint.x - snap.x) < W / zoom * 0.45) ({ tx, ty, zoom } = frameSpeaker(tx, ty, zoom, W, H));
         const vw = W / zoom, vh = H / zoom;
         tx = vw >= b.x1 - b.x0 ? (b.x0 + b.x1) / 2 : clamp(tx, b.x0 + vw / 2, b.x1 - vw / 2);
         ty = vh >= b.y1 - b.y0 ? (b.y0 + b.y1) / 2 : clamp(ty, b.y0 + vh / 2, b.y1 - vh / 2);
@@ -1886,14 +2677,78 @@ export function createView(PIXI, app, { assets, G, heroFactory }) {
                 if (data.hold) await waitGame(data.hold);
                 return;
             case 'lightning': lightning(0.9); await waitGame(0.7); return;
+            // after the story: Molnet over the nest flashes for joy, small and soft
+            // (a soft glow from Molnet itself with sparkles round it: no bolt across the sky and no thunder, the storm is over)
+            case 'cloudJoy': {
+                const s = rm ? 0.12 : 0.28;
+                flash = Math.max(flash, s); atmo.flash(s);
+                S?.A?.moln?.flash();
+                const m = G.actors.moln;
+                if (m && m.scene === S.id) emit('star', m.x, m.y + h(0.2), 12, { gravity: 0, speed: 170, life: 1.1, spread: h(1.4), spreadY: h(0.4), tint: 0xfff4b0 });
+                return;
+            }
+            // Tordyveln shows his ball of eggshells: it pops up beside him with a few sparkles
+            case 'shellBall': { if (S?.shellBall) S.shellBall.pop = 0; const d = G.actors.dyvel; if (d) emit('star', d.x + (d.facing || 1) * h(0.75), d.y - h(0.3), 8, { gravity: 0, speed: 140, life: 0.9 }); await waitGame(0.5); return; }
+            // Utsiktskullen after the story: a rocket flies off into space (a glimpse of the next adventure)
+            case 'rocket': {
+                rocket = { t: 0, puffT: 0 };
+                await until(() => !rocket || rocket.t >= ROCKET_FLIGHT);
+                return;
+            }
+            // Åsktoppen after the story: a star falls from Alva's stars
+            case 'starFall': shooting = { t: 0 }; await waitGame(rm ? 0.6 : 2.0); return;
+            // Djupa skogen after the story: the mushroom giggles, shakes and puffs glowing spores
+            case 'giggle': {
+                const m = S.def.surfaces.find(q => q.id === 'mushroom');
+                if (!m) return;
+                const cx = (m.pts[0][0] + m.pts.at(-1)[0]) / 2, cy = m.pts[0][1];
+                if (S.mushroom) S.mushroom.giggle = 0;
+                // the spores float up after the sköldhäst, past the branch it lands on
+                emit('star', cx, cy - 6, 18, { speed: 230, gravity: -40, life: 2.8, cone: 1.1, spread: h(0.9), tint: 0xe9d5ff });
+                await waitGame(rm ? 0.2 : 0.6);
+                return;
+            }
+            // Kakaolunden after the story: the drummed tree drops a cocoa fruit beside the log
+            case 'cocoaFall': {
+                if (!S?.cocoa) return;
+                S.cocoaPods ||= [];
+                if (S.cocoaPods.length >= 3) S.cocoaPods.shift().g.destroy();
+                const side = Math.random() < 0.5 ? -1 : 1, x = S.cocoa.x + side * h(0.7 + Math.random() * 0.4);
+                const g = new PIXI.Graphics();
+                g.ellipse(0, 0, 12, 22).fill(pen.fill(0x9a5e32)).stroke(pen.line(0x5b3418, 1.6));
+                g.moveTo(-4, -18).lineTo(-4, 18).stroke(pen.line(0xc78b55, 1.2, 0.7));
+                g.scale.set(1.5); // a little bigger than those on the trunk, so it is seen where it lands
+                L.objects.addChild(g);
+                const y0 = S.cocoa.y - h(2.6);
+                // the hollow log lies under the tree: the fruit lands on top of it, not hidden behind it
+                const log = S.def.surfaces.find(q => q.id === 'log'), onLog = log && x >= log.pts[0][0] && x <= log.pts.at(-1)[0];
+                const gy = onLog ? heightOn(log.pts, x) : groundY(S.def, x) ?? S.cocoa.y;
+                S.cocoaPods.push({ g, x, y: y0, vy: 0, gy, t: 0, spin: side * 3, side, landed: false });
+                emit('leaf', S.cocoa.x, S.cocoa.y - h(4), 8, { speed: 140, gravity: 120, life: 1.6, cone: 3 });
+                await waitGame(rm ? 0.2 : 0.6);
+                return;
+            }
+            // Skatan copies the whinny: she sings out (a sparkle by her beak)
+            case 'skataMimic': { const k = G.actors.skata; if (k) emit('star', k.x, k.y - h(0.5), 5, { gravity: 0, speed: 90, life: 0.9 }); return; }
             case 'eggsDrop': {
-                const from = { x: S.def.magpie.x, y: S.def.magpie.y - 10 };
+                // from Skatan's nest, or from where the story says (the cloud on Åsktoppen, which has no magpie: it
+                // threw there and the last egg never fell from the cloud, 5 November)
+                const from = data.from || { x: S.def.magpie.x, y: S.def.magpie.y - 10 };
                 const ids = data.ids || [];
                 await Promise.all(ids.map((id, i) => new Promise(done => {
-                    const e = createEgg(PIXI, pen); L.fx.addChild(e.view);
+                    const e = createEgg(PIXI, pen, EGG_SCALE); L.fx.addChild(e.view);
                     S.flying.push({ id, e, from: { x: from.x + i * 24, y: from.y }, to: { x: G.player.x, y: G.player.y - h(0.6) }, t: -i * 0.3, dur: rm ? 0.4 : 0.9, arc: h(0.8), done });
                 })));
                 emit('star', G.player.x, G.player.y - h(0.7), 10, { speed: 180, gravity: 60, life: 0.9 });
+                return;
+            }
+            case 'coinGive': {
+                // the sköldhäst holds out the coin and it flies to Skatan's beak
+                const sk = G.actors.skata, p = G.player;
+                if (!sk) return;
+                const from = { x: p.x - (p.facing || 1) * 40, y: p.y - h(0.8) };
+                await new Promise(done => flyCoin(from, { x: sk.x + (sk.facing || -1) * 24, y: sk.y - h(0.55) }, { dur: rm ? 0.3 : 0.8, arc: rm ? 0 : h(0.7), s0: 1.2, s1: 0.8, done }));
+                emit('star', sk.x, sk.y - h(0.6), 6, { speed: 140, gravity: 40, life: 0.7 });
                 return;
             }
             case 'eggsToNest': {
@@ -1968,8 +2823,58 @@ export function createView(PIXI, app, { assets, G, heroFactory }) {
         }
     }
 
+    // --- an egg picked up flies into the egg count ---------------------------------------------
+    // It pops up where it was, then flies in an arc into the count in the corner (eggTarget, from main),
+    // which counts it as it lands (eggsArriving). In "Mindre rörelse" it goes straight there, quickly.
+    const pickups = [];
+    let coinFlight = null, eggsLanded = 0;
+    function startPickup(id) {
+        const rec = S?.eggs.get(id), p = G.player;
+        const near = rec?.e.view.visible && Math.hypot(rec.e.view.x - p.x, rec.e.view.y - p.y) < h(4);
+        const from = near ? { x: rec.e.view.x, y: rec.e.view.y } : { x: p.x, y: p.y - h(0.7) };
+        const e = createEgg(PIXI, pen); overlay.addChild(e.view);
+        pickups.push({ id, e, from, t: 0 });
+    }
+    function stepPickups(dt, t, W, H, rm) {
+        for (let i = pickups.length - 1; i >= 0; i--) {
+            const k = pickups[i];
+            k.t += dt;
+            const pop = rm ? 0 : 0.32, fly = rm ? 0.35 : 0.75;
+            const start = { x: world.position.x + k.from.x * cam.zoom, y: world.position.y + k.from.y * cam.zoom };
+            const goal = eggTarget?.() || { x: W - 120, y: 40 };
+            const size = cam.zoom * EGG_SCALE; // the egg's own size in the picture
+            if (k.t < pop) {
+                // up out of the sand or off the branch, a little bigger
+                const u = k.t / pop, e = 1 - (1 - u) * (1 - u);
+                // it grows to a size worth seeing (on a phone the egg in the picture is only a few pixels)
+                k.e.view.position.set(start.x, start.y - e * 60);
+                k.e.view.scale.set(lerp(size, Math.max(1.5, size * 1.4), e));
+                k.e.view.rotation = Math.sin(u * Math.PI) * 0.25;
+                k.at = { x: k.e.view.x, y: k.e.view.y, s: k.e.view.scale.x };
+            } else {
+                const a = k.at || { x: start.x, y: start.y, s: size };
+                const u = Math.min(1, (k.t - pop) / fly), e = u * u * (3 - 2 * u);
+                // an arc, but its top stays on the screen (the count sits near the top edge)
+                // (the egg is drawn upward from its foot, about 30 px per unit of scale)
+                const arc = rm ? 0 : Math.sin(u * Math.PI) * Math.max(0, Math.min(120, Math.hypot(goal.x - a.x, goal.y - a.y) * 0.25, (a.y + goal.y) / 2 - 16 - 30 * a.s));
+                k.e.view.position.set(lerp(a.x, goal.x, e), lerp(a.y, goal.y + 12, e) - arc);
+                k.e.view.scale.set(lerp(a.s, 0.8, e));
+                k.e.view.rotation = (1 - e) * 0.25 + e * Math.PI * 2 * (rm ? 0 : 1);
+                if (u >= 1) { k.e.destroy(); pickups.splice(i, 1); eggsLanded++; continue; }
+            }
+            k.e.update(dt, t, { glow: 1.3 });
+        }
+    }
+    function flyCoin(from, to, { dur, arc, s0 = 1.2, s1 = 0.7, done } = {}) {
+        if (coinFlight) { coinFlight.coin.view.destroy({ children: true }); coinFlight.done?.(); }
+        const coin = createCoin(PIXI, pen, 1); L.fx.addChild(coin.view);
+        coinFlight = { coin, from, to, t: 0, dur, arc, s0, s1, done };
+    }
+
     // --- events for little effects ----------------------------------------------------------
     const offs = [
+        G.on('egg', ({ id }) => startPickup(id)),
+        G.on('coin', () => { if (S?.def.spots.coin) flyCoin({ x: S.def.spots.coin.x, y: S.def.spots.coin.y - 16 }, 'carry', { dur: G.lessMotion ? 0.3 : 0.9, arc: G.lessMotion ? 0 : h(0.9), s0: 1.8, s1: 1.2 }); }),
         G.on('flash', ({ on }) => { if (on && S?.def.sky === 'peak') lightning(0.85); }),
         G.on('crystalRing', ({ id }) => { const cp = S?.crystalPlates?.find(q => q.id === id); if (cp) emit('star', cp.cx, cp.cy - 10, 5, { speed: 180, gravity: 60, life: 0.7, tint: 0xcfeaff }); }),
         G.on('crystalLit', () => { if (S?.crystalPlates) for (const cp of S.crystalPlates) emit('star', cp.cx, cp.cy - 10, 4, { speed: 160, gravity: 30, life: 1 }); }),
@@ -1981,6 +2886,7 @@ export function createView(PIXI, app, { assets, G, heroFactory }) {
         G.on('splashIn', (e) => emit('drop', e.x, e.y, Math.round(6 + (e.size || 0.5) * 10), { speed: 320, cone: 1.4 })),
         G.on('splashOut', (e) => emit('drop', e.x, e.y, 5, { speed: 220 })),
         G.on('drum', () => { if (S?.cocoa) emit('leaf', S.cocoa.x + (Math.random() - 0.5) * h(2), S.cocoa.y - h(4.2), 2, { speed: 60, gravity: 90, life: 1.6, cone: 3 }); cam.shake = 4; }),
+        G.on('drumAfter', () => { if (S?.cocoa) { S.cocoaShake = 0.5; emit('leaf', S.cocoa.x + (Math.random() - 0.5) * h(2), S.cocoa.y - h(4.2), 2, { speed: 60, gravity: 90, life: 1.6, cone: 3 }); } cam.shake = 4; }),
         G.on('eggFall', () => { if (S?.cocoa) emit('leaf', S.cocoa.x, S.cocoa.y - h(4), 10, { speed: 140, gravity: 120, life: 1.6, cone: 3 }); }),
         G.on('push', (e) => emit('dust', e.x, G.player.y, 5, { speed: 120, gravity: 200 })),
         G.on('ballSplash', () => { const b = G.scenes.strand.ball; emit('drop', b.stopX, 0, 14, { speed: 360 }); }),
@@ -2001,6 +2907,14 @@ export function createView(PIXI, app, { assets, G, heroFactory }) {
         setCloudTexture(tex) { cloudTexture = tex; },
         render, fx, lightning, emit,
         moonScreen: () => moonScreen(),
+        /** For checks: the rocket while it flies after the story ({ t } in seconds, or null). */
+        rocketState: () => rocket,
+        /** For checks: Mira's moon and Alva's stars, and how far the moon has risen. */
+        moonParts: () => ({ moon, stars: alvaStars, rise: moonState.rise }),
+        /** Eggs picked up but still flying to the count (main shows the count without them until they land). */
+        get eggsArriving() { return pickups.length; },
+        get eggsLanded() { return eggsLanded; },
+        get rainLevel() { return rainLevel; },
         fadeNow(v) { fade = fadeTarget = v; },
         heroScreen() {
             const p = hero.view;

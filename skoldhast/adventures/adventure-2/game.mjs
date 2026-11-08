@@ -33,6 +33,7 @@ export function createGame() {
         checkpoint: 'start',
         story: null,
         camHint: null,
+        camLook: null, // what the lines being said are about: the camera keeps it in the picture (story.mjs about)
         context: null,
         lastEvents: [],
         storm: 1,            // 1 = the full storm, 0 = moonlit calm (the view and audio read it)
@@ -154,10 +155,37 @@ export function createGame() {
             const cands = [];
             for (const cp of Object.values(CHECKPOINTS)) if (cp.scene === G.sceneId) cands.push(cp.spot ? sc.spots[cp.spot] : cp.at);
             for (const [k, v] of Object.entries(sc.spots)) if (/^(start|from)/.test(k)) cands.push(v);
+            // never past something still closed (5 November: from Kristallgrottan's shut gate it landed in the spring
+            // beyond it; on Åsktoppen it skipped the bridge and the gap): no refusing edge, unfinished dashed line or
+            // wall between here and there; and a spot of the same kind (swimming or on foot) comes first
+            // Closed things are judged by where they stand across the page, not by the player's own height: a gate
+            // is closed to a swimmer under it too, and a leap's edge a length below the trunk still guards the way
+            // (6 November: from deep in Kristallsjön the shut gate did not count, and the spring beyond won).
+            const T = G.terrain, x0 = p.x;
+            const between = (x, a, b = a) => (x > x0 ? b > x0 && a <= x : a < x0 && b >= x);
+            const shut = (x) => {
+                for (const e of T.edges || []) {
+                    if (e.kind === 'pass' || Math.abs(p.y - e.y) > (e.dy ?? 90) + 1.5 * HL) continue;
+                    if (between(x, e.x)) return true;
+                }
+                for (const d of T.dashed || []) if (between(x, Math.min(d.pts[0][0], d.pts.at(-1)[0]), Math.max(d.pts[0][0], d.pts.at(-1)[0]))) return true;
+                // walls inside the play area are gates; the page's own ends lie beyond every spot
+                for (const w of T.walls || []) if (between(x, w.x)) return true;
+                // a rock wall down into the water (Kristallsjön): only a shell riding the current gets under it
+                for (const sl of T.slabs || []) if (between(x, sl.top[0][0], sl.top.at(-1)[0])) return true;
+                // water that drives a swimmer back (Forsen's falls, the rush under Kristallsjön's wall)
+                for (const z of sc.pushes || []) {
+                    if (z.kind !== 'box' || !z.vx || !cond(z.when, G.flags)) continue;
+                    if (Math.sign(z.vx) !== Math.sign(x - x0) && between(x, z.x0, z.x1)) return true;
+                }
+                return false;
+            };
+            const swimming = p.mode === 'swim';
             let best = null, bd = Infinity;
             for (const c of cands) {
-                if (!c) continue;
-                const d = Math.hypot(c.x - p.x, c.y - p.y);
+                if (!c || shut(c.x)) continue;
+                const same = (c.mode === 'swim') === swimming;
+                const d = Math.hypot(c.x - p.x, c.y - p.y) + (same ? 0 : 40 * HL);
                 if (d > HL * 0.8 && d < bd) { bd = d; best = c; }
             }
             return best;

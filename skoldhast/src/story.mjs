@@ -31,6 +31,13 @@ export function createStory(G, io) {
     const hintState = { key: null, t: 0, level: 0, said: 0, reminded: false };
     const guided = () => G.helpLevel === 'guided';
     const discovery = (full, observation) => guided() ? full : KLO_COMPANION.story[observation];
+    /** Keeps what a passing remark is about in the picture with the sköldhäst for a while, without taking
+     *  the controls (view.mjs updateCamera). box: [x0, x1, y0, y1] in horse lengths. */
+    const lookAt = (box, seconds = 4) => {
+        const look = { scene: G.sceneId, x0: h(box[0]), x1: h(box[1]), y0: h(box[2]), y1: h(box[3]) };
+        G.camLook = look;
+        G.later(seconds, () => { if (G.camLook === look) G.camLook = null; });
+    };
     const landLook = async (s, id, inspect, frame) => {
         const before = G.worldInspection, hold = { player: G.player };
         G.worldInspection = hold;
@@ -351,7 +358,10 @@ export function createStory(G, io) {
     beat('k1_clouds', {
         when: () => inScene('land') && F.has('rule_demo') && G.sceneTime > 6 && P().x < h(100) && P().x > h(84) && !done('k1_clouds'),
         lock: false,
-        async run(s) { await s.remark(STORY.k1.clouds); }
+        async run(s) {
+            const colored = G.userStrokes?.cloud?.length && G.userStrokes.cloudColor !== 'paper';
+            await s.remark(colored ? STORY.k1.clouds : STORY.k1.cloudsWhite);
+        }
     });
 
     beat('k1_note', {
@@ -378,17 +388,21 @@ export function createStory(G, io) {
         async run(s) {
             s.stinger('aha'); s.checkpoint('steppe');
             if (!F.has('hint_teach')) { F.add('hint_teach'); s.remark(['horse', STORY.k1.teachStreck]); }
+            lookAt([75.3, 82.4, -2.15, 0.65], 4); // "Bron håller!": the bridge, which a galloping hero leaves behind
             await s.remark(F.has('ch2_open') ? STORY.k1.bridgeMapDone : STORY.k1.bridgeDone);
         }
     });
     beat('k1_boardwalk', {
         on: 'latch', filter: (e) => e.flag === 'spangen_flag',
         lock: false,
-        async run(s) { await s.remark(STORY.k1.boardwalkLesson); }
+        async run(s) { lookAt([88.5, 92.8, -3.2, 0], 4.5); await s.remark(STORY.k1.boardwalkLesson); } // the wheel and the flag going up
     });
 
+    // (6 November) A beat started by an event is lost if the game is saved while it runs (the tablet locked
+    // mid-sentence): the event never comes again. These come back, by `when`, at the same place.
     beat('k1_glimpse', {
         on: 'glimpse', filter: (e) => e.id === 'glimpse1',
+        when: () => inScene('land') && inArea('glimpse1') && F.has('glimpse1') && !done('k1_glimpse'),
         async run(s) {
             // frame the sköldhäst and the far ridge together (not an empty sky)
             const gp = G.sceneDef.spots.glimpse1;
@@ -469,6 +483,7 @@ export function createStory(G, io) {
 
     beat('k1_mirror', {
         on: 'reflectionSeen', filter: (e) => e.id === 'pool',
+        when: () => inScene('land') && inArea('pool') && F.has('p2_seen') && !F.has('p2_open') && !done('k1_mirror'),
         async run(s) {
             await s.wait(0.8);
             await landLook(s, 'pool', async () => {
@@ -486,6 +501,7 @@ export function createStory(G, io) {
 
     beat('k1_arch', {
         on: 'opened', filter: (e) => e.id === 'arch',
+        when: () => inScene('land') && inArea('pool') && F.has('p2_open') && !done('k1_arch'),
         async run(s) {
             await landLook(s, 'pool', async () => {
                 s.stinger('reveal');
@@ -653,7 +669,8 @@ export function createStory(G, io) {
     // The same frond, current, fold and loose fragment explain each next action.
     beat('k2_kelp_freed', {
         on: 'kelpFreed', lock: false,
-        async run(s) { io.save(); s.stinger('aha'); await s.remark(STORY.k2.kelpFreed); }
+        // "Nu når strömmen ända upp till vecket": the hook and the fold, about 5 HL behind the sköldhäst
+        async run(s) { io.save(); s.stinger('aha'); lookAt([33.8, 42.2, 7.4, 11.9], 4.5); await s.remark(STORY.k2.kelpFreed); }
     });
     beat('k2_fold_flat', {
         on: 'flattened', filter: (e) => e.id === 'corner', lock: false,
@@ -676,11 +693,13 @@ export function createStory(G, io) {
         on: 'bigLanding',
         async run(s) {
             if (F.has('final_run')) return;
+            // the checkpoint at once, as she lands: a save during Klo's cheer used to reload her on the near side,
+            // with the hint saying she was across (6 November)
+            s.checkpoint('udden');
             s.stinger('leap');
             await s.appear('klo', { scene: 'land', x: G.sceneDef.spots.kloUdden.x, y: G.sceneDef.spots.kloUdden.y, pose: 'stopwatch', facing: 1 });
             await landLook(s, 'landmark', () => s.say(STORY.k2.record));
             s.experiment('sprang', 'hast');
-            s.checkpoint('udden');
         }
     });
 
@@ -798,6 +817,8 @@ export function createStory(G, io) {
             }, { x0: tower.x - h(6.2), x1: tower.x + h(4), y0: gallery.y - h(3.5), y1: tower.y + h(1.5) });
             s.camFree();
             s.checkpoint('viken');
+            // the three chains from the shutters: to the bottom, the gallery's rope and the pier
+            if (guided() && !F.has('hint_chains')) lookAt([11.5, 33.8, -10.8, 7.6], 6);
             hintOnce('chains', STORY.k3.chains);
         }
     });
@@ -810,6 +831,7 @@ export function createStory(G, io) {
 
     beat('k3_mirror', {
         on: 'reflectionSeen', filter: (e) => e.id === 'bay',
+        when: () => inScene('viken') && inArea('pier') && F.has('p7_seen') && !F.has('lamp_lit') && !done('k3_mirror'),
         async run(s) {
             await s.wait(0.6);
             // Keep the actual answer visible for the whole explanation. The
@@ -817,6 +839,20 @@ export function createStory(G, io) {
             await s.fx('vista', { scene: 'viken', lighthouse: true, comparison: true,
                 whileVisible: () => s.say(discovery(STORY.k3.mirror, 'bayReflection')), hold: 0.6 });
             s.checkpoint('pier');
+        }
+    });
+
+    // Hiding on the pier again shows the lighthouse in the water again, briefly and without words, until the
+    // lamp is lit: Klo's help still speaks of comparing with the reflection (5 November)
+    let mirrorAgainAt = -Infinity;
+    beat('k3_mirror_again', {
+        on: 'still', repeat: true,
+        filter: (e) => e.id === 'bay' && inScene('viken') && done('k3_mirror') && !F.has('lamp_lit') && G.time - mirrorAgainAt > 8,
+        async run(s) {
+            mirrorAgainAt = G.time;
+            await s.wait(0.5);
+            if (!P().hidden || F.has('lamp_lit')) return;
+            await s.fx('vista', { scene: 'viken', lighthouse: true, comparison: true, whileVisible: () => s.wait(2.4), hold: 0.3 });
         }
     });
 
@@ -830,8 +866,9 @@ export function createStory(G, io) {
             if (F.has('lamp_lit')) return;
             const L = G.sceneDef.lamp;
             await s.cam({ x: L.x, y: L.y - h(.3), zoom: .95, t: .65, hold: .8 });
+            // the second shutter gets its own words: recorded speech makes a repeat stand out
             const open = ['shutter1', 'shutter2', 'shutter3'].filter(f => F.has(f)).length;
-            await s.say(STORY.k3.shutterOpened[Math.min(open, 2) - 1] || STORY.k3.shutterOpened[0]);
+            await s.say(open >= 2 ? STORY.k3.shutterOpenedNext : STORY.k3.shutterOpened);
             s.camFree();
         }
     });
@@ -907,11 +944,12 @@ export function createStory(G, io) {
         when: () => inScene('viken') && F.has('talk_done') && !F.has('p8_land') && !F.has('ended'),
         async run(s) {
             await s.fx('lineAppears', {});
+            // the wide look along the pier comes while Klo talks about its lines, not after (5 November)
+            await s.cam({ x: h(12), y: h(-1.2), zoom: 0.62, t: 1.2, hold: 0.6 });
             await s.say(discovery(STORY.k3.line, 'line'));
             const corner = G.sceneDef.spots.window;
             await s.cam({ x: corner.x, y: corner.y, zoom: .9, t: 1, hold: 1 });
             await s.say(STORY.k3.corner);
-            await s.cam({ x: h(12), y: h(-1.2), zoom: 0.62, t: 1.2, hold: 1.2 });
             s.camFree();
         }
     });
@@ -1024,10 +1062,56 @@ export function createStory(G, io) {
         async run(s) {
             const r = G.sceneDef.race;
             await s.appear('signe', { scene: 'land', x: r.signe.x, y: r.signe.y, pose: 'idle', facing: -1 });
-            await s.say(STORY.after.signeHello);
+            await s.say(STORY.after.signeHello.slice(0, 1));
+            // "Kapplöpning till pölen?": the pool (the race's finish) comes into the picture, with Signe
+            await s.cam({ x: (r.finish + r.signe.x) / 2, y: r.signe.y - h(1), zoom: 0.8, t: 0.8, hold: 0.5 });
+            await s.say(STORY.after.signeHello.slice(1));
+            s.camFree();
             G.flag('signe_met');
         }
     });
+    // =========================================================================
+    // After the ending: small surprises (easter eggs)
+    // =========================================================================
+    // Ekot i Vattenporten: whinny under the arch and it answers twice, softer each time; the first time Klo writes it
+    // down with his other measurements (no tally: the ending's answer is settled)
+    beat('after_echo', {
+        on: 'neigh', repeat: true, lock: false,
+        filter: (e) => !e.under && F.has('ended') && inScene('land') && inArea('pool'),
+        async run(s) {
+            io.audio?.sfx('neigh', { delay: 0.5, gain: 0.42 });
+            io.audio?.sfx('neigh', { delay: 1.05, gain: 0.18 });
+            if (F.has('exp_eko')) return;
+            G.flag('exp_eko');
+            await s.wait(1.4);
+            io.ui.toast(JOURNAL.measurements + ': ' + JOURNAL.experiments.eko);
+            await s.remark(STORY.after.echo);
+        }
+    });
+    // Lyktfiskarnas dans: the lamps of Mörka valvet leave their places and dance round the hidden shell (puzzles.mjs);
+    // the first time Klo writes it down
+    beat('after_lykt', {
+        on: 'schoolDance', lock: false,
+        async run(s) {
+            s.stinger('discovery');
+            await s.wait(0.6);
+            await s.remark(STORY.after.lyktDance);
+        }
+    });
+    // Kartväktarens pappersbåt: he was afraid of water ("Jag är av papper. Blött papper går sönder!"); now the sea is
+    // back, he dares to set a paper boat on it. It stays on the bay, drifting (view: kv_boat).
+    beat('_kvBoat', {
+        manual: true,
+        async run(s) {
+            const kv = G.actors.kv;
+            kv.pose = 'stand'; kv.facing = -1;
+            await s.say([STORY.after.kvBoat[0]]);
+            await s.fx('paperBoat', { x: kv.x - h(0.6), y: kv.y });
+            G.flag('kv_boat');
+            await s.say([STORY.after.kvBoat[1]]);
+        }
+    });
+
     beat('_race', {
         manual: true, lock: false,
         async run(s) {
@@ -1126,19 +1210,25 @@ export function createStory(G, io) {
         if (inScene('viken') && kv.visible && F.has('talk1') && !F.has('talk_done')) {
             const d = Math.abs(p.x - kv.x);
             if (d < h(1.6)) {
-                if (!F.has('talk2')) out.push({ id: 'talk2', label: CONTEXT_LABELS.talk, dist: d / HL, run: () => start(beats.find((b) => b.id === '_talk2')) });
-                else out.push({ id: 'talk3', label: CONTEXT_LABELS.talk, dist: d / HL, run: () => start(beats.find((b) => b.id === '_talk3')) });
+                if (!F.has('talk2')) out.push({ id: 'talk2', label: CONTEXT_LABELS.talk, who: 'kv', dist: d / HL, run: () => start(beats.find((b) => b.id === '_talk2')) });
+                else out.push({ id: 'talk3', label: CONTEXT_LABELS.talk, who: 'kv', dist: d / HL, run: () => start(beats.find((b) => b.id === '_talk3')) });
             }
+        }
+        if (inScene('viken') && kv.visible && F.has('ended') && !F.has('kv_boat')) {
+            const d = Math.abs(p.x - kv.x);
+            if (d < h(1.6)) out.push({ id: 'kvBoat', label: CONTEXT_LABELS.talk, who: 'kv', dist: d / HL, run: () => start(beats.find((b) => b.id === '_kvBoat')) });
         }
         const sg = G.actors.signe;
         if (inScene('land') && F.has('signe_met') && sg.visible && sg.scene === 'land' && !race.active && !sg.walk) {
             const d = Math.abs(p.x - sg.x);
-            if (d < h(1.4)) out.push({ id: 'race', label: CONTEXT_LABELS.talk, dist: d / HL, run: () => start(beats.find((b) => b.id === '_race')) });
+            if (d < h(1.4)) out.push({ id: 'race', label: CONTEXT_LABELS.talk, who: 'signe', dist: d / HL, run: () => start(beats.find((b) => b.id === '_race')) });
         }
         if (inScene('land')) {
             const n = G.sceneDef.spots.note1;
             const d = Math.abs(p.x - n.x);
-            if (d < h(0.9) && F.has('note1_read')) out.push({ id: 'read', label: CONTEXT_LABELS.read, dist: d / HL + 0.3, run: () => say([STORY.k1.note1]) });
+            // after the story Kartväktaren has left a new note on the same post (an easter egg)
+            if (d < h(0.9) && F.has('note1_read')) out.push({ id: 'read', label: CONTEXT_LABELS.read, dist: d / HL + 0.3,
+                run: () => { if (F.has('ended')) G.flag('note1_after'); return say([F.has('ended') ? STORY.after.note1After : STORY.k1.note1]); } });
         }
         return out;
     }
@@ -1341,8 +1431,7 @@ export function createStory(G, io) {
         const text = controlTip(id, { touch: io.touch, device: io.device, ...io.settings?.() });
         if (F.has('tip_' + id) || !text) return;
         F.add('tip_' + id);
-        // keyboard play shows no key reminders (Pappa, 30 September) – unless the player asked to be guided (Guida mig)
-        if (!io.touch && !guided() && ['gallop', 'act', 'hide', 'swim', 'journal'].includes(id)) return;
+        if (!io.touch && ['gallop', 'act', 'hide', 'swim', 'journal'].includes(id)) return;
         io.guide?.tip(text, { at: io.touch || id === 'journal' ? TIP_AT[id] : null });
     }
     // Earned feedback is still useful. Everything else here explains a future
@@ -1367,7 +1456,6 @@ export function createStory(G, io) {
     const balks = { key: '', n: 0, t: 0 };
     G.on('balk', (e) => {
         if (!guided()) return;
-        if (e.reason === 'thin' && !F.has('p1_inked')) hintOnce('thin', STORY.k1.firstThin);
         if (['slow', 'runup'].includes(e.reason) && e.id === 'sprang-p4') hintOnce('leap', STORY.k2.leapHint);
         if (e.id === 'klipp-edge' && F.has('p4_leap') && !F.has('p4_plank')) hintOnce('rope', STORY.k2.ropeHint);
         const key = e.reason + ':' + (e.id || '');

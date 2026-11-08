@@ -60,7 +60,7 @@ export function createHillPuzzleScene(PIXI, { sprite, def, texture = null }) {
         const paper = new PIXI.Graphics(); paper.label = `p3-paper-${stage.id}`;
         const roots = new PIXI.Graphics(); roots.label = `p3-roots-${stage.id}`;
         const bed = new PIXI.Graphics(); bed.label = `p3-bed-${stage.id}`;
-        container.addChild(paper, roots, bed); stages.set(stage.id, { paper, roots, bed, key: '' });
+        container.addChild(paper, roots, bed); stages.set(stage.id, { paper, roots, bed, key: '', rootKey: '' });
     }
     const pinShadow = new PIXI.Graphics(); pinShadow.label = 'p3-pin-contact';
     const stone = sprite('boulder'); stone.label = 'p3-pin-stone';
@@ -95,59 +95,70 @@ export function createHillPuzzleScene(PIXI, { sprite, def, texture = null }) {
         const geometry = [];
         for (const stage of pose.stages) {
             const view = stages.get(stage.id), shape = hillStripGeometry(stage); geometry.push({ id: stage.id, ...shape });
-            const key = [stage.phase, shape.root.toFixed(3), stage.unfold.toFixed(3), ...shape.top.flat().map(n => n.toFixed(1))].join('/');
-            if (key === view.key) continue; view.key = key;
-            const { paper, roots, bed } = view; paper.clear(); roots.clear(); bed.clear();
-            const { top, lower, curl, root } = shape;
+            // The sheet is redrawn only when it moves; while only the roots grow, only they are redrawn
+            // (redrawing the whole sheet every frame made phones stutter as the roots spread, 5 November).
+            const topKey = shape.top.flat().map(n => n.toFixed(1)).join(',');
+            const key = [stage.phase === 'complete' ? 'c' : stage.phase === 'unfolding' ? 'u' : 'f', stage.unfold.toFixed(3), topKey].join('/');
+            const rootKey = [stage.seeded, (Math.round(shape.root * 40) / 40).toFixed(3), topKey].join('/');
+            const redrawSheet = key !== view.key, redrawRoots = rootKey !== view.rootKey;
+            if (!redrawSheet && !redrawRoots) continue;
+            view.key = key; view.rootKey = rootKey;
+            const { paper, roots, bed } = view;
+            const { top, lower, curl } = shape, root = Math.round(shape.root * 40) / 40;
             const left = top[0], right = top.at(-1);
-            // How much of the sheet's underside is still showing: all of it while
-            // it lies folded, none once it has become part of the hillside.
-            const lifting = stage.phase === 'complete' ? 0 : 1 - clamp(stage.unfold) * 0.85;
-            // The body: the hill's own earth and turf, in the ground's world space,
-            // so it joins the terrain without a seam; its graphite top line comes last.
-            const fine = resampleX(top, 10), under = resampleX(lower, 10);
-            const body = [...fine.map(([x, y]) => [x, y + 2.5]), ...under.toReversed()];
-            paper.poly(body.flat()).fill(pen.material('mat-earth', 1, 0xc49a6c));
-            paper.poly(raggedBand(fine.map(([x, y]) => [x, y + 2.5]), TURF, 0).flat())
-                .fill(pen.material('mat-grass', 1, 0xb9c4a0));
-            // a little shade where the turf overhangs the earth, as on every bank
-            paper.poly(raggedBand(fine.map(([x, y]) => [x, y + TURF * .72]), 22, 7).flat())
-                .fill(pen.hatch(0x5b4128, .16));
-            if (lifting > 0) {
-                // The cream underside of the sheet, with its pencil fibres: a hinged
-                // grass-covered page, not a mound appearing.
-                const edge = under.map(([x, y]) => [x, y - 14]);
-                paper.poly([...edge, ...under.toReversed()].flat()).fill(pen.material('mat-paper', lifting, 0xfbf8f1));
-                paper.poly([...edge, ...under.toReversed()].flat()).fill(pen.hatch(0xd8c39a, .55 * lifting));
-                for (let i = 1; i < 12; i++) {
-                    const x = lerp(left[0], right[0], i / 12), bottom = heightOn(lower, x);
-                    line(paper, [[x - 5, bottom - 13], [x + 4, bottom - 2]], 0xa58f68, 1.5, .5 * lifting);
+            if (redrawSheet) {
+                paper.clear();
+                // How much of the sheet's underside is still showing: all of it while
+                // it lies folded, none once it has become part of the hillside.
+                const lifting = stage.phase === 'complete' ? 0 : 1 - clamp(stage.unfold) * 0.85;
+                // The body: the hill's own earth and turf, in the ground's world space,
+                // so it joins the terrain without a seam; its graphite top line comes last.
+                const fine = resampleX(top, 10), under = resampleX(lower, 10);
+                const body = [...fine.map(([x, y]) => [x, y + 2.5]), ...under.toReversed()];
+                paper.poly(body.flat()).fill(pen.material('mat-earth', 1, 0xc49a6c));
+                paper.poly(raggedBand(fine.map(([x, y]) => [x, y + 2.5]), TURF, 0).flat())
+                    .fill(pen.material('mat-grass', 1, 0xb9c4a0));
+                // a little shade where the turf overhangs the earth, as on every bank
+                paper.poly(raggedBand(fine.map(([x, y]) => [x, y + TURF * .72]), 22, 7).flat())
+                    .fill(pen.hatch(0x5b4128, .16));
+                if (lifting > 0) {
+                    // The cream underside of the sheet, with its pencil fibres: a hinged
+                    // grass-covered page, not a mound appearing.
+                    const edge = under.map(([x, y]) => [x, y - 14]);
+                    paper.poly([...edge, ...under.toReversed()].flat()).fill(pen.material('mat-paper', lifting, 0xfbf8f1));
+                    paper.poly([...edge, ...under.toReversed()].flat()).fill(pen.hatch(0xd8c39a, .55 * lifting));
+                    for (let i = 1; i < 12; i++) {
+                        const x = lerp(left[0], right[0], i / 12), bottom = heightOn(lower, x);
+                        line(paper, [[x - 5, bottom - 13], [x + 4, bottom - 2]], 0xa58f68, 1.5, .5 * lifting);
+                    }
+                    line(paper, under, 0x7f6c4f, 2.6, .8 * lifting);
+                    line(paper, edge, 0xb3a07c, 1.6, .55 * lifting);
                 }
-                line(paper, under, 0x7f6c4f, 2.6, .8 * lifting);
-                line(paper, edge, 0xb3a07c, 1.6, .55 * lifting);
+                // the free end of the sheet, while it still stands clear of the ledge
+                if (curl > .5) line(paper, [[left[0], left[1] + 2], [left[0], heightOn(lower, left[0] + 1) ?? left[1] + 24]], 0x3b3530, 3.4, .85);
+                // The paper curl is attached to the rising free tip. Its radius
+                // closes exactly as the physical strip reaches the upper ledge.
+                if (curl > .5) {
+                    const [x, y] = left;
+                    paper.moveTo(x, y + 22).bezierCurveTo(x + curl * 1.4, y + 25,
+                        x + curl * 1.25, y - curl, x + curl * .35, y - curl * .62)
+                        .quadraticCurveTo(x - curl * .12, y - curl * .4, x + curl * .1, y)
+                        .fill(pen.material('mat-paper', 1, 0xf4e4c0));
+                    paper.moveTo(x, y + 22).bezierCurveTo(x + curl * 1.4, y + 25,
+                        x + curl * 1.25, y - curl, x + curl * .35, y - curl * .62)
+                        .quadraticCurveTo(x - curl * .12, y - curl * .4, x + curl * .1, y)
+                        .fill(pen.hatch(0xd9c497, .6)).stroke(pen.line(0x5e5242, 3));
+                    paper.moveTo(x + curl * .14, y - 1).quadraticCurveTo(x + curl * .7, y - curl * .2, x + curl * .38, y - curl * .48)
+                        .stroke(pen.line(0x9c8a66, 2.3, .9));
+                    // the turf on its outer face, seen where the curl turns over
+                    paper.moveTo(x + curl * 1.2, y + 20).bezierCurveTo(x + curl * 1.32, y + 6, x + curl * 1.18, y - curl * .7, x + curl * .4, y - curl * .66)
+                        .stroke(pen.line(0x7f9c6a, 4.5, .85));
+                }
+                // the strip's top: the same graphite pencil as every other ground line
+                line(paper, fine, 0x3b3530, 4.6, .92);
             }
-            // the free end of the sheet, while it still stands clear of the ledge
-            if (curl > .5) line(paper, [[left[0], left[1] + 2], [left[0], heightOn(lower, left[0] + 1) ?? left[1] + 24]], 0x3b3530, 3.4, .85);
-            // The paper curl is attached to the rising free tip. Its radius
-            // closes exactly as the physical strip reaches the upper ledge.
-            if (curl > .5) {
-                const [x, y] = left;
-                paper.moveTo(x, y + 22).bezierCurveTo(x + curl * 1.4, y + 25,
-                    x + curl * 1.25, y - curl, x + curl * .35, y - curl * .62)
-                    .quadraticCurveTo(x - curl * .12, y - curl * .4, x + curl * .1, y)
-                    .fill(pen.material('mat-paper', 1, 0xf4e4c0));
-                paper.moveTo(x, y + 22).bezierCurveTo(x + curl * 1.4, y + 25,
-                    x + curl * 1.25, y - curl, x + curl * .35, y - curl * .62)
-                    .quadraticCurveTo(x - curl * .12, y - curl * .4, x + curl * .1, y)
-                    .fill(pen.hatch(0xd9c497, .6)).stroke(pen.line(0x5e5242, 3));
-                paper.moveTo(x + curl * .14, y - 1).quadraticCurveTo(x + curl * .7, y - curl * .2, x + curl * .38, y - curl * .48)
-                    .stroke(pen.line(0x9c8a66, 2.3, .9));
-                // the turf on its outer face, seen where the curl turns over
-                paper.moveTo(x + curl * 1.2, y + 20).bezierCurveTo(x + curl * 1.32, y + 6, x + curl * 1.18, y - curl * .7, x + curl * .4, y - curl * .66)
-                    .stroke(pen.line(0x7f9c6a, 4.5, .85));
-            }
-            // the strip's top: the same graphite pencil as every other ground line
-            line(paper, fine, 0x3b3530, 4.6, .92);
+            if (!redrawRoots) continue;
+            roots.clear(); bed.clear();
             const receiver = stage.receiver, seedY = heightOn(top, receiver.x) ?? receiver.y;
             bed.ellipse(receiver.x, seedY - 1, 52, 9).fill(pen.hatch(0x5b4128, .2));
             if (!stage.seeded) dottedRing(bed, receiver.x, seedY - 3, 46, 8, 0x5e4a36, .9);

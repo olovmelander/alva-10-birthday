@@ -26,7 +26,9 @@ const el = (tag, cls, text) => {
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 const HL_PX = 200; // world units per horse length
 
-export function createGuide(root, { img, portrait, heroScreen, onGoalTap, onDismissHelp } = {}) {
+export function createGuide(root, { img, portrait, heroScreen, onGoalTap, onDismissHelp, voice = null } = {}) {
+    // a recorded line keeps its bubble up until it has been said
+    const heardFor = (who, text, ms) => Math.max(ms, (voice?.seconds(who, text) || 0) * 1000 + 800);
     const layer = el('div', 'sk-guide');
     root.appendChild(layer);
     const top = el('div', 'sk-guide-top');
@@ -271,11 +273,13 @@ export function createGuide(root, { img, portrait, heroScreen, onGoalTap, onDism
         }
         x = clamp(x, 8, W - bw - 8); y = clamp(y, Math.min(minTop, H - bh - 8), H - bh - 8);
         thinkEl.style.transform = `translate(${Math.round(x)}px, ${Math.round(y)}px)`;
-        // two little dots from the bubble to the head
-        const cx = x + bw / 2, cy = y + bh / 2, dx = headX - cx, dy = headY - cy;
+        // two little dots from the bubble towards the head, the last one just above it (aimed at the head itself, the
+        // small dot sat on the sköldhäst's forehead, 6 November)
+        const aimX = headX, aimY = headY - 0.34 * sc;
+        const cx = x + bw / 2, cy = y + bh / 2, dx = aimX - cx, dy = aimY - cy;
         const k = Math.min(dx ? Math.abs(bw / 2 / dx) : Infinity, dy ? Math.abs(bh / 2 / dy) : Infinity, 1);
         const ex = cx + dx * k, ey = cy + dy * k;
-        const put = (n, t, size) => { n.style.transform = `translate(${Math.round(ex + (headX - ex) * t - x - size / 2)}px, ${Math.round(ey + (headY - ey) * t - y - size / 2)}px)`; };
+        const put = (n, t, size) => { n.style.transform = `translate(${Math.round(ex + (aimX - ex) * t - x - size / 2)}px, ${Math.round(ey + (aimY - ey) * t - y - size / 2)}px)`; };
         put(dotA, 0.3, 14); put(dotB, 0.66, 8);
     }
 
@@ -300,7 +304,8 @@ export function createGuide(root, { img, portrait, heroScreen, onGoalTap, onDism
             hintText.textContent = text;
             hintEl.className = 'sk-hintbubble who-' + who;
             top.classList.add('hinting');
-            showFor(hintEl, ms, hintDone);
+            voice?.play(who, text, 'aside');
+            showFor(hintEl, heardFor(who, text, ms), hintDone);
             placeHint();
             freeTop();
         },
@@ -309,7 +314,8 @@ export function createGuide(root, { img, portrait, heroScreen, onGoalTap, onDism
             if (!text) return;
             thinkText.textContent = text;
             thinking = true;
-            showFor(thinkEl, ms, () => { thinking = false; });
+            voice?.play('horse', text, 'aside');
+            showFor(thinkEl, heardFor('horse', text, ms), () => { thinking = false; });
             placeThink();
         },
         tip(text, { at = null, ms = 6500 } = {}) {

@@ -1,4 +1,5 @@
-node_modules/
+# (no slash: a worktree may link node_modules in, and a link is not a directory)
+node_modules
 .codex
 .claude/
 
@@ -9,12 +10,17 @@ Thumbs.db
 /.playwright-mcp/
 /artifacts/
 /docs/skoldhast/shots/controls/
+/docs/skoldhast/shots/geography/
+/docs/skoldhast/shots/hill-depth/
 /docs/skoldhast/shots/k1/
 /docs/skoldhast/shots/k3/dialogue/
 /docs/skoldhast/shots/k3/signature/
 /docs/skoldhast/shots/klo-companion/
 /docs/skoldhast/shots/maps/
 /docs/skoldhast/shots/puzzle-audit/
+/docs/skoldhast/shots/exploration-order/
+/docs/skoldhast/shots/world-art/
+/shots/
 /docs/skoldhast/klo-companion-audit.md
 /docs/skoldhast/puzzle-audit.md
 /docs/skoldhast/puzzle-audit-land.md

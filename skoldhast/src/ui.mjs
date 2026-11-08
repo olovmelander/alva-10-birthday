@@ -41,7 +41,11 @@ const doodle = (name, cls) => icon(name, 'sk-doodle ' + cls);
 // the journal's tabs: one icon for each page
 const TAB_ICONS = ['shell', 'pencil', 'bulb', 'watch', 'lens', 'report', 'note'];
 
-export function createUI(host, { assetBase, handlers }) {
+// Mira's purple pencil (Äventyr 2's table draws the same one)
+const MIRA_PENCIL = '<svg viewBox="0 0 64 48" aria-hidden="true"><path d="M8 40 L44 8 L52 14 L16 46 Z" fill="#a98ad0" stroke="#5e4a7d" stroke-width="2"/>'
+    + '<path d="M8 40 L4 47 L16 46 Z" fill="#f3e3c4" stroke="#5e4a7d" stroke-width="1.5"/><path d="M4 47 L7 43" stroke="#3b3530" stroke-width="2"/></svg>';
+
+export function createUI(host, { assetBase, handlers, voice = null }) {
     const root = el('div', 'sk-ui');
     host.appendChild(root);
     wantFont();
@@ -106,6 +110,9 @@ export function createUI(host, { assetBase, handlers }) {
         else if (who === 'klo') face.append(art('npcs', pose === 'peek' ? 'klo-peek' : 'klo-idle-1'));
         else if (who === 'kv') face.append(art('npcs-bay', 'kv-part-head-normal'));
         else if (who === 'signe') face.append(art('npcs-land', 'turtle-signe'));
+        // Alva and Mira are never drawn: each is her pencil, the same one that speaks on the table's page
+        else if (who === 'alva') face.append(art('table', 'alva-pencil'));
+        else if (who === 'mira') face.innerHTML = MIRA_PENCIL;
         else return null;
         return face;
     }
@@ -168,10 +175,15 @@ export function createUI(host, { assetBase, handlers }) {
     // Keyboard and gamepad play: the key and the action it does here, by the horse.
     // (Screen readers already have the action button's name and shortcuts.)
     const keyNote = el('div', 'sk-keynote');
+    const TOP_BAR = '.sk-goal:not(.empty), .sk-hud:not(.off) .sk-round, .sk-hud:not(.off) .a2-eggs, .sk-hud:not(.off) .sk-pencils, .sk-klo-call:not([hidden])';
+    let topBar = null; // the top bar's rects for the key prompt, measured at most four times a second
     const keyCap = el('span', 'sk-keycap');
     const keyLabel = el('span', 'sk-keynote-label');
+    // "E Prata" shows who you would talk to: their small face, as in the speaking badge (6 November)
+    const keyFace = el('span', 'sk-key-face');
+    let keyWho = null;
     keyNote.setAttribute('aria-hidden', 'true');
-    keyNote.append(keyCap, keyLabel);
+    keyNote.append(keyCap, keyFace, keyLabel);
     root.appendChild(keyNote);
 
     // ---------------------------------------------------------------------------
@@ -198,6 +210,10 @@ export function createUI(host, { assetBase, handlers }) {
     dlgNext.addEventListener('click', (e) => { e.stopPropagation(); advance(); });
 
     async function say(lines, { onSpeaker } = {}) {
+        voice?.prefetch(lines);
+        // a thought or a hint still being said ends its sentence first (up to 6 s): the box then opens
+        // with its own voice, rather than cutting the other off mid-sentence
+        if (voice?.speaking === 'aside') await voice.asideEnd?.(6);
         for (const [who, text] of lines) {
             if (!text) continue;
             speaker = who;
@@ -207,9 +223,11 @@ export function createUI(host, { assetBase, handlers }) {
             if (face) dlgName.prepend(face);
             dlgText.textContent = text;
             onSpeaker?.(who);
-            handlers.onSay?.(who, text);
+            const voiced = !!voice?.play(who, text, 'say');
+            handlers.onSay?.(who, text, voiced);
             dlgReadyAt = performance.now() + 350;
             await new Promise((r) => { dlgResolve = r; });
+            voice?.stop('say'); // the reader moved on: so does the voice
         }
         speaker = null;
         onSpeaker?.(null);
@@ -222,30 +240,71 @@ export function createUI(host, { assetBase, handlers }) {
     speaking.setAttribute('aria-hidden', 'true');
     speaking.innerHTML = '<svg viewBox="0 0 36 30" fill="none"><path class="sk-speaking-paper" d="M6 3 Q17 1 28 3 Q33 4 33 10 L32 17 Q31 21 24 21 L17 28 L17 22 Q3 24 3 16 L2 9 Q2 4 6 3Z"/><path class="sk-speaking-pencil" d="M6 3 Q17 1 28 3 Q33 4 33 10 L32 17 Q31 21 24 21 L17 28 L17 22 Q3 24 3 16 L2 9 Q2 4 6 3Z"/><path class="sk-speaking-dots" d="M10 12h1 M17 12h1 M24 12h1"/></svg>';
     root.appendChild(speaking);
+    // A speaker drawn on the page but outside the picture (Klo a little ahead on a phone held upright) gets a
+    // round badge with their face at that edge of the screen, its point turned toward them.
+    const edge = el('div', 'sk-speaking-edge');
+    edge.setAttribute('aria-hidden', 'true');
+    const edgePoint = el('span', 'sk-edge-point'), edgeFace = el('span', 'sk-edge-face');
+    edge.append(edgePoint, edgeFace);
+    root.appendChild(edge);
+    let edgeWho = null;
+    const EDGE_R = 25, EDGE_M = 22; // the margin leaves room for the point
+    const hits = (cx, cy, r) => cx + EDGE_R > r.left - 4 && cx - EDGE_R < r.right + 4 && cy + EDGE_R > r.top - 4 && cy - EDGE_R < r.bottom + 4;
+    function showEdge(who, x, y, W, H) {
+        if (edgeWho !== who) { edgeFace.replaceChildren(...[portrait(who)].filter(Boolean)); edgeWho = who; }
+        const lo = EDGE_R + EDGE_M, hiX = W - lo, hiY = H - lo;
+        if (!edgeFace.firstChild || hiX < lo || hiY < lo) { edge.classList.remove('on'); return; }
+        const cx = Math.min(hiX, Math.max(lo, x));
+        let cy = Math.min(hiY, Math.max(lo, y));
+        // slide along the edge past the speech box and the round buttons, to the nearer free side
+        for (let i = 0; i < 4; i++) {
+            const r = obstacles.find(o => hits(cx, cy, o));
+            if (!r) break;
+            const up = r.top - 4 - EDGE_R, down = r.bottom + 4 + EDGE_R;
+            cy = up >= lo && (down > hiY || cy - up <= down - cy) ? up : down;
+        }
+        if (cy < lo || cy > hiY || obstacles.some(o => hits(cx, cy, o))) { edge.classList.remove('on'); return; }
+        edge.style.transform = `translate(${Math.round(cx - EDGE_R)}px, ${Math.round(cy - EDGE_R)}px)`;
+        edgePoint.style.transform = `rotate(${Math.atan2(y - cy, x - cx).toFixed(3)}rad)`;
+        edge.dataset.speaker = who;
+        edge.classList.add('on');
+    }
     let obstacles = [], measureAt = 0, markWho = null;
     function updateSpeaker(who, bounds) {
-        if (!who || !bounds || panel.classList.contains('on')) { speaking.classList.remove('on'); markWho = null; return; }
+        // Alva and Mira are never drawn. Away from the table's page (in the world, where they draw the moon and the
+        // stars), each speaks from her side of the table, beyond the edge of the page: her pencil in the badge.
+        const girl = !bounds && (who === 'alva' || who === 'mira');
+        if (!who || (!bounds && !girl) || panel.classList.contains('on')) { speaking.classList.remove('on'); edge.classList.remove('on'); markWho = null; return; }
         const W = root.clientWidth, H = root.clientHeight;
+        if (girl) bounds = who === 'alva' ? { minX: W + 300, maxX: W + 300, minY: H * .32, maxY: H * .32 } : { minX: -300, maxX: -300, minY: H * .32, maxY: H * .32 };
         const x = (bounds.minX + bounds.maxX) / 2, y = bounds.minY;
-        // An off-screen character is still identified by the portrait and name.
-        if (x < 0 || x > W || bounds.maxY < 0 || y > H) { speaking.classList.remove('on'); return; }
         const now = performance.now();
         if (now >= measureAt || markWho !== who) {
             const origin = root.getBoundingClientRect();
-            obstacles = [...root.querySelectorAll('.sk-dialogue.on, .sk-hintbubble.on, .sk-think.on, .sk-goal:not(.empty), .sk-hud:not(.off) .sk-round')]
+            obstacles = [...root.querySelectorAll('.sk-dialogue.on, .sk-hintbubble.on, .sk-think.on, .sk-goal:not(.empty), .sk-hud:not(.off) .sk-round, .sk-hud:not(.off) .a2-eggs, .sk-hud:not(.off) .sk-pencils, .sk-klo-call:not([hidden])')]
                 .filter(n => !n.closest('.sk-guide.off')).map(n => {
                     const r = n.getBoundingClientRect();
                     return { left: r.left - origin.left, right: r.right - origin.left, top: r.top - origin.top - (n === dlg ? 38 : 0), bottom: r.bottom - origin.top };
                 });
             measureAt = now + 150;
         }
-        const left = x - 18, top = y - 36;
-        const clear = left >= 4 && left + 36 <= W - 4 && top >= 4 && top + 30 <= H - 4 &&
-            !obstacles.some(r => left < r.right + 4 && left + 36 > r.left - 4 && top < r.bottom + 4 && top + 30 > r.top - 4);
-        speaking.classList.toggle('on', clear);
-        speaking.dataset.speaker = who;
-        speaking.style.transform = `translate(${Math.round(left)}px, ${Math.round(top)}px)`;
         markWho = who;
+        const left = x - 18, top = y - 36;
+        // the mark above the head does not fit on the screen: the speaker is out of the picture, or at its very edge
+        if (left < 4 || left + 36 > W - 4 || bounds.maxY < 4 || y > H - 4) {
+            speaking.classList.remove('on');
+            showEdge(who, x, (bounds.minY + bounds.maxY) / 2, W, H);
+            return;
+        }
+        edge.classList.remove('on');
+        // above the head first; if the speech box or a button is there (Molnet just under the box), beside the head
+        const fits = ([l, t]) => l >= 4 && l + 36 <= W - 4 && t >= 4 && t + 30 <= H - 4 &&
+            !obstacles.some(r => l < r.right + 4 && l + 36 > r.left - 4 && t < r.bottom + 4 && t + 30 > r.top - 4);
+        // (under the speaker last: a head just under the speech box at 1440×900, as in Äventyr 2's finale)
+        const spot = [[left, top], [bounds.maxX + 2, y + 14], [bounds.minX - 38, y + 14], [left, bounds.maxY + 6]].find(fits);
+        speaking.classList.toggle('on', !!spot);
+        speaking.dataset.speaker = who;
+        if (spot) speaking.style.transform = `translate(${Math.round(spot[0])}px, ${Math.round(spot[1])}px)`;
     }
 
     // choices (the prologue)
@@ -276,12 +335,16 @@ export function createUI(host, { assetBase, handlers }) {
         setTimeout(() => { t.classList.remove('on'); setTimeout(() => t.remove(), 500); }, ms);
     }
     let capTimer = 0;
+    /** A caption; the narrator reads it if it is recorded. Resolves when the reading ends. */
     function captionShow(text, ms = 1600) {
-        if (!text) return;
+        if (!text) return Promise.resolve();
         caption.textContent = text;
         caption.classList.add('on');
         clearTimeout(capTimer);
-        capTimer = setTimeout(() => caption.classList.remove('on'), ms);
+        const read = voice?.play('caption', text, 'narration');
+        const seconds = read ? voice.seconds('caption', text) : 0;
+        capTimer = setTimeout(() => caption.classList.remove('on'), Math.max(ms, seconds * 1000 + 600));
+        return read || Promise.resolve();
     }
 
     function pulse(which) {
@@ -352,7 +415,6 @@ export function createUI(host, { assetBase, handlers }) {
     // with the inside of the cover to its left). Tabs jump to a page; pages turn in 3D.
     const spreadQuery = window.matchMedia?.('(min-width: 900px) and (min-height: 520px)');
     function journal(state) {
-        let page = Math.max(0, Math.min(6, state.page ?? 2));
         let showJournalPage = () => {};
         const pages = [
             (c) => {
@@ -427,7 +489,7 @@ export function createUI(host, { assetBase, handlers }) {
             (c) => {
                 c.append(el('h3', '', JOURNAL.measurements));
                 const ul = el('ul', 'sk-j-list sk-j-checks');
-                for (const id of ['fart', 'djup', 'gom', 'gnagg', 'sprang', 'smak']) if (state.flags.has('exp_' + id)) ul.append(el('li', '', JOURNAL.experiments[id]));
+                for (const id of ['fart', 'djup', 'gom', 'gnagg', 'sprang', 'smak', 'eko']) if (state.flags.has('exp_' + id)) ul.append(el('li', '', JOURNAL.experiments[id]));
                 if (!ul.children.length) { ul.className = 'sk-j-list'; ul.append(el('li', 'sk-j-small', JOURNAL.empty)); }
                 c.append(ul);
                 const signs = el('p', 'sk-j-tally', state.tally > 0 ? JOURNAL.tallyHorse : state.tally < 0 ? JOURNAL.tallyTurtle : JOURNAL.tallyEven);
@@ -475,7 +537,6 @@ export function createUI(host, { assetBase, handlers }) {
                 c.append(art('table', 'pencils-lying', 'sk-j-crayons'));
             }
         ];
-        const N = pages.length;
         // the inside of the front cover, left of the first page on a spread
         const insideCover = (c) => {
             c.classList.add('sk-j-inside');
@@ -484,26 +545,48 @@ export function createUI(host, { assetBase, handlers }) {
             c.append(doodle('cloud', 'd-cloud'), doodle('gull', 'd-g1'), doodle('gull2', 'd-g2'), doodle('fish', 'd-fish'), doodle('wave', 'd-wave'));
         };
 
+        book({
+            pages, tabs: MENU.tabs.slice(0, pages.length).map((label, i) => ({ label, icon: TAB_ICONS[i] })), head: UI.journal,
+            page: Math.max(0, Math.min(6, state.page ?? 2)), insideCover, bind: (go) => { showJournalPage = go; }, onClose: () => state.onClose?.()
+        });
+    }
+
+    /**
+     * A notebook with tabs: one page on a phone, a two-page spread on a wide screen (the first page is a right-hand
+     * page, with the inside of the cover to its left). Tabs jump to a page; pages turn in 3D. Äventyr 1's
+     * Forskningsdagbok and Äventyr 2's are both this book with their own pages.
+     *   pages: functions that fill a page element; tabs: [{ label, icon }]; head: the name on the spine;
+     *   page: where it opens; insideCover(c): the endpaper left of the first page; bind(go): lets a page turn the book;
+     *   focusTab: the open page's tab takes the first focus (otherwise a page's [data-focus], or its first button);
+     *   cls: extra classes on the book; onClose: after it closes.
+     */
+    function book({ pages, tabs: tabDefs, head, page: start = 0, insideCover = () => {}, bind, focusTab = false, cls = '', onClose }) {
+        const N = pages.length;
+        let page = Math.max(0, Math.min(N - 1, start));
         let settle = () => {}, unlisten = () => {};
+        hintMark.classList.remove('on'); // however it was opened (button, goal note, key), what was new is being read
         openPanel((card, sheet) => {
             card.classList.add('sk-journal');
+            if (cls) card.classList.add(...cls.split(' '));
             sheet.classList.add('sk-sheet-journal');
             const tabs = el('div', 'sk-j-tabs');
             tabs.setAttribute('role', 'tablist');
-            tabs.setAttribute('aria-label', UI.journal);
-            const tabBtns = MENU.tabs.slice(0, N).map((label, i) => {
+            tabs.setAttribute('aria-label', head);
+            const tabBtns = tabDefs.slice(0, N).map(({ label, icon: name }, i) => {
                 const b = el('button', `sk-j-tab t${i}`);
                 b.type = 'button';
                 b.setAttribute('role', 'tab');
                 b.title = label;
-                b.append(icon(TAB_ICONS[i]), el('span', 'sk-j-tab-label', label));
+                b.append(icon(name), el('span', 'sk-j-tab-label', label));
                 b.addEventListener('click', () => go(i));
                 tabs.append(b);
                 return b;
             });
-            const book = el('div', 'sk-j-book');
+            // the open page's tab takes the first focus: the top of the book, not a button half-way down a page
+            if (focusTab) tabBtns[page].dataset.focus = '';
+            const leaves = el('div', 'sk-j-book');
             const slotL = el('div', 'sk-j-leaf l'), slotR = el('div', 'sk-j-leaf r');
-            book.append(slotL, slotR);
+            leaves.append(slotL, slotR);
             const nav = el('div', 'sk-j-nav');
             const prev = btn('‹', () => step(-1), 'sk-j-arrow');
             prev.setAttribute('aria-label', UI.prev);
@@ -512,7 +595,7 @@ export function createUI(host, { assetBase, handlers }) {
             const closeB = btn(UI.close, closePanel, 'sk-close');
             const dots = el('span', 'sk-j-dots');
             nav.append(prev, dots, next, closeB);
-            card.append(el('div', 'sk-j-head', UI.journal), tabs, book, nav);
+            card.append(el('div', 'sk-j-head', head), tabs, leaves, nav);
 
             let spread = false;
             const spreadOf = (p) => Math.floor((p + 1) / 2);
@@ -594,7 +677,7 @@ export function createUI(host, { assetBase, handlers }) {
                     frames = [{ transform: 'rotateY(-92deg)' }, { transform: 'rotateY(0deg)' }];
                 }
                 front.append(shades[0]); back.append(shades[1]);
-                book.append(leaf);
+                leaves.append(leaf);
                 // the turning page darkens as it leaves the light, and brightens as it lands
                 const opts = { duration: spread ? 620 : 460, easing: 'cubic-bezier(.45,.05,.3,1)' };
                 const dark = spread ? [{ opacity: 0 }, { opacity: 0.32, offset: 0.5 }, { opacity: 0 }]
@@ -620,7 +703,7 @@ export function createUI(host, { assetBase, handlers }) {
                 const s = spreadOf(page) + d;
                 go(s <= 0 ? 0 : 2 * s - 1);
             }
-            showJournalPage = go;
+            bind?.(go);
             layout();
             // turning the phone (or resizing the window) switches between one page and a spread
             const onMode = () => { if (card.isConnected) layout(); else unlisten(); };
@@ -632,7 +715,7 @@ export function createUI(host, { assetBase, handlers }) {
                 if (e.key === 'ArrowRight' || e.key === 'PageDown') { e.preventDefault(); step(1); }
                 else if (e.key === 'ArrowLeft' || e.key === 'PageUp') { e.preventDefault(); step(-1); }
             });
-        }, { onClose: () => { settle(); unlisten(); state.onClose?.(); }, kind: 'journal' });
+        }, { onClose: () => { settle(); unlisten(); onClose?.(); }, kind: 'journal' });
     }
 
     /** The word code on a yellow sticky note (the text stays "Kod: KELP MÅS SKAL"). */
@@ -921,8 +1004,8 @@ export function createUI(host, { assetBase, handlers }) {
     // ---------------------------------------------------------------------------
     return {
         root, hud, controls, stickZone, stickBase, stickKnob, hopBtn, actBtn, hideBtn, portrait, updateSpeaker,
-        say, choice, toast, caption: captionShow, pulse, report, ending, journal, pauseMenu, settings, title, adventurePicker, slotPicker, draw,
-        closePanel,
+        say, choice, toast, caption: captionShow, pulse, report, ending, journal, book, pauseMenu, settings, title, adventurePicker, slotPicker, draw,
+        closePanel, voice,
         // the notebook's own pieces, for another adventure's panels
         openPanel, button: btn, art, tape, icon,
         panelOpen: () => panel.classList.contains('on'),
@@ -950,8 +1033,37 @@ export function createUI(host, { assetBase, handlers }) {
             if (!prompt?.at || !prompt.label) { keyNote.classList.remove('on'); return; }
             if (keyCap.textContent !== prompt.key) keyCap.textContent = prompt.key;
             if (keyLabel.textContent !== prompt.label) keyLabel.textContent = prompt.label;
+            const who = prompt.who || null;
+            if (who !== keyWho) {
+                keyWho = who;
+                const face = who ? portrait(who) : null;
+                keyFace.replaceChildren(...[face].filter(Boolean));
+                keyNote.classList.toggle('with-face', !!face);
+            }
             const w = root.clientWidth || window.innerWidth;
-            const x = Math.max(70, Math.min(w - 70, prompt.at.x)), y = Math.max(64, prompt.at.y);
+            const x = Math.max(70, Math.min(w - 70, prompt.at.x));
+            let y = Math.max(64, prompt.at.y);
+            // a thought bubble over the head covered the note (5 November): then the note sits just above the
+            // bubble, or under it if there is no room above
+            const think = root.querySelector('.sk-think.on');
+            // (the page is measured only when something may be in the way, and the top bar at most four times a second:
+            // this runs every frame, and reading layout every frame slows a phone)
+            const near = y < 64 + 150;
+            if (think || near) {
+                const o = root.getBoundingClientRect(), nh = keyNote.offsetHeight || 30, nw = keyNote.offsetWidth || 120;
+                const hits = (r) => x + nw / 2 > r.left - o.left - 4 && x - nw / 2 < r.right - o.left + 4 && y > r.top - o.top - 4 && y - nh < r.bottom - o.top + 4;
+                if (think) {
+                    const t = think.getBoundingClientRect(), tt = t.top - o.top, tb = t.bottom - o.top;
+                    if (hits(t)) y = tt - 6 - nh >= 56 ? tt - 6 : tb + 6 + nh;
+                }
+                // nor under the goal note or the round buttons along the top: in landscape the note covered the prompt
+                // right over the sköldhäst's head, so a child never saw what E does there (6 November)
+                if (near) {
+                    const now = performance.now();
+                    if (!topBar || now - topBar.t > 250) topBar = { t: now, rects: [...root.querySelectorAll(TOP_BAR)].map(el => el.getBoundingClientRect()).filter(r => r.width && r.top - o.top < 140) };
+                    for (const r of topBar.rects) if (hits(r)) y = r.bottom - o.top + 6 + nh;
+                }
+            }
             keyNote.style.transform = `translate(${Math.round(x)}px, ${Math.round(y)}px) translate(-50%, -100%)`;
             keyNote.classList.add('on');
         },

@@ -20,36 +20,84 @@
 .a2-face svg { width: 100%; height: 100%; display: block; }
 .sk-speaker-face.a2-face { display: inline-block; width: 38px; height: 28px; vertical-align: middle; margin-right: 6px; }
 
-/* "Vad vet vi?" and the ending card: ten eggs in a row */
+/* the notebook and the ending card: ten eggs in a row (the ones still missing are only pencilled in) */
 .a2-egg-row { display: flex; flex-wrap: wrap; justify-content: center; gap: 4px; margin: 8px 0 10px; }
-.a2-egg { width: 22px; height: 28px; opacity: .25; filter: grayscale(1); }
-.a2-egg.found { opacity: 1; filter: none; }
+.a2-egg { width: 22px; height: 28px; opacity: .22; filter: grayscale(1); }
+.a2-egg.found { opacity: 1; filter: drop-shadow(0 0 3px rgba(240, 196, 80, .85)); }
 .a2-egg-row.hatched .a2-egg { animation: a2-wobble 1.6s ease-in-out infinite; }
 .a2-egg-row.hatched .a2-egg:nth-child(2n) { animation-delay: .4s; }
 @keyframes a2-wobble { 0%, 100% { transform: rotate(0); } 25% { transform: rotate(-9deg); } 75% { transform: rotate(9deg); } }
 .less-motion .a2-egg-row.hatched .a2-egg { animation: none; }
-.a2-journal .a2-hint:empty { display: none; }
-.a2-journal .a2-here { margin-top: -4px; }
 
 /* the night: the caption and thought bubbles stay readable on the dark forest */
 .sk-a2 .sk-caption { color: #f4ecd6; text-shadow: 0 1px 3px rgba(20, 18, 34, .95), 0 0 10px rgba(20, 18, 34, .8);
     background: rgba(24, 22, 40, .5); padding: 4px 16px; border-radius: 16px; } /* readable on the table's light wood too */
 .sk-a2 .sk-pencils { color: #f4ecd6; }
+/* the drawing card covers the top and the bottom: a caption still fading out would sit under its prompt or buttons */
+.sk-ui.a2:has(.sk-draw.on) .sk-caption.on { opacity: 0; }
 
 /* the egg count sits by the pause button, clear of the goal note */
 .sk-hud .a2-eggs { position: absolute; top: max(14px, env(safe-area-inset-top)); right: calc(max(12px, env(safe-area-inset-right)) + 62px); padding: 6px 12px;
     border-radius: 14px; background: rgba(30, 28, 48, .45); }
-/* a narrow phone: the goal note needs the width (it covered the count), so the count sits small under the pause button */
-@media (max-width: 560px) {
-    .sk-hud .a2-eggs { top: calc(max(14px, env(safe-area-inset-top)) + 54px); right: max(10px, env(safe-area-inset-right)); width: 52px; box-sizing: border-box;
-        flex-direction: column; gap: 0; padding: 4px 2px 5px; font-size: calc(14px * var(--fz, 1)); line-height: 1.1; text-align: center; white-space: nowrap; }
-    .sk-hud .a2-eggs .a2-egg-icon { width: 18px; height: 22px; }
-    /* the speech box sits at the top here; the toast "Ägg n av 10!" tells the count meanwhile */
-    .sk-ui:has(.sk-dialogue.on) .a2-eggs { visibility: hidden; }
+/* the goal note stops short of the egg count (about 110 px wide, left of the pause button); this only
+   bites on screens under about 730 px wide */
+.a2 .sk-goal { max-width: min(460px, calc(100% - 250px)); }
+/* phone portrait: that would be too narrow, so the note goes under the row of buttons and gets the width */
+@media (orientation: portrait) and (max-width: 720px) {
+    .a2 .sk-guide-top { top: max(66px, calc(env(safe-area-inset-top) + 56px)); }
+    .a2 .sk-goal { margin-left: 3px; max-width: calc(100% - 6px); }
+    /* a place's name: under the goal note, in the open sky. Here the ground lies at about 70 % of the height, so
+       Äventyr 1's place (30 % from the bottom) put the name across the sköldhäst (5 November) */
+    .sk-ui.a2:not(.table-mode) .sk-caption { bottom: auto; top: 25%; }
 }
 
-/* the journal's map of the four places */
-/* width: the card centres its children, and an svg without a width falls back to 300 px */
-.a2-map-box { margin: 4px auto 6px; width: 100%; max-width: 540px; }
+/* --- the research notebook: Forskningsdagbok – Den magiska skogen (Äventyr 1's book, these pages) ------------ */
+.a2-book .sk-j-page .a2-egg-row { align-self: stretch; justify-content: flex-start; margin: 4px 0 6px; }
+/* after the moon: ten little tukankrabbor, the smallest (Lilla Klo) last */
+.a2-hatchlings { align-items: flex-end; }
+/* (small enough for all ten in one row on a phone's page) */
+.a2-hatchlings { gap: 2px; flex-wrap: nowrap; }
+.a2-hatchling { width: 25px; height: 22px; animation: a2-wobble 1.8s ease-in-out infinite; transform-origin: 50% 90%; }
+.a2-hatchling:nth-child(2n) { animation-delay: .5s; }
+.a2-hatchling.lilla { width: 18px; height: 16px; }
+.a2-hatchling svg { width: 100%; height: 100%; display: block; }
+.less-motion .a2-hatchling { animation: none; }
+.a2-book .a2-here { margin-top: 2px; }
+/* Klo's notes: every one given so far, on taped slips with his claw */
+.a2-notes { align-self: stretch; }
+.a2-notes .a2-note { margin: 12px 0 6px !important; }
+.a2-notes .a2-note:focus { outline: none; }
+/* (the book's buttons are display: inline-flex, which would keep a hidden one on the page) */
+.a2-book .sk-j-help[hidden] { display: none; }
+/* the map, the full width of the page, with the places listed under it in ordinary text */
+.a2-map-box { align-self: stretch; width: 100%; max-width: 560px; margin: 4px 0 6px; }
 .a2-map { display: block; width: 100%; height: auto; font-family: inherit; }
+.a2-map-list li.here { color: #b8322a; }
+/* a phone held sideways: the page is low, so the whole map with its names fits without scrolling */
+@media (max-height: 520px) { .a2-map-box { max-width: min(380px, 100%); } }
+/* the question, its answer, and the hypotheses stamped when the story proves them */
 .a2-question { font-style: italic; }
+.a2-answer { color: var(--sk-ink); }
+.a2-hyps { list-style: none; margin: 4px 0 6px; padding: 0; align-self: stretch; }
+.a2-hyps li { margin: 6px 0 12px; }
+.a2-hyp-n { color: var(--sk-rust); }
+.a2-stamp { display: inline-block; margin: 2px 0 0 10px; padding: 0 9px 1px; border: 2.5px solid #b8322a; border-radius: 6px;
+    color: #b8322a; font-size: calc(19px * var(--fz)); letter-spacing: .05em; transform: rotate(-7deg); opacity: .9;
+    box-shadow: inset 0 0 0 1px rgba(184, 50, 42, .25); }
+/* facts the moon made untrue: struck out in pencil, with what is true now beside them */
+.a2-clues li.struck s { color: var(--sk-soft); text-decoration-thickness: 2px; text-decoration-color: rgba(59, 53, 48, .75); }
+.a2-pencil-note { display: inline-block; color: #2f5f96; transform: rotate(-2deg); }
+/* the secrets found after the story; the ones still hidden say only where */
+.a2-secrets { list-style: none; padding: 0; margin: 4px 0; align-self: stretch; }
+.a2-secrets li { display: flex; gap: 8px; align-items: flex-start; margin: 7px 0; }
+.a2-secrets li .sk-ic { flex: none; width: 26px; height: 26px; margin-top: 1px; }
+.a2-secrets li.unknown { color: var(--sk-soft); font-style: italic; }
+.a2-locked { margin: 12px 4px 0 !important; padding: 14px 18px; border: 2px dashed rgba(59, 53, 48, .45); border-radius: 8px;
+    font-size: calc(21px * var(--fz)); transform: rotate(-1deg); background: rgba(255, 250, 235, .6); }
+/* Tukankrabban on the title page, the question page and the inside of the cover */
+.a2-cover-face { display: block; width: 116px; margin: 6px 0 8px; }
+.a2-page-face { display: block; flex: none; align-self: flex-end; width: 86px; margin-top: auto; }
+.a2-inside-face { position: relative; display: block; width: 128px; }
+.a2-cover-face svg, .a2-page-face svg, .a2-inside-face svg { display: block; width: 100%; height: auto; }
+.a2-team { font-size: calc(17px * var(--fz)); color: var(--sk-soft); }
+.a2-book .a2-to-secrets { margin-top: 6px; }

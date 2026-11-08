@@ -588,9 +588,10 @@ same line, and then Alva's own stroke.
   - About 130 dialogue boxes in total, each at most about 90 characters.
   - At most three boxes before control returns.
   - Every joke must also land without text (a sign flips, fish scatter, a "blubb" bubble).
-- **The sköldhäst's lines** are never voiced, stay one box at a time, and live under `horse.*` in
-  `content/sv.mjs`. If Alva decides it doesn't talk, they become narration in one strings patch, and Klo says the
-  key lines instead.
+- **The sköldhäst's lines** stay one box at a time and live under `horse.*` in `content/sv.mjs`. If Alva decides it
+  doesn't talk, they become narration in one strings patch, and Klo says the key lines instead.
+  - Revised 5 November: every character is voiced, the sköldhäst too, with a soft designed voice. Its pronoun stays
+    "den". The cast, what is voiced and the recording rules are in `docs/skoldhast/voice-audit.md`.
 - **Swedish style:**
   - Speaker boxes as in Mira (`mira/mira-content.js:597–625`); address the player as *du*.
   - Swedish quotation marks (” ”) and dashes (–); decimal comma.

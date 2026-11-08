@@ -20,9 +20,10 @@ import { createAssets } from '../../src/assets.mjs';
 import { createUserCloud, cloudPoints, cloudColor } from '../../src/user-cloud.mjs';
 import { UI as BOOK, ADVENTURE_UI, CAPTIONS } from '../../src/content/sv.mjs';
 import { createGame as createLogic } from './game.mjs';
-import { createStory } from './story.mjs';
+import { createStory, SECRETS, MEASURES } from './story.mjs';
 import { createView } from './view.mjs';
 import { createA2UI } from './ui.mjs';
+import { createVoice } from '../../src/voice.mjs';
 import { createTable } from './table.mjs';
 import { WORDS } from './content/sv.mjs';
 import { CHECKPOINTS, EGG_TOTAL } from './content/world.mjs';
@@ -36,8 +37,9 @@ const REMIND_AFTER = 45;
 export function createGame({ host = document.body, assetBase = './skoldhast/', saver: sharedSaver, adventureId = ADVENTURE_ID, slotId,
     onChooseAdventure, onSlotChange, onRestart, onClose, preview = false } = {}) {
     let state = 'closed';
-    let el = null, app = null, assets = null, G = null, view = null, ui = null, input = null, audio = null, story = null, table = null;
-    let raf = 0, last = 0, acc = 0, paused = false, mode = 'title', stillFor = 0;
+    let el = null, app = null, assets = null, G = null, view = null, ui = null, input = null, audio = null, story = null, table = null, voice = null;
+    let eggsLanded = 0; // eggs the view has flown into the count (a chime as each lands)
+    let raf = 0, last = 0, acc = 0, paused = false, mode = 'title';
     let slot = { id: 'alva', label: BOOK.slotAlva };
     let settings = { ...DEFAULT_SETTINGS, lessMotion: !!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches };
     let inputDevice = 'keys';
@@ -120,9 +122,12 @@ export function createGame({ host = document.body, assetBase = './skoldhast/', s
 
         G = createLogic();
         G.lessMotion = !!settings.lessMotion;
-        ui = createA2UI(el, { assetBase, handlers: uiHandlers() });
+        voice = createVoice({ audio: () => audio });
+        voice.setEnabled(settings.voice > 0);
+        ui = createA2UI(el, { assetBase, handlers: uiHandlers(), voice });
         const heroFactory = await loadHeroFactory();
-        view = createView(PIXI, app, { assets, G, heroFactory });
+        eggsLanded = 0;
+        view = createView(PIXI, app, { assets, G, heroFactory, eggTarget: () => ui?.eggTarget?.(app.canvas, app.screen) });
         setDevice(window.matchMedia?.('(pointer: coarse)').matches ? 'touch' : 'keys');
         input = createInput(el, ui, {
             canvas: app.canvas,
@@ -277,7 +282,7 @@ export function createGame({ host = document.body, assetBase = './skoldhast/', s
         G.flags.clear();
         Object.assign(G.puz, { drum: 0, softDrum: 0, fall: null, ball: null, roll: null, still: 0, pushed: {} });
         for (const k of Object.keys(G.actors)) delete G.actors[k];
-        G.checkpoint = 'start'; G.storm = 1; G.camHint = null; G.busy = 0;
+        G.checkpoint = 'start'; G.storm = 1; G.camHint = null; G.camLook = null; G.busy = 0;
         strokes = null; cloudTexture = null;
     }
 
@@ -332,7 +337,7 @@ export function createGame({ host = document.body, assetBase = './skoldhast/', s
     async function runFx(name, data = {}) {
         if (state !== 'open' || !view) return new Promise(() => {});
         switch (name) {
-            case 'caption': ui.caption(data.text, 2600); await G.wait(1.0); return;
+            case 'caption': await Promise.all([ui.caption(data.text, 2600), G.wait(1.0)]); return;
             case 'cloudRide':
                 // the cloud carries everyone home: a little picture of the ride, then the beach
                 await view.fx('cloudRide');
@@ -433,7 +438,7 @@ export function createGame({ host = document.body, assetBase = './skoldhast/', s
             if (e.up && upMeansHop(G.player)) e.hop = true;
             // K (pad: Y) asks Klo, as the key list in the settings says: here that is a word with him about what we
             // are doing now, the same as "Prata" beside him (it did nothing in Äventyr 2)
-            if (e.tapKlo && !blocked && !G.busy && !story.running() && G.actors.klo?.visible && G.actors.klo.scene === G.sceneId) G.emit('talk', { who: 'klo' });
+            if (e.tapKlo && !blocked && !G.busy && !story.running() && G.actors.klo?.visible && G.actors.klo.scene === G.sceneId) { G.lastTalk = 'klo'; G.emit('talk', { who: 'klo' }); }
             if (blocked) presses.clear(); else presses.push(e);
             acc += dt;
             let first = true, steps = 0;
@@ -458,24 +463,29 @@ export function createGame({ host = document.body, assetBase = './skoldhast/', s
             if (table.shown) table.tick(dt); // the veil lifting off the world after the dive
             ui.setContext(G.context?.label, G.player.hidden, settings.holdToHide);
             const free = !ui.dialogueOpen() && !ui.panelOpen() && !G.busy;
-            // Klo and Tukankrabban walk beside the sköldhäst, so "Prata" with them is almost always at hand: its
-            // label over the head waits until the sköldhäst stands still a moment (E works all the time).
-            stillFor = Math.abs(G.player.vx) < 20 && G.player.mode === 'ground' ? stillFor + dt : 0;
-            const companion = /^talk-(tukan|klo)$/.test(G.context?.id || '');
-            const promptable = inputDevice !== 'touch' && G.context?.label && !G.player.hidden && free && !story.running() && (!companion || stillFor > 0.7);
+            const promptable = inputDevice !== 'touch' && G.context?.label && !G.player.hidden && free && !story.running();
             const hs = promptable ? heroScreen() : null;
-            ui.keyPrompt(hs ? { key: inputDevice === 'pad' ? 'X' : 'E', label: G.context.label, at: { x: hs.x, y: hs.y - HL * 0.8 * hs.scale } } : null);
+            ui.keyPrompt(hs ? { key: inputDevice === 'pad' ? 'X' : 'E', label: G.context.label, who: G.context.who, at: { x: hs.x, y: hs.y - HL * 0.8 * hs.scale } } : null);
             ui.guide.show(free);
             const obj = story.objective();
             if (settings.help === 'guided' && story.activePuzzle()) ui.guide.goal(story.hint({ peek: true }).text, obj?.text);
             else ui.guide.goal(obj?.why || '', obj?.text || null);
             remind(free);
             ui.guide.update();
-            ui.setEggs(G.eggs(), EGG_TOTAL);
+            // an egg still flying to the count is counted when it lands there (view.mjs)
+            ui.setEggs(G.eggs() - (view?.eggsArriving || 0), EGG_TOTAL);
+            // a small chime as a flying egg lands in the count, one note higher for each egg
+            if (view && view.eggsLanded > eggsLanded) { eggsLanded = view.eggsLanded; audio?.note?.(2 + (G.eggs() % 6), { inst: 'shell', vel: 0.5 }); }
             if (audio) {
                 const p = G.player;
                 audio.setMotion({ speed01: Math.min(1, Math.abs(p.vx) / 1200), underwater: p.mode === 'swim' && p.submerge > 0.7, hidden: p.hidden });
-                audio.setEnvironment(p.mode === 'swim' ? 'kelp' : 'steppe');
+                // inside the mountain the rock hums and drips; outside the wind blows (it used to blow in the cave too)
+                audio.setEnvironment(p.mode === 'swim' ? 'kelp' : G.sceneDef?.underground ? 'cave' : 'steppe');
+                audio.setRain?.(view.rainLevel);
+                // a waterfall roars louder as you come to it (Forsen, the spring at Källan)
+                let falls = 0;
+                for (const s of G.sceneDef?.sounds || []) if (s.kind === 'falls') falls = Math.max(falls, 1 - Math.hypot(s.x - p.x, (s.y - p.y) * 0.6) / (14 * HL));
+                audio.setBed?.('falls', Math.max(0, falls) ** 1.5);
             }
         } else if (mode === 'table') {
             presses.clear();
@@ -529,6 +539,9 @@ export function createGame({ host = document.body, assetBase = './skoldhast/', s
                 case 'egg': audio.sfx('pickup'); audio.sfx('sparkle'); break;
                 case 'drum': audio.sfx('ratchet'); break;
                 case 'eggFall': audio.sfx('rustle'); break;
+                // after the story the log is still a drum, and the shaken tree drops a cocoa fruit
+                case 'drumAfter': audio.sfx('ratchet'); break;
+                case 'cocoaFall': audio.sfx('rustle'); audio.sfx('thud', { gain: 0.5, delay: 0.55 }); break;
                 case 'push': audio.sfx('thud'); break;
                 case 'ballRoll': audio.sfx('rustle'); break;
                 case 'ballSplash': audio.sfx('splash', { size: 0.7 }); break;
@@ -541,14 +554,30 @@ export function createGame({ host = document.body, assetBase = './skoldhast/', s
                 case 'seedsLit': audio.sfx('sparkle'); audio.stinger('aha'); break;
                 case 'vine': audio.sfx('gate'); break;
                 case 'trade': audio.sfx('sparkle'); break;
-                case 'thunder': audio.sfx('wind', { gain: 0.5 + e.strength * 0.5 }); break;
-                case 'clue': audio.sfx('write'); break;
+                // a soft roll of thunder a moment after the flash, under a gust (the storm used to flash in silence)
+                // a gust is heard coming and then blowing, so you can hide in time by ear too (Vindkanten, T1)
+                case 'gust': {
+                    const w = (G.sceneDef?.winds || []).find(q => q.id === e.id), x = G.player.x;
+                    if (!w || !e.state || x < w.x0 - 6 * HL || x > w.x1 + 6 * HL) break;
+                    if (e.state === 'warn') audio.sfx('wind', { gain: 0.45 });
+                    else { audio.sfx('wind', { gain: 1.1 }); audio.sfx('whoosh', { gain: 0.5 }); }
+                    break;
+                }
+                case 'thunder': audio.sfx('thunder', { gain: 0.3 + e.strength * 0.6, delay: 0.5 + Math.random() * 0.9 }); audio.sfx('wind', { gain: 0.3 + e.strength * 0.35 }); break;
+                // something new in the notebook: the pencil writes, and the notebook button shows it until it is opened
+                case 'clue': audio.sfx('write'); ui.pulse?.('journal'); break;
                 case 'bump': audio.sfx('thud'); break;
                 case 'skid': audio.sfx('hoof', { surface: 'sand', speed01: 1 }); break;
             }
         });
         G.on('checkpoint', () => saveNow());
         G.on('flag', ({ flag }) => { if (!flag.startsWith('b:') && !flag.startsWith('t:') && !flag.startsWith('visited_')) progressAt = G.time; });
+        // a secret found after the story, or a new measurement of Klo's, is written into the notebook: the pencil writes
+        // and the notebook button shows it until it is opened
+        G.on('flag', ({ flag }) => {
+            const secret = G.flags.has('ended') && SECRETS.some(s => s.flag === flag);
+            if (secret || MEASURES.some(m => m.flag === flag)) { audio?.sfx('write', { delay: 0.4 }); ui.pulse?.('journal'); }
+        });
     }
 
     // --------------------------------------------------------------------------------
@@ -561,8 +590,7 @@ export function createGame({ host = document.body, assetBase = './skoldhast/', s
     function openJournal() {
         if (mode !== 'play' || ui.panelOpen()) return;
         pause(); audio?.sfx('page');
-        ui.journal({ objective: story.objective(), clues: story.clues(), eggsFound: G.eggs(), total: EGG_TOTAL, hint: () => story.hint(), place: placeName(),
-            hypothesis: story.hypothesis(), question: !G.flags.has('cloud_met'), places: story.places() });
+        ui.journal({ ...story.notebook(), hint: () => story.hint(), notes: () => story.notes(), place: placeName() });
     }
     // "Påminn mig om Klo": after a while with nothing solved, Klo offers the next hint once per puzzle
     let progressAt = 0, reminded = new Set();
@@ -598,7 +626,8 @@ export function createGame({ host = document.body, assetBase = './skoldhast/', s
             chooseAdventure: () => chooseAdventure(),
             getSettings: () => settings,
             setSetting: (k, v) => { settings[k] = v; applySettings(); saveNow(); },
-            onSay: (who) => audio?.sfx(who === 'klo' || who === 'tukan' ? 'crabvoice' : 'write'),
+            // a recorded line is its own sound; the chirp and the pencil are for silent lines
+            onSay: (who, text, voiced) => { if (!voiced) audio?.sfx(who === 'klo' || who === 'tukan' ? 'crabvoice' : 'write'); },
             onPencil: (len) => audio?.sfx('pencil', { len })
         };
     }
@@ -606,6 +635,7 @@ export function createGame({ host = document.body, assetBase = './skoldhast/', s
         if (!['ask', 'remind', 'guided'].includes(settings.help)) settings.help = 'ask';
         if (G) G.lessMotion = !!settings.lessMotion;
         audio?.setVolumes({ music: settings.music, sfx: settings.sfx, voice: settings.voice });
+        voice?.setEnabled(settings.voice > 0 && !paused); // a change made in the pause menu speaks again on resume
         ui?.setBigText(settings.bigText);
         ui?.root.classList.toggle('less-motion', !!settings.lessMotion);
     }
@@ -653,10 +683,12 @@ export function createGame({ host = document.body, assetBase = './skoldhast/', s
         for (const t of ['pointerdown', 'pointerup', 'keydown']) el.addEventListener(t, unlock, sig);
     }
 
-    function pause() { presses.clear(); paused = true; input?.release(); }
+    // a paused game is silent, as in Äventyr 1 (src/main.mjs)
+    function pause() { presses.clear(); paused = true; input?.release(); voice?.setEnabled(false); }
     function resume() {
         if (state !== 'open' || ui?.panelOpen()) return;
         presses.clear(); input?.release();
+        voice?.setEnabled(settings.voice > 0);
         paused = false; last = performance.now(); acc = 0;
         if (!document.hidden) resumeAudio();
     }
@@ -678,6 +710,7 @@ export function createGame({ host = document.body, assetBase = './skoldhast/', s
             listeners?.abort();
             story?.destroy();
             input?.destroy();
+            voice?.stop();
             ui?.destroy();
             try { audio?.dispose(); } catch { /* ignore */ }
             try { table?.destroy(); } catch { /* ignore */ }
@@ -686,7 +719,7 @@ export function createGame({ host = document.body, assetBase = './skoldhast/', s
             try { app?.destroy(true, { children: true }); } catch { /* ignore */ }
             el?.remove();
             restoreHost();
-            app = null; view = null; ui = null; input = null; audio = null; story = null; table = null; G = null; assets = null;
+            app = null; view = null; ui = null; input = null; audio = null; story = null; table = null; G = null; assets = null; voice = null;
             state = 'closed';
         })();
         const done = closing;

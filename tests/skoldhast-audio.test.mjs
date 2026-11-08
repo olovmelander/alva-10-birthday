@@ -19,6 +19,17 @@ test('synthesized cues and every hoof material produce finite, bounded buffers w
     assert.ok(SFX.includes('ui') && SFX.includes('crabvoice'));
 });
 
+test('the beds the game sets (rain, a waterfall) loop without a break and stay quiet', () => {
+    for (const name of ['rain', 'falls', 'drips']) {
+        const x = __dsp.renderBed(SR, __dsp.mulberry32(3), name);
+        assert.ok(x.length > SR * 5, name + ' is a long loop');
+        let peak = 0;
+        for (const v of x) { assert.ok(Number.isFinite(v)); peak = Math.max(peak, Math.abs(v)); }
+        assert.ok(peak <= 0.25, name + ' is a bed, not an effect');
+        assert.ok(Math.abs(x[x.length - 1] - x[0]) < 0.08, name + ' joins its own start');
+    }
+});
+
 test('hollow piers ring longer than ordinary planks; soft and hard contacts differ', () => {
     const wood = __dsp.renderHoof(SR, rng(), 'plank', 0.8).ch[0];
     const pier = __dsp.renderHoof(SR, rng(), 'pier', 0.8).ch[0];
@@ -32,6 +43,8 @@ test('audio absence keeps the environment and effects API safe', async () => {
     const audio = createAudio();
     await audio.ready;
     audio.setEnvironment('beach');
+    audio.setRain(0.6); audio.setBed('falls', 1); audio.setBed('nothing', 1);
+    audio.sfx('thunder', { delay: 1 });
     audio.setVolumes({ voice: 0 });
     audio.sfx('crabvoice');
     audio.dispose();

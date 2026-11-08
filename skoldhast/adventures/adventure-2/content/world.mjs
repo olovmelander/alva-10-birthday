@@ -98,6 +98,8 @@ SCENES.strand = {
     vortices: [
         { id: 'djuphalan', x: h(43), y: h(5.05), r: h(2.4), eye: h(0.45), speed: 220, pull: 320, spin: 1, when: '!coin_got' }
     ],
+    // what is heard nearer as you come to it (main.mjs → audio.setBed)
+    sounds: [{ kind: 'falls', x: h(88), y: h(-2) }],
     pushes: [
         // the falling water drives every swimmer back from the cave mouth; a hidden shell sinks under it
         { id: 'fors', kind: 'box', x0: h(87.3), x1: h(90.0), y0: h(-1.2), y1: h(3.4), vx: -700 },
@@ -165,7 +167,9 @@ SCENES.strand = {
 // ===========================================================================
 SCENES.skog = {
     id: 'skog',
-    bounds: { x0: h(-3), x1: h(102), y0: h(-17), y1: h(4) },
+    // (the top lies well above Jätteträdet's crown: held upright, the camera could not rise far enough to keep the
+    // sköldhäst on the crown in the lower part of the screen, and it was squeezed under the goal note, 6 November)
+    bounds: { x0: h(-3), x1: h(102), y0: h(-24), y1: h(4) },
     sky: 'forest',
     surfaces: [
         // Jätteträdet stands on the forest floor west of Ravinen
@@ -310,6 +314,8 @@ SCENES.kristall = {
         // Källan: a shell that lies still rides the spring up through the mountain
         { id: 'spring', pts: L([73, 2.55], [73, 0.6], [73, -4], [73, -9.0]), width: h(1.0), speed: 430, dashed: true, suck: h(1.6) }
     ],
+    // the spring's water falling back down its sides, heard nearer as you come to Källan
+    sounds: [{ kind: 'falls', x: h(73), y: h(-1.5) }],
     pushes: [
         // under the wall the water rushes back west; a swimmer is pushed back, a hidden shell rides its current through
         { id: 'k-wall-rush', kind: 'box', x0: h(43.4), x1: h(46.8), y0: h(2.0), y1: h(4.6), vx: -700 },
@@ -444,7 +450,11 @@ export const CHECKPOINTS = {
     bridgeEast: { scene: 'topp', at: { x: h(31), y: h(-3.15), facing: 1 } },
     gapEast: { scene: 'topp', at: { x: h(41), y: h(-5.7), facing: 1 } },
     summit: { scene: 'topp', spot: 'summit' },
-    nest: { scene: 'strand', spot: 'start' }
+    nest: { scene: 'strand', spot: 'start' },
+    // (5 November) the cave behind the falls, and the beach's west end once Klyftan's bridge is drawn: a reload no
+    // longer sends the player back to redo P3, or back into Djupa skogen
+    cave: { scene: 'strand', spot: 'fromKristall' },
+    west: { scene: 'strand', spot: 'fromSkog' }
 };
 
 export { h as hl };

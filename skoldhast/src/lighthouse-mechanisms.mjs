@@ -23,8 +23,11 @@ function icon(g, kind, color = INK) {
         g.moveTo(-15, 1).lineTo(15, 1).moveTo(-8, -12).lineTo(-5, 1).lineTo(-8, 8)
             .moveTo(8, -12).lineTo(5, 1).lineTo(8, 8).stroke({ color, width: 2 });
     } else {
-        g.moveTo(0, -20).lineTo(0, -6).quadraticCurveTo(-15, 7, -9, 14)
-            .quadraticCurveTo(0, 24, 9, 14).quadraticCurveTo(15, 7, 0, -6).stroke(stroke);
+        // a pull handle: a cord ending in a wooden toggle, and an arrow pulling down (a teardrop loop on a line
+        // looked like a noose, 6 November)
+        g.moveTo(-4, -21).lineTo(-4, 4).stroke(stroke);
+        g.roundRect(-16, 4, 24, 8, 4).stroke(stroke);
+        g.moveTo(12, -12).lineTo(12, 4).moveTo(7, -1).lineTo(12, 5).lineTo(17, -1).stroke({ color, width: 2.4, cap: 'round', join: 'round' });
     }
 }
 
@@ -36,15 +39,22 @@ export function createLighthouseMechanisms(PIXI, def) {
         [def.plates[0].x - 142, def.plates[0].y - 75],
         [def.pullRopes[0].x + 64, def.pullRopes[0].y - 135]
     ];
+    // where each card by its mechanism is tied: a card hanging in the water with no string read as lost paper (6 November)
+    const tiedTo = [
+        [def.chains[0].from.x, def.chains[0].from.y],
+        [def.plates[0].x - def.plates[0].w * .4, def.plates[0].y - 14],
+        [def.pullRopes[0].x - 11, def.pullRopes[0].y - 150]
+    ];
     const badges = ['hoof', 'shell', 'rope'].map((kind, i) => {
-        const make = (x, y) => {
+        const make = (x, y, tie) => {
             const c = new PIXI.Container(), paper = new PIXI.Graphics(), glyph = new PIXI.Graphics(), progress = new PIXI.Graphics();
+            if (tie) paper.moveTo(0, 0).quadraticCurveTo((tie[0] - x) * .5, (tie[1] - y) * .5 + 18, tie[0] - x, tie[1] - y).stroke({ color: INK, width: 1.8, alpha: .55 });
             paper.poly([-29,-29,24,-32,31,23,-25,28]).fill({color:PAPER,alpha:.97}).stroke({color:INK,width:2,alpha:.7});
             paper.poly([-25,-26,23,-28,28,21,-23,25]).stroke({color:INK,width:1,alpha:.2});
             icon(glyph, kind); c.addChild(paper, glyph, progress); c.position.set(x,y); container.addChild(c);
             return {c,paper,glyph,progress};
         };
-        return { local: make(...sourceAt[i]), shutter: make(def.shutters[i].x,def.shutters[i].y-127), fraction:-1, done:null };
+        return { local: make(...sourceAt[i], tiedTo[i]), shutter: make(def.shutters[i].x,def.shutters[i].y-127), fraction:-1, done:null };
     });
     let lastPhysical = '';
     function update(puz, flags) {
@@ -81,10 +91,10 @@ export function createLighthouseMechanisms(PIXI, def) {
         physical.circle(r.x,top,7).stroke({color:INK,width:2});
         physical.moveTo(r.x-11,top).lineTo(r.x-11,bottom-20).stroke({color:INK,width:5,alpha:.8});
         physical.moveTo(r.x-8,top+10).lineTo(r.x-8,bottom-19).stroke({color:PAPER,width:2,alpha:.8});
-        physical.moveTo(r.x-11,bottom-20).quadraticCurveTo(r.x-43,bottom+18,r.x-11,bottom+24)
-            .quadraticCurveTo(r.x+20,bottom+18,r.x-11,bottom-20).stroke({color:INK,width:7,cap:'round'});
-        physical.moveTo(r.x-11,bottom-16).quadraticCurveTo(r.x-35,bottom+15,r.x-11,bottom+19)
-            .quadraticCurveTo(r.x+12,bottom+15,r.x-11,bottom-16).stroke({color:0xd6bd84,width:3});
+        // a wooden toggle at the cord's end, like a bell pull (it was a teardrop loop, 6 November)
+        physical.moveTo(r.x-11,bottom-20).lineTo(r.x-11,bottom+2).stroke({color:INK,width:5,alpha:.8});
+        physical.roundRect(r.x-41,bottom+2,60,17,8).fill(0xd6bd84).stroke({color:INK,width:4});
+        physical.moveTo(r.x-35,bottom+7).lineTo(r.x+12,bottom+7).stroke({color:0xf2dfae,width:2,alpha:.8});
         // Opening a shutter exposes warm light; the full beam waits for all three.
         for(const s of states)if(s.done){
             physical.roundRect(s.shutter.x-30,s.shutter.y-43,60,86,5).fill({color:0xffda80,alpha:.3});

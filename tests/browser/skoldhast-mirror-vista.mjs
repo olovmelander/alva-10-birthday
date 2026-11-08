@@ -5,7 +5,9 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import { serve, launch } from '../../scripts/skoldhast-shot.mjs';
-import { STORY } from '../../skoldhast/src/content/sv.mjs';
+import { STORY, KLO_COMPANION } from '../../skoldhast/src/content/sv.mjs';
+// Klo explains the mirror in full in guided help, and with his own observation otherwise (story.mjs discovery()).
+const MIRROR = [STORY.k3.mirror[1], KLO_COMPANION.story.bayReflection[1]];
 
 const i = process.argv.indexOf('--out'), out = i >= 0 ? process.argv[i + 1] : null;
 if (out) fs.mkdirSync(out, { recursive: true });
@@ -44,11 +46,11 @@ try {
             const { view, ui } = window.__skoldhast.debug;
             if (view.vista?.phase !== 'holding' || !ui.dialogueOpen()) return false;
             const dialogue = document.querySelector('.sk-dialogue'), text = dialogue.querySelector('.sk-dlg-text');
-            if (Number(getComputedStyle(dialogue).opacity) <= .999 || text.textContent !== expected || document.fonts.status !== 'loaded') return false;
+            if (Number(getComputedStyle(dialogue).opacity) <= .999 || !expected.includes(text.textContent) || document.fonts.status !== 'loaded') return false;
             const r = dialogue.getBoundingClientRect();
             const free = s => { const b = s.getBounds(); return b.maxX < r.left || b.minX > r.right || b.maxY < r.top || b.minY > r.bottom; };
             return free(view.vista.lamp) && free(view.vista.reflection._lamp);
-        }, STORY.k3.mirror[1], { timeout: 45000 });
+        }, MIRROR, { timeout: 45000 });
         await pg.evaluate(() => window.__skoldhast.pause());
         const shown = await pg.evaluate(() => {
             const { G, view, ui } = window.__skoldhast.debug, v = view.vista;
@@ -59,6 +61,11 @@ try {
                 hidden: G.player.hidden, hiddenHero: G.hideHero, flags: [...G.flags].sort(), checkpoint: G.checkpoint,
                 realLamp: { alpha: v.lamp.alpha, bounds: bounds(v.lamp) },
                 reflectedLamp: { alpha: v.reflection._inner.alpha, bounds: bounds(v.reflection._lamp) },
+                // seen, not masked away: the postcard's sea must let the reflected tower and lamp through
+                reflectionShows: (() => {
+                    const m = v.reflection.mask, lamp = v.reflection._lamp.getGlobalPosition();
+                    return !!m && m.containsPoint(m.toLocal(lamp));
+                })(),
                 dialogue: { x0: rect.left, x1: rect.right, y0: rect.top, y1: rect.bottom,
                     opacity: Number(style.opacity), text: text.textContent, color: ink.color, paper: style.backgroundColor },
                 dialogueOpen: ui.dialogueOpen(), controlsOff: ui.controls.classList.contains('off') };
@@ -70,7 +77,8 @@ try {
         assert.equal(shown.dialogueOpen, true);
         assert.equal(shown.controlsOff, true);
         assert.ok(shown.dialogue.opacity > .98, 'capture the completed dialogue fade');
-        assert.equal(shown.dialogue.text, STORY.k3.mirror[1], 'the entire explanation is visible');
+        assert.ok(MIRROR.includes(shown.dialogue.text), 'the entire explanation is visible');
+        assert.ok(shown.reflectionShows, 'the tower and its lit lamp are mirrored in the water, not masked away');
         assert.ok(shown.realLamp.alpha < .1, 'the actual lamp is still dark');
         assert.ok(shown.reflectedLamp.alpha > .55, 'the mirror clearly shows the lit answer');
         for (const lamp of [shown.realLamp, shown.reflectedLamp]) {

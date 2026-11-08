@@ -207,3 +207,13 @@ Pappa asked how the whole adventure holds, and then for all four weaknesses to b
 
 The gusts and the lightning keep the rhythm Pappa chose. A wind where the sköldhäst stands now sets the weather, because
 the two stretches used to take gusts from each other.
+
+## Layout on phones (5 November)
+
+Pappa asked whether the adventure is done. A browser probe played the prologue like a reader at four sizes and looked
+for anything covering anything else.
+
+| Found | Fixed |
+| --- | --- |
+| The table's caption sat at the bottom, under the drawing card's buttons for about 2 s, and on a landscape phone wholly behind Alva's speech box ("Tio små ägg i sanden"). | The table uses Äventyr 1's `table-mode`: speech at the bottom, caption at the top. Alva's crab caption is told while she draws. A caption is hidden under an open drawing card. |
+| On a phone held upright, the goal note covered the egg count, and the mountain goals do not repeat the count. | The note stops short of the count, and in portrait it goes under the row of buttons with the full width. |

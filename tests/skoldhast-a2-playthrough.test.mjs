@@ -11,6 +11,8 @@ import { createGame } from '../skoldhast/adventures/adventure-2/game.mjs';
 import { SCENES, CHECKPOINTS, EGG_IDS, EGG_TOTAL } from '../skoldhast/adventures/adventure-2/content/world.mjs';
 import { STORY, TABLE, HINTS, GOALS } from '../skoldhast/adventures/adventure-2/content/sv.mjs';
 import { heightOn } from '../skoldhast/src/sim.mjs';
+import { unvoiced } from './skoldhast-voice-coverage.mjs';
+import { MEASURES } from '../skoldhast/adventures/adventure-2/story.mjs';
 
 async function begin(R) {
     R.G.goto('strand', 'start');
@@ -301,6 +303,9 @@ test('Äventyr 2: a robot plays the whole adventure over four pages, to the moon
     t.diagnostic(`the end at ${(G.time / 60).toFixed(1)} min of game time; ${R.log.filter(l => l.kind === 'say').reduce((n, l) => n + l.lines.length, 0)} dialogue boxes`);
     for (const f of ['eggs_in_nest', 'moon', 'alva_stars', 'hatched', 'watch_given', 'skata_gift', 'ended']) assert.ok(R.has(f), f);
     for (const p of ['strand', 'skog', 'kristall', 'topp']) assert.ok(R.has('visited_' + p), 'visited ' + p);
+    // Klo's "Häst eller sköldpadda?" in the notebook: every measurement it lists happens on the way through the story
+    const missing = MEASURES.filter(m => !R.has(m.flag)).map(m => `${m.id} (${m.flag})`);
+    assert.deepEqual(missing, [], 'measurements never written in');
     assert.equal(G.storm, 0, 'the storm is over');
     assert.ok(R.saves.some(s => s.ended), 'the ending saves its completion');
     const fx = R.log.filter(l => l.kind === 'fx').map(l => l.name);
@@ -317,6 +322,16 @@ test('Äventyr 2: a robot plays the whole adventure over four pages, to the moon
     const finale = lines.findIndex(([, text]) => text === STORY.finale[0][1]);
     assert.ok(finale > 0 && !lines.slice(finale).some(([, text]) => text === STORY.allEggs[0][1]), '"Alla tio" never comes after the finale has begun');
     assert.equal(R.story.objective().id, 'free');
+    // every line is going to be recorded speech: none is heard twice in one playthrough
+    const texts = lines.map(([, text]) => text);
+    assert.deepEqual(texts.filter((x, i) => texts.indexOf(x) !== i), [], 'no line is said twice');
+    assert.deepEqual(unvoiced(R.log), [], 'every line, thought and caption heard is in the voice script');
+    // the research thread: each hypothesis is put forward before it is confirmed
+    const at = (line) => texts.indexOf(line[1]);
+    const h1 = texts.findIndex(x => x.includes('Hypotes nummer ett: stormen kommer någonstans ifrån'));
+    assert.ok(h1 >= 0 && h1 < at(STORY.source[2]), 'hypothesis one, then its confirmation from the crown');
+    assert.ok(at(STORY.seeds[2]) < at(STORY.summit2[0]), 'hypothesis two, then its confirmation on the summit');
+    assert.ok(at(STORY.medvind[0]) < at(STORY.windCarried[1]), 'hypothesis three, then the measurement that confirms it');
 });
 
 test('help: a peek at the next hint does not use up the ladder', async () => {

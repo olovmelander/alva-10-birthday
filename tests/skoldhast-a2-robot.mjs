@@ -17,7 +17,9 @@ export function createRobot() {
         say: async (lines) => { log.push({ t: G.time, kind: 'say', lines }); },
         think: (text) => log.push({ t: G.time, kind: 'think', text }),
         toast: (text) => log.push({ t: G.time, kind: 'toast', text }),
-        caption: (text) => log.push({ t: G.time, kind: 'caption', text })
+        caption: (text) => log.push({ t: G.time, kind: 'caption', text }),
+        // a bubble that does not stop play: logged as a line, so a test can find it like anything said
+        remark: (line) => log.push({ t: G.time, kind: 'say', lines: [line], remark: true })
     };
     const saves = [];
     const io = {

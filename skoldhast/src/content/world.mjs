@@ -448,6 +448,10 @@ SCENES.kelp = {
         { kelp: 9, x0: h(8), x1: h(21.5), layer: 'mid' },
         { kelp: 5, x0: h(8.5), x1: h(21), layer: 'fore' },
         { kelp: 8, x0: h(23), x1: h(46), layer: 'mid', chapter: 2 },
+        // Kelphjärtat is a clearing in the thickest of the kelp: a denser stand on either side of it (the puzzle's own
+        // stretch stays clear), so the place reads as the forest's heart and not as open water (6 November)
+        { kelp: 6, x0: h(30.6), x1: h(34.1), layer: 'mid', chapter: 2 },
+        { kelp: 6, x0: h(41), x1: h(44.5), layer: 'mid', chapter: 2 },
         { sprite: 'kelp-bed', x: h(15.1), y: h(6.1), layer: 'mid' },
         { sprite: 'kelp-bed', x: h(23.85), y: h(11.85), layer: 'mid', chapter: 2 },
         { sprite: 'kelp-float', x: h(10.5), y: h(0.02), layer: 'fore' },
@@ -557,10 +561,17 @@ SCENES.viken = {
         { id: 'stair', x: h(26.6), y: h(-7.3), to: 'stairFoot', label: CONTEXT_LABELS.down, opens: 'stair_open' },
         { id: 'stair-up', x: h(23.7), y: h(-0.62), to: 'stairTop', label: CONTEXT_LABELS.up, when: 'stair_open' }
     ],
+    // bubbles rising beside the pipe, where the current goes up ("Här går den upp genom röret!"); view only, kept
+    // off the surface where the lighthouse is mirrored. (No fish here: in this story fish are characters with a part
+    // to play, the lantern fish and the shy ones, and loose fish in Spegelviken would promise a puzzle that is not
+    // there.)
+    bayBubbles: [{ x: h(25.75), y0: h(4.6), y1: h(1.4), count: 6, speed: 0.16 }],
     // the stair's post continues down into the bay
     pilings: [{ x: h(25.15), top: h(-0.62) + 30, width: 20 }],
     // Strömröret above the water: the tube the current climbs, from its drawn lower part up into the gallery basin
-    tubes: [{ x: h(26.5), y0: h(-7.24), y1: h(1.0), width: 128 }],
+    // foot: the drawn lower part ends a little above the bay's bed, so the pipe runs on behind it into the bed
+    // (it floated, its lower edge in open water, 6 November)
+    tubes: [{ x: h(26.5), y0: h(-7.24), y1: h(1.0), width: 128, foot: { y0: h(4.4), y1: h(6.1), width: 170 } }],
     dashed: [
         // runways of about 4 HL (shore and pier start), 1.4 HL and 1.4 HL between the segments; each is at most 10 HL
         { id: 'p8-d1', pts: L([4.0, -0.62], [9.6, -0.62]), flag: 'p8_s1', balk: false, decal: true, dir: 1, when: 'talk_done', glow: true },
@@ -611,19 +622,21 @@ SCENES.viken = {
 export function sceneOf(id) { return SCENES[id]; }
 
 /** Named checkpoints: where to put the player when a save is loaded. */
+// `when`: "Jag har fastnat" may take the sköldhäst there only once the way there is open (6 November: from Spången it
+// jumped over the unfinished Streckbron, from the hill's foot onto the ledge, from the ledge over the cleft)
 export const CHECKPOINTS = {
     start: { scene: 'land', spot: 'start' },
     pool: { scene: 'land', spot: 'fromKelp' },
-    steppe: { scene: 'land', at: { x: h(72.5), y: h(-0.77), facing: -1 } },
-    ledge: { scene: 'land', at: { x: h(35.2), y: h(-4.0), facing: -1 } },
-    udden: { scene: 'land', at: { x: h(5.5), y: h(-4.02), facing: 1 } },
+    steppe: { scene: 'land', at: { x: h(72.5), y: h(-0.77), facing: -1 }, when: 'p1_inked' },
+    ledge: { scene: 'land', at: { x: h(35.2), y: h(-4.0), facing: -1 }, when: 'p3_t3' },
+    udden: { scene: 'land', at: { x: h(5.5), y: h(-4.02), facing: 1 }, when: 'p4_leap' },
     kelp: { scene: 'kelp', spot: 'fromLand' },
     overlook: { scene: 'kelp', at: { x: h(19.8), y: h(3.2), facing: 1, mode: 'swim' } },
     trench: { scene: 'kelp', at: { x: h(22.8), y: h(7.4), facing: 1, mode: 'swim' } },
     viken: { scene: 'viken', spot: 'fromKelp' },
     pier: { scene: 'viken', at: { x: h(12), y: h(-0.62), facing: 1 } },
     pierEnd: { scene: 'viken', at: { x: h(21.5), y: h(-0.62), facing: 1 } },
-    lineWindow: { scene: 'viken', at: { x: h(26.35), y: h(2.6), facing: 1, mode: 'swim', hidden: true } },
+    lineWindow: { scene: 'viken', at: { x: h(26.35), y: h(2.6), facing: 1, mode: 'swim', hidden: true }, when: 'p8_sea' },
     beachEnd: { scene: 'land', spot: 'start' }
 };
 

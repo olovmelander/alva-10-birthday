@@ -31,6 +31,8 @@ const TALK = 2.6 * HL;
 export function createPuzzleState() {
     return {
         drum: 0, softDrum: 0,
+        drumAfter: 0,        // after the story: fast beats on the log since the last cocoa fruit fell
+        cocoaRest: 0,        // seconds before the shaken tree lets go of another fruit
         fall: null,          // { t } while the cocoa tree's egg falls
         ball: null,          // the beetle ball's x (null = at its start)
         roll: null,          // { t, phase: 'roll' | 'wash' }
@@ -156,6 +158,9 @@ export function windAt(G, x, y) {
 export function applyWinds(G, dt, events) {
     const p = G.player;
     const P = G.puz;
+    // while the story holds the controls the wind holds too: at Klippan it used to carry the sköldhäst over the gap
+    // while Alva was still reading "Så långt kan ingen hoppa" (5 November)
+    if (G.busy > 0) { P.carried = 0; return; }
     const w = p.mode === 'ground' ? windAt(G, p.x, p.y) : null;
     if (!w?.dir) P.carried = 0;
     if (!w) return;
@@ -196,6 +201,16 @@ export function stepPuzzles(G, events, dt) {
                 P.softDrum++;
                 G.emit('drumSoft', { n: P.softDrum });
             }
+        }
+    } else if (sc.drum && F.has('ended')) {
+        // after the story the log is still a drum: as many fast beats as P1 took, and the cocoa tree drops a fruit;
+        // then it rests a while, so a fruit falls now and then and does not rain down on every gallop
+        P.cocoaRest = Math.max(0, P.cocoaRest - dt);
+        for (const e of events) {
+            if (e.type !== 'hoof' || p.surface?.id !== sc.drum.surface || e.speed < sc.drum.minSpeed) continue;
+            if (P.cocoaRest <= 0) P.drumAfter++;
+            G.emit('drumAfter', { n: P.drumAfter, of: sc.drum.beats });
+            if (P.drumAfter >= sc.drum.beats) { P.drumAfter = 0; P.cocoaRest = 6; G.emit('cocoaFall', {}); break; }
         }
     }
     if (P.fall && P.fall.t < FALL_SECONDS) {
@@ -323,7 +338,7 @@ export function contextAction(G) {
         // P6: Skatan on her branch
         if (sc.magpie && p.surface?.id === sc.magpie.surface && Math.abs(p.x - sc.magpie.x) < sc.magpie.reach && !F.has('eggs_in_nest')) {
             if (F.has('coin_got') && !F.has('coin_given')) return { id: 'give', label: CONTEXT.give, run: () => giveCoin(G) };
-            return { id: 'talk-skata', label: CONTEXT.talk, run: () => G.emit('talk', { who: 'skata' }) };
+            return { id: 'talk-skata', label: CONTEXT.talk, who: 'skata', run: () => G.emit('talk', { who: 'skata' }) };
         }
         // P7: the vine across Ravinen
         if (sc.vinePull && !F.has(sc.vinePull.flag) && p.x >= sc.vinePull.x0 && p.x <= sc.vinePull.x1 && p.facing === sc.vinePull.facing && p.y > -1.2 * HL) {
@@ -332,16 +347,18 @@ export function contextAction(G) {
         // the grumpy beetle
         const beetle = G.actors.dyvel;
         if (beetle?.visible && beetle.scene === G.sceneId && Math.hypot(p.x - beetle.x, p.y - beetle.y) < TALK) {
-            return { id: 'talk-dyvel', label: CONTEXT.talk, run: () => G.emit('talk', { who: 'dyvel' }) };
+            return { id: 'talk-dyvel', label: CONTEXT.talk, who: 'dyvel', run: () => G.emit('talk', { who: 'dyvel' }) };
         }
     }
-    // a word with a companion: their help for what we are doing now
-    for (const who of ['tukan', 'klo']) {
-        const a = G.actors[who];
-        if (!a?.visible || a.scene !== G.sceneId) continue;
-        if (Math.abs(p.x - a.x) < TALK && Math.abs(p.y - a.y) < 0.8 * HL) {
-            return { id: 'talk-' + who, label: CONTEXT.talk, run: () => G.emit('talk', { who }) };
-        }
+    // a word with a companion: their help for what we are doing now. They follow close behind and usually both stand
+    // within reach (Tukankrabban used to answer every time, 7 November): the nearer one first, then the other, so the
+    // next word is always with the one not just spoken to. The badge's face and the mark over a head show whose turn it is.
+    const near = ['klo', 'tukan'].map(who => G.actors[who])
+        .filter(a => a?.visible && a.scene === G.sceneId && Math.abs(p.x - a.x) < TALK && Math.abs(p.y - a.y) < 0.8 * HL)
+        .sort((a, b) => Math.abs(p.x - a.x) - Math.abs(p.x - b.x));
+    if (near.length) {
+        const who = (near.length > 1 && near[0].id === G.lastTalk ? near[1] : near[0]).id;
+        return { id: 'talk-' + who, label: CONTEXT.talk, who, run: () => { G.lastTalk = who; G.emit('talk', { who }); } };
     }
     return null;
 }

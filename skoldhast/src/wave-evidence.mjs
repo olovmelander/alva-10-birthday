@@ -22,8 +22,12 @@ export function createWaveEvidence(PIXI, { texture, x, ground, scale = 1 } = {})
     g.poly([[-235, at(-235)], [-212, at(-212) - 110], [-165, at(-165) - 194], [-65, at(-65) - 248], [-90, at(-90) - 205], [-170, at(-170) - 150], [-205, at(-205) - 60]].flat())
         .fill({ color: 0xfbf8f1, alpha: .22 });
     // A washed tide band with pencil-blue ripples and shell impressions.
-    const band = [-172, -178, -125, -186, -66, -172, -7, -181, 63, -169, 123, -143, 143, -74,
-        82, -91, 16, -95, -51, -88, -111, -101, -171, -97];
+    // its edges wander like a wave's crest and a wet stain's foot (it read as a see-through rectangle pasted on the
+    // rock, 6 November)
+    const band = [];
+    for (let k = 0; k <= 14; k++) { const xx = -172 + k * 21.5; band.push(xx, -178 + Math.sin(k * 1.3) * 7 - Math.sin(k * 0.45) * 5 + (xx > 80 ? (xx - 80) * 0.5 : 0)); }
+    band.push(143, -74);
+    for (let k = 14; k >= 0; k--) { const xx = -172 + k * 21.5; band.push(xx - 6, -94 + Math.sin(k * 2.1 + 1) * 6 + Math.cos(k * 0.7) * 4 + (xx > 100 ? (xx - 100) * 0.4 : 0)); }
     g.poly(band).fill(pen.hatch(0x6f9fa0, .55));
     g.poly(band).fill({ color: 0xa6c4bb, alpha: .18 });
     for (let row = 0; row < 3; row++) {

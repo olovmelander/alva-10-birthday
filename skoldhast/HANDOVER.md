@@ -1,103 +1,844 @@
+## Äventyr 2: "Prata" reaches both Klo and Tukankrabban (7 November)
+
+Pappa found it hard to tell whether "Prata" would talk to Klo or Tukankrabban. They follow close behind the sköldhäst,
+and when it stands still both are within reach. The code always tried Tukankrabban first, so she answered nearly every
+time and Klo could hardly be reached. That included his new conclusion after the story.
+
+- **Who answers:** the nearer one first, then the other, and back. The next word always goes to the one not just
+  spoken to (`G.lastTalk`; the companion part of `contextAction` in `puzzles.mjs`).
+- **Seeing who:** the "E Prata" badge already shows the face. A little pencil speech bubble with three dots now also
+  floats over that character's head in the picture while "Prata" is offered (`S.talkMark`, `TALK_HEAD` in the view).
+  This applies to Skatan and Tordyveln as well.
+- **Test:** `tests/skoldhast-a2-notebook.test.mjs` ("Prata reaches both companions").
+
+## Äventyr 2's notebook: Forskningsdagbok – Den magiska skogen (7 November)
+
+An independent review rated the old "Vad vet vi?" card usable but the plainest part of Äventyr 2. Pappa asked for all of
+it to be fixed, the story to get its payoff in the notebook, and Äventyr 1's book.
+
+- **One book, two adventures.** Äventyr 1's journal shell is now `book()` in `src/ui.mjs`. It has the green cloth
+  cover, grid paper, tabs, one page on a phone and a spread on a wide screen, 3D page turns, the keyboard and the spine
+  name. Äventyr 1's `journal()` fills it with its seven pages exactly as before. Äventyr 2's `journal()` in
+  `adventures/adventure-2/ui.mjs` fills it with seven pages:
+  - **Framsida:** "Forskningsdagbok · Den magiska skogen", Tukankrabban, "En ny sida i forskningsdagboken.", the team.
+  - **Vad vet vi?:** Vårt uppdrag, Därför, then the egg row. After the moon the eggs become ten little tukankrabbor,
+    with Lilla Klo the smallest. Then Här är vi, and Nästa steg with Klo's notes.
+  - **Kartan:** the forest, the beach, and the mountain with Kristallgrottan in its foot and Åsktoppen on top, with
+    the routes between them. The map fills the page's width with labels you can read, and the places are also listed
+    underneath in ordinary text. A page is named once the story has named it, and its eggs show once you have been
+    there.
+  - **Frågan:** the question, and Svaret once the cloud is met (and again after the moon). Below it are
+    Tukankrabban's hypotheses numbered as she says them ("Hypotes nummer ett/två/tre"). Each gets a red **Stämmer!**
+    stamp when the story proves it: from the crown or the top, when the cloud is met, and when the wind carries you
+    over.
+  - **Det vet vi:** the clues. After the moon, "Det finns ingen måne …" and "Det mullrar mest …" are struck out in
+    pencil, with "Nu finns det en måne!" / "Stormen har tystnat." beside them. The lightning and the crying cloud get
+    "Det var Molnet!" / "Nu gråter det inte längre.".
+  - **Mätningar – Häst eller sköldpadda?** (added at Pappa's wish, as in Äventyr 1): Professor Klo measures on in the
+    forest. Each item is written in when it happens, with the pencil sound and a mark on the notebook button:
+    - Hästsaker: the drum, Miras bro, the leap over the ravine, the crystal plates, the light bridge.
+    - Sköldpaddssaker: sinking under the falls, the still shell by the moonshine flowers, the whirlpool's coin, the
+      current under the wall, the spring, the gusts.
+    - Övriga mätningar: his heartbeats, the mushroom's bounce, the wind on the top.
+    - A tally ("Lutar åt häst/sköldpadda", "Det står lika") with Klo's sign from Äventyr 1.
+    - After the end the conclusion: "både häst och sköldpadda – och båda behövdes i den magiska skogen".
+    - `MEASURES` in `story.mjs`; the full playthrough test asserts every one is written in on the way.
+    - Klo also says it aloud, as in Äventyr 1 (recorded; a bubble with his face while play goes on, `ui.remark`):
+      "Hovar! Jag antecknar en hästsak." at the first hästsak, "Skalet igen! Jag antecknar en sköldpaddssak." at the
+      first sköldpaddssak, "Längre än någon sköldpadda har hoppat! …" at the leap, and "Det står lika. Mer forskning
+      behövs!" the first time it stands even (`measureSaid`). After the story, the first talk with Klo gives his
+      conclusion (`STORY.measureEnd`), and his chatter became "Häst eller sköldpadda? Både och. Det står i dagboken."
+  - **Hemligt:** "Hemliga upptäckter". Before the end it is a sealed note. After the end it lists the eight surprises,
+    each written in once found, and the missing ones show only where to look ("Något hemligt i Djupa skogen …"). The
+    mission page shows "n av 8" with a button to it. A found secret is written in with the pencil sound and marks the
+    notebook button.
+- **Fixes from the review:**
+  - The map was about 300 px with 7 px labels; it now fills the page and fits a low landscape page.
+  - Klo's notes keep every hint given so far as taped slips with his claw. This includes the hints Klo gave when
+    called, because `story.notes()` reads the same ladder. They never repeat, and the button goes when there is no
+    more and after the end.
+  - The first focus is the open page's tab (the top of the book), not a hint button half-way down.
+  - The egg row is `role="img"`, and the map has a full spoken description.
+  - The mark on the notebook button goes however the book is opened, and a new clue puts it back.
+  - The old stale "ingen måne" fact, the lone "Slutsats" under "hypotes", and the silent end are gone.
+- **Story data:** `story.notebook()` (hypotheses, answer, clues, places with `named`, secrets) and `story.notes()`. The
+  texts are in `NOTEBOOK` in `adventures/adventure-2/content/sv.mjs`. They are read, not heard: the voice script does
+  not take them. Tested in `tests/skoldhast-a2-notebook.test.mjs`.
+
+## Two old notes settled: Åsktoppen from the crown, and the flaky browser checks (7 November)
+
+- **Åsktoppen seen from Jätteträdet's crown** is no longer "a plain triangle" (the 4 November note further down is
+  stale). In the crown's story moment the picture turns to the mountain: jagged ridge, snow, a dark and a lit face, the
+  falls at its foot and the storm's whirl above, upright and in landscape. Afterwards, in landscape, the tree's own
+  crown hides it from the branch; upright it stays in view. Left as it is.
+- **The flaky checks** were faults in the checks, not the game, and are fixed (#29):
+  - A touch stroke lifted mid-motion reads to Chrome as a fling, which swallows the next tap's click. The resting
+    finger the opening check got on 1 October now lives in `tests/browser/finger.mjs` (60 Hz moves with their own
+    times, 0.1 s rest before the lift), and awakening, journey, cloud-color and opening use it; the drawing check's
+    two-finger stroke rests before it lifts. The "Not fixed yet" note under 1 October is done. (Touch and companion
+    already held still or only tapped.)
+  - `skoldhast-adventures`' "selector return preserves position" measured a sköldhäst still drifting up from the
+    kelp page's swim. It now stands still on the pier first.
+  - All six changed checks pass, run one at a time.
+- **Äventyr 2's notebook** was reviewed the same day and rebuilt; see the section above.
+
 # Sköldhästen – handover
 
-## A night playtest of both adventures: what a player sees on a phone (8 November, night)
+## Small surprises after the story: easter eggs on every page (6 November, evening)
 
-Pappa asked for both adventures to be played through and for everything found to be fixed: conversations, design,
-puzzles, story, the diary, UX and UI. The session read both adventures in play order (the robots' runs dumped as
-transcripts), played Äventyr 2's prologue, first page, forest and whole mountain with the real keyboard in a browser,
-and had three read-only browser audits look at every screen at 390×844, 844×390 and 1440×900 (Äventyr 1, Äventyr 2,
-and big text / less motion). Most of what they found is about phones, where Alva is likely to play.
+Pappa asked for easter eggs in both adventures for whoever plays on after the end. Äventyr 1 had only the race
+against Signe, and Äventyr 2 had none. He then asked for them to be spread out, and for **every page to have at
+least one**. Now every page of both adventures has one or more. Each one:
+- comes only after the end (`ended`);
+- comes from the story's own characters, places and arcs;
+- needs no new puzzle, only something the player already knows (whinny, hide, gallop, bounce, stand still, talk);
+- has its lines recorded (all heard exactly by speech-to-text);
+- is tested in `tests/skoldhast-easter-eggs.test.mjs` (each test also checks that nothing happens before the end).
 
-**Äventyr 2**
-- **The table's captions were never readable.** Its table did not use Äventyr 1's `table-mode`, so the captions sat at
-  the bottom: under the speech box ("… och nio ägg till", "Mira ritar en hängbro …", "Vid Alvas bord."), under the
-  drawing buttons ("Alva ritar en orange krabba …"), and cut off at both edges in portrait. `table.mjs` now sets the
-  class, so they sit on paper at the top as in Äventyr 1. In portrait the page sits in the middle, clear of the drawing
-  prompt, instead of at 10 % of the height over empty wood.
-- **The journal map was 300 px wide on every screen** (an svg in a centring flex card falls back to its default
-  width). It now fills the card (540 px), with bigger labels under each drawing and "Här är vi" above it.
-- **The help button in the journal** comes right under the goal, not after the map and every clue (on a phone on its
-  side it was two or three screens down).
-- **Group pictures follow the group.** The arrival, the cloud's arrival and the finale centred on a fixed point; in
-  portrait Klo was off screen while introducing himself, and the stopwatch gift and "Lilla Klo" happened with neither
-  of them in view. On a phone on its side the hatching was under the speech strip. The camera hint now takes
-  `fit` (the point, the sköldhäst and the named actors, live), keeps 7.5 lengths across in portrait, and in short
-  landscape centres the picture above the strip (`updateCamera` in `adventures/adventure-2/view.mjs`). The crown's
-  view of the mountain (`peak`) is untouched.
-- **Portrait HUD:** the egg count was hidden under the goal note; it now sits small under the pause button (and hides
-  while the speech box holds the top; the "Ägg n av 10!" toast says it).
-- **The finale star** Alva traces was 66 px with its dots touching on a phone; it is now at least 17 % of the short
-  side (desktop unchanged), clear of the moon and in the sky.
-- **"E Prata"** floated over the sköldhäst's head in almost every frame, because Klo and Tukankrabban walk beside it.
-  The label now waits until it stands still for 0.7 s; E works all the time, and touch shows it on the button as
-  before. Puzzle prompts (Gräv, Knuffa, Dra i lianen …) are unchanged.
-- **K (pad: Y) did nothing in Äventyr 2**, though the key list in the settings says "K: ropa på Klo". It now gives
-  Klo's word about what we are doing now, the same as "Prata" beside him.
-- **Swedish:** "molnet är rädt" (neuter, three places); the hypothesis no longer repeats its heading ("Hypotes: …"
-  under "Tukankrabbans hypotes"); the map hint said the map shows eggs *left*, it shows eggs found; Alva's glitter fact
-  now ties to Skatan ("Precis som tukankrabbor!").
+After the story everyone who came to the nest goes home, so their surprises lie in different places: Skatan back on
+her branch in Skatträdet, Tordyveln with his new ball into Kristallgrottan, where he rolled his glitter ball before.
+The hatchlings and Molnet stay at the nest (`setupActors` in `adventures/adventure-2/story.mjs`, called again in the
+finale while the ending card covers the page, so when the player chooses Utforska the guests have gone home).
 
-**Äventyr 1**
-- **The first story moment showed an empty beach.** The stopwatch beat fixed the camera on the midpoint when it began,
-  while the gallop carried the sköldhäst up to 1.5 lengths on: at phone sizes neither was on screen during "Helt
-  OKEJ?!". The camera hint takes `fit: ['klo']` (live) in `src/view.mjs`. (Walking Klo over instead was tried and
-  dropped: his walk back to the hole froze the player for about 8 s, which an earlier session had removed.)
-- **"Ropa på Klo … här uppe"** appeared low in the middle; it now points at the Klo button (`guide.tip(…, { at: 'klo' })`).
-- **The first touch tip, "Dra spaken ända ut",** pointed at an invisible stick; the stick now shows faintly while a
-  tip points at it (`.idle`, which nothing set).
-- **Välj äventyr** on a phone on its side hid "Börja äventyret" below the fold; the cards are compact there, and each
-  adventure has its own icon (Äventyr 2: the cloud).
-- **The notebook** on a phone on its side shows a fade and an arrow at the foot of a page that scrolls.
-- **Portrait:** the speaker's name tab sat on the dimmed "Ropa på Klo" button (hidden while someone speaks); an open
-  card's ✕ sat on or beside the HUD's pause button (the HUD hides under an open card). The prologue's choices stay on
-  one line on wide screens.
-- **Lines:** "spana efter kartbiten" four times in a row, "rivkanterna" twice in a row and the shutter line twice are
-  varied; "Så det var vikningen som rev sönder kartan."
-- **"Det finns fler!"** on the steppe had the same fixed frame as the stopwatch; it uses the live fit too (which now
-  also takes a fixed x in the world).
+**Äventyr 2, Flodstranden** (west → east)
+- **Kakaolunden: kakaofrukten igen.** The hollow log is still a drum. Gallop over it as in P1 and the cocoa tree
+  shakes and drops a cocoa fruit onto the log (the drum sounds as in P1, the fruit rustles down and lands with a thud). The first time Klo gives it to Tukankrabban again ("Den är till dig …
+  igen."; she: "Du kom ihåg min favorit, Klo."; he: "Det står i anteckningsboken. Bredvid diagrammen."). After that
+  a fruit just falls now and then: the tree rests 6 s after each, so it does not rain fruit (`drumAfter`,
+  `cocoaRest` in `puzzles.mjs`; `cocoaFall` in the view; at most three fruits lie on the log, each fades after 7 s).
+- **Boet: tio små forskare.** Hide in the shell by the nest and the ten hatchlings gather. Come out and they follow in
+  a row along the beach, the smallest, Lilla Klo, first (she is drawn a little smaller than the others). They trot, at
+  most 4 HL a second, so they wait at the water's edge and never cross the river or Klyftan (with less motion too).
+  Hide by the nest again and they go home, and they stay home when the page turns. One toggle per hiding: the shell
+  must come out before the next one counts. Tukankrabban says once: "De forskar på dig! …" (`G.hatchFollow`,
+  `afterStory`).
+- **Boet: Molnet blixtrar av glädje.** Whinny under Molnet over the nest and it answers with a small glow of its own
+  and sparkles round it (no bolt across the sky and no thunder: the storm is over). Before, it flashed from fear of
+  the dark; now the moon is drawn. The first time, the picture takes Molnet in and it says "Nu blixtrar jag för att
+  det är roligt – inte för att jag är rädd!". After that it just glows, at most every 2.5 s (`cloudJoy`).
+- **Skatträdet: Skatan härmar.** Whinny under her tree and she copies it (a quieter whinny from her branch, with a
+  sparkle). The first time she also decides it does not suit her (magpies are mimics; she is vain); after that she
+  just keeps trying, at most every 6 s. There it is her turn, not Molnet's (`skataMimic`).
 
-**Both adventures**
-- **Under an open card** (the journal, pause, settings) the game is paused, so its loop never cleared the goal note,
-  a key prompt or the HUD: they hide while a card is open.
-- **Större text:** a card taller than the screen scrolls, and its heading no longer shrinks under its own words (the
-  reports and Välj äventyr printed the title over the first line on a phone). A thought bubble that would land on the
-  touch buttons goes beside the head on the far side. The report's Klo has room on top in portrait. The notebook tab
-  label cut the g in "Mätningar". Mindre rörelse was checked in both adventures (the prologue, the finale with both
-  settings on): nothing stalls.
+**Äventyr 2, Djupa skogen**
+- **Raketen från Utsiktskullen (a glimpse of Äventyr 3, which Pappa says will be set in space).** On top of the
+  lookout hill, after the story, a rocket rises far away beyond the hill, crosses Mira's moon in silhouette and grows
+  small until it is only a twinkle among Alva's stars, with a curved trail of smoke behind it and a far-off roar. The
+  sköldhäst stops, faces it and follows it with its eyes (`lookAt`, emote `surprised`): "Titta! En raket!" and, when
+  it is gone, "Tänk hur det skulle vara att åka ut i rymden …"; Klo: "Dit har ingen krabba forskat förut."; Tukankrabban:
+  "Det måste vi forska på!". The first time the picture turns a little towards it; after that it flies again once
+  each time the page is visited, without words, and the sköldhäst just watches. It is drawn in pencil like the rest
+  of the page (red nose and fins, a round window, a little gold star like Alva's on its side), in screen space in
+  front of the moon, on a path measured from the moon so it works upright and in landscape (`rocketWatch` in the
+  story; `rocketPath`, `drawRocket` and fx `rocket` in the view; `rocketState()` lets a check hold the flight at a
+  moment to look at it).
+- **Svampen fnissar.** The mushroom that bounced the sköldhäst up to the egg (P9) giggles now when it bounces you:
+  it shivers, a little run of pops sounds and glowing spores rise. The first time Tukankrabban hears it and Klo makes
+  hypothesis number four: "svampar är kittliga" (`mushroomGiggle`, fx `giggle`). Each bounce lands on the branch
+  above, so it giggles once per bounce, at most every 4 s.
 
-**Checked and left as it was**
-- Both stories read well in play order: the red threads, the jokes and the payoffs hold. Äventyr 1's help, recaps,
-  goals and clue texts are correct Swedish.
-- Äventyr 2's mountain, played with the keyboard at 844×390: K1's turns, K2's white current, K3's ball and plate, the
-  spring, the gusts with their warning, the light bridge in the flash. No page errors anywhere.
-- Äventyr 1 played through on touch at 844×390 (the journey check, with a picture of every speech box: 84): every
-  line reads well over its scene, the new lines included.
-- Small things left: the settings card scrolls a little at 844×390 to reach "Tangenter och handkontroll"; Klo's hint
-  bubble at 844×390 lies over the "Ropa på Klo" button while he speaks; with Större text at 390×844 the red rule under
-  "Sköldhästens äventyr" falls between its two lines.
+**Äventyr 2, Kristallgrottan**
+- **Tordyvelns finaste boll.** Tordyveln has gone back to his spot in the cave. Talk to him: he has rolled a new
+  ball from the hatched eggs' shells, "Den finaste hittills. Inte för att jag bryr mig." It lies beside him from
+  then on, and talking again gets a proud "Hmpf" (`dyvel_shellball`, `shellBall`).
 
-**Verification**
-- `npm test` passes (419). The robots are unchanged and both still finish.
-- Browser checks that pass: `skoldhast-launch`, `skoldhast-adventures`, `skoldhast-a2` (prologue, all four pages,
-  finale), `skoldhast-notebook`, `skoldhast-mapbook`, `skoldhast-opening`, `skoldhast-finale`, `skoldhast-dialogue`,
-  `skoldhast-touch`.
-- **Two checks fail on untouched `main` too**, at the same line, so they are older than this night:
-  - `skoldhast-guide.mjs:55` waits for the gallop tip with the keyboard, but `tipOnce` in `src/story.mjs` shows the
-    gallop, act, hide, swim and journal tips only on touch (on purpose: the keyboard has the key list). The check
-    expects the old behaviour.
-  - `skoldhast-journey.mjs` (touch, 844×390) plays all of Kapitel 1–3 and stops at its last assertion, "the page
-    unfolds before the splash lands" (the cause was not looked into). The pure robot in `npm test` checks the same
-    order and passes.
-  - `skoldhast-touch.mjs` failed once in a parallel run ("a tap on the sköldhäst neighs") and passed alone, on this
-    branch and on `main`: a timing flake under load.
-- **Contact sheets:** `docs/skoldhast/shots/night/` (before and after at 390×844 and 844×390, the finale at both
-  phone sizes, the journal at 1440×900).
+**Äventyr 2, Åsktoppen**
+- **Stjärnfall i Stormens öga.** On the summit where Molnet sat crying in the dark, stand quite still for a moment
+  (stillness, as the moonshine flowers taught) and a star falls from the biggest of Alva's stars across the sky.
+  The first time Tukankrabban sees it and Klo makes a wish: "Jag önskar … nej. Det är vetenskapligt hemligt." At
+  most one star every 20 s (`starFall` in the story; the falling star is drawn with the moon in the view).
 
-**Frågor till Pappa**
-1. Is "E Prata" waiting until the sköldhäst stands still right? A child on a keyboard may never see "Prata" while
-   walking with Klo; E still works.
-2. The finale's group pictures zoom out further on a phone to fit everyone. Is the hatching big enough on Alva's
-   device?
+**Äventyr 1, Stranden och Stäppen**
+- **Ekot i Vattenporten.** Whinny under the arch and it answers twice, softer each time. The first time, Klo writes
+  it down with his measurements ("Ekotestet", in the journal) and says so (`after_echo`).
+- **Kartväktarens nya lapp.** The game's first note at Streckbron said "OBS! Ofärdigt streck. Rör ej!". After the
+  story it reads: "Strecket är färdigt nu. Tack! Ni får röra det hur mycket ni vill." It is read in his voice.
+- (and, as before, the race against Signe)
+
+**Äventyr 1, Kelpskogen**
+- **Lyktfiskarnas dans.** The lyktfiskar that lit Mörka valvet stay as its lamps. Hide in the shell under the
+  vault's roof and they leave their lamps and dance in a ring round the shell, lighting the water round it, while
+  the current carries it through and on where it comes to rest just past the east mouth; come out or swim away and
+  they go back. The first time Klo says "Lyktfiskarna dansar runt skalet! Jag antecknar: de kommer ihåg dig."
+  (school state `dance` in `puzzles.mjs`, `after_lykt`).
+
+**Äventyr 1, Spegelviken**
+- **Kartväktarens pappersbåt.** He was afraid of water ("Jag är av papper. Blött papper går sönder!"). Talk to him
+  on the pier (the note shows his face) and he dares to set a paper boat on the bay. It stays there, drifting slowly
+  between the shore and the pier's end, far from the lighthouse's reflection (`_kvBoat`, `kv_boat`, `paperBoat`; if
+  the page is rebuilt while it is being set down, the scene is released instead of waiting for it).
+
+**Audited (6 November, night).** An independent read of all of the above found, and these were fixed: a
+`node_modules` link committed from a worktree (now untracked; `.gitignore` says `node_modules` without the slash, so a
+link is ignored too); hatchlings sent home again while Tukankrabban spoke; Skatan and Tordyveln left at the nest
+right after the finale (Skatan answered instead of Molnet, Tordyveln's ball scene played on the beach); the boat
+blinking out as it touched the water; the dance lasting only the ride through the vault; hatchlings jumping the
+river with less motion; sparkles falling instead of floating; the after-story drum and fruit being silent; a full
+storm bolt and thunder for Molnet's joy; Lilla Klo the same size as the others; tests without a before-the-end check.
+
+## Prettier, without changing how anything works (6 November, evening)
+
+Pappa asked for graphic and visual improvements in both adventures, on one condition: nothing may break (the
+water's reflections and every other detail must work as before). Every change below is drawing or light only:
+no walking line, wall, puzzle, story frame or reflection changes. Each was shot before and after, upright and
+in landscape, and the browser checks for its area were run alone.
+
+- **Äventyr 1, upright phones:** the ground sits at about two thirds of the height, as in Äventyr 2. At 58 % the
+  pale ground took over 40 % of the screen and the sky and hills were squeezed under the goal note. Only the
+  upright framing while walking changes (`updateCamera`, `src/view.mjs`): swimming, the big leap, the scenes'
+  own views and every story frame (hints, close-ups, the mirror, the map) are as they were.
+- **Äventyr 2's light follows the story** (Pappa: "Vi kan inte ha månljus", and every change must follow the story).
+  The page is dark because Mira forgot the moon ("Det är så mörkt överallt"). Until she draws it, the only light is
+  the lightning, the moonshine seeds and Tukankrabban's lantern.
+  - **No moon-like glow:** the soft glow at the top of the storm's and the peak's sky read as a moon behind the
+    clouds. It is gone (`MOODS.storm`, `MOODS.peak` in `src/atmosphere.mjs`; it predates tonight).
+  - **No fireflies before the moon:** the storm's glowing motes are faint rain dust. Fireflies come out over the
+    forest and the beach only once the moon is drawn (`buildNightLight`). The moonlit ending keeps its own.
+  - **Lightning lights the edges:** when lightning strikes, the edges of the ground and the rocks catch its light
+    ("Varje blixt lyser upp hela skogen"; `S.boltRim`).
+- **Kristallgrottan** stays dark and only glitters until the three crystals by the chasm are lit ("Kan kristallerna
+  lysa upp den?"). Then each crystal cluster casts a pool of its colour and a soft glow (`buildCaveLight`, faded
+  in on `k1_lit`).
+- **Äventyr 1 under water:**
+  - In Spegelviken, bubbles rise beside the pipe, where the current goes up ("Här går den upp genom röret!";
+    `bayBubbles` in `content/world.mjs`). They stay well under the surface, away from the lighthouse's reflection.
+    No loose fish were added: in this story fish are characters with a part to play (the lantern fish, the shy
+    ones), and fish in Spegelviken would promise a puzzle that is not there.
+  - The light on the bed is closer together, there are a few more drifting specks, and the light shafts are
+    slightly brighter (`MOODS.a1Under`).
+- **Äventyr 2's mountain:** the storm's mist drifts slowly across its flanks and thins as the storm calms.
+- **The rain** blows west, away from Åsktoppen, as the torn leaves and the mountain's gusts do. It leans the way it
+  falls, and the faster drops are longer.
+
+## "E Prata" shows who you would talk to (6 November)
+
+Pappa asked for a small picture of the one you would talk to inside the "E Prata" note. The key prompt now shows
+their face, small and round, between the key and the word: the same face as in the speaking badge and the name tab
+(`portrait()` in `src/ui.mjs`).
+- **Äventyr 2:** Klo, Tukankrabban, Skatan and Tordyveln. The context's `who` is in `adventures/adventure-2/puzzles.mjs`.
+- **Äventyr 1:** Kartväktaren and Signe. Their `who` is in the story actions in `src/story.mjs`.
+- Other prompts ("Skaka", "Dra", "Läs") stay as they were.
+
+## The night of 5–6 November: an audit of both adventures, and what it fixed
+
+**Status at the end of the night:**
+- **Merged to main:** #22 (00:17), #23 (03:21) and #24 (05:07), all Swedish time.
+- **Checks on the last merge:**
+  - `npm test`: 433 of 433.
+  - Every browser check passed overnight, one at a time.
+  - Run again before #24, alone: `skoldhast-a2` (all eight), world-art, polish-scenes, mirror-vista, tour, voice,
+    touch, controls, gamepad, guardian and land-focus.
+- **Two old timing faults** in the checks also failed on main. Both are fixed: `skoldhast-map-scenes` at 1440×900, and
+  `skoldhast-a2`'s speaker check under load.
+- **What was left** (Äventyr 1's ground drawing in four places) was fixed the next morning; see the Äventyr 1 notes
+  below.
+
+Pappa asked for a full audit of bugs, graphics, design and atmosphere, all fixed and merged, and then for the work
+to go on through the night. Method:
+- every place in both adventures photographed at 390×844 and 844×390 (`skoldhast-tour`, an Äventyr 2 tour script);
+- two independent reviews, one of the day's code, one of the screenshots;
+- a frame-cost measurement of every place.
+
+**Bugs fixed:**
+- Turning the phone in Äventyr 1 cut off the line being spoken (`pause({ reason: 'orientation' })` keeps the voice).
+- A coin still flying when Äventyr 2's page was rebuilt made every frame throw: `clearScene` ends the flight.
+- Äventyr 2's `G.camLook` belongs to its page (`scene`), as in Äventyr 1.
+- Klo's notebook forgets a backdrop press on open and close.
+- Settings changed in the pause menu no longer turn the voice back on while paused.
+- The edge badge keeps clear of the egg count, the pencil count and Ropa på Klo.
+- Skatan is still during conversations.
+- In the finale Skatan stood on the sköldhäst's start spot, hidden inside it. She now stands between Tordyveln and
+  Tukankrabban.
+- A thought bubble covered the "E Prata" note. The note now moves above the bubble, or under it.
+- In Äventyr 2 held upright, place names lay across the sköldhäst. They now sit under the goal note.
+- The water's pale veil ran down over rock wherever ground stood above the surface inside the water's span, leaving
+  ruled strips at the cave mouth and the gate.
+- `skoldhast-tour` teleported in the middle of Viken's arrival, so its frame was pinned on every later stop. It now
+  waits for the story.
+
+**Art in Äventyr 2:**
+- **Jätteträdet:** bark furrows with pale ridges, knots, moonlight on one edge, moss with an uneven top, flared
+  roots.
+- **Water:**
+  - Kristallgrottan's water has crystal light shafts and drifting specks.
+  - Every water surface waves visibly.
+  - The river has weed, pebbles, a sunken branch and fish.
+- **Kristallgrottan's rock:** crystal veins and small crystals along ledge tops. The far wall is faceted crystal with
+  glowing tips instead of fir-tree triangles, and more crystals hang from the roof.
+- **Gaps** (Klyftan, Ravinen, the cave's chasm, Åsktoppen's two): jagged lit walls shaded into the dark, roots or
+  crystals at the lips. The cave pit's dark lies behind its walls.
+- **Beds under rivers and lakes** thin out into the paper like the bank beside them and blend at the join. Before,
+  a ruled light/dark seam ran down the page.
+- **Åsktoppen:** the storm's eye is a ring of lobed clouds with lit rims instead of flat discs.
+- **The finale:** Alva's stars have five points and a halo, and the sky's hatching thins as the storm calms.
+- **Forsen:** the waterfall has wavering edges, a curling lip and spray mist.
+
+**Performance:** no place in either adventure has a heavy frame left. At 390×844 the JavaScript averages at most
+2.3 ms and drawing at most 7.6 ms. Branten's rebuild was the only real hot spot, and it is fixed.
+
+**Checks run before the first merge of the night, all passing:**
+- `skoldhast-a2` (all eight checks), `skoldhast-voice`, `skoldhast-dialogue`, `skoldhast-klo`,
+  `skoldhast-prologue-lifecycle`, `skoldhast-notes`;
+- `npm test`: 428 of 428.
+
+### Later in the night: a hunt for soft-locks, and more art
+
+A headless hunt through Äventyr 2's logic (the robot trying other orders, reloads and "Jag har fastnat") restored
+211 save states cleanly and found no hard soft-lock. What it found, fixed:
+- **Klippan (T3) solved itself while Alva read.** The forward wind kept carrying the sköldhäst over the gap during
+  "Så långt kan ingen hoppa". The wind now holds while the story holds the controls (`applyWinds`, `G.busy`).
+- **"Jag har fastnat" could jump past what was still closed.** At Kristallgrottan's shut gate it landed in the
+  spring beyond; on Åsktoppen it skipped the bridge and the gap. `safeSpot` now never picks a spot past a gate (any
+  wall inside the page), an unfinished dashed line, Kristallsjön's rock wall, or water that drives a swimmer back
+  (Forsen's falls), whatever the player's height, nor past a refusing edge within 1.5 lengths of the player's height.
+  It prefers a spot of the same kind (swimming or on foot). A first version judged the gate at the player's own
+  height, so from deep water it did not count; a review caught it. `tests/skoldhast-a2-order.test.mjs` pins the
+  cases (K3 pool, Kristallsjön, Forsen's pool, Rutschstammen, the summit chasm).
+- **The cloud's egg never fell from the cloud.** `eggsDrop` always started from Skatan's nest, which Åsktoppen
+  does not have, and threw. It starts where the story says (`data.from`).
+- A page rebuilt while eggs were flying ends their flights, so a beat waiting for them goes on.
+- **New checkpoints:** the cave behind the falls, and the beach's west end once Klyftan's bridge is drawn.
+- **Hints after the work is done.** Once the cocoa egg has fallen, the ball is washed or the seeds light the
+  tunnel, the hint says "Nu ligger ägget fritt – spring och hämta det!" until the egg is picked up. Before, it
+  explained the solved puzzle again. The line is recorded for Klo and Tukankrabban.
+
+The same hunt through **Äventyr 1** (the robot pressing "Jag har fastnat" every 3 s along both routes, saving at 97
+states per route and reloading each to the end) found four bugs, fixed:
+- **"Jag har fastnat" froze a scene.** Pressed during a close-up of a puzzle (about 13 locked beats) or while Klo
+  walked to the map corner, it froze the game until a reload. `G.goto` made a new player, and those beats give up
+  for good when their player changes, holding `G.busy`. The button now moves the same sköldhäst on its own page
+  (`G.relocate`).
+- **It skipped puzzles:** over the unfinished Streckbron (P1), onto the unopened ledge (P3), over the cleft (P4)
+  and into the line window (P8's sea half). `CHECKPOINTS` in `src/content/world.mjs` now have a `when` (steppe
+  `p1_inked`, ledge `p3_t3`, udden `p4_leap`, lineWindow `p8_sea`), and no spot lies across a dashed line still to
+  be drawn.
+- **A save mid-discovery lost it.** A save while a discovery was told (the tablet locked mid-sentence) lost it for
+  good, since its event never comes again. Affected: the arch opening, the pool's mirror, the glimpse and Viken's
+  mirror (P7's explanation). Each comes back by `when` at the same place.
+- **The wrong side after the leap.** A save during Klo's cheer for the big leap reloaded her on the near side,
+  while the hint said she was across. The 'udden' checkpoint is now set as she lands.
+- `tests/skoldhast-a1-order.test.mjs` pins the stuck rules, the same player and a recovered beat.
+
+Art and sound:
+- Moss, ferns and dripping water on the overhang above Forsen's cave.
+- Åsktoppen's rock has cracks with a lit edge and pale lichen, so it reads as a mountain, not layered paper.
+- An egg flying into the count lands with a soft note, one step higher for each egg.
+- Kristallgrottan: ledges lie in the cave's purple dusk instead of standing out as pale blocks; the spring's column
+  wavers; crystal veins run through the roof (which fills the top third of a phone held upright); small crystals
+  glint far down the chasm under Kristallbron, which was a black quarter of the screen.
+- Forsen's overhang has cracks and lichen too, drawn thick enough to read at a phone's zoom.
+- **From a fresh visual read of all 56 tour shots (upright and landscape):**
+  - **Gaps:** every ground ends square at a gap's lip, so a straight cut ran down beside every gap. A jagged band of
+    rock (`ravine()`) now covers it, and below the walls the gap's dark melts into the same paper as under the
+    ground beside it.
+  - **Kristallgrottan:** the soil's lighter skin band no longer stands out as a pale box on every island; inside the
+    mountain the rock is one rock all the way down.
+  - **Åsktoppen:** its rock, strata, cracks and lichen run more than twice as deep, so it reads as a mountain and not
+    a thin crust on a pale slab. Its gaps are deeper to match.
+  - **Jätteträdet's crown, held upright:** the forest's top bound is higher (−24), so the crown sits in the middle of
+    the screen instead of under the goal note.
+  - **Forsen's cave and the summit spring:** the cave behind the falls starts behind the water, and the summit
+    spring's mouth has a ring of stones.
+  - **Thought bubbles:** their dots lead to just above the head, not onto the forehead (`src/guide.mjs`).
+  - **Where two soils meet** (grass and sand by the cocoa tree, and every other join) a straight line ran down the
+    soil: the old tints swapped the colours across the join and had ruled edges of their own. One soil now reaches
+    into the other in wandering tongues, and the turf thins out onto the next ground.
+  - **Källan's column** wavers about three times as far, enough to see on a phone.
+  - Seen and kept: the vine at Ravinen leads off screen to the trunk.
+- **The same fresh read of Äventyr 1** (all 28 places, upright and landscape), fixed:
+  - **The key prompt was hidden.** In landscape the goal note covered the prompt for E ("Skaka", "Simma in", "Läs")
+    right over the sköldhäst's head. The note and the round buttons now push the prompt below them (`keyPrompt` in
+    `src/ui.mjs`, both adventures).
+  - **A noose-like handle.** The lighthouse's pull handle and its symbol were a teardrop loop on a line, and on the
+    gallery they read as a noose. They are a wooden toggle now, and the symbol has an arrow pulling down.
+  - **Floating cards.** The mechanisms' paper cards hang on strings from their wheel, plate and rope.
+  - **Branten's tide band** (P3's clue) has a wave's crest and a stain's foot instead of a near rectangle.
+- **Seen and kept on purpose:** the pool's reflection below the water line (it is P2's clue), the "SKÖLD häst"
+  writing on the wave at the start (world art, whole as you walk on), the journey map's caption, Klo's
+  measurement note beside his line, and the hills' straight pencil slopes.
+- **Fixed the next morning (6 November, Pappa: "Fixa detta"):**
+  - **Gaps that are not boxes.** Streckbron's gully, the ditch and the cleft below the plateau were square boxes:
+    a ruled vertical face, a ruled floor and a flat far wall. `gapFaces()` in `src/view.mjs` changes them without
+    touching the walking lines:
+    - a jagged band of the high ground's soil covers each face, with its own uneven pencil edge;
+    - earth fallen from it lies in a slope at its foot;
+    - an uneven skin of earth, with stones, covers the floor.
+
+    The far walls (`buildBacks`) have cracks and ledges in rock, or stones in earth, and darken toward the foot.
+  - **The pipe in the bay.** Its drawn lower part ended in open water above the bay's bed. It now runs on down into
+    a heap of the bed's sand (`tubes[].foot` in `content/world.mjs`).
+  - **The bay's bed under the pier** has an uneven skin of sand with ripples, pebbles, small shells and tufts of weed
+    (`seabedLife()`).
+  - **The kelp cave in landscape** read as open water, because its roof lies above the surface. Under the water it
+    now has a far wall (`createCoastalCave`): darker toward the back, with strata, weed hanging from its ceiling and
+    the mouth's rim.
+  - **Kelphjärtat** is a clearing in a denser stand of kelp on either side (two more `kelp` decor runs). The puzzle's
+    own stretch stays clear.
+- **Thunder:** a soft, distant roll follows each lightning flash after half a second to a second and a half
+  (`renderThunder` in `src/audio.mjs`; `sfx()` takes `{ delay }`). The storm used to flash in silence.
+- **Rain you hear:** a rain bed (soft hiss and small drops, about as loud as the wind) follows the rain Äventyr 2
+  draws (`view.rainLevel` → `audio.setRain`): softer under shelter, none in Kristallgrottan, gone as the storm calms.
+- **Waterfalls you hear:** Forsen and the spring at Källan roar louder as the sköldhäst comes to them (`sounds` in
+  `content/world.mjs`, `audio.setBed('falls', …)`).
+- **The cave sounds like a cave:** Kristallgrottan used the mountain's wind. Inside the mountain the rock now hums low
+  and water drips, far and near (environment `'cave'`, bed `drips`).
+- **Gusts you hear:** on Vindkanten a gust is heard coming (a soft rise) and then blowing, so you can hide in time by
+  ear too.
+
+Your own voice, the narrator, was already close to the others (median −21.5 LUFS) and barely moves. Kartväktaren is
+the voice that comes down most, about 5 dB.
+- **Voices at one loudness.** Measured with EBU R128, Kartväktaren and his notes were about
+  5 dB louder than Klo, and some of Tukankrabban's hints 6 dB quieter. `manifest.json` now holds each clip's LUFS,
+  and `src/voice.mjs` plays every clip at −20.5 LUFS (`LEVEL`, `levelGain`). The recording script measures each
+  new clip with ffmpeg; `node scripts/skoldhast-voice.mjs --level` measures them all again. The voice test fails
+  while a clip is unmeasured.
+
+## Äventyr 1, Branten: no stutter as the roots lift the grass strips (5 November)
+
+Pappa's phone stuttered when the roots lifted the folded grass paths into ramps ("Rötterna lyfter den vikta
+grässtigen till en ramp!").
+- **Cause:** while a ramp rose, `Terrain.advance()` refreshed the terrain on every simulation step. The view saw a
+  new `revision` and rebuilt the whole page's ground every frame: every fill, turf band, blend, lip, root and
+  waterline rope of Äventyr 1's longest page.
+- **Measured in Chromium at 390×844:**
+  - before: 14 ms of view work + 87 ms to draw per frame during the rise (4 + 12 ms while the roots grew);
+  - after: 5 + 13 ms.
+- **The fix:**
+  - `Terrain.layout` changes when the set of surfaces changes, and when a ramp starts and finishes rising, but not
+    for each step in between. The view rebuilds the ground on `layout`. The hill strip (`hill-scene.mjs`) draws the
+    movement.
+  - Collision still follows `revision`, so the player is lifted with the ramp as before.
+  - The hill strip redraws its sheet only when the sheet moves. While only the roots grow, it redraws the roots, in
+    1/40 steps.
+- **Check:** `skoldhast-hills` counts the ground rebuilds (`view.groundBuilds`) while ramp1 rises and requires at
+  most two.
+
+**A paused game is silent.** A speech box waits, in real time, for a thought still being said. Because of that,
+`skoldhast-hill-depth`, which steps the game faster than real time, ran out of time. Pausing now silences the
+voice in both adventures, and resuming turns it back on as the setting says. This covers a panel, the pause menu,
+the adventure picker, the ending card and a hidden tab. Checks that step the game pause it first.
+
+**Checks run alone before the merge, all passing:**
+- Äventyr 1: `skoldhast-hills`, `skoldhast-hill-depth`, `skoldhast-land-focus`, `skoldhast-journey`,
+  `skoldhast-audit-land-capture`, `skoldhast-notes`, `skoldhast-prologue-lifecycle`, `skoldhast-dialogue`,
+  `skoldhast-cloud-color`, `skoldhast-cloud-sky`.
+- Äventyr 2: `skoldhast-voice` and `skoldhast-a2`. In one full run of `skoldhast-a2`, three checks timed out under
+  load. Each passed when rerun alone.
+- `npm test`: 428 of 428.
+
+## Äventyr 2: eggs and the gold coin you can see; a white cloud; Tukankrabban is sad (5 November)
+
+Pappa asked:
+- for a check that all egg puzzles and the gold coin hold up and look good, with good animations;
+- for a white cloud instead of the last cloud colour, which looked see-through and empty in the game;
+- that Tukankrabban look sad when the eggs blow away.
+
+- **The puzzles work.** The node robot (`tests/skoldhast-a2-playthrough.test.mjs`) plays every egg and the coin
+  through the real simulation, and it passes.
+- **How the moments were checked.** Each was filmed in Chromium with Playwright's clock: time paused, 0.1 s a frame,
+  contact sheets reviewed. The moments were the dug egg, the cocoa egg falling, the ball washed in the river, the coin
+  in Djuphålan, the trade with Skatan, and an egg found by touch.
+- **What changed:**
+  - **A found egg flies into the count.** It pops up where it was, growing to a size worth seeing, then flies in an
+    arc into the egg count in the corner. The count counts it as it lands (`view.eggsArriving`, which main
+    subtracts). This works for all ten eggs. With Mindre rörelse it goes straight there, quickly. Before, the egg
+    simply vanished.
+  - **Eggs in the world are half as big again** (`EGG_SCALE` 1.5). On a phone they were 8–9 px. Eggs waiting to be
+    found have a soft warm light. Dark ones, before the seeds light Rotgrottan, do not.
+  - The cocoa egg lands with a bounce and a puff of sand.
+  - **The gold coin is bigger.**
+    - It flies from the whirlpool's eye up to the sköldhäst.
+    - In the trade it flies to Skatan's beak (`fx('coinGive')`) before she speaks.
+    - Before, it jumped from place to place.
+  - The camera keeps the beetle's ball in the picture as it rolls into the river and the river washes the egg free
+    (`BALL_LOOK`).
+- **The white cloud.** The `paper` pencil keeps its id, so old saves still work, and is now called "Vit". It fills
+  the cloud white with a soft graphite shade under it. Before, it drew only an outline, so Molnet looked empty in
+  the sky. The user-cloud test requires every colour to be filled and white to be white.
+- **Tukankrabban's sad pose** (`pose: 'sad'` in `characters.mjs`):
+  - heavy lids, lower at the outer side, and eyes looking down;
+  - eye stalks leaning out;
+  - both toucan heads hanging, beaks shut;
+  - Alva's curved line on the shell turned down;
+  - a tear running down the shell.
+  - At the table she reaches for the eggs, then watches them go, sad. She is sad again at the empty nest.
+- **Checks:** in `skoldhast-a2`, a dug egg must fly while the count waits, and be counted on landing. Shots are in
+  `docs/skoldhast/shots/visual-sweep/`:
+  - `a2-egg-to-count`
+  - `a2-trade`
+  - `a2-tukan-sad`
+  - `a2-white-cloud`
+- **Not filmed one by one:** eggs e3, e9, e4 and e8 are found by touch like e10. Molnet's egg (e5) is handed over
+  like Skatan's. Both use the same flight.
+- **Skatan** (fixed the same evening): she was a black bird about 44 px across among dark leaves at night, and the
+  sköldhäst could stand in front of her.
+  - She is now a third bigger, with a soft pale glow and a pale pencil rim.
+  - If the sköldhäst comes within 0.7 HL on her branch, she hops to whichever end will be furthest from where it is
+    going (`skataAside` in `story.mjs`).
+
+## Nobody is cut off mid-sentence (5 November)
+
+Pappa: when the sköldhäst says something and then Klo, or someone else, says something about the story, the first
+voice stops abruptly mid-sentence.
+
+The cause: a speech box (`say`) silenced anything else at once. That included a thought or hint still being said
+(`aside`), which the story's next beat cut off.
+- `ui.say` now waits for that thought or hint to end its sentence, up to 6 s (`voice.asideEnd`), before the box opens
+  with its own voice. Text and voice stay together. The thought bubble stays on screen while it is being said.
+- A voice that is stopped, for example when the reader taps on, fades out over 0.12 s instead of being cut. Each
+  clip has its own gain node.
+- Tapping on still stops the line being read, by design: the reader chose to move on.
+- Checks:
+  - `tests/skoldhast-voice.test.mjs` covers the wait and the fade.
+  - `tests/browser/skoldhast-voice.mjs`: while the sköldhäst thinks aloud, a box for Klo must open only after the
+    thought has ended, and then speak.
+
+## You can see who is speaking, everywhere; Äventyr 2's sköldhäst gallops in on its hooves (5 November)
+
+Pappa saw two things in Äventyr 2's opening:
+- The sköldhäst galloped onto the table's page with its legs in the air.
+- Some speakers could not be seen: Mira and Alva talk over an empty page, and on a phone held upright Klo spoke
+  from out of the picture.
+
+He asked that the speakers be visible in every part of the game, "på något smart sätt".
+
+- **The legs.** The table's hand-made hero state put the sköldhäst at page y 500 and its ground at 0, so the hooves
+  reached for the top of the page. Ground and body now share the same line. The pair also stops beside Tukankrabban
+  instead of in front of her legs. `skoldhast-a2` checks every frame of the gallop-in: each hoof must stay far below
+  the head. Without the fix, 88 frames fail. Shots: `docs/skoldhast/shots/visual-sweep/a2-table-gallop*.webp`.
+- **Speakers are shown in three ways:**
+  - **The pencil mark** (already there) sits over a speaker who is in the picture.
+  - **A badge at the edge of the screen**, new in `src/ui.mjs`, for both adventures. If a speaker is drawn on the page
+    but out of the picture, their face appears in a round paper badge at that edge, with a rust-coloured point toward
+    them. It slides past the speech box and the round buttons.
+  - **In Äventyr 2 the camera takes the speaker in** (`frameSpeaker` in `adventures/adventure-2/view.mjs`). While
+    someone speaks, the camera slides over until they and the sköldhäst both fit, and steps back to at most 75 % of
+    the usual zoom. If the speaker is further away than that, the sköldhäst stays in the picture and the badge points
+    to them. A story view of something far away (an egg, the cave) keeps its own frame. A view staged around the
+    sköldhäst, such as the conversation at the nest, still takes in the speaker.
+- **Mira and Alva are still never drawn: their pencils speak for them.**
+  - At Äventyr 2's table, while one of them speaks, her own pencil rests on her side of the page and bobs as she
+    talks: Mira's purple one on the left, Alva's (with the sleeve) on the right. It is the same pencil that draws.
+    The speaking mark sits on it.
+  - The name tab's picture is now that same pencil in both adventures. Alva's used to be a green pencil that matched
+    nothing on the page. Äventyr 1's one exchange between them, at the epilogue, now has the pencils in the tab too.
+  - Away from the table's page, for example in the finale where Mira asks for the moon and Alva draws the stars,
+    each speaks from her side of the table. Her pencil shows in the badge at that edge: Mira's on the left, Alva's on
+    the right.
+- **The mark moves beside the head when the speech box is above it.** In the finale Molnet floats just under the
+  box at 1440×900. The mark used to vanish there, and now sits beside the cloud.
+- **Checks in `skoldhast-a2`:**
+  - Every line in the prologue at the table, at the nest, in the finale and in the epilogue must show its speaker,
+    with the mark or the badge.
+  - A new check, "who speaks is seen on a phone held upright", stages Klo 4 HL ahead: the camera must take him in,
+    with the mark over him. At 22 HL the badge must point to him while the sköldhäst stays in the picture.
+  - New option `--only <words in a check's name>`.
+- **Not changed:** Äventyr 1's camera does not slide to a speaker. Its conversations are staged with `s.cam`, and at the
+  opening table every line had its mark at 390×844. A speaker out of the picture there now gets the badge.
+- **Frågor till Pappa:** is the badge clear enough on Alva's phone? It is about 50 px, with a gentle pulse that
+  "Mindre rörelse" turns off.
+
+### What the lines are about is in the picture (Äventyr 2)
+
+Pappa: sometimes the thing being talked about cannot be seen, which makes the story hard to follow.
+- `about(box, fn)` in `adventures/adventure-2/story.mjs` sets `G.camLook` (a box in world units) while its lines are
+  said.
+- The camera (`frameSpeaker` in `view.mjs`) keeps three things in the picture: that box (with half a horse length of
+  room), the sköldhäst and the speaker. It steps back to at most 70 % of the usual zoom. If they cannot all fit, what
+  is talked about comes first, as near the sköldhäst as it allows.
+- Seven conversations already had their own `fx('focus')`: the grove, the falls, Skatan, the forest's first egg, the
+  leap, the crystal lake and Blixtbron. Eleven had nothing, and now name their subject:
+  - Miras streckade bro over Klyftan;
+  - the passage behind the falls;
+  - Tordyveln's ball;
+  - Skatan's nest and the branch steps;
+  - the moonflower seeds;
+  - the ravine and the vine;
+  - Jätteträdet's branches;
+  - the ringing crystals and the dark chasm;
+  - the gate and the pond's plates;
+  - the spring;
+  - the end of the path on Åsktoppen.
+- Not given a subject:
+  - Mira's river line (she stands at it);
+  - Kristallgrottan's arrival (the glitter is all round);
+  - Åsktoppen's arrival (the storm is in the sky).
+- `skoldhast-a2` walks into Klyftan at 390×844 and requires the whole dashed bridge and the sköldhäst to be in the
+  picture while it is talked about. Shot: `docs/skoldhast/shots/visual-sweep/a2-klyft-bridge-390x844.webp`.
+
+### The same in Äventyr 1
+
+Äventyr 1's conversations are directed with `s.cam`, `landLook`, vistas and the map overlay. A read of all 54 beats
+found most of them framed. Two were fixed:
+- **k3_line:** "Hovarna lagar strecken på bryggan" was said before the wide look along the pier. That look now comes
+  first and holds while Klo speaks.
+- **after_signe:** before "Kapplöpning till pölen?", the camera frames the pool (the race's finish) with Signe.
+
+**The candidates, fixed the same evening (Pappa: "Fixa allt som du rekommenderar").** These are remarks made
+while playing.
+- `lookAt(box, seconds)` in `story.mjs` sets `G.camLook` for a few seconds. `updateCamera` in `view.mjs` brings that
+  box into the picture by sliding and stepping back to at most 70 % of the zoom.
+- The player keeps the controls, so the sköldhäst always stays in the picture. If both cannot fit, the camera goes as
+  far toward the subject as that allows.
+- Each remark and the box it shows, in HL:
+  - `k1_p1` "Bron håller!": the bridge, [75.3, 82.4, −2.15, 0.65].
+  - `k1_boardwalk` "…och upp går flaggan!": the wheel and the flag, [88.5, 92.8, −3.2, 0].
+  - `k2_kelp_freed` "Nu når strömmen ända upp till vecket": the hook and the fold, [33.8, 42.2, 7.4, 11.9].
+  - The Guida mig `chains` hint: the three chains, [11.5, 33.8, −10.8, 7.6].
+- `KLO_COMPANION.story.note` used to say "Där borta finns havets spår" about wave marks 47 HL away. It now says
+  "Bortom bron finns havets spår".
+  - Recorded in Klo's voice; speech-to-text heard it exactly.
+  - The old clip is pruned.
+
+## A sweep for silent visual faults like the lighthouse's (5 November)
+
+Pappa asked whether there were more visual bugs like the lighthouse that no longer mirrored. That one was a silent
+regression: a later change hid it, and its check measured only where the lamp was, not whether it could be seen.
+Two sweeps looked for more.
+- An independent read of the rendering code in both adventures looked for objects reused in another view, masks and
+  dark layers that can hide something completely, and checks that test position instead of visibility.
+- Every browser check not run that day was run one by one.
+
+Each finding was confirmed in screenshots before it was fixed. Each fix has a check that fails without it. Before and
+after shots are in `docs/skoldhast/shots/visual-sweep/`.
+
+- **Äventyr 2, the finale: Mira's moon was half hidden on phones.** On 4 November it moved below the drawing pad's
+  prompt, which put it behind Åsktoppen in portrait and behind the treetops in landscape. Half of Alva's stars were
+  hidden with it.
+  - The moon and the stars now have their own layer, in front of the distant forest and the mountain.
+  - Once Alva's stars are drawn, the moon rises into the open sky in landscape.
+  - The tracing dots are unchanged.
+  - `skoldhast-a2` draws the picture without and with the moon and requires its disc to change. It does the same for
+    the stars.
+- **Äventyr 2, Kristallgrottan: the crystal bridge lay under the chasm's dark.** It read as a dark band, and so did the
+  dashed bridge that "syns" when the plates ring.
+  - Lit, the dark now sinks below the deck.
+  - `skoldhast-a2` checks that the deck keeps its light.
+- **Äventyr 1, the table at the unfold and the epilogue: a dark seam ran down her picture.** The live screen's air
+  (added 4 November) was baked into the snapshot, laid out for the phone.
+  - The snapshot leaves it out.
+  - New check `skoldhast-table-picture`: the picture must be the same at 844×390 and 390×844.
+- **Checks that could not run, with the game right in each:**
+  - `skoldhast-collection` never pressed Hoppa and pressed Space for the context button. A real hop on the
+    driftwood perch does take the kite pencil.
+  - `skoldhast-context` looked for the dashed bridge by a texture that has not drawn it since 1 October.
+  - Both pass now; the pencil check passes with keyboard and with touch.
+- **Spegelviken's mirror (fixed the same evening):** the islet's rock hides the lighthouse's reflection in the
+  playable view. The postcard used to show it only the first time the player hid on the pier, though Klo's help still
+  speaks of comparing with the reflection.
+  - Now, until the lamp is lit, each time the bay goes still around the hidden shell on the pier, the postcard shows
+    the lighthouse and its reflection again for about 2.4 s, without words (`k3_mirror_again`, at most every 8 s).
+- **Low, not changed:**
+  - The moon's path on the river can lie off screen at moonrise.
+  - The fold demo freezes a patch of beach while it runs.
+  - After the cloud ride, the lantern draws behind the hero.
+- **Seven more checks had fallen behind the game's design since 30 September and 1 October.** Each was rerun alone,
+  and in each the game was right:
+  - `skoldhast-map-props` collected the sea's paper with the wrong flag and name. P6 uses `mark_sea` and labels it
+    `p6-fragment`.
+  - `skoldhast-vista-loading` held all seven bay files. That used up Chromium's six connections to the local
+    HTTP/1.1 server, so the land never got its own art. It now holds the bay's two atlas descriptions. GitHub Pages
+    serves HTTP/2.
+  - `skoldhast-journey` reuses the node robot's chapter3, which checks effect order. It now logs `view.fx`.
+  - `skoldhast-guide`:
+    - Control tips show only on touch, since 30 September.
+    - The first refusal at an unfinished line shows the world-rule thought (`STORY.k1.thinRule`), since
+      1 October.
+  - `skoldhast-land-focus`:
+    - The land route (P1, P3) belongs to Kapitel 2 since 30 September, so the check stages `LAND_ROUTE`, now
+      exported from `save.mjs`.
+    - A sköldhäst that arrives in a gallop glides 0.16 HL after the inspection. That slide is allowed; a jump is
+      not.
+  - `skoldhast-water-alignment`:
+    - Klo opens Kapitel 2 at the cave mouth (`k2_open`).
+    - Each air rect is drawn twice (colour, then hatch).
+  - `skoldhast-geography` timed out taking screenshots while other runs shared the machine. Its run alone is in
+    "Checks run" below.
+- **Running two browser checks at once makes the slow ones time out under software WebGL.** Run them one at a time.
+- **`skoldhast-geography`:** the held lighthouse at 1440×900 drew about a hundred renders, and SwiftShader took more
+  than 30 s to show the next frame. That happened on the code from before today too. The screenshot now waits up to
+  150 s.
+- **Checks run alone before the merge on 5 November, all passing:**
+  - Äventyr 2: `skoldhast-a2` (every check, including the new speaker, Klyftan, legs, moon and bridge checks) and
+    `skoldhast-voice`.
+  - Dialogue and companions: `skoldhast-dialogue`, `skoldhast-companion`, `skoldhast-klo`, `skoldhast-notes`.
+  - The checks fixed today: `skoldhast-guide`, `skoldhast-water-alignment`, `skoldhast-land-focus`,
+    `skoldhast-map-props`, `skoldhast-vista-loading`, `skoldhast-journey`, `skoldhast-finale`,
+    `skoldhast-story-thread`, `skoldhast-guardian`.
+  - `skoldhast-geography`: all nine cases. Two of them (sea and portal at 1440×900) were run on their own after a run
+    shared the machine.
+  - `npm test`: 428 of 428.
+- **Frågor till Pappa:** answered the same evening. The mirror shows again when he hides on the pier, until the lamp
+  is lit.
+
+## The lighthouse mirrors again; Klo's notebook stays open; the Klo check runs (5 November)
+
+Pappa found that the lighthouse no longer mirrors in the water in Äventyr 1. He also asked for the failing
+`skoldhast-klo` check to be fixed.
+
+- **The lighthouse's reflection was gone from its two views.** These are the view from Klippudden ("Se hur den
+  speglar sig i vattnet" / "Fyren lyser – men bara i spegelbilden") and P7's mirror on the pier.
+  - Both build a postcard from the bay's tower and reflection (`lighthouseVista` in `view.mjs`).
+  - On 1 October the bay's reflection mask was changed to cover only water, so that it would not draw over the
+    islet's stone. The islet lies right under the tower, so the postcard, which reused that mask, showed nothing:
+    no reflected tower and no lit lamp.
+  - The postcard now has its own mask over its whole sea, as in the 29 September shots. The playable bay keeps its
+    mask.
+  - `skoldhast-mirror-vista` now checks that the reflected lamp is inside the mask. It fails without the fix.
+  - It also accepts the line Klo actually says. In ordinary help that is his own observation, not the guided line,
+    and the check used to hang there waiting for it.
+  - New shots: `docs/skoldhast/shots/k3/mirror-fix/`.
+- **Klo's notebook could close the moment it opened.**
+  - A tap on Klo opens the notebook on its pointerup. The browser's click for the same tap could land on the
+    notebook's backdrop once it was shown, and close it at once. On a slow phone that is a notebook that only
+    flickers.
+  - Now only a tap that began on the backdrop closes it (`klo-ui.mjs`).
+- **`skoldhast-klo` (the companion check) crashed before reaching Klo.**
+  - Its keyboard steps put the on-screen controls away, as they do for a player, so it found no stick zone.
+  - It now touches an empty part of the picture first, as a player would.
+  - Its quick taps carry their own times, so a slow software-rendered frame cannot turn them into presses.
+  - It passed five runs in a row at 844×390.
+- **Checked:**
+  - `npm test` passes (427).
+  - `skoldhast-mirror-vista` passes at both phone sizes.
+  - `skoldhast-klo` passes.
+
+## Voices: every line is recorded and plays in both adventures (5 November)
+
+Pappa answered the three questions and allowed his own voice, the narrator, to be public on the site. Every line is now
+recorded and played in the game. How it works, and how to record after a text change, is in
+`docs/skoldhast/voice-audit.md` ("Recording and playback").
+
+- **His decisions:**
+  - Kartväktaren's notes are read in Kartväktaren's own voice.
+  - Alva's printed sentences are read by Pappa as the narrator: her field note sentence by sentence as her pencil
+    writes it, her hope as a caption, and her question on the last note.
+  - Klo's guided-help bubbles stay text.
+- **The recordings:** 891 clips, about 68 minutes and 26 MB, in `skoldhast/voice/`. They are made by
+  `scripts/skoldhast-voice.mjs` with Eleven v4.
+  - Each clip was read back with speech-to-text.
+  - Two were heard below 80 %, and both are false alarms: "fyrtiotvå komma sju" comes back as digits, and "äh" is
+    dropped.
+  - The 21 clips under 90 % were retaken up to five times, and the better take kept.
+  - "Tordyveln" came out as "tordyven" until its three lines were retaken until the name was heard.
+  - The whole recording cost about 26,000 ElevenLabs credits. About 54,000 are left until the reset on 11 November.
+- **Playback** (`src/voice.mjs`, through the audio engine's existing voice input and the "Röster" slider):
+  - Clips are fetched only as a line is shown, never in the first download.
+  - One voice at a time. A box's tap silences it, the narrator's captions are waited for, and thoughts and hints
+    speak only in silence, the same one at most every 20 s.
+  - The music is lowered under speech.
+  - A voice never holds the game up: nothing is said before the first tap, and a clip is skipped if it has not
+    loaded in 4 s.
+  - The table scenes and Äventyr 1's prologue and ending were retimed to let each reading finish.
+  - Klo's notebook reads his answers aloud.
+- **Tests:**
+  - `tests/skoldhast-voice.test.mjs` checks the player's rules and the script's choices. It also checks that every
+    line is recorded and no clip is left over.
+  - The three robots fail if they hear a line that is not in the voice script.
+  - The browser check `tests/browser/skoldhast-voice.mjs` plays Äventyr 2's table with taps. It checks that the
+    narrator, Mira and Alva are fetched clip by clip, and that the prologue still reaches the nest.
+- **Checked:**
+  - `npm test` passes (427).
+  - In a real browser, all of these pass:
+    - `skoldhast-voice`: 17 clips fetched at the table, and the prologue reaches the nest.
+    - `skoldhast-opening`: every size, cancellation and reopen.
+    - `skoldhast-notes`: Alva's note, now read aloud, takes 61 s at 844×390; tap-to-hurry and skip still work.
+    - `skoldhast-launch`, `skoldhast-a2` and `skoldhast-finale`.
+  - `skoldhast-klo` failed at its first step, looking for a stick zone it could not find, and it failed the same way
+    on the commit before the voices. It is fixed in the section above.
+- **After any text change,** record what is missing and prune what is left over (commands in the audit). The voice test
+  fails until you do.
+- **Not heard yet by a person:** every clip passed speech-to-text, but nobody has listened to the whole game. Pappa
+  should listen to the first scenes on a phone. Words to listen for: "Snyft", "Hmpf", "J-ja", "Pling, plong", and the
+  stutter in "P-p-professor".
+
+## Voices: the cast is chosen and the script is checked before recording (5 November)
+
+Pappa listened to samples and chose a voice for every role, the sköldhäst included. It keeps the pronoun "den", with a
+voice that sounds female. Before recording, he asked for a final check of the story, every conversation and the
+narration. All of it is in `docs/skoldhast/voice-audit.md`. In short:
+
+- **The cast** is saved in his ElevenLabs account as "Sköldhästen – <roll>". The narrator is his own voice. Model:
+  Eleven v4.
+- **What gets a voice:**
+  - Speech boxes.
+  - Klo's story hints and his notebook.
+  - The sköldhäst's thoughts.
+  - Story captions, read by the narrator.
+  - Äventyr 2's companion talk, in both Klo's and Tukankrabban's voices.
+
+  Buttons, toasts, goals, the journal, Äventyr 1's guided help, control tips and sound captions stay text. The script
+  is about 960 clips and 51,000 characters.
+- **The red thread, fixed:**
+  - Äventyr 1:
+    - "tornet" is now "fyren", and Kapitel 2 no longer depends on the prologue choice or gives the torn map away early.
+    - The land-first route keeps the map-is-the-world rule.
+    - The small-wave trial has its reason again: "Blöt om hovarna varje dag – och ändå hel!"
+    - The hero does not ask what it has already said.
+    - The cloud joke fits a white cloud.
+  - Äventyr 2:
+    - Every hypothesis is put forward before it is confirmed, in both orders. Number two is confirmed by name on the
+      summit, and number three by Klo's wind measurement.
+    - The seed rule no longer contradicts the lantern.
+    - The mountain-first lines fit that order.
+- **Spoken aloud:**
+  - "Här står ”Kartväktaren”" became "Och ett namn: Kartväktaren".
+  - "man" (mane) became "manen".
+  - Nobody names themselves in the third person.
+  - Repeats that a recording would make obvious were taken out. The second shutter has its own line, and "spana
+    efter kartbiten" is no longer said four times.
+- **Tests:**
+  - The robots now fail if a line is said twice in one playthrough.
+  - The Äventyr 2 robots fail if a hypothesis is confirmed before it is put forward.
+  - A white paper cloud has its own test.
+- **Checked:**
+  - `npm test` passes (420).
+  - In a real browser, `skoldhast-map-scenes` (844×390), `skoldhast-launch`, `skoldhast-adventures` and
+    `skoldhast-a2` pass.
+- **Next, the recording step.** Its rules are in the audit:
+  - One clip at a time; captions and thoughts do not wait today.
+  - Repeated feedback thoughts are voiced at most every ~20 s.
+  - "/Kartväktaren" is spoken without the slash, and capitals are lowercased.
+  - Clips are looked up by speaker and text.
+  - Listen first to "Snyft", "Hmpf" and "J-ja".
+- **Frågor till Pappa** (answered the same day; see the section above):
+  - Kartväktaren's notes: his own voice.
+  - Alva's own printed sentences: Pappa's voice, as narrator.
+  - Klo's guided-help bubbles: text only.
+
+## Äventyr 2 on phones: the table's caption and the egg count (5 November)
+
+Pappa asked whether Äventyr 2 is done. A fresh check found the story, puzzles and finale sound. It found two layout
+faults on phones, and he asked for both to be fixed.
+
+- **Alva's table now uses Äventyr 1's table mode.** Before, Äventyr 2's table never set `table-mode`, so its caption
+  sat at the bottom with the speech boxes and the drawing card's buttons:
+  - "Alva ritar en orange krabba …" showed behind "Rita om" and "Rita åt mig" for about 2 s, at every size.
+  - On a landscape phone, "… och nio ägg till. Tio små ägg i sanden." was hidden entirely behind Alva's speech box.
+
+  `table.mjs` now sets `table-mode` in `show()` and clears it in `hide()`: speech at the bottom, the caption on a paper
+  slip at the top, as in Äventyr 1. Alva's crab caption is told while she draws, so it has gone before the egg's card
+  opens; the prologue takes no longer than before. A caption still fading out is hidden under an open drawing
+  card (`a2.css`, `.sk-ui.a2:has(.sk-draw.on)`), because the card's prompt covers the top.
+- **The egg count stays in view.** On a phone held upright, the goal note lay over "0 av 10". The count stayed hidden
+  for the whole climb, because the mountain goals do not repeat it.
+  - The note now stops short of the count. This only matters under about 730 px wide.
+  - In portrait up to 720 px wide, the note goes under the row of buttons and gets the full width.
+
+  Only `a2.css` changed; Äventyr 1 is untouched.
+- **Checked:** a probe played the prologue like a reader (about 2 s a box) at 844×390, 390×844, 1440×900 and 667×375.
+  - Before: 2, 0 and 1 overlap moments, with the count covered in portrait.
+  - After: 0 at every size, and the count is clear with both the egg goal and the longer mountain goal.
+  - No page errors.
+
+  `npm test` passes (419). In a real browser, `skoldhast-a2` (prologue, the four pages in portrait, the finale),
+  `skoldhast-adventures` and `skoldhast-launch` (all five) pass. The adventures check rewrites its own shots under
+  `docs/skoldhast/shots/adventures/` on every run (the pencil jitter differs); they were put back, since nothing in
+  them changed.
+- **Contact sheets:** `docs/skoldhast/shots/a2/table-layout-*.webp` (before and after) and `eggs-goal-390x844.webp`.
+- **Still open (Pappa):**
+  - Frame rate and play time on Alva's real device (`?debug` shows fps).
+  - Whether T3's gust is too easy.
 
 ## Äventyr 2 after a critic's read: the logic, the start, the mountain top and the view (4 November, night)
 

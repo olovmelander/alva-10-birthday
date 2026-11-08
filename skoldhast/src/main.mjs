@@ -31,6 +31,7 @@ import { CHECKPOINTS } from './content/world.mjs';
 import { createUserCloud, cloudColor, cloudPoints } from './user-cloud.mjs';
 import { createKloCompanion, normalizeKloHelpMode } from './klo-companion.mjs';
 import { createKloUI } from './klo-ui.mjs';
+import { createVoice } from './voice.mjs';
 
 // the art bundle each scene draws from (boot holds the hero, Klo, the table and the UI)
 const SCENE_BUNDLES = { land: ['land'], kelp: ['sea', 'bay'], viken: ['bay', 'sea'] };
@@ -42,7 +43,7 @@ const DEFAULT_SETTINGS = { help: 'ask', holdGallop: false, followFinger: false, 
 export function createGame({ host = document.body, assetBase = './skoldhast/', released, onClose,
     saver: sharedSaver, adventureId = FIRST_ADVENTURE, slotId, onChooseAdventure, onSlotChange, onRestart } = {}) {
     let state = 'closed';
-    let el = null, app = null, assets = null, G = null, view = null, ui = null, input = null, audio = null, story = null, table = null, guide = null;
+    let el = null, app = null, assets = null, G = null, view = null, ui = null, input = null, audio = null, story = null, table = null, guide = null, voice = null;
     let raf = 0, last = 0, acc = 0, paused = false, mode = 'title';
     let glLostAt = 0, glPrompt = null;
     let audioTheme = null;
@@ -157,9 +158,11 @@ export function createGame({ host = document.body, assetBase = './skoldhast/', r
 
         G = createLogic({ released });
         G.helpLevel = settings.help;
-        ui = createUI(el, { assetBase, handlers: uiHandlers() });
+        voice = createVoice({ audio: () => audio });
+        voice.setEnabled(settings.voice > 0);
+        ui = createUI(el, { assetBase, handlers: uiHandlers(), voice });
         const img = (name) => new URL(`${assetBase}assets/${name}.webp`, document.baseURI).href;
-        guide = createGuide(ui.root, { img, portrait: ui.portrait, heroScreen: () => heroScreen(), onGoalTap: () => openJournal(), onDismissHelp: () => companion?.dismissHelp() });
+        guide = createGuide(ui.root, { img, portrait: ui.portrait, heroScreen: () => heroScreen(), onGoalTap: () => openJournal(), onDismissHelp: () => companion?.dismissHelp(), voice });
         guide.show(false);
         const heroFactory = await loadHeroFactory();
         view = createView(PIXI, app, { assets, G, heroFactory, onFx: (name, data) => (name === 'epilogue' ? runEpilogue(data) : name === 'unfoldPage' ? runUnfold(data) : name === 'sfx' ? audio?.sfx(data) : null) });
@@ -222,7 +225,7 @@ export function createGame({ host = document.body, assetBase = './skoldhast/', r
         });
         G.story = story;
         kloUI = createKloUI(ui.root, {
-            words: KLO_COMPANION.ui, portrait: ui.portrait, lessMotion: () => settings.lessMotion,
+            words: KLO_COMPANION.ui, portrait: ui.portrait, lessMotion: () => settings.lessMotion, voice,
             onCall: () => companion?.call(), onChoice: topic => companion?.choose(topic), onClose: () => companion?.close()
         });
         companion = createKloCompanion(G, {
@@ -666,7 +669,7 @@ export function createGame({ host = document.body, assetBase = './skoldhast/', r
             const promptable = inputDevice !== 'touch' && G.context?.label && !G.player.hidden && !G.busy && !G.vista
                 && !ui.dialogueOpen() && !ui.panelOpen() && !companion.suspended() && !story.running();
             const hs = promptable ? heroScreen() : null;
-            ui.keyPrompt(hs ? { key: inputDevice === 'pad' ? 'X' : 'E', label: G.context.label, at: { x: hs.x, y: hs.y - HL * 0.8 * hs.scale } } : null);
+            ui.keyPrompt(hs ? { key: inputDevice === 'pad' ? 'X' : 'E', label: G.context.label, who: G.context.who, at: { x: hs.x, y: hs.y - HL * 0.8 * hs.scale } } : null);
             const free = !ui.dialogueOpen() && !ui.panelOpen() && !G.busy && !G.vista && !G.journey && !companion.suspended();
             guide.show(free);
             const detailedHelp = settings.help === 'guided' || companion.markerActive();
@@ -775,7 +778,7 @@ export function createGame({ host = document.body, assetBase = './skoldhast/', r
             // The first unfinished line teaches the world rule in every help level
             // (it is how Alva's page works, not the answer to a puzzle).
             if (e.reason === 'thin' && !G.flags.has('hint_thinRule')) {
-                G.flags.add('hint_thinRule'); guide.think(STORY.k1.thinRule, 7000);
+                G.flags.add('hint_thinRule'); guide.think(G.flags.has('hint_teach') ? STORY.k1.thinRuleKnown : STORY.k1.thinRule, 7000);
                 thinRuleUntil = performance.now() + 7000; return;
             }
             // a held key refuses again at once: let the first, longer thought be read
@@ -821,13 +824,14 @@ export function createGame({ host = document.body, assetBase = './skoldhast/', r
             openPause: () => openPause(),
             resume: () => resume(),
             stuck: () => {
-                // the nearest safe place on this page; the last checkpoint only if there is none
+                // the nearest safe place on this page, the same sköldhäst moved there (a beat watching it goes on);
+                // the last checkpoint only if there is none
                 const spot = G.safeSpot?.();
-                if (spot) { G.goto(G.sceneId, spot); view.cam.snap = true; }
+                if (spot) { G.relocate(spot); view.cam.snap = true; }
                 else {
                     const cp = CHECKPOINTS[G.checkpoint] || CHECKPOINTS.start;
-                    G.goto(cp.scene, cp.spot || cp.at);
-                    view.setScene(G.sceneId);
+                    if (cp.scene === G.sceneId) { G.relocate(typeof cp.spot === 'string' ? G.sceneDef.spots[cp.spot] : cp.spot || cp.at); view.cam.snap = true; }
+                    else { G.goto(cp.scene, cp.spot || cp.at); view.setScene(G.sceneId); }
                 }
                 resume();
             },
@@ -837,7 +841,8 @@ export function createGame({ host = document.body, assetBase = './skoldhast/', r
             setSetting: (k, v) => { settings[k] = v; applySettings(); saveNow(); },
             setNote: (v) => { note = v.slice(0, 200); saveNow(); },
             nextChapterOpen: (n) => (G.released || 3) > n,
-            onSay: (who) => audio?.sfx(who === 'klo' ? 'crabvoice' : 'write'),
+            // a recorded line is its own sound; the crab's chirp and the pencil are for silent lines
+            onSay: (who, text, voiced) => { if (!voiced) audio?.sfx(who === 'klo' ? 'crabvoice' : 'write'); },
             onPencil: (len) => audio?.sfx('pencil', { len })
         };
     }
@@ -845,6 +850,7 @@ export function createGame({ host = document.body, assetBase = './skoldhast/', r
         settings.help = normalizeKloHelpMode(settings.help);
         if (G) { G.helpLevel = settings.help; G.lessMotion = !!settings.lessMotion; }
         audio?.setVolumes({ music: settings.music, sfx: settings.sfx, voice: settings.voice });
+        voice?.setEnabled(settings.voice > 0 && !paused); // a change made in the pause menu speaks again on resume
         ui?.setBigText(settings.bigText);
         ui?.root.classList.toggle('less-motion', !!settings.lessMotion);
     }
@@ -926,11 +932,15 @@ export function createGame({ host = document.body, assetBase = './skoldhast/', r
         for (const t of ['pointerdown', 'pointerup', 'keydown']) el.addEventListener(t, unlock, sig);
     }
 
-    function pause() { companion?.cancel({ restore: true }); presses.clear(); paused = true; input?.release(); kloUI?.availability({ visible: false, enabled: false }); }
+    // A paused game is silent: a panel, the pause menu or a hidden tab stops the voice, as it stops time
+    // (and checks that step the game faster than real time pause it first, so no voice is waited for)
+    // (turning the phone pauses for a moment too, but the line being spoken goes on: nobody is cut off mid-sentence)
+    function pause({ reason } = {}) { companion?.cancel({ restore: true }); presses.clear(); paused = true; input?.release(); kloUI?.availability({ visible: false, enabled: false }); if (reason !== 'orientation') voice?.setEnabled(false); }
     function resume() {
         if (state !== 'open') return;
         if (ui?.panelOpen()) return;
         presses.clear(); input?.release();
+        voice?.setEnabled(settings.voice > 0);
         paused = false; last = performance.now(); acc = 0;
         if (!document.hidden) resumeAudio();
     }
@@ -952,6 +962,7 @@ export function createGame({ host = document.body, assetBase = './skoldhast/', r
             listeners?.abort();
             companion?.destroy(); kloUI?.destroy(); companion = null; kloUI = null;
             input?.destroy();
+            voice?.stop();
             ui?.destroy(); // drawing input/timers must stop before a slow asset unload
             try { audio?.dispose(); } catch { /* ignore */ }
             try { table?.destroy(); } catch { /* ignore */ }
@@ -961,7 +972,7 @@ export function createGame({ host = document.body, assetBase = './skoldhast/', r
             guide?.destroy();
             el?.remove();
             restoreHost();
-            app = null; view = null; ui = null; input = null; audio = null; story = null; table = null; G = null; assets = null; guide = null;
+            app = null; view = null; ui = null; input = null; audio = null; story = null; table = null; G = null; assets = null; guide = null; voice = null;
             glLostAt = 0; glPrompt = null;
             state = 'closed';
         })();
