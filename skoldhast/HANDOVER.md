@@ -71,6 +71,9 @@ quieter "E Prata" label was dropped, since #32 deliberately shows who will answe
   has no `libmp3lame`, which `scripts/skoldhast-voice.mjs --record` asks for, so these two clips came from ElevenLabs
   as MP3 directly (44.1 kHz, 64 kbit/s, a one-off script in the session's scratchpad); the local ffmpeg measured their
   loudness. The key is in `.env` at the repo root, which git now ignores.
+- Alva's glitter fact came right after "Det skulle hon älska" (about Skatan) without a link to it. It now says "Precis
+  som tukankrabbor! De älskar allt som glänser – pärlhalsband och guldmynt." (`STORY.magpie2`), recorded again in Alva's
+  voice (#38, heard back word for word, −18.8 LUFS); her fact is unchanged.
 
 **Verification**
 - `npm test` passes (457) on the merged tree; the robots and the voice coverage run on Windows now.

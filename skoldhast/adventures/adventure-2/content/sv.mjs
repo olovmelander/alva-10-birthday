@@ -273,7 +273,7 @@ export const STORY = {
     magpie2: [
         ['tukan', 'Mitt guldmynt! Det skulle hon älska. Jag såg stormen blåsa ner det i Djuphålan.'],
         ['klo', 'Djuphålan – mitt i floden.'],
-        ['alva', 'Tukankrabbor älskar allt som glänser. Pärlhalsband och guldmynt!']
+        ['alva', 'Precis som tukankrabbor! De älskar allt som glänser – pärlhalsband och guldmynt.']
     ],
     magpieCoin: [['tukan', 'Något som glänser mer? Vi har ju mitt guldmynt!']],
     skataTalk: [['skata', 'Bara något som glänser mer än pärlor. Så är det med det.']],
