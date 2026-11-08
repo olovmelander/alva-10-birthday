@@ -392,7 +392,7 @@ export function createStory(G, io) {
         async run(s) {
             // frame the sköldhäst and the far ridge together (not an empty sky)
             const gp = G.sceneDef.spots.glimpse1;
-            await s.cam({ x: (P().x + gp.x) / 2, y: (P().y + gp.y) / 2 - h(0.3), zoom: 0.8, t: 0.8, hold: 1.2 });
+            await s.cam({ x: (P().x + gp.x) / 2, y: (P().y + gp.y) / 2 - h(0.3), zoom: 0.8, t: 0.8, hold: 1.2, fit: [gp.x] });
             await s.say(STORY.k1.glimpse);
             s.clue('glimpse');
             s.camFree();

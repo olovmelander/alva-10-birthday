@@ -2523,7 +2523,8 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
         if (hint) { if (hint.x !== undefined) tx = hint.x; if (hint.y !== undefined) ty = hint.y; if (hint.zoom) zoom = (hint.zoom * restPx) / HL; }
         if (hint?.fit) {
             // Keep the sköldhäst and these actors in the picture, live: a gallop can still carry it on.
-            const xs = [snap.x, ...hint.fit.map(id => G.actors[id]).filter(a => a?.visible).map(a => a.x)];
+            // (an id names an actor; a number is a fixed x in the world, e.g. the far ridge of the glimpse)
+            const xs = [snap.x, ...hint.fit.map(id => typeof id === 'number' ? { visible: true, x: id } : G.actors[id]).filter(a => a?.visible).map(a => a.x)];
             const x0 = Math.min(...xs) - h(1.1), x1 = Math.max(...xs) + h(1.1);
             // in landscape the buttons (Hoppa, Göm dig, Använd) hold the right edge: frame the pair left of them
             const right = portrait ? 0 : 230;
