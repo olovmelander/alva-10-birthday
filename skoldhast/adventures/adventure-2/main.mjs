@@ -431,6 +431,9 @@ export function createGame({ host = document.body, assetBase = './skoldhast/', s
             const e = input.consume();
             if (ui.dialogueOpen() && (e.act || e.hop)) ui.advance();
             if (e.up && upMeansHop(G.player)) e.hop = true;
+            // K (pad: Y) asks Klo, as the key list in the settings says: here that is a word with him about what we
+            // are doing now, the same as "Prata" beside him (it did nothing in Äventyr 2)
+            if (e.tapKlo && !blocked && !G.busy && !story.running() && G.actors.klo?.visible && G.actors.klo.scene === G.sceneId) G.emit('talk', { who: 'klo' });
             if (blocked) presses.clear(); else presses.push(e);
             acc += dt;
             let first = true, steps = 0;
