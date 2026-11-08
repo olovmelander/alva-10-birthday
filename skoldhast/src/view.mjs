@@ -2525,8 +2525,10 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
             // Keep the sköldhäst and these actors in the picture, live: a gallop can still carry it on.
             const xs = [snap.x, ...hint.fit.map(id => G.actors[id]).filter(a => a?.visible).map(a => a.x)];
             const x0 = Math.min(...xs) - h(1.1), x1 = Math.max(...xs) + h(1.1);
-            tx = (x0 + x1) / 2;
-            zoom = Math.min(zoom, W * 0.92 / (x1 - x0));
+            // in landscape the buttons (Hoppa, Göm dig, Använd) hold the right edge: frame the pair left of them
+            const right = portrait ? 0 : 230;
+            zoom = Math.min(zoom, (W * 0.94 - right) / (x1 - x0));
+            tx = (x0 + x1) / 2 + right / 2 / zoom;
         }
         if (hint?.companion) {
             // Keep the pair in the open part of the page, beside the paper in

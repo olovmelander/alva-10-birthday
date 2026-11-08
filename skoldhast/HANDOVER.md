@@ -1,5 +1,63 @@
 # Sköldhästen – handover
 
+## A night playtest of both adventures: what a player sees on a phone (8 November, night)
+
+Pappa asked for both adventures to be played through and for everything found to be fixed: conversations, design,
+puzzles, story, the diary, UX and UI. The session read both adventures in play order (the robots' runs dumped as
+transcripts), played Äventyr 2's prologue, first page, forest and whole mountain with the real keyboard in a browser,
+and had three read-only browser audits look at every screen at 390×844, 844×390 and 1440×900 (Äventyr 1, Äventyr 2,
+and big text / less motion). Most of what they found is about phones, where Alva is likely to play.
+
+**Äventyr 2**
+- **The table's captions were never readable.** Its table did not use Äventyr 1's `table-mode`, so the captions sat at
+  the bottom: under the speech box ("… och nio ägg till", "Mira ritar en hängbro …", "Vid Alvas bord."), under the
+  drawing buttons ("Alva ritar en orange krabba …"), and cut off at both edges in portrait. `table.mjs` now sets the
+  class, so they sit on paper at the top as in Äventyr 1. In portrait the page sits in the middle, clear of the drawing
+  prompt, instead of at 10 % of the height over empty wood.
+- **The journal map was 300 px wide on every screen** (an svg in a centring flex card falls back to its default
+  width). It now fills the card (540 px), with bigger labels under each drawing and "Här är vi" above it.
+- **The help button in the journal** comes right under the goal, not after the map and every clue (on a phone on its
+  side it was two or three screens down).
+- **Group pictures follow the group.** The arrival, the cloud's arrival and the finale centred on a fixed point; in
+  portrait Klo was off screen while introducing himself, and the stopwatch gift and "Lilla Klo" happened with neither
+  of them in view. On a phone on its side the hatching was under the speech strip. The camera hint now takes
+  `fit` (the point, the sköldhäst and the named actors, live), keeps 7.5 lengths across in portrait, and in short
+  landscape centres the picture above the strip (`updateCamera` in `adventures/adventure-2/view.mjs`). The crown's
+  view of the mountain (`peak`) is untouched.
+- **Portrait HUD:** the egg count was hidden under the goal note; it now sits small under the pause button (and hides
+  while the speech box holds the top; the "Ägg n av 10!" toast says it).
+- **The finale star** Alva traces was 66 px with its dots touching on a phone; it is now at least 17 % of the short
+  side (desktop unchanged), clear of the moon and in the sky.
+- **"E Prata"** floated over the sköldhäst's head in almost every frame, because Klo and Tukankrabban walk beside it.
+  The label now waits until it stands still for 0.7 s; E works all the time, and touch shows it on the button as
+  before. Puzzle prompts (Gräv, Knuffa, Dra i lianen …) are unchanged.
+- **Swedish:** "molnet är rädt" (neuter, three places); the hypothesis no longer repeats its heading ("Hypotes: …"
+  under "Tukankrabbans hypotes"); the map hint said the map shows eggs *left*, it shows eggs found; Alva's glitter fact
+  now ties to Skatan ("Precis som tukankrabbor!").
+
+**Äventyr 1**
+- **The first story moment showed an empty beach.** The stopwatch beat fixed the camera on the midpoint when it began,
+  while the gallop carried the sköldhäst up to 1.5 lengths on: at phone sizes neither was on screen during "Helt
+  OKEJ?!". The camera hint takes `fit: ['klo']` (live) in `src/view.mjs`. (Walking Klo over instead was tried and
+  dropped: his walk back to the hole froze the player for about 8 s, which an earlier session had removed.)
+- **"Ropa på Klo … här uppe"** appeared low in the middle; it now points at the Klo button (`guide.tip(…, { at: 'klo' })`).
+- **The first touch tip, "Dra spaken ända ut",** pointed at an invisible stick; the stick now shows faintly while a
+  tip points at it (`.idle`, which nothing set).
+- **Välj äventyr** on a phone on its side hid "Börja äventyret" below the fold; the cards are compact there, and each
+  adventure has its own icon (Äventyr 2: the cloud).
+- **The notebook** on a phone on its side shows a fade and an arrow at the foot of a page that scrolls.
+- **Portrait:** the speaker's name tab sat on the dimmed "Ropa på Klo" button (hidden while someone speaks); an open
+  card's ✕ sat on or beside the HUD's pause button (the HUD hides under an open card). The prologue's choices stay on
+  one line on wide screens.
+- **Lines:** "spana efter kartbiten" four times in a row, "rivkanterna" twice in a row and the shutter line twice are
+  varied; "Så det var vikningen som rev sönder kartan."
+
+**Checked and left as it was**
+- Both stories read well in play order: the red threads, the jokes and the payoffs hold. Äventyr 1's help, recaps,
+  goals and clue texts are correct Swedish.
+- Äventyr 2's mountain, played with the keyboard at 844×390: K1's turns, K2's white current, K3's ball and plate, the
+  spring, the gusts with their warning, the light bridge in the flash. No page errors anywhere.
+
 ## Äventyr 2 after a critic's read: the logic, the start, the mountain top and the view (4 November, night)
 
 Pappa asked how the adventure holds. The answer named four weaknesses, and he asked for all four to be fixed. The table

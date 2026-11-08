@@ -728,6 +728,8 @@ html.skoldhast-lock, html.skoldhast-lock body { overflow: hidden !important; ove
 .sk-panel { z-index: 8; }
 /* an open card has its own ✕: the HUD's look-alike round pause button beside it (or under it) is hidden */
 .sk-ui:has(.sk-panel.on) .sk-hud { visibility: hidden; }
+/* the game pauses under a card, so its loop never clears the goal note or a key prompt: the card says the goal itself */
+.sk-ui:has(.sk-panel.on) .sk-guide, .sk-ui:has(.sk-panel.on) .sk-keynote { visibility: hidden; }
 .sk-message { z-index: 10; }
 
 /* at Alva's table the speech sits at the bottom, so her picture stays in view */
