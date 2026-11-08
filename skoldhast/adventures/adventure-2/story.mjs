@@ -487,7 +487,8 @@ export function createStory(G, io) {
         beat('summit', async () => {
             const sp = G.scenes.topp.spots;
             stage();
-            await fx('focus', { x: sp.cloud.x - 1.5 * HL, y: sp.cloud.y + 1.6 * HL, zoom: 1.05, hold: 0.4 });
+            // portrait: the cloud and the whole group in one picture (it cut the group off at the left edge)
+            await fx('focus', { x: sp.cloud.x - 1.5 * HL, y: sp.cloud.y + 1.6 * HL, zoom: 1.05, hold: 0.4, portraitFit: ['klo', 'tukan', 'moln'] });
             await say(STORY.summit);
             G.actors.moln.pose = 'hope';
             await say(STORY.summit2);

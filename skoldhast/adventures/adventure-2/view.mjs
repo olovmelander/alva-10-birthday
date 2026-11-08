@@ -1829,9 +1829,11 @@ export function createView(PIXI, app, { assets, G, heroFactory }) {
         const hint = G.camHint;
         if (hint) {
             tx = hint.x; ty = hint.y; zoom *= hint.zoom || 1;
-            if (hint.fit) {
+            // portrait is narrow (about 6 lengths): every story picture keeps the companions in it unless it says otherwise
+            const fit = hint.fit || (!hint.peak && H > W * 1.15 ? hint.portraitFit || ['klo', 'tukan'] : null);
+            if (fit) {
                 // a group picture, live: the point, the sköldhäst and these actors, wherever they stand now
-                const xs = [hint.x, p.x, ...hint.fit.map(id => G.actors[id]).filter(a => a?.visible && (!a.scene || a.scene === S.id)).map(a => a.x)];
+                const xs = [hint.x, p.x, ...fit.map(id => G.actors[id]).filter(a => a?.visible && (!a.scene || a.scene === S.id)).map(a => a.x)];
                 const x0 = Math.min(...xs) - h(1.3), x1 = Math.max(...xs) + h(1.1); // the hatchlings spread round the nest
                 tx = (x0 + x1) / 2;
                 zoom = Math.min(zoom, W * 0.94 / (x1 - x0));
@@ -1879,7 +1881,7 @@ export function createView(PIXI, app, { assets, G, heroFactory }) {
             case 'focus':
                 peakVistaOn = !!data?.peak;
                 if (!data) { G.camHint = null; return; }
-                G.camHint = { x: data.x, y: data.y, zoom: data.zoom || 1, peak: !!data.peak, fit: data.fit || null };
+                G.camHint = { x: data.x, y: data.y, zoom: data.zoom || 1, peak: !!data.peak, fit: data.fit || null, portraitFit: data.portraitFit || null };
                 await waitGame(rm ? 0.3 : 0.9);
                 if (data.hold) await waitGame(data.hold);
                 return;
