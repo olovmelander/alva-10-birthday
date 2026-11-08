@@ -54,7 +54,7 @@ and big text / less motion). Most of what they found is about phones, where Alva
 - **Lines:** "spana efter kartbiten" four times in a row, "rivkanterna" twice in a row and the shutter line twice are
   varied; "Så det var vikningen som rev sönder kartan."
 - **"Det finns fler!"** on the steppe had the same fixed frame as the stopwatch; it uses the live fit too (which now
-  also takes a fixed x in the world). In landscape the fit frames the pair left of the touch buttons.
+  also takes a fixed x in the world).
 
 **Both adventures**
 - **Under an open card** (the journal, pause, settings) the game is paused, so its loop never cleared the goal note,

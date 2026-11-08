@@ -2526,10 +2526,9 @@ export function createView(PIXI, app, { assets, G, heroFactory, onFx }) {
             // (an id names an actor; a number is a fixed x in the world, e.g. the far ridge of the glimpse)
             const xs = [snap.x, ...hint.fit.map(id => typeof id === 'number' ? { visible: true, x: id } : G.actors[id]).filter(a => a?.visible).map(a => a.x)];
             const x0 = Math.min(...xs) - h(1.1), x1 = Math.max(...xs) + h(1.1);
-            // in landscape the buttons (Hoppa, Göm dig, Använd) hold the right edge: frame the pair left of them
-            const right = portrait ? 0 : 230;
-            zoom = Math.min(zoom, (W * 0.94 - right) / (x1 - x0));
-            tx = (x0 + x1) / 2 + right / 2 / zoom;
+            // (the touch buttons hide while someone speaks, so the whole width is ours)
+            zoom = Math.min(zoom, W * 0.92 / (x1 - x0));
+            tx = (x0 + x1) / 2;
         }
         if (hint?.companion) {
             // Keep the pair in the open part of the page, beside the paper in
