@@ -627,7 +627,7 @@ export const HINTS = {
         'Göm dig inte! Stå vid kanten tills vindbyn kommer och tar dig med.'],
     summit: ['Stormen snurrar högst upp på toppen.', 'Följ stigen uppför berget.', 'Gå upp till toppen, där det är alldeles lugnt.'],
     nest: ['Boet ligger på Sandbanken, mitt på Flodstranden.', 'Sandbanken ligger mellan Kakaolunden och floden.', 'Gå fram till boet.'],
-    more: ['Det finns fler ägg. Har du varit överallt?', 'Titta på kartan i dagboken: där står hur många ägg varje plats har kvar.',
+    more: ['Det finns fler ägg. Har du varit överallt?', 'Titta på kartan i dagboken: där står hur många ägg du har hittat på varje plats.',
         'Gå till en plats på kartan där det fattas ägg, och fråga mig igen där.']
 };
 

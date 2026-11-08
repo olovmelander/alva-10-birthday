@@ -26,3 +26,6 @@ Thumbs.db
 /docs/skoldhast/puzzle-audit-land.md
 /docs/skoldhast/puzzle-audit-lighthouse-extras.md
 /docs/skoldhast/puzzle-audit-research.md
+
+# local secrets (the ElevenLabs key for scripts/skoldhast-voice.mjs)
+.env

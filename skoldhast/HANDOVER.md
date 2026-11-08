@@ -65,8 +65,12 @@ quieter "E Prata" label was dropped, since #32 deliberately shows who will answe
 - On a phone on its side, Klo's centred hint bubble lay over the "Ropa på Klo" button; it now starts right of it, with
   and without Större text (#35; tapping the bubble still closes it, and the side placement beside the head is unchanged).
 - Small thing left: the settings card scrolls a little at 844×390 to reach "Tangenter och handkontroll".
-- A spoken line this session would still change, but cannot without recording (no ElevenLabs key here): the map hint
-  "där står hur många ägg varje plats har kvar" (`HINTS.more`); the map shows eggs found, not eggs left.
+- The map hint said the map shows eggs *left*; it shows eggs found. It now says "Titta på kartan i dagboken: där står
+  hur många ägg du har hittat på varje plats." (`HINTS.more`), recorded again in Klo's and Tukankrabban's voices (#37;
+  both heard back word for word by speech-to-text, −22 and −23.7 LUFS) and the two old clips pruned. This PC's ffmpeg
+  has no `libmp3lame`, which `scripts/skoldhast-voice.mjs --record` asks for, so these two clips came from ElevenLabs
+  as MP3 directly (44.1 kHz, 64 kbit/s, a one-off script in the session's scratchpad); the local ffmpeg measured their
+  loudness. The key is in `.env` at the repo root, which git now ignores.
 
 **Verification**
 - `npm test` passes (457) on the merged tree; the robots and the voice coverage run on Windows now.
@@ -79,10 +83,10 @@ quieter "E Prata" label was dropped, since #32 deliberately shows who will answe
   branch started from; #17–#32 brought it up to date.
 - **Contact sheets:** `docs/skoldhast/shots/night/` (taken on the merged tree).
 
-**Frågor till Pappa**
-1. The finale's group pictures zoom out further on a phone so that everyone fits. Is the hatching big enough on Alva's
-   device?
-2. `HINTS.more` says the map shows the eggs *left*; it shows the eggs found. Record a corrected line?
+**Pappa's answers (8 November)**
+1. The hatching is big enough on a phone with the wider group picture. It stays.
+2. Record the corrected map hint: done (#37). He also said that lines may be rewritten and recorded again with the
+   ElevenLabs key in `.env`.
 
 ## Äventyr 2: "Prata" reaches both Klo and Tukankrabban (7 November)
 
