@@ -37,7 +37,7 @@ export function createGame({ host = document.body, assetBase = './skoldhast/', s
     onChooseAdventure, onSlotChange, onRestart, onClose, preview = false } = {}) {
     let state = 'closed';
     let el = null, app = null, assets = null, G = null, view = null, ui = null, input = null, audio = null, story = null, table = null;
-    let raf = 0, last = 0, acc = 0, paused = false, mode = 'title';
+    let raf = 0, last = 0, acc = 0, paused = false, mode = 'title', stillFor = 0;
     let slot = { id: 'alva', label: BOOK.slotAlva };
     let settings = { ...DEFAULT_SETTINGS, lessMotion: !!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches };
     let inputDevice = 'keys';
@@ -455,7 +455,11 @@ export function createGame({ host = document.body, assetBase = './skoldhast/', s
             if (table.shown) table.tick(dt); // the veil lifting off the world after the dive
             ui.setContext(G.context?.label, G.player.hidden, settings.holdToHide);
             const free = !ui.dialogueOpen() && !ui.panelOpen() && !G.busy;
-            const promptable = inputDevice !== 'touch' && G.context?.label && !G.player.hidden && free && !story.running();
+            // Klo and Tukankrabban walk beside the sköldhäst, so "Prata" with them is almost always at hand: its
+            // label over the head waits until the sköldhäst stands still a moment (E works all the time).
+            stillFor = Math.abs(G.player.vx) < 20 && G.player.mode === 'ground' ? stillFor + dt : 0;
+            const companion = /^talk-(tukan|klo)$/.test(G.context?.id || '');
+            const promptable = inputDevice !== 'touch' && G.context?.label && !G.player.hidden && free && !story.running() && (!companion || stillFor > 0.7);
             const hs = promptable ? heroScreen() : null;
             ui.keyPrompt(hs ? { key: inputDevice === 'pad' ? 'X' : 'E', label: G.context.label, at: { x: hs.x, y: hs.y - HL * 0.8 * hs.scale } } : null);
             ui.guide.show(free);

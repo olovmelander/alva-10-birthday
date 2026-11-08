@@ -1832,7 +1832,7 @@ export function createView(PIXI, app, { assets, G, heroFactory }) {
             if (hint.fit) {
                 // a group picture, live: the point, the sköldhäst and these actors, wherever they stand now
                 const xs = [hint.x, p.x, ...hint.fit.map(id => G.actors[id]).filter(a => a?.visible && (!a.scene || a.scene === S.id)).map(a => a.x)];
-                const x0 = Math.min(...xs) - h(0.9), x1 = Math.max(...xs) + h(0.9);
+                const x0 = Math.min(...xs) - h(1.3), x1 = Math.max(...xs) + h(1.1); // the hatchlings spread round the nest
                 tx = (x0 + x1) / 2;
                 zoom = Math.min(zoom, W * 0.94 / (x1 - x0));
             }
