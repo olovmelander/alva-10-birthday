@@ -22,15 +22,15 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import { voiceKey } from '../skoldhast/src/voice-key.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const OUT = path.join(root, 'skoldhast/voice');
 const MANIFEST = path.join(OUT, 'manifest.json');
-const A1 = await import(path.join(root, 'skoldhast/src/content/sv.mjs'));
-const A2 = await import(path.join(root, 'skoldhast/adventures/adventure-2/content/sv.mjs'));
-const { splitSentences } = await import(path.join(root, 'skoldhast/src/opening-notes.mjs'));
+const A1 = await import(pathToFileURL(path.join(root, 'skoldhast/src/content/sv.mjs')).href);
+const A2 = await import(pathToFileURL(path.join(root, 'skoldhast/adventures/adventure-2/content/sv.mjs')).href);
+const { splitSentences } = await import(pathToFileURL(path.join(root, 'skoldhast/src/opening-notes.mjs')).href);
 
 /** The voice of each role: the account's voice name, or the narrator's id from the environment. */
 export const VOICES = {

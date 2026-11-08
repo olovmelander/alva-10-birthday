@@ -451,7 +451,8 @@ export function createStory(G, io) {
             }
             G.hideHero = false;
             const k0 = G.actors.klo; k0.visible = true; k0.y = kloAt.y;
-            await fx('focus', { x: sp.nest.x, y: sp.nest.y, zoom: 1.15 });
+            // Tukankrabban, Klo and the sköldhäst all in the picture, on a narrow phone too (fit)
+            await fx('focus', { x: (sp.tukanNest.x + kloAt.x) / 2, y: sp.nest.y, zoom: 1.15, fit: ['tukan', 'klo'] });
             // "Stormen tog alla mina tio ägg": she is sad until they promise to help
             G.actors.tukan.pose = 'sad';
             await say(STORY.arrive);
@@ -642,7 +643,8 @@ export function createStory(G, io) {
         beat('summit', async () => {
             const sp = G.scenes.topp.spots;
             stage();
-            await fx('focus', { x: sp.cloud.x - 1.5 * HL, y: sp.cloud.y + 1.6 * HL, zoom: 1.05, hold: 0.4 });
+            // portrait: the cloud and the whole group in one picture (it cut the group off at the left edge)
+            await fx('focus', { x: sp.cloud.x - 1.5 * HL, y: sp.cloud.y + 1.6 * HL, zoom: 1.05, hold: 0.4, portraitFit: ['klo', 'tukan', 'moln'] });
             await say(STORY.summit);
             G.actors.moln.pose = 'hope';
             await say(STORY.summit2);
@@ -680,7 +682,7 @@ export function createStory(G, io) {
     async function finale() {
         const sp = G.scenes.strand.spots;
         G.player.vx = 0;
-        await fx('focus', { x: sp.nest.x, y: sp.nest.y - 0.6 * HL, zoom: 1.0 });
+        await fx('focus', { x: sp.nest.x, y: sp.nest.y - 0.6 * HL, zoom: 1.0, fit: ['tukan', 'klo'] });
         await say(STORY.finale);
         await fx('eggsToNest', {});
         G.flag('eggs_in_nest');

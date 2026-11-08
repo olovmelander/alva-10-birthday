@@ -2618,7 +2618,22 @@ export function createView(PIXI, app, { assets, G, heroFactory, eggTarget = null
         const lift = H > W * 1.15 ? Math.max(h(1.2), (H / zoom) * 0.2) : h(1.2); // portrait: ground at about 70 % of the height
         let tx = snap.x + (snap.facing || 1) * Math.min(h(1.6), W / zoom * 0.12), ty = snap.y - (p.mode === 'swim' ? h(0.2) : lift);
         const hint = G.camHint;
-        if (hint) { tx = hint.x; ty = hint.y; zoom *= hint.zoom || 1; }
+        if (hint) {
+            tx = hint.x; ty = hint.y; zoom *= hint.zoom || 1;
+            const portrait = H > W * 1.15;
+            const fit = hint.fit || (portrait ? hint.portraitFit : null);
+            if (fit && !hint.peak) {
+                // a group picture, live: the point, the sköldhäst and these actors, wherever they stand now
+                const xs = [hint.x, p.x, ...fit.map(id => G.actors[id]).filter(a => a?.visible && (!a.scene || a.scene === S.id)).map(a => a.x)];
+                const x0 = Math.min(...xs) - h(1.3), x1 = Math.max(...xs) + h(1.1); // the hatchlings spread round the nest
+                tx = (x0 + x1) / 2;
+                zoom = Math.min(zoom, W * 0.94 / (x1 - x0));
+                if (portrait) zoom = Math.min(zoom, W / h(7.5)); // a narrow phone: at least 7.5 lengths across
+            }
+            // Short landscape: the speech strip covers the bottom (skoldhast.css), so a story picture is centred in the
+            // space above it, a little wider, and the ground (the hatchlings at the nest) is not hidden under the words.
+            if (!hint.peak && W > H && H <= 520) { const strip = Math.min(110, H * 0.28); zoom *= 0.85; ty += strip / 2 / zoom; }
+        }
         // a story's view that shows something far away keeps its frame; one around the sköldhäst
         // (a conversation staged at the nest) still takes in the speaker
         if (!hint || Math.abs(hint.x - snap.x) < W / zoom * 0.45) ({ tx, ty, zoom } = frameSpeaker(tx, ty, zoom, W, H));
@@ -2657,7 +2672,7 @@ export function createView(PIXI, app, { assets, G, heroFactory, eggTarget = null
             case 'focus':
                 peakVistaOn = !!data?.peak;
                 if (!data) { G.camHint = null; return; }
-                G.camHint = { x: data.x, y: data.y, zoom: data.zoom || 1 };
+                G.camHint = { x: data.x, y: data.y, zoom: data.zoom || 1, peak: !!data.peak, fit: data.fit || null, portraitFit: data.portraitFit || null };
                 await waitGame(rm ? 0.3 : 0.9);
                 if (data.hold) await waitGame(data.hold);
                 return;
@@ -2754,7 +2769,8 @@ export function createView(PIXI, app, { assets, G, heroFactory, eggTarget = null
                 const dur = rm ? 0.6 : 2.2;
                 const t0 = G.time;
                 m.x = from.x; m.y = from.y;
-                G.camHint = { x: to.x, y: to.y + h(2.2), zoom: 0.85 };
+                // the whole group at the nest is in the picture with the cloud (fit)
+                G.camHint = { x: to.x, y: to.y + h(2.2), zoom: 0.85, fit: ['tukan', 'klo'] };
                 await until(() => { const u = Math.min(1, (G.time - t0) / dur), e = u * u * (3 - 2 * u); m.x = lerp(from.x, to.x, e); m.y = lerp(from.y, to.y, e); return u >= 1; });
                 return;
             }

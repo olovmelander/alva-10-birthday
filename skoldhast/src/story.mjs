@@ -244,7 +244,9 @@ export function createStory(G, io) {
         async run(s) {
             G.actors.klo.pose = 'stopwatch';
             s.sfx('stopwatch');
-            await s.cam({ x: (P().x + G.actors.klo.x) / 2, y: P().y - h(0.8), zoom: 1.05, t: 0.6, hold: 0.6 });
+            // The gallop carries the sköldhäst on (it can start 9 lengths away), so the picture keeps
+            // both in view, live (fit), instead of a point fixed at the start: that held an empty beach.
+            await s.cam({ x: (P().x + G.actors.klo.x) / 2, y: P().y - h(0.8), zoom: 1.05, t: 0.6, hold: 0.6, fit: ['klo'] });
             await s.say(STORY.k1.stopwatch);
             s.experiment('fart', 'hast');
             // the sköldhäst stamps, the crab dives into its hole
@@ -404,7 +406,7 @@ export function createStory(G, io) {
         async run(s) {
             // frame the sköldhäst and the far ridge together (not an empty sky)
             const gp = G.sceneDef.spots.glimpse1;
-            await s.cam({ x: (P().x + gp.x) / 2, y: (P().y + gp.y) / 2 - h(0.3), zoom: 0.8, t: 0.8, hold: 1.2 });
+            await s.cam({ x: (P().x + gp.x) / 2, y: (P().y + gp.y) / 2 - h(0.3), zoom: 0.8, t: 0.8, hold: 1.2, fit: [gp.x] });
             await s.say(STORY.k1.glimpse);
             s.clue('glimpse');
             s.camFree();

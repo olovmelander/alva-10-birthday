@@ -1,3 +1,84 @@
+## A night playtest of both adventures: what a player sees on a phone (8 November, night)
+
+Pappa asked for both adventures to be played through and for everything found to be fixed: conversations, design,
+puzzles, story, the diary, UX and UI. The session read both adventures in play order (the robots' runs dumped as
+transcripts), played Äventyr 2's prologue, first page, forest, east bank, whole mountain and summit with the real
+keyboard in a browser, watched Äventyr 1's whole touch journey (a picture of every speech box), and had three read-only
+browser audits look at every screen at 390×844, 844×390 and 1440×900 (Äventyr 1, Äventyr 2, Större text / Mindre
+rörelse).
+
+**Merged with main.** While this ran, `main` gained #17–#32 (voices for every line, Äventyr 2's new notebook, "Prata"
+for both companions, and many of the same phone fixes). The merge keeps upstream's work wherever both touched the same
+thing: all spoken text (it is recorded; the same repeated lines had been fixed there), the notebook (this branch's
+changes to the old "Vad vet vi?" card are gone), the table's caption timing and `table-mode`, the egg count, the
+shutter lines, `frameSpeaker`, and the guide check's rule (no key tips on a keyboard, even when guided). This branch's
+quieter "E Prata" label was dropped, since #32 deliberately shows who will answer.
+
+**What this branch adds (all on top of main)**
+- **Äventyr 2, group pictures that follow the group.** The camera hint takes `fit` (the point, the sköldhäst and the
+  named actors, live), applied before `frameSpeaker` (`updateCamera`, `adventures/adventure-2/view.mjs`):
+  - the arrival at the nest, the cloud's arrival and the finale keep Tukankrabban, Klo and the sköldhäst in the
+    picture; in portrait Klo was off screen while introducing himself, and the stopwatch gift and "Lilla Klo" happened
+    with neither in view;
+  - the summit (the cloud's big scene) keeps the group and the cloud in portrait (`portraitFit`); the group stood off
+    the left edge there. Landscape framing of the summit is unchanged;
+  - on a phone on its side the speech strip covers the bottom, so a story picture is centred above it (the hatching was
+    under the words). The crown's vista (`peak`) is untouched.
+- **Äventyr 2, the table in portrait:** the page sits between the caption and the speech box, not at 10 % of the height
+  under the drawing prompt.
+- **Äventyr 2, the finale star** Alva traces was 66 px with its dots touching on a phone; it is at least 17 % of the
+  short side (desktop unchanged), clear of the moon and in the sky.
+- **Äventyr 2, K (pad: Y)** did nothing, though the key list in the settings says "K: ropa på Klo". It now gives Klo's
+  word about what we are doing now, like "Prata" beside him (and counts as his turn, `G.lastTalk`).
+- **Äventyr 1, the first story moment showed an empty beach.** The stopwatch fixed its camera when it began while the
+  gallop carried the sköldhäst up to 1.5 lengths on; at phone sizes neither was on screen during "Helt OKEJ?!". The cam
+  hint takes `fit: ['klo']` (live) in `src/view.mjs`. "Det finns fler!" on the steppe had the same fault (`fit` also
+  takes a fixed x in the world).
+- **Äventyr 1:** "Ropa på Klo … här uppe" now points at the Klo button; the first touch tip, "Dra spaken ända ut",
+  shows the stick faintly (it pointed at nothing); Välj äventyr fits a phone on its side (the play button was below the
+  fold), with each adventure's own icon (Äventyr 2: the cloud).
+- **Both (the shared book and cards):**
+  - a notebook page that scrolls shows a fade and an arrow at its foot;
+  - under an open card the HUD, the goal note and a key prompt hide (the game is paused, so nothing cleared them, and
+    the pause button sat beside the card's ✕);
+  - in portrait the dimmed "Ropa på Klo" button hides under a speaker's name tab;
+  - **Större text:** a card taller than the screen scrolls and its heading no longer shrinks under its own words (the
+    reports and Välj äventyr printed the title over the first line); a thought bubble that would land on the touch
+    buttons goes beside the head; the report's Klo has room on top in portrait; the notebook tab label no longer cuts
+    the g in "Mätningar". Mindre rörelse was checked in both adventures: nothing stalls;
+  - the prologue's choices stay on one line on wide screens.
+- **Windows:** `scripts/skoldhast-voice.mjs` imported the text by a bare path, so on Windows four test files (both
+  robots, the play-order test and the voice test) failed to load, on `main` too. It imports by file URL now.
+
+**Checked and left as it was**
+- Both stories read well in play order; Äventyr 1's help, recaps, goals and clue texts are correct Swedish.
+- A Swedish note: "molnet är rädd" stays. The neuter of "rädd" is spelled "rätt", which collides with "rätt"
+  (correct), so Swedish normally keeps "rädd" or rephrases ("rädt" is not standard spelling).
+- Äventyr 2 with the real keyboard at 844×390: the bridge, the mushroom, the seeds, the leap, the ball (a 0.75-length
+  push window, facing the ball), the whirl's coin, Skatan's tree branch by branch, the trade, the waterfall, K1–K3, the
+  spring, the gusts and their warning, the light bridge, the wind over the gap, the summit. No page errors.
+- Small things left: the settings card scrolls a little at 844×390 to reach "Tangenter och handkontroll"; Klo's hint
+  bubble at 844×390 lies over the "Ropa på Klo" button while he speaks; with Större text at 390×844 the red rule under
+  "Sköldhästens äventyr" falls between its two lines.
+- A spoken line this session would still change, but cannot without recording (no ElevenLabs key here): the map hint
+  "där står hur många ägg varje plats har kvar" (`HINTS.more`); the map shows eggs found, not eggs left.
+
+**Verification**
+- `npm test` passes (457) on the merged tree; the robots and the voice coverage run on Windows now.
+- Browser checks that pass on the merged tree: `skoldhast-a2` (all of it, including the speaker checks), `skoldhast-guide`,
+  `skoldhast-launch`, `skoldhast-adventures`, `skoldhast-notebook`, `skoldhast-mapbook`, `skoldhast-dialogue`,
+  `skoldhast-opening`. With ten or more of them at once on one machine the title page can take over 30 s under software
+  WebGL: four timed out that way here and passed when run again on their own.
+- Still failing on untouched `main` too: `skoldhast-journey.mjs` (touch, 844×390) plays all of Kapitel 1–3 and stops at
+  its last assertion, "the page unfolds before the splash lands" (not looked into; the pure robot checks the same order
+  and passes).
+- **Contact sheets:** `docs/skoldhast/shots/night/` (taken on the merged tree).
+
+**Frågor till Pappa**
+1. The finale's group pictures zoom out further on a phone so that everyone fits. Is the hatching big enough on Alva's
+   device?
+2. `HINTS.more` says the map shows the eggs *left*; it shows the eggs found. Record a corrected line?
+
 ## Äventyr 2: "Prata" reaches both Klo and Tukankrabban (7 November)
 
 Pappa found it hard to tell whether "Prata" would talk to Klo or Tukankrabban. They follow close behind the sköldhäst,
