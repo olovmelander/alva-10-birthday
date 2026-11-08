@@ -262,6 +262,13 @@ export function createGuide(root, { img, portrait, heroScreen, onGoalTap, onDism
             x = f > 0 ? headX - 0.62 * sc - bw : headX + 0.62 * sc;
             if (x < 8 || x + bw > W - 8) x = f > 0 ? headX + 0.3 * sc : headX - 0.3 * sc - bw;
         }
+        // the touch buttons (Använd, Hoppa, Göm dig) hold the lower right: never over them (with Större text the
+        // goal note is taller, the bubble moves beside the head, and it landed on "Prata")
+        const btns = root.querySelector('.sk-btns')?.getBoundingClientRect();
+        if (btns?.width && x + bw > btns.left - r.left - 6 && x < btns.right - r.left && y + bh > btns.top - r.top - 6) {
+            const left = headX - 0.62 * sc - bw; // beside the head on the far side from the buttons, so the sköldhäst stays in view
+            x = left >= 8 ? left : btns.left - r.left - bw - 10;
+        }
         x = clamp(x, 8, W - bw - 8); y = clamp(y, Math.min(minTop, H - bh - 8), H - bh - 8);
         thinkEl.style.transform = `translate(${Math.round(x)}px, ${Math.round(y)}px)`;
         // two little dots from the bubble to the head

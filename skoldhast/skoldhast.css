@@ -359,6 +359,8 @@ html.skoldhast-lock, html.skoldhast-lock body { overflow: hidden !important; ove
 
 /* --- the chapter report: a research report, stamped, with the code on a sticky note --- */
 .sk-sheet-report { width: min(540px, 100%); margin-top: 30px; }
+/* a narrow phone: when the report fills the height (Större text), Klo on top of it still has room */
+@media (max-width: 560px) { .sk-sheet-report { margin-top: 56px; max-height: calc(100% - 56px); } }
 .sk-report { text-align: left; padding: 26px 28px 24px 52px; gap: 10px;
     background:
         linear-gradient(90deg, transparent 36px, var(--sk-margin) 36px 38px, transparent 38px),
@@ -399,7 +401,7 @@ html.skoldhast-lock, html.skoldhast-lock body { overflow: hidden !important; ove
     -webkit-mask: var(--sk-hatch) 0 0 / 70px; mask: var(--sk-hatch) 0 0 / 70px; opacity: 0.9; }
 .sk-j-tab .sk-ic { width: 26px; height: 26px; }
 /* one page: only the open tab says its name (a spread has room for all of them) */
-.sk-j-tab-label { display: none; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sk-j-tab-label { display: none; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; line-height: 1.3; } /* 1: the tab's line height cut the g in "Mätningar" */
 .sk-j-tab.on .sk-j-tab-label { display: inline; }
 .sk-j-tab.on { flex-grow: 3.2; }
 .sk-j-tab.on { height: 50px; background: var(--sk-page); box-shadow: inset 0 0 0 1.5px rgba(59, 53, 48, 0.45); z-index: 3; }
@@ -726,6 +728,8 @@ html.skoldhast-lock, html.skoldhast-lock body { overflow: hidden !important; ove
 .sk-draw { z-index: 6; }
 .sk-toasts { z-index: 7; }
 .sk-panel { z-index: 8; }
+/* a card taller than the screen (Större text) scrolls; its heading must not shrink under its own words */
+.sk-card > h2 { flex-shrink: 0; }
 /* an open card has its own ✕: the HUD's look-alike round pause button beside it (or under it) is hidden */
 .sk-ui:has(.sk-panel.on) .sk-hud { visibility: hidden; }
 /* the game pauses under a card, so its loop never clears the goal note or a key prompt: the card says the goal itself */

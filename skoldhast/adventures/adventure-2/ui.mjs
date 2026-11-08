@@ -126,7 +126,7 @@ export function createA2UI(host, { assetBase, handlers }) {
         const P = order.map(id => places.find(p => p.id === id)).filter(Boolean);
         const pos = { skog: [70, 112], strand: [210, 120], kristall: [350, 118], topp: [470, 52] };
         // "Här är vi" sits above each drawing (the top of its art), so it never covers the trees or the mountain
-        const above = { skog: 70, strand: 106, kristall: 86, topp: 18 };
+        const above = { skog: 70, strand: 92, kristall: 86, topp: 18 };
         // the name and the egg count go under each drawing (the mountain's foot is lower than its marker)
         const below = { skog: 146, strand: 152, kristall: 152, topp: 154 };
         const art = {
