@@ -18,8 +18,10 @@ Do not start the next chapter's content in the same PR. Keep `RELEASED_CHAPTER`
 
 The full existing story is **Äventyr 1**, containing Kapitel 1–3. The series catalogue
 (`src/adventures.mjs`) reserves three adventures. **Äventyr 2: Den magiska skogen** is built in
-`adventures/adventure-2/` and released (4 November 2026): it opens once Äventyr 1 is finished. 3 has no entry module yet
-(`released: false`); its design, **De försvunna stjärnorna**, is `docs/skoldhast/adventure-3.md`. Their release flags are independent of
+`adventures/adventure-2/` and released (4 November 2026): it opens once Äventyr 1 is finished. **Äventyr 3: De försvunna
+stjärnorna** is built in `adventures/adventure-3/` but not released (`released: false`; preview
+`dev/play.html?adventure=3`); its design is `docs/skoldhast/adventure-3.md` (section 20.2: what the build changed).
+Its voices are not recorded until Pappa says the adventure is finished: `docs/skoldhast/voices.md`. Their release flags are independent of
 `RELEASED_CHAPTER`. Use `src/launcher.mjs` for host integration and the adventure-aware
 save API; never reset other stories or permanent completion when replaying one.
 The runtime contract and release steps are in plan §8.6, "Adventure series".
@@ -50,6 +52,8 @@ The runtime contract and release steps are in plan §8.6, "Adventure series".
 | Series entry, release/unlock catalogue | `src/launcher.mjs`, `src/adventures.mjs` |
 | Adventure 1 runtime, loop, host glue | `src/main.mjs` |
 | Äventyr 2: Den magiska skogen (world, story, puzzles, view, runtime) | `adventures/adventure-2/` (design: `docs/skoldhast/adventure-2.md`; preview: `dev/play.html?adventure=2`) |
+| Äventyr 3: De försvunna stjärnorna (world, story, puzzles, view, table, pictures, runtime) | `adventures/adventure-3/` (design: `docs/skoldhast/adventure-3.md`; preview: `dev/play.html?adventure=3`; robot: `tests/skoldhast-a3-*.mjs`) |
+| Who speaks with which voice, the direction, how to record | `docs/skoldhast/voices.md` |
 | Synthesized audio | `src/audio.mjs` |
 | Recorded voices: the clips, the player, the recording script | `voice/`, `src/voice.mjs`, `scripts/skoldhast-voice.mjs` (what is voiced and why: `docs/skoldhast/voice-audit.md`) |
 | All art | drawn in code in `scripts/skoldhast-art/`, built by `npm run build:skoldhast` |

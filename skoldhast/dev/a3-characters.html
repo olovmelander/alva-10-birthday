@@ -1,0 +1,163 @@
+<!doctype html>
+<html lang="sv">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Äventyr 3 – figurer</title>
+<style>
+html, body { margin: 0; background: #fbf8f1; font: 14px system-ui, sans-serif; }
+nav { position: fixed; left: 8px; top: 6px; z-index: 2; display: flex; gap: 8px; }
+nav a { color: #3b3530; background: #fffdf6cc; padding: 2px 8px; border-radius: 6px; text-decoration: none; border: 1px solid #c9bfae; }
+nav a.on { background: #3b3530; color: #fff; }
+</style>
+</head>
+<body>
+<!-- Development page: Äventyr 3's characters drawn in code (adventures/adventure-3/characters.mjs), in their
+     poses. Three sheets: ?p=nova (Nova in every mood, on paper and in space), ?p=cast (Suddet, Pip, Kometen, the
+     rocket, the lights and stars, the cereal box and crumbs), ?p=sky (the moon with its bites, the dents in the fog,
+     Stora björnen, star-lines). Add &t=4 to hold the time still (for screenshots). -->
+<nav id="nav"></nav>
+<script type="module">
+import * as PIXI from '../vendor/pixi-8.21.0.min.mjs';
+import { createAssets } from '../src/assets.mjs';
+import { pencilStyle, pencilPixi } from '../src/pencil-style.mjs';
+import { createKlo } from '../src/klo.mjs';
+import { createNova, createSuddet, createPip, createKomet, createRocket, createStarLight, createAlvaStar, createPlainStar,
+    createCerealBox, createCrumbs, createSkyMoon, createDent, createBearFigure, constellationLine } from '../adventures/adventure-3/characters.mjs';
+
+const q = new URLSearchParams(location.search);
+const sheet = q.get('p') || 'nova';
+const hold = q.has('t') ? Number(q.get('t')) : null;
+document.getElementById('nav').innerHTML = ['nova', 'cast', 'sky'].map(p => `<a href="?p=${p}" class="${p === sheet ? 'on' : ''}">${p}</a>`).join('');
+
+const app = new PIXI.Application();
+await app.init({ width: innerWidth, height: innerHeight, backgroundColor: 0xfbf8f1, antialias: true, autoDensity: true, resolution: Math.min(2, devicePixelRatio || 1) });
+document.body.appendChild(app.canvas);
+const assets = createAssets(PIXI, '../');
+await assets.init(); await assets.load('boot');
+const T = n => assets.tex(n), pen = pencilStyle(T), P = pencilPixi(PIXI, T);
+
+// everything is laid out on a 1440 × 900 sheet, scaled to the window
+const DW = 1440, DH = 900;
+const stage = new PIXI.Container(); app.stage.addChild(stage);
+const fit = () => { const k = Math.min(innerWidth / DW, innerHeight / DH); stage.scale.set(k); stage.position.set((innerWidth - DW * k) / 2, (innerHeight - DH * k) / 2); };
+fit(); addEventListener('resize', () => { app.renderer.resize(innerWidth, innerHeight); fit(); });
+
+const night = (x, y, w, h) => {
+    const gr = new P.Graphics();
+    gr.rect(x, y, w, h).fill({ color: 0x141a36 });
+    gr.rect(x, y, w, h).fill(pen.hatch(0x22305e, 0.9));
+    for (let i = 0; i < 70; i++) { const sx = x + ((i * 97.13) % w), sy = y + ((i * 53.71) % h); gr.circle(sx, sy, 1 + (i % 3) * 0.5).fill({ color: 0xffffff, alpha: 0.35 + (i % 4) * 0.12 }); }
+    stage.addChild(gr);
+};
+const label = (text, x, y, dark = false) => {
+    const t = new PIXI.Text({ text, style: { fontFamily: 'system-ui, sans-serif', fontSize: 15, fill: dark ? 0xdfe4ff : 0x5a5248 } });
+    t.anchor.set(0.5, 0); t.position.set(x, y); stage.addChild(t);
+};
+const items = [];
+const put = (obj, x, y, s = 1, state = {}, call = 'actor') => {
+    obj.view.position.set(x, y); obj.view.scale.set(s); stage.addChild(obj.view);
+    items.push({ obj, state, call });
+    return obj;
+};
+
+if (sheet === 'nova') {
+    // on paper: as Alva painted her
+    const moods = [['asleep', {}], ['morning', {}], ['ordinary', { lights: 3 }], ['angry', { glow: 1 }]];
+    moods.forEach(([mood, extra], i) => {
+        const x = 170 + i * 260;
+        put(createNova(P, pen), x, 440, 0.95, { mood, ...extra });
+        label(mood, x, 450);
+    });
+    // in space: supernova with ten lights, lifting with the beam and pointing with the glowing claw, holding breakfast
+    night(0, 480, DW, 420);
+    put(createNova(P, pen), 190, 870, 0.95, { mood: 'supernova', lights: 10, eyes: 'open' });
+    label('supernova, 10 ljus', 190, 878, true);
+    put(createNova(P, pen), 470, 870, 0.95, { mood: 'ordinary', beam: 1, glow: 0.8, lights: 6 });
+    label('strålen lyfter, klon lyser', 470, 878, true);
+    put(createNova(P, pen), 760, 870, 0.95, { mood: 'ordinary', talking: true, facing: -1, holding: 'box' });
+    label('pratar, vänd åt vänster, frukost', 760, 878, true);
+    put(createNova(P, pen), 1040, 870, 0.95, { mood: 'angry', beam: 0.4 });
+    label('arg (rött, ånga)', 1040, 878, true);
+    const klo = createKlo(P, { texture: T }); klo.container.scale.set(1.3); stage.addChild(klo.container);
+    const kloActor = { visible: true, x: 1250, y: 870, facing: -1, pose: 'idle' };
+    items.push({ klo, kloActor });
+    // for scale: Klo beside her in the paper row
+    const klo2 = createKlo(P, { texture: T }); klo2.container.scale.set(1.3); stage.addChild(klo2.container);
+    items.push({ klo: klo2, kloActor: { visible: true, x: 1250, y: 440, facing: -1, pose: 'happy' } });
+} else if (sheet === 'cast') {
+    // Suddet's poses
+    const poses = [['idle', {}], ['hop', {}], ['rub', {}], ['shrink', { size: 0.6 }], ['tilt', {}], ['happy', { eyes: true, goldStar: true }]];
+    poses.forEach(([pose, extra], i) => { const x = 90 + i * 130; put(createSuddet(P, pen), x, 150, 2.2, { pose, ...extra }); label(pose, x, 160); });
+    // the rocket in its states
+    const rockets = [['hel, eld', { flame: 1 }], ['fenan borta', { fin: 'gone' }], ['suddas 0.5', { rubbed: 0.5 }], ['suddad', { rubbed: 1 }], ['sned', { tilt: -0.12 }]];
+    rockets.forEach(([name, s], i) => { const x = 930 + i * 112; put(createRocket(P, pen), x, 300, 0.5, s); label(name, x, 310); });
+    night(0, 340, DW, 560);
+    // Kometen, Pip and the lights in space
+    put(createKomet(P, pen), 520, 470, 1, { tail: 380, talking: true, speed: 1 });
+    label('Kometen pratar', 470, 530, true);
+    put(createKomet(P, pen), 520, 640, 1, { tail: 600, resting: true });
+    label('vilar', 470, 700, true);
+    put(createPip(P, pen), 760, 460, 2, { tumble: 0.6 });
+    label('Pip', 760, 530, true);
+    put(createPip(P, pen), 900, 460, 2, { tumble: 0, flash: 0.9 });
+    label('blixt', 900, 530, true);
+    const sl = createStarLight(P, pen); sl.view.position.set(1060, 470); sl.view.scale.set(1.2); stage.addChild(sl.view); items.push({ light: sl });
+    label('stjärnljus', 1060, 530, true);
+    for (let i = 0; i < 5; i++) { const s = createAlvaStar(P, pen, { seed: i + 1 }); s.view.position.set(1150 + i * 54, 460); s.view.scale.set(1.3); stage.addChild(s.view); items.push({ light: s }); }
+    label('Alvas stjärnor (blyerts)', 1260, 500, true);
+    for (let i = 0; i < 5; i++) { const s = createAlvaStar(P, pen, { seed: i + 11, gold: true }); s.view.position.set(1150 + i * 54, 580); s.view.scale.set(1.3); stage.addChild(s.view); items.push({ light: s }); }
+    label('i guld', 1260, 620, true);
+    for (let i = 0; i < 5; i++) { const s = createPlainStar(P, pen, { size: 7 + i }); s.view.position.set(1150 + i * 54, 690); stage.addChild(s.view); }
+    label('raka stjärnor', 1260, 712, true);
+    put(createCerealBox(P, pen), 760, 760, 1.6, {}, 'none');
+    label('Kometflingor', 760, 770, true);
+    put(createCrumbs(P, pen, { n: 16 }), 980, 760, 1.6, {}, 'none');
+    label('smulor', 980, 770, true);
+    put(createSuddet(P, pen), 180, 800, 2, { pose: 'rub', size: 0.5 });
+    label('litet, suddar', 180, 810, true);
+} else {
+    // the moon: whole, bitten one, two, three, the light out, draining
+    const moons = [['hel', { bites: 0, lit: 1 }], ['bett 1', { bites: 1, lit: 0.8 }], ['bett 2', { bites: 2, lit: 0.55 }], ['bett 3', { bites: 3, lit: 0.3 }], ['släckt', { bites: 3, lit: 0 }], ['rinner ut', { bites: 3, lit: 0.1, drain: 1 }]];
+    night(0, 0, DW, 330);
+    moons.forEach(([name, s], i) => { const x = 130 + i * 236; const m = put(createSkyMoon(P, pen), x, 150, 0.9, s, 'moon'); void m; label(name, x, 260, true); });
+    // the dents in the fog, on white paper
+    const dents = ['house', 'dragon', 'firstHorse', 'star'];
+    const dx = [150, 470, 860, 1100];
+    dents.forEach((k, i) => { put(createDent(P, pen, k), dx[i], 560, 1, {}, 'none'); label(k, dx[i], 570); });
+    // Stora björnen and star-lines
+    night(0, 600, DW, 300);
+    const S = [[0, 140], [60, 90], [160, 70], [260, 80], [330, 60], [390, 90], [420, 60], [450, 100], [300, 150], [180, 150], [90, 160]];
+    const off = ([x, y]) => [x + 120, y + 650];
+    const stars = S.map(off);
+    const lines = [[0, 1], [1, 2], [2, 3], [3, 4], [4, 5], [5, 7], [4, 6], [3, 8], [2, 9], [1, 10]];
+    const bear1 = createBearFigure(P, pen, { stars, lines, nose: [6, 7], legs: [0, 8, 9, 10], eye: [stars[5][0] - 4, stars[5][1] - 26] });
+    stage.addChild(bear1.view); items.push({ bear: bear1, s: { awake: 0, breath: 1 } });
+    label('björnen sover', 330, 870, true);
+    const stars2 = S.map(([x, y]) => [x + 700, y + 690]);
+    const bear2 = createBearFigure(P, pen, { stars: stars2, lines, nose: [6, 7], legs: [0, 8, 9, 10], eye: [stars2[5][0] - 4, stars2[5][1] - 26], rise: 60 });
+    stage.addChild(bear2.view); items.push({ bear: bear2, s: { awake: 1, nose: true, standing: 1 } });
+    label('vaken, nosen ritad, står', 940, 870, true);
+    const lineG = new P.Graphics();
+    constellationLine(lineG, pen, [[1240, 640], [1290, 700], [1360, 690], [1400, 740]], { dashed: true });
+    constellationLine(lineG, pen, [[1240, 780], [1290, 820], [1360, 810], [1400, 860]]);
+    stage.addChild(lineG);
+    label('streckad / ritad', 1320, 870, true);
+}
+
+let t = 0;
+app.ticker.add((tk) => {
+    const dt = tk.deltaMS / 1000; t = hold ?? t + dt;
+    for (const it of items) {
+        if (it.klo) { it.klo.update(it.kloActor, { time: t, dt }); continue; }
+        if (it.light) { it.light.update(dt, t, { k: 1 }); continue; }
+        if (it.bear) { it.bear.update(dt, it.s, t); continue; }
+        if (it.call === 'none') continue;
+        if (it.call === 'moon') { it.obj.update(dt, t, it.state); continue; }
+        it.obj.update(dt, it.state, t, {});
+    }
+});
+window.__ready = true;
+</script>
+</body>
+</html>
