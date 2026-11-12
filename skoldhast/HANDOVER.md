@@ -33,7 +33,9 @@ klara med äventyr 3", and keep everything about the voices. Done in one go:
     with random players on every page, and every conversation on a phone. What they found is fixed there.
   - **Contact sheets** under `docs/skoldhast/shots/a3/` (`scripts/skoldhast-a3-sheets.mjs` makes them again), and the
     rough edges: Stora björnen stands like a bear, the bent trees in the first lightning, Novas kupa readable on a
-    phone.
+    phone. What the sheets showed and what changed is in the audit's "The pictures": the slingshot drawn again (all of
+    Ringo, the shell once and a half round it), the night side's shade lifting when the camera pulls back, Nova kept
+    in the climax on a phone, the forest's page standing behind the ground, a bigger cereal box.
 - **Left before release (design section 20.1's gate):** the recording (step 11, when Pappa says so), and Pappa
   playing it on Alva's device with the sound on (listen to the music: nobody here can hear it). Then step 13:
   `released: true` and the picker's title.

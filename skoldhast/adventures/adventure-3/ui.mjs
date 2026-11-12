@@ -128,11 +128,13 @@ const MOLN_SVG = `<svg viewBox="0 0 64 48" aria-hidden="true"><g fill="#b3aecb" 
 
 /** Novas kupa: her dome with ten places for the lights she keeps under it. lit: a list of ten booleans. */
 const KUPA_SPOTS = [[13, 30], [23, 30.5], [37, 30.5], [47, 30], [18, 22.5], [30, 22], [42, 22.5], [24, 15], [36, 15], [30, 9]];
-function kupaSvg(lit, { big = false } = {}) {
+function kupaSvg(lit, { big = false, hud = false } = {}) {
     const on = (i) => !!lit[i];
+    // in the HUD the lights are drawn larger, so a phone shows which of the ten are lit (12 November)
+    const [glow, core, hole] = hud ? [6.2, 4.0, 3.1] : [4.4, 2.6, 2.2];
     const lights = KUPA_SPOTS.map(([x, y], i) => on(i)
-        ? `<circle cx="${x}" cy="${y}" r="4.4" fill="#fff1b0" opacity=".45"/><circle cx="${x}" cy="${y}" r="2.6" fill="#ffe27a"/><circle cx="${x - 0.7}" cy="${y - 0.8}" r=".9" fill="#fff"/>`
-        : `<circle cx="${x}" cy="${y}" r="2.2" fill="none" stroke="#e3cdf2" stroke-width=".8" stroke-dasharray="1.4 1.2" opacity=".75"/>`).join('');
+        ? `<circle cx="${x}" cy="${y}" r="${glow}" fill="#fff1b0" opacity=".45"/><circle cx="${x}" cy="${y}" r="${core}" fill="#ffe27a" stroke="#c99a2c" stroke-width="${hud ? 0.6 : 0}"/><circle cx="${x - 0.9}" cy="${y - 1}" r="${hud ? 1.3 : 0.9}" fill="#fff"/>`
+        : `<circle cx="${x}" cy="${y}" r="${hole}" fill="${hud ? '#5a2f82' : 'none'}" stroke="#e3cdf2" stroke-width="${hud ? 1.1 : 0.8}" stroke-dasharray="${hud ? '1.8 1.3' : '1.4 1.2'}" opacity="${hud ? 0.95 : 0.75}"/>`).join('');
     return `<svg viewBox="0 0 60 46" aria-hidden="true">
         <path d="M5 35 Q5 5 30 5 Q55 5 55 35 Z" fill="#9b63c4" stroke="#3e2260" stroke-width="${big ? 1.4 : 1.8}"/>
         <path d="M14 33 Q15 15 30 12 Q45 15 46 33 Z" fill="#6f3a9a" opacity=".45"/>
@@ -221,7 +223,7 @@ export function createA3UI(host, { assetBase, handlers, voice = null }) {
         if (n === lightsNow) return;
         const grew = lightsNow >= 0 && n > lightsNow;
         lightsNow = n;
-        kupaIcon.innerHTML = kupaSvg(Array.from({ length: 10 }, (_, i) => i < n));
+        kupaIcon.innerHTML = kupaSvg(Array.from({ length: 10 }, (_, i) => i < n), { hud: true });
         kupaText.textContent = WORDS.lightCount ? WORDS.lightCount(n, total) : `${n} av ${total}`;
         const aria = WORDS.lightAria ? WORDS.lightAria(n, total) : `${n} av ${total}`;
         kupa.setAttribute('aria-label', aria);

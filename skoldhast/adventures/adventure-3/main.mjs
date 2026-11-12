@@ -355,13 +355,13 @@ export function createGame({ host = document.body, assetBase = './skoldhast/', s
     async function drawWith(kind, prompt, o = {}) {
         const g = view.drawGuide?.(kind);
         if (!g?.anchors?.length) return;
-        ui.showControls(false); ui.guide.show(false);
+        ui.showControls(false); ui.guide.show(false); ui.keyPrompt(null);
         await ui.draw({ prompt, anchors: g.anchors, guide: g.guide, numbers: !!g.numbers, allowReverse: !!o.allowReverse, color: o.color || '#d9b43c', width: o.width || 5, dotRadius: o.dot || 12 });
         ui.showControls(true);
     }
     async function picture(name, data) {
         mode = 'table';
-        ui.showControls(false); ui.guide.show(false);
+        ui.showControls(false); ui.guide.show(false); ui.keyPrompt(null);
         try { await pictures.play(name, data); } finally {
             if (state === 'open') { mode = 'play'; ui.showControls(true); }
         }
@@ -395,7 +395,7 @@ export function createGame({ host = document.body, assetBase = './skoldhast/', s
             }
             case 'epilogue': {
                 mode = 'table';
-                ui.showControls(false); ui.guide.show(false); ui.guide.clear();
+                ui.showControls(false); ui.guide.show(false); ui.guide.clear(); ui.keyPrompt(null);
                 audio?.setArea('starTable');
                 await view.fx('fadeOut', { rate: 2 });
                 await table.epilogue({ flameTexture });

@@ -5,13 +5,23 @@
     pointer-events: none; display: flex; align-items: center; gap: 6px; padding: 4px 12px 4px 8px; border-radius: 14px;
     background: rgba(30, 26, 52, .55); box-shadow: inset 0 0 0 1.5px rgba(178, 140, 220, .35);
     font-size: calc(19px * var(--fz, 1)); color: #f4ecd6; text-shadow: 0 1px 2px rgba(20, 18, 34, .9), 0 0 6px rgba(20, 18, 34, .7); }
-.a3-kupa-icon { display: inline-block; width: 40px; height: 31px; filter: drop-shadow(0 0 4px rgba(214, 180, 255, .55)); }
+.a3-kupa-icon { display: inline-block; width: 52px; height: 40px; filter: drop-shadow(0 0 4px rgba(214, 180, 255, .55)); }
+/* on a phone the dome is the count: big enough that each of the ten lights can be seen */
+@media (max-width: 720px), (max-height: 460px) { .a3-kupa-icon { width: 58px; height: 44px; } .sk-hud .a3-kupa { padding: 2px 10px 2px 6px; } }
 .a3-kupa-icon svg { display: block; width: 100%; height: 100%; }
 .a3-kupa.pop .a3-kupa-icon { animation: a3-pop .7s ease-out; }
 @keyframes a3-pop { 0% { transform: scale(1); } 30% { transform: scale(1.45) rotate(-7deg); } 100% { transform: scale(1); } }
 .less-motion .a3-kupa.pop .a3-kupa-icon { animation: none; }
 /* the goal note stops short of the counter (left of the pause button) */
 .a3 .sk-goal { max-width: min(460px, calc(100% - 262px)); }
+/* a short landscape phone: Nova's and Klo's remarks take the goal note's place, and stop short of the counter
+   (centred and 640 px wide, they lay over Novas kupa, 12 November) */
+@media (orientation: landscape) and (max-height: 520px) {
+    .sk-ui.a3:not(.sk-has-klo-ui) .sk-hintbubble:not([style*="align-self"]) { align-self: flex-start; margin-left: 56px;
+        width: min(640px, calc(100% - 56px - 210px)); }
+    /* speech holds the bottom here: a caption still showing goes up, under the goal note (the launch's lay behind it) */
+    .sk-ui.a3:not(.table-mode):has(.sk-dialogue.on) .sk-caption { bottom: auto; top: 25%; }
+}
 /* phone portrait: the note goes under the row of buttons and gets the width (as Äventyr 2) */
 @media (orientation: portrait) and (max-width: 720px) {
     .a3 .sk-guide-top { top: max(66px, calc(env(safe-area-inset-top) + 56px)); }
@@ -25,8 +35,18 @@
 
 /* the night: captions and thoughts stay readable on the dark sky (and on the table's light wood) */
 .sk-ui.a3 .sk-caption { color: #f4ecd6; text-shadow: 0 1px 3px rgba(20, 18, 34, .95), 0 0 10px rgba(20, 18, 34, .8);
-    background: rgba(24, 22, 48, .55); padding: 4px 16px; border-radius: 16px; }
+    background: rgba(24, 22, 48, .55); padding: 4px 16px; border-radius: 16px;
+    /* the narrator's lines here are long (the launch, the forest, the finale): they wrap inside the screen, also in play
+       (on a phone they ran off both edges, 12 November) */
+    white-space: normal; width: max-content; max-width: min(620px, calc(100% - 32px)); box-sizing: border-box;
+    text-align: center; line-height: 1.35; }
 .sk-ui.a3:has(.sk-draw.on) .sk-caption.on { opacity: 0; }
+/* the epilogue at the table shows the buttons and the goal note: its captions go under that row, not behind it
+   (on a phone the note covered them, 12 November) */
+.sk-ui.a3.table-mode .sk-hud:not(.off) ~ .sk-caption { top: max(70px, calc(env(safe-area-inset-top) + 60px)); }
+@media (orientation: portrait) and (max-width: 720px) {
+    .sk-ui.a3.table-mode .sk-hud:not(.off) ~ .sk-caption { top: max(124px, calc(env(safe-area-inset-top) + 114px)); }
+}
 
 /* --- the title: the night notebook, the series' name in coloured pencil, Alva's stars, Nova ------------------ */
 .a3-title .sk-cover { background: #2c3c74; box-shadow: inset 0 0 0 2px rgba(18, 24, 56, .9), 0 3px 0 #1a2350, 0 22px 40px -12px rgba(10, 8, 30, .7); }

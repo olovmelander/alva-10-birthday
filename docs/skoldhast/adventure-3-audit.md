@@ -69,6 +69,32 @@ and every new line was photographed.
 
 After the changes every line of every scene shows its speaker at 390×844.
 
+## The pictures
+
+**How:** contact sheets of every page, the seven big pictures, the climax's states and Alva's table, each at
+390×844, 844×390 and 1440×900 (`scripts/skoldhast-a3-sheets.mjs`, about fifteen minutes for all; `--only` and
+`--sizes` for a few). They are under `docs/skoldhast/shots/a3/`.
+
+**Found and changed:**
+- **Stora björnen stood up on stilts,** and his back's star-line stayed where he had lain, straight through him. He
+  stands like a bear now, and the line fades while he stands.
+- **The first lightning's trees were rough;** they are bent trees in the wind now. Novas kupa up in the corner is
+  readable on a phone.
+- **The slingshot showed only coloured bands.** Ringo was drawn bigger than the screen and the shell's path lay
+  outside it at every size. All of Ringo is in the picture now, its rings tilted towards us; the shell comes in from
+  the left, goes once and a half round it (behind it over the top, in front underneath) and is flung off into the sun.
+- **The night side's shade showed as a black box** when the camera pulls back (the view from Utsikten, the earthrise,
+  the finished sky). It lifts while the camera is far out.
+- **Pulled back on an upright phone the camera saw under the Moon's ground.** It never pulls back past the page's
+  height now.
+- **Nova fell out of the climax on a phone.** The picture keeps the sköldhäst and the friends beside it whole, and lets
+  the far side of the Moon's face go off the edge when both do not fit.
+- **The forest's page floated in the sky** over Hoppfälten and down in Djupa kratern. It stands behind the ground
+  under it now, and is not seen from a crater or from up on the rocks, where there is no horizon.
+- **The cereal box was a speck** beside the sköldhäst on a phone. It is half as big again.
+- **The bear's standing followed to the next page** if the page was left in the middle of it (only the sheets could
+  do that, but a page now starts without the last page's big moment).
+
 **Found earlier, while building** (design section 20.2): a nearly vertical slope could be crept up in the shared sim
 (Djupa kratern could be climbed out of), and a wall exactly vertical dropped whoever pushed on it through the floor.
 Both are now separate floors with explicit walls.
