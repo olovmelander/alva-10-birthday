@@ -29,12 +29,14 @@ the most epic of the adventures. Nothing is built yet: `adventure-3` still has n
   - Tukankrabban stays at home (she writes back at the end); Mira's planet is called Ringo; the ten stars are
     Alva's "tioårsstjärnor", true whenever it is played; it is released whole, when finished, and the day to aim
     for is julafton 2026 (the design's section 20.1 has the gate).
-- **The four new voices are made** (12 November): "Sköldhästen – Nova", "– Suddet", "– Stora björnen" and "–
-  Kometen" in Pappa's ElevenLabs account, designed from descriptions as the first ten were, and added to `VOICES` in
-  `scripts/skoldhast-voice.mjs`. Nothing is recorded with them. The session chose among three previews each by
-  speech-to-text and tempo, since it cannot hear: **Pappa and Alva should listen** to the previews and test lines in
-  `rymdkrabban/roster/` (gitignored, on Pappa's PC) and may swap any of them before recording. The account stands at
-  19 of 30 voice slots.
+- **The four new voices are chosen by ear** (Pappa and Alva, 12 November, on the audition page "Röstprov Äventyr 3",
+  two rounds): Nova as first made, Suddet "Ljus och oskuldsfull", Stora björnen "Jättelik bas", Kometen "Hes
+  sportkommentator". They are in Pappa's ElevenLabs account as "Sköldhästen – <namn>" and in `VOICES` in
+  `scripts/skoldhast-voice.mjs`; the replaced voices are deleted. Nothing is recorded with them yet.
+- **Every line of Äventyr 3 is to be acted.** Pappa found the plain lines flat and chose direction line by line:
+  English audio tags beside each line (`say` in sv.mjs, never in the shown text, which is the clip key), recorded
+  with Eleven v4 at `stability: 0.35`. The design's section 17.1 says how, and how a take is checked. Äventyr 1 and 2
+  stay plain unless Pappa asks.
 - **Open:** only whether Alva has more facts of her own about Nova (the design's section 22). Nothing blocks the
   build. Next step: build step 1 in the design's section 20, "Nova stands on the Moon".
 
