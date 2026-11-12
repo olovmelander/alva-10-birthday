@@ -134,7 +134,7 @@ test('selecting an available adventure changes only the active selection', () =>
     assert.equal(after.activeAdventure, FIRST_ADVENTURE);
     assert.deepEqual(after.adventures, before.adventures);
     assert.deepEqual(after.completedAdventures, before.completedAdventures);
-    assert.equal(s.selectAdventure('alva', 'adventure-3'), false, 'unreleased adventures cannot be selected');
+    assert.equal(s.selectAdventure('alva', 'adventure-3'), false, 'De försvunna stjärnorna is locked until Den magiska skogen is finished');
     assert.equal(s.selectAdventure('alva', 'missing'), false);
     assert.equal(s.selectAdventure('alva', 'adventure-2'), true, 'Den magiska skogen can be selected after Äventyr 1');
     assert.equal(s.loadProfile('alva').data.activeAdventure, 'adventure-2');

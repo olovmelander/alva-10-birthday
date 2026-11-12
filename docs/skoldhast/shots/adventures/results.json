@@ -7,7 +7,8 @@
     "finished legacy migration, Äventyr 2 open and Äventyr 3 locked, replay preserves unlock and other adventure",
     "production finale saves completion and opens selector, then returns to the beach",
     "next-adventure ending action fits and identifies the selected story",
-    "Äventyr 1 → Den magiska skogen → Äventyr 1 through the real launcher"
+    "Äventyr 1 → Den magiska skogen → Äventyr 1 through the real launcher",
+    "after Den magiska skogen, De försvunna stjärnorna is open, named and launches through the real launcher"
   ],
   "errors": []
 }

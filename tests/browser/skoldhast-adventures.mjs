@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 /* Series integration: the real launcher, legacy saves, permanent completion,
  * independent players, replay, pause/resume and the production ending route.
- * Äventyr 2 (released) unlocks only once Äventyr 1 is finished; Äventyr 3 stays unreleased.
- * The last case goes from Äventyr 1's ending into Äventyr 2 and back.
+ * Äventyr 2 unlocks only once Äventyr 1 is finished, and Äventyr 3 (released 12 November) once Äventyr 2 is.
+ * A case goes from Äventyr 1's ending into Äventyr 2 and back; the last opens De försvunna stjärnorna.
  * node tests/browser/skoldhast-adventures.mjs [--out docs/skoldhast/shots/adventures]
  */
 import assert from 'node:assert/strict';
@@ -58,7 +58,7 @@ async function picker(page, from = '.sk-title', { firstDone = false } = {}) {
     await page.waitForSelector('.sk-adventures');
     assert.equal(await page.locator('.sk-adventure-card').count(), 3, 'all three adventures have a place in the series');
     assert.equal(await card(page, FIRST).locator('.sk-adventure-play').count(), 1);
-    // Den magiska skogen is released: it opens once Äventyr 1 is finished; Äventyr 3 is not released
+    // each sequel opens once the one before it is finished (these players have not finished Äventyr 2)
     const locked = firstDone ? [THIRD] : [SECOND, THIRD];
     if (firstDone) {
         assert.equal((await card(page, SECOND).getAttribute('class')).includes('is-locked'), false, 'Äventyr 2 is open after Äventyr 1');
@@ -227,7 +227,7 @@ try {
         await settle(page, 'land');
         assert.equal(await page.evaluate(() => window.__skoldhast.debug.G.has('ended')), true);
         assert.equal(await page.evaluate(adventure => window.__skoldhast.switchAdventure(adventure), THIRD), false,
-            'direct launch also refuses an unreleased story');
+            'direct launch also refuses a story that is still locked');
         assert.equal(await page.evaluate(() => window.__skoldhast.activeAdventure), FIRST);
         await reopen(page);
 
@@ -324,6 +324,31 @@ try {
         assert.equal(await page.evaluate(() => window.__skoldhast.activeAdventure), FIRST);
         assert.ok((await profile(page)).completedAdventures.includes(FIRST), 'the completion survives the round trip');
         results.push('Äventyr 1 → Den magiska skogen → Äventyr 1 through the real launcher');
+        await context.close();
+    }
+
+    {
+        // De försvunna stjärnorna, released on 12 November: open once Den magiska skogen is finished, named on its
+        // card, and it launches through the real launcher
+        const done = { contentVersion: 1, flags: [...legacy().flags, 'ended', 'b:k3_window'], checkpoint: 'beachEnd', ended: true };
+        const { context, page } = await openPage({ width: 844, height: 390 }, {
+            'skoldhast.v2.index': { slots: ['alva'], last: 'alva', deleted: [] },
+            'skoldhast.v2.slot.alva': { v: 2, contentVersion: 1, label: 'Alva', updated: 1, settings: { lessMotion: true }, activeAdventure: FIRST,
+                completedAdventures: [FIRST, SECOND], adventures: { [FIRST]: done } }
+        });
+        await page.locator('.sk-title .sk-choose-adventure').click();
+        await page.waitForSelector('.sk-adventures');
+        const third = card(page, THIRD);
+        assert.equal((await third.getAttribute('class')).includes('is-locked'), false, 'Äventyr 3 is open after Äventyr 2');
+        assert.equal(await third.locator('.sk-adventure-play').count(), 1, 'Äventyr 3 has a launch action');
+        assert.equal(ADVENTURE_UI.titles[THIRD], 'De försvunna stjärnorna');
+        assert.ok((await third.textContent()).includes(ADVENTURE_UI.titles[THIRD]), 'its card names De försvunna stjärnorna');
+        await fits(page, 'adventure-3-selector-844x390');
+        await third.locator('.sk-adventure-play').click();
+        await page.waitForSelector('.a3-title .sk-pbtn.primary', { timeout: 60000 });
+        assert.equal(await page.evaluate(() => window.__skoldhast.activeAdventure), THIRD);
+        await fits(page, 'adventure-3-title-844x390');
+        results.push('after Den magiska skogen, De försvunna stjärnorna is open, named and launches through the real launcher');
         await context.close();
     }
     assert.deepEqual(errors, [], 'no browser runtime or loading errors');
