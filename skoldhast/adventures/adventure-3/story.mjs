@@ -29,7 +29,7 @@ const PUZZLES = [
     { id: 'm3', scene: 'mane', areas: ['night'], solved: F => F.has(lightFlag('l2')), needs: 'breakfast' },
     { id: 'm4', scene: 'mane', areas: ['edge'], solved: F => F.has(lightFlag('l3')), needs: 'breakfast' },
     { id: 'm5', scene: 'mane', areas: ['edge', 'view'], solved: F => F.has('m5_view'), needs: 'breakfast' },
-    { id: 'fin', scene: 'mane', areas: ['landing', 'crater', 'jumps'], solved: F => F.has('fin_drawn'), needs: 'm5_view' },
+    { id: 'fin', scene: 'mane', areas: ['landing', 'crater'], solved: F => F.has('fin_drawn'), needs: 'm5_view' },
     { id: 's1', scene: 'stjarn', areas: ['dock', 'wagon'], solved: F => F.has('wagon_drawn') },
     { id: 's2', scene: 'stjarn', areas: ['belt'], solved: F => F.has(lightFlag('l4')) },
     { id: 's3', scene: 'stjarn', areas: ['bear'], solved: F => F.has(lightFlag('l5')) },
@@ -42,6 +42,7 @@ const PUZZLES = [
     { id: 'v1', scene: 'sudd', areas: ['whiteEdge', 'marks'], solved: F => F.has('dent4') },
     { id: 'v2', scene: 'sudd', areas: ['fog'], solved: F => F.has('fogd3') },
     { id: 'v3', scene: 'sudd', areas: ['lastBridge'], solved: F => F.has('bridge_crossed') },
+    { id: 'v4', scene: 'sudd', areas: ['crumbs'], solved: F => F.has('climax') || F.has('self_drawn'), needs: 'bridge_crossed' },
     { id: 'v5', scene: 'sudd', areas: ['crumbs'], solved: F => F.has('self_drawn'), needs: 'outline_gone' },
     { id: 'g1', scene: 'vinter', areas: ['tail'], solved: F => F.has('ride_done'), needs: 'ride' },
     { id: 'f1', scene: 'vinter', areas: ['cometHead', 'tail'], solved: F => F.has('caught'), needs: 'ride_done' },
@@ -176,6 +177,8 @@ export function createStory(G, io) {
         if (sc === 'sudd' && F.has('b:suddArrive') && !F.has('ended')) Object.assign(sudd, { visible: true, scene: 'sudd', x: suddWait(), y: 0, size: F.has('self_drawn') ? 0.5 : suddSize(), pose: 'hop' });
         else if (sc === 'mane' && F.has('ended')) Object.assign(sudd, { visible: true, scene: 'mane', x: sp.novaBed.x + 2.2 * HL, y: sp.novaBed.y - 0.02 * HL, size: 0.6, pose: 'idle', eyes: true, goldStar: true });
         else if (sc === 'vinter' && !F.has('caught')) Object.assign(sudd, { visible: true, scene: 'vinter', riding: true, size: 0.55, pose: 'rub' });
+        else if (sc === 'mane' && F.has('caught')) Object.assign(sudd, { visible: true, scene: 'mane', riding: !F.has('moon_whole'), staged: false,
+            x: p.x - p.facing * 0.9 * HL, y: p.y, size: 0.55, pose: 'idle', eyes: false });
         if (sc === 'sudd' && F.has('b:suddArrive')) { const y = G.terrain.support(sudd.x, h(-3), h(4), h(4))?.y; if (y !== undefined) sudd.y = y; }
         G.moon = moonState(F);
     }
@@ -229,6 +232,17 @@ export function createStory(G, io) {
     }
     function followSudd(dt) {
         const s = G.actors.sudd;
+        // on the Moon between the catch and the end of the story: a small hopping friend behind the sköldhäst
+        if (s?.visible && s.scene === 'mane' && G.sceneId === 'mane' && !s.riding && !s.staged && !F.has('ended')) {
+            const p = G.player, want = p.x - p.facing * 0.85 * HL;
+            if (Math.abs(want - s.x) < 0.2 * HL) { s.hop = 0; return; }
+            s.hop = (s.hop || 0) + dt * 3.2;
+            const nx = s.x + Math.sign(want - s.x) * Math.min(Math.abs(want - s.x), (Math.abs(want - s.x) > 3 * HL ? 1600 : 700) * dt);
+            const gy = groundAt(nx, p.y);
+            if (gy !== null) { s.x = nx; s.y = gy; s.facing = Math.sign(want - s.x) || s.facing; }
+            else { s.x = want; s.y = p.y; }
+            return;
+        }
         if (!s?.visible || s.scene !== 'sudd' || s.staged || F.has('climax')) return;
         const to = suddWait();
         if (Math.abs(to - s.x) < 4) { s.hop = 0; return; }
@@ -369,6 +383,9 @@ export function createStory(G, io) {
             return { id: 'moon', text: GOALS.moon(n, LIGHT_TOTAL), why: GOALS.moonWhy };
         }
         if (!F.has('fin_drawn')) return { id: 'rocket', text: GOALS.rocket, why: GOALS.rocketWhy };
+        // every light of this page found: on with the rocket
+        const here = LIGHTS_ON[G.sceneId];
+        if (here && !F.has('rocket_gone') && here.every(id => F.has(lightFlag(id)))) return { id: 'travel', text: GOALS.travel, why: GOALS.travelWhy };
         return { id: 'lights', text: GOALS.lights(n, LIGHT_TOTAL), why: GOALS.lightsWhy };
     }
     /** Per page: lights found there, visited, named (the chart names a place once the story has named it). */
@@ -465,7 +482,7 @@ export function createStory(G, io) {
         });
         // Klo and Nova, after stars 1, 2 and 3 (section 11.5)
         const moon = LIGHTS_ON.mane.filter(l => F.has(lightFlag(l))).length;
-        if (G.sceneId === 'mane' && moon >= 1 && moon <= 3) beat('rival' + moon, () => say(STORY['rival' + moon]));
+        if (G.sceneId === 'mane' && moon >= 1 && moon <= 3 && (moon > 1 || F.has('beam_used'))) beat('rival' + moon, () => say(STORY['rival' + moon]));
         G.emit('lightCount', { n });
         io.save?.();
     }
@@ -615,6 +632,7 @@ export function createStory(G, io) {
             G.flag('tenth_drawn');
             await say(STORY.tenthDone);
             await say(STORY.newJob);
+            await fx('pipCalls', {});
             await say(STORY.stranded);
             await fx('cometArrives', {});
             await say(STORY.cometComes);
@@ -650,6 +668,9 @@ export function createStory(G, io) {
             await fx('rimHeals', {});
             G.moon = moonState(F);
             mood('ordinary');
+            // Suddet hops down off the shell
+            const sd = G.actors.sudd;
+            if (sd) Object.assign(sd, { riding: false, x: G.player.x - G.player.facing * 0.85 * HL, y: G.player.y });
             await say(STORY.rimHeals);
             await fx('forestLight', {});
             await say(STORY.rimDone);
@@ -733,7 +754,7 @@ export function createStory(G, io) {
             if (id === 'edge') G.setCheckpoint('edge');
             if (intro && id === 'edge' && F.has('breakfast') && !F.has(lightFlag('l3'))) beat('ledge', () => about([86.4, 90.4, -4.6, 0.2], () => say(STORY.ledge)));
             if (intro && id === 'view' && F.has('breakfast')) view();
-            if (intro && (id === 'landing' || id === 'crater' || id === 'jumps') && F.has('m5_view') && !F.has('fin_drawn')) fin();
+            if (intro && id === 'landing' && F.has('m5_view') && !F.has('fin_drawn')) fin();
             if (id === 'crater' && F.has('moon_whole')) finale();
         } else if (sc === 'stjarn') {
             if (intro && id === 'wagon' && !F.has('wagon_drawn')) beat('wagon', () => say(STORY.wagon));
@@ -754,6 +775,7 @@ export function createStory(G, io) {
             if (intro && id === 'gap' && !F.has('gap_drawn')) beat('gap', () => about([75, 90, -2.4, 0.6], () => say(STORY.gap)));
         } else if (sc === 'sudd') {
             if (id === 'fog') G.setCheckpoint('fog');
+            if (id === 'fog' && !F.has('self_drawn')) io.audio?.silence?.(true);
             if (intro && id === 'fog' && !F.has('fog1_lit')) beat('fog', async () => { stage(); await say(STORY.fog); await say(STORY.fog2); G.later(6, () => think(STORY.fogSqueak, { gap: 30 })); });
             if (id === 'lastBridge') G.setCheckpoint('lastBridge');
             if (id === 'crumbsTop' && !F.has('self_drawn')) climax();
@@ -780,7 +802,10 @@ export function createStory(G, io) {
         }),
         G.on('carryEnd', ({ id, kind, back, go }) => {
             if (kind === 'beam' && G.sceneId === 'mane' && id !== 'beamDeepW' && id !== 'beamDeepE') { /* back up from the ledge */ }
-            if (kind === 'beam' && (id === 'beamDeepW' || id === 'beamDeepE') && F.has(lightFlag('l1'))) beat('beamDone', () => say(STORY.beamDone));
+            if (kind === 'beam' && (id === 'beamDeepW' || id === 'beamDeepE') && F.has(lightFlag('l1'))) {
+                beat('beamDone', () => say(STORY.beamDone));
+                beat('rival1', () => say(STORY.rival1));
+            }
             if (id === 'beamBridge') { if (!F.has('bridge_crossed')) G.flag('bridge_crossed'); G.setCheckpoint('crumbs'); }
             if (kind === 'orbit') {
                 if (F.has('ended')) { if (!F.has('s:pipPhoto')) { G.flag('s:pipPhoto'); fx('pipFlash', {}); } return; }
@@ -878,13 +903,16 @@ export function createStory(G, io) {
             G.flag('comet_rest');
             beat('cometRest', async () => {
                 G.player.vx = 0;
+                // Kometen stays at Rastplatsen while it talks (its breath lasts as long as the words)
+                G.cometHeld = true;
                 await say(STORY.cometRest);
                 collectLight(G, 'l8');
                 await say(STORY.cometSaw);
                 G.flag('b:cometSaw');
                 clue('crooked');
-                await say(STORY.crooked);
-                G.flag('b:crooked');
+                // "Hypotes nummer fyra" never before number three (the ring planet can come before the constellations)
+                if (done('hypothesis3')) await crooked();
+                G.cometHeld = false;
             });
         }),
         G.on('streckBroken', () => think(STORY.gravelHit, { gap: 2, force: true })),
@@ -919,6 +947,12 @@ export function createStory(G, io) {
         if (done('hypothesis3')) return;
         await say(STORY.hypothesis3);
         G.flag('b:hypothesis3');
+        if (F.has('b:cometSaw')) await crooked();
+    }
+    async function crooked() {
+        if (done('crooked')) return;
+        await say(STORY.crooked);
+        G.flag('b:crooked');
     }
 
     return {
@@ -957,7 +991,7 @@ export function createStory(G, io) {
             }
             if (G.actors.klo) G.actors.klo.lookAt = p.x;
             // the comet at Rastplatsen (view reads it)
-            if (G.sceneId === 'ring') G.comet = cometState(G);
+            if (G.sceneId === 'ring') G.comet = G.cometHeld ? { phase: 0.02, resting: true } : cometState(G);
         },
         running: () => !!current || queue.length > 0,
         objective,

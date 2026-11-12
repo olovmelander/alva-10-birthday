@@ -13,6 +13,7 @@
  *   audio.resume() / audio.suspend()       // Promises; on gestures / when hidden
  *   audio.setVolumes({ music, sfx, voice })
  *   audio.setArea('table' | 'land' | 'sea' | 'bay' | 'final' | 'quiet')   // crossfades; 'quiet' = no music
+ *     Äventyr 3: 'moon' | 'stars' | 'ring' | 'white' | 'gallop' | 'sky' | 'starTable' (Vintergatans visa)
  *   audio.setEnvironment('beach' | 'steppe' | 'kelp' | 'bay' | 'table' | null) // null follows area
  *   audio.setMotion({ speed01, underwater, hidden })                      // every frame, allocation-free
  *   audio.stinger(name) → seconds          // aha reveal chapter freeze plask leap unfold discovery
@@ -22,6 +23,9 @@
  *   audio.sfx(name, opts)                  // see SFX; every effect also takes { gain, pan, delay }
  *   audio.phrase(n, { inst }) → seconds    // first n notes of the theme
  *   audio.note(i, { inst, vel })           // scale degree i (0 = D4) on lyre | shell | plank | bell-free
+ *   audio.melodyNote(k, { inst, vel, octave, delay }) → midi   // Äventyr 3: note k of Vintergatans visa
+ *   audio.melodyPhrase(n, { inst, vel }) → seconds             // its first n notes (all: n omitted)
+ *   audio.has(name)                        // is there an effect, stinger or area by this name?
  *   audio.dispose()                        // stops and disconnects everything; closes only its own ctx
  *
  * The theme, "Sköldhästens visa": D dorian, 6/8, a 16-bar cycle (tune A + answer B). THEME exports
@@ -95,6 +99,42 @@ function midiToDegree(m) {
     return d < 0 ? 0 : o * 7 + d;
 }
 
+// Äventyr 3: "Vintergatans visa" (C lydian, 6/8, 16 bars; docs/skoldhast/adventure-3.md section 16, "Sound").
+// One melody through the whole adventure, never complete before the great gallop: a phrase on the Moon (bars 5–6),
+// a longer one among the stars (bars 5–8 and 13–14), its rhythm on the ring, almost nothing in the white hole; whole
+// for the first time in the gallop, with the hoofbeats as its drum, and once more, quietly, at the table. The first
+// half asks (a rise, a wistful fall, the lydian F# that sounds like space); the second answers, climbing to high C.
+const STAR_A = [
+    [67, 2], [72, 1], [76, 3], //               G C E        look up
+    [74, 2], [72, 1], [71, 2], [69, 1], //      D C B A
+    [67, 3], [64, 3], //                        G E          the stars that are gone
+    [66, 2], [67, 1], [69, 3], //               F# G A       the lydian question
+    [67, 2], [72, 1], [76, 3], //               G C E
+    [79, 2], [78, 1], [76, 2], [74, 1], //      G F# E D     higher this time
+    [72, 2], [76, 1], [74, 2], [71, 1], //      C E D B
+    [72, 6] //                                  C            home, for now
+];
+const STAR_B = [
+    [76, 3], [79, 3], //                        E G          the gallop begins
+    [81, 2], [79, 1], [76, 3], //               A G E
+    [78, 2], [76, 1], [74, 2], [76, 1], //      F# E D E
+    [79, 2], [78, 1], [74, 3], //               G F# D
+    [72, 2], [76, 1], [79, 3], //               C E G
+    [81, 2], [83, 1], [84, 3], //               A B C        the top of the sky
+    [83, 2], [81, 1], [79, 2], [74, 1], //      B A G D
+    [72, 6] //                                  C
+];
+/** Äventyr 3's melody as data, for the game: note k of it is audio.melodyNote(k) (V5's strides, Karlavagnen's
+ *  stars). `phrases`: the bars (0–15) each setting lets be heard before the gallop (its first bars only there). */
+export const STAR_THEME = Object.freeze({
+    name: 'Vintergatans visa',
+    key: 'C lydian',
+    meter: '6/8',
+    midi: Object.freeze(STAR_A.concat(STAR_B).map((n) => n[0])),
+    eighths: Object.freeze(STAR_A.concat(STAR_B).map((n) => n[1])),
+    phrases: Object.freeze({ moon: Object.freeze([4, 5]), stars: Object.freeze([4, 5, 6, 7, 12, 13]) })
+});
+
 // Chords: bass, arpeggio tones, strum voicing, pad voicing (MIDI)
 const CHORDS = {
     Dm: { bass: 50, tones: [50, 57, 62, 65], strum: [50, 57, 62, 65, 69], pad: [57, 62, 65] },
@@ -102,7 +142,9 @@ const CHORDS = {
     G: { bass: 55, tones: [55, 62, 67, 71], strum: [55, 62, 67, 71, 74], pad: [59, 62, 67] },
     Am: { bass: 45, tones: [45, 57, 60, 64], strum: [45, 52, 57, 60, 64], pad: [57, 60, 64] },
     C: { bass: 48, tones: [48, 55, 60, 64], strum: [48, 55, 60, 64, 67], pad: [55, 60, 64] },
-    D: { bass: 50, tones: [50, 57, 62, 66], strum: [50, 57, 62, 66, 69], pad: [57, 62, 66] }
+    D: { bass: 50, tones: [50, 57, 62, 66], strum: [50, 57, 62, 66, 69], pad: [57, 62, 66] },
+    // Äventyr 3 only (Vintergatans visa)
+    Em: { bass: 52, tones: [52, 59, 64, 67], strum: [52, 59, 64, 67, 71], pad: [55, 59, 64] }
 };
 // One chord per bar; bar 7 is split (Am | G). The final arrangement ends the cycle on D major.
 const PROG = ['Dm', 'F', 'G', 'Am', 'Dm', 'C', 'Am', 'Dm', 'F', 'C', 'G', 'Am', 'Dm', 'F', 'G', 'Dm'];
@@ -130,6 +172,31 @@ function chordNameAt(bar, pos, picardy) {
     if (picardy && bar === 15) return 'D';
     return PROG[bar];
 }
+
+// Vintergatans visa: one chord per bar (C lydian: the bright D major is its II), bars 7 and 15 split toward G.
+// Every bar's first note (and the second chord's) is a tone of its chord (tests/skoldhast-audio-a3.test.mjs).
+const STAR_PROG = ['C', 'G', 'Em', 'D', 'C', 'G', 'Am', 'C', 'C', 'Am', 'D', 'G', 'C', 'Am', 'Em', 'C'];
+const STAR_SPLIT = { 6: 'G', 14: 'G' };
+const STAR_DYN = [0.9, 0.93, 0.86, 0.88, 0.92, 1, 0.95, 0.88, 0.95, 0.97, 0.94, 0.9, 0.97, 1, 0.98, 0.92];
+const STAR_MIDI = new Int16Array(CYCLE_STEPS).fill(-1);
+const STAR_LEN = new Int8Array(CYCLE_STEPS);
+(function buildStarMelody() {
+    let s = 0;
+    for (const [m, len] of STAR_A.concat(STAR_B)) {
+        STAR_MIDI[s] = m;
+        STAR_LEN[s] = len;
+        s += len;
+    }
+})();
+function starChordAt(bar, pos) {
+    return STAR_SPLIT[bar] && pos >= 3 ? STAR_SPLIT[bar] : STAR_PROG[bar];
+}
+// The songs the arrangements play: Sköldhästens visa (Äventyr 1 and 2, every arrangement without `song`) and
+// Vintergatans visa (Äventyr 3). `split(bar)`: a bar whose chord changes half way (its pad is two halves).
+const SONGS = {
+    visa: { midi: MEL_MIDI, len: MEL_LEN, dyn: BAR_DYN, chord: chordNameAt, split: (bar) => bar === 6 },
+    stars: { midi: STAR_MIDI, len: STAR_LEN, dyn: STAR_DYN, chord: starChordAt, split: (bar) => STAR_SPLIT[bar] !== undefined }
+};
 
 // Arrangements. Levels are linear layer gains; `send` is the reverb send of the layer.
 const ARR = {
@@ -167,6 +234,63 @@ const ARR = {
         pad: { level: 0.55, lp: 3000, attack: 0.35, send: 0.3 },
         drum: { level: 0.95, min: 0.62, send: 0.1 },
         harm: { mode: 'double', level: 0.45, send: 0.45 }
+    },
+    // ---- Äventyr 3: five settings of Vintergatans visa (song: 'stars'), its table and its finished sky ----------
+    // `mel.bars`: the only bars whose melody is heard (the rest of the cycle rests): never the whole before the gallop.
+    // the Moon: sparse and slow, a phrase only, in a lot of air
+    moon: {
+        song: 'stars', bpm: 50, underLP: 900, drone: 0,
+        mel: { inst: 'lyre', level: 0.9, mode: 'full', send: 0.42, bars: [4, 5] },
+        acc: { mode: 'sparse', level: 0.6, send: 0.42, lp: 1500 },
+        pad: { level: 0.42, lp: 1100, attack: 1.3, send: 0.5 },
+        harm: { mode: 'lone', level: 0.42, send: 0.7 }
+    },
+    // the constellations: wide, a longer phrase over a slow shimmer
+    stars: {
+        song: 'stars', bpm: 60, underLP: 1100, drone: 0.12,
+        mel: { inst: 'lyre', level: 0.95, mode: 'full', send: 0.45, bars: [4, 5, 6, 7, 12, 13] },
+        acc: { mode: 'arp-soft', level: 0.72, send: 0.42, lp: 2600 },
+        pad: { level: 0.72, lp: 2800, attack: 1.0, send: 0.55 },
+        harm: { mode: 'double', level: 0.34, send: 0.62 }
+    },
+    // the ring planet: its rhythm, rolling (the tune's own rhythm on the chord's tones, never its pitches)
+    ring: {
+        song: 'stars', bpm: 74, underLP: 1000, drone: 0,
+        mel: { inst: 'plank', level: 0.72, mode: 'rhythm', send: 0.16 },
+        acc: { mode: 'adaptive', level: 0.78, send: 0.2, lp: 2000 },
+        pad: { level: 0.38, lp: 1800, attack: 0.5, send: 0.3 },
+        drum: { level: 0.7, min: 0.35, send: 0.1 }
+    },
+    // the white hole: almost nothing, a held chord far off and a lone bell now and then
+    white: {
+        song: 'stars', bpm: 40, underLP: 700, drone: 0,
+        pad: { level: 0.26, lp: 700, attack: 2.6, send: 0.65 },
+        harm: { mode: 'lone', level: 0.3, send: 0.85 }
+    },
+    // den stora galoppen: the whole melody for the first time, the hoofbeats its drum; the faster, the fuller
+    gallop: {
+        song: 'stars', bpm: 92, underLP: 1000, drone: 0.1,
+        mel: { inst: 'lyre', level: 1, mode: 'full', send: 0.22, motion: true },
+        acc: { mode: 'adaptive', level: 0.8, send: 0.18, lp: 2400 },
+        pad: { level: 0.55, lp: 3000, attack: 0.35, send: 0.3 },
+        drum: { level: 1, min: 0.25, send: 0.1 },
+        harm: { mode: 'double', level: 0.5, send: 0.45, motion: true }
+    },
+    // the finished sky (the finale and free play after the story): the whole melody, calm
+    sky: {
+        song: 'stars', bpm: 70, underLP: 1000, drone: 0.15,
+        mel: { inst: 'lyre', level: 0.92, mode: 'full', send: 0.32 },
+        acc: { mode: 'arp-soft', level: 0.7, send: 0.3, lp: 2400 },
+        pad: { level: 0.55, lp: 2600, attack: 0.8, send: 0.42 },
+        harm: { mode: 'double', level: 0.32, send: 0.55 }
+    },
+    // the table, at the end: once more, quietly, with pencil scratches
+    starTable: {
+        song: 'stars', bpm: 62, underLP: 900, drone: 0,
+        mel: { inst: 'lyre', level: 0.8, mode: 'full', send: 0.3 },
+        acc: { mode: 'sparse', level: 0.85, send: 0.24, lp: 2600 },
+        harm: { mode: 'echo', level: 0.7, send: 0.5 },
+        tex: { level: 1.1, send: 0.08 }
     }
 };
 const LAYERS = ['mel', 'acc', 'pad', 'drum', 'harm', 'tex'];
@@ -185,15 +309,21 @@ const DRUMS = [
 ];
 const FILL = [4, 'tone', 0.34, 4.5, 'tone', 0.42, 5, 'tone', 0.52, 5.5, 'tone', 0.64];
 
-export const AREAS = Object.freeze(['table', 'land', 'sea', 'bay', 'final', 'quiet']);
+export const AREAS = Object.freeze(['table', 'land', 'sea', 'bay', 'final', 'quiet',
+    // Äventyr 3 (Vintergatans visa)
+    'moon', 'stars', 'ring', 'white', 'gallop', 'sky', 'starTable']);
 export const STINGERS = Object.freeze(['aha', 'reveal', 'chapter', 'freeze', 'plask', 'leap', 'unfold', 'discovery']);
 export const SFX = Object.freeze(['hoof', 'splash', 'drip', 'shake', 'bubble', 'swim', 'pencil', 'rustle', 'unfold',
     'crabclick', 'neigh', 'blubb', 'snort', 'stamp', 'gull', 'wind', 'thunder', 'whoosh', 'thud', 'latch', 'ratchet', 'gate', 'pop',
-    'page', 'pickup', 'colorin', 'sparkle', 'stopwatch', 'write', 'ui', 'crabvoice']);
-export const SURFACES = Object.freeze(['sand', 'wetsand', 'plank', 'pier', 'grass', 'rock', 'shallow']);
+    'page', 'pickup', 'colorin', 'sparkle', 'stopwatch', 'write', 'ui', 'crabvoice',
+    // Äventyr 3
+    'rub', 'rubTear', 'beam', 'lamp', 'pip', 'ice']);
+export const SURFACES = Object.freeze(['sand', 'wetsand', 'plank', 'pier', 'grass', 'rock', 'shallow', 'moon', 'star', 'ice']);
 export const ENVIRONMENTS = Object.freeze(['beach', 'steppe', 'kelp', 'bay', 'table', 'cave']);
 // other names the world uses for what is underfoot
-const SURFACE_ALIAS = { wood: 'plank', spangen: 'pier', cream: 'plank', seabed: 'wetsand', earth: 'grass', paper: 'grass', glass: 'rock', stone: 'rock', water: 'shallow' };
+const SURFACE_ALIAS = { wood: 'plank', spangen: 'pier', cream: 'plank', seabed: 'wetsand', earth: 'grass', paper: 'grass', glass: 'rock', stone: 'rock', water: 'shallow',
+    // Äventyr 3's materials (content/world.mjs `mat`)
+    moonrock: 'rock', asteroid: 'rock', night: 'rock', starline: 'star', starstone: 'star', tail: 'star', crumbs: 'moon', dent: 'grass' };
 const VOICE_SFX = new Set(['crabvoice', 'neigh', 'blubb', 'snort']);
 export const INSTRUMENTS = Object.freeze(['lyre', 'shell', 'plank', 'bell-free']);
 
@@ -824,6 +954,23 @@ function renderHoof(fs, rng, surface, speed) {
             addNoise(x, fs, rng, 0, 0.02, { mode: 2, fc: 2500, q: 0.7, amp: 0.55 * hard, attack: 0.0002, tau: 0.003 });
             thump(130, 0.35, 0.025);
             break;
+        case 'moon':
+            // Äventyr 3: moon dust, no air: a dull, soft thump and a little powder that settles
+            thump(rr(rng, 68, 82), 0.62, 0.06);
+            addNoise(x, fs, rng, 0.004, 0.16, { mode: 0, fc: 900, q: 0.6, amp: 0.3 * hard, attack: 0.01, tau: 0.04, grain: [900, 0.002, 0.15] });
+            break;
+        case 'star':
+            // Äventyr 3: a star-line (and Kometen's tail): a light tap that rings like glass
+            addModes(x, fs, 0, [[rr(rng, 1900, 2150), 0.22, 0.09], [rr(rng, 3900, 4200), 0.12, 0.05], [rr(rng, 980, 1060), 0.18, 0.06]], 0.0004);
+            thump(rr(rng, 120, 140), 0.25, 0.02);
+            addNoise(x, fs, rng, 0, 0.02, { mode: 2, fc: 2800, q: 0.7, amp: 0.25 * hard, attack: 0.0003, tau: 0.004 });
+            break;
+        case 'ice':
+            // Äventyr 3: the ring's floes: a hard glassy click with a short slide
+            addModes(x, fs, 0, [[rr(rng, 2500, 2800), 0.28, 0.035], [rr(rng, 4300, 4700), 0.16, 0.022], [rr(rng, 700, 780), 0.25, 0.03]], 0.0002);
+            addNoise(x, fs, rng, 0.004, 0.07, { mode: 2, fc: 4200, q: 0.8, amp: 0.2 * hard, attack: 0.002, tau: 0.018 });
+            thump(115, 0.3, 0.022);
+            break;
         case 'shallow':
             thump(rr(rng, 90, 105), 0.35, 0.03);
             addNoise(x, fs, rng, 0.003, 0.22, { mode: 1, fc: (t) => 700 + 5000 * t, q: 1.1, amp: 0.5 * hard, attack: 0.006, tau: 0.045 });
@@ -845,7 +992,8 @@ function renderHoof(fs, rng, surface, speed) {
     dcBlock(x, fs);
     fadeIn(x, fs, 0.0005);
     fadeOut(x, fs, 0.05);
-    return { ch: [scaleTo(x, surface === 'grass' ? 0.36 : surface === 'sand' ? 0.43 : 0.48, peakOf(x))], send: surface === 'pier' ? 0.22 : surface === 'plank' ? 0.14 : 0.05 };
+    return { ch: [scaleTo(x, surface === 'grass' ? 0.36 : surface === 'sand' ? 0.43 : surface === 'moon' ? 0.4 : 0.48, peakOf(x))],
+        send: surface === 'pier' ? 0.22 : surface === 'plank' ? 0.14 : surface === 'star' ? 0.3 : surface === 'ice' ? 0.12 : 0.05 };
 }
 function renderStamp(fs, rng) {
     const x = buf(fs, 0.5);
@@ -1414,6 +1562,112 @@ function renderColorinNoise(fs, rng) {
     return { ch: [scaleTo(x, 0.22, peakOf(x))], send: 0.08 };
 }
 
+// --- Äventyr 3: Suddet's rubbing, a bite out of the Moon, Nova's beam and lamps, Pip, ice ------------------------
+// One stroke of an eraser on paper: stick-slip squeaks through two small resonances (the rubber's), the paper's dry
+// scrape under them, a few crumbs. The squeal's rate rises and falls with the stroke; a slip now and then skips.
+function rubStroke(x, fs, rng, t0, len, { f0 = 360, rise = 0.35, amp = 1 } = {}) {
+    const n = Math.min(Math.round(len * fs), x.length - Math.round(t0 * fs));
+    if (n <= 0) return;
+    const pulses = new Float32Array(n);
+    let ph = 0;
+    for (let i = 0; i < n; i++) {
+        const u = i / n;
+        const f = f0 * (0.82 + rise * Math.sin(Math.PI * u)) * (1 + 0.07 * (rng() - 0.5));
+        ph += f / fs;
+        if (ph >= 1) {
+            ph -= 1;
+            pulses[i] = rng() < 0.9 ? 1 : 0.25;
+        }
+    }
+    const squeak = new Float32Array(n);
+    for (const [f, q, g] of [[f0 * 2.05, 7, 1], [f0 * 4.4, 9, 0.5], [2700, 2.5, 0.22]]) {
+        const b = pulses.slice();
+        filt(b, fs, 'bp', f * rr(rng, 0.96, 1.04), q);
+        mixInto(squeak, b, 0, g);
+    }
+    for (let i = 0; i < n; i++) squeak[i] *= Math.pow(Math.sin((Math.PI * i) / n), 0.6);
+    mixInto(x, squeak, Math.round(t0 * fs), 1.4 * amp);
+    addNoise(x, fs, rng, t0, len, { mode: 1, fc: rr(rng, 1300, 1900), q: 0.8, amp: 0.3 * amp, tau: (t) => Math.sin(Math.PI * clamp(t / len, 0, 1)), grain: [650, 0.004, 0.35] });
+    crackle(x, fs, rng, t0 + len * 0.6, len * 0.4, 30, { lo: 1800, hi: 5200, amp: 0.12 * amp });
+}
+// Suddet rubbing: three strokes and a pause (play it again for the next three). Slow and dry; it never hurries.
+function renderRub(fs, rng) {
+    const x = buf(fs, 1.55);
+    let t = 0.01;
+    const f0 = rr(rng, 330, 400);
+    for (let k = 0; k < 3; k++) {
+        const len = rr(rng, 0.27, 0.34);
+        rubStroke(x, fs, rng, t, len, { f0: f0 * (k === 1 ? 1.06 : 1), amp: k === 2 ? 0.85 : 1 });
+        t += len + rr(rng, 0.1, 0.15);
+    }
+    filt(x, fs, 'hp', 170, 0.7);
+    dcBlock(x, fs);
+    fadeOut(x, fs, 0.08);
+    return { ch: [scaleTo(x, 0.34, peakOf(x))], send: 0.12 };
+}
+// A bite out of the Moon: one long tearing squeal that climbs as it drags, and the paper giving way under it.
+function renderRubTear(fs, rng) {
+    const x = buf(fs, 1.3);
+    const len = rr(rng, 0.78, 0.9);
+    rubStroke(x, fs, rng, 0.01, len, { f0: rr(rng, 300, 340), rise: 1.1, amp: 1.15 });
+    rubStroke(x, fs, rng, 0.05, len * 0.9, { f0: rr(rng, 520, 580), rise: 0.9, amp: 0.45 });
+    crackle(x, fs, rng, len * 0.55, 0.42, 90, { lo: 1200, hi: 6500, amp: 0.4, env: (u) => Math.sin(Math.PI * u) });
+    addNoise(x, fs, rng, len * 0.6, 0.35, { mode: 1, fc: 900, q: 0.6, amp: 0.3, attack: 0.01, tau: 0.09 });
+    filt(x, fs, 'hp', 140, 0.7);
+    dcBlock(x, fs);
+    fadeOut(x, fs, 0.12);
+    return { ch: [scaleTo(x, 0.42, peakOf(x))], send: 0.2 };
+}
+// Nova's beam lifting a still shell: a soft hum that rises, with a shimmer of high partials over it.
+function renderBeam(fs, rng) {
+    const dur = 1.7;
+    const x = buf(fs, dur);
+    const f0 = rr(rng, 104, 116);
+    const env = (t) => smoothstep(0, 0.35, t) * (1 - smoothstep(dur - 0.5, dur - 0.02, t));
+    const fr = (k) => (t) => k * f0 * (1 + 1.25 * smoothstep(0.1, 1.4, t));
+    addTone(x, fs, 0, dur, fr(1), (t) => 0.32 * env(t), rng() * TAU);
+    addTone(x, fs, 0, dur, fr(2), (t) => 0.16 * env(t), rng() * TAU);
+    addTone(x, fs, 0, dur, fr(3.01), (t) => 0.08 * env(t), rng() * TAU);
+    for (let k = 0; k < 4; k++) {
+        const f = rr(rng, 1800, 3400);
+        addTone(x, fs, 0.2 + k * 0.18, dur - 0.3 - k * 0.18, (t) => f * (1 + 0.6 * smoothstep(0, 1.2, t)), (t) => 0.03 * env(t + 0.2 + k * 0.18) * (0.6 + 0.4 * Math.sin(TAU * 7 * t + k)), rng() * TAU);
+    }
+    dcBlock(x, fs);
+    fadeIn(x, fs, 0.02);
+    fadeOut(x, fs, 0.1);
+    return { ch: [scaleTo(x, 0.24, peakOf(x))], send: 0.35 };
+}
+// One of Nova's five lamps changing: a small dry click with a glassy tick.
+function renderLamp(fs, rng) {
+    const x = buf(fs, 0.16);
+    addModes(x, fs, 0, [[rr(rng, 2600, 3000), 0.3, 0.008], [rr(rng, 5200, 5800), 0.14, 0.005], [rr(rng, 1150, 1300), 0.2, 0.012]], 0.0002);
+    addNoise(x, fs, rng, 0, 0.006, { mode: 2, fc: 3000, q: 0.7, amp: 0.25, attack: 0.0001, tau: 0.001 });
+    filt(x, fs, 'hp', 600, 0.7);
+    fadeOut(x, fs, 0.02);
+    return { ch: [scaleTo(x, 0.2, peakOf(x))], send: 0.08 };
+}
+// Pip: a small old satellite's beep, a little uneven, a little tinny.
+function renderPip(fs, rng) {
+    const x = buf(fs, 0.22);
+    const f = rr(rng, 1650, 2050);
+    const e = (t) => envAD(t, 0.004, 0.035) * (t < 0.07 ? 1 : 0.4);
+    addTone(x, fs, 0, 0.18, (t) => f * (1 + 0.02 * Math.sin(TAU * 60 * t)), e, 0);
+    addTone(x, fs, 0, 0.18, (t) => 3 * f * (1 + 0.02 * Math.sin(TAU * 60 * t)), (t) => 0.22 * e(t), 0);
+    addTone(x, fs, 0, 0.18, (t) => 5 * f, (t) => 0.08 * e(t), 0);
+    filt(x, fs, 'lp', 6500);
+    fadeOut(x, fs, 0.03);
+    return { ch: [scaleTo(x, 0.22, peakOf(x))], send: 0.1 };
+}
+// Ice: a glassy knock (the ring planet's floes, the ice block pushed, a star-light frozen in it).
+function renderIce(fs, rng) {
+    const x = buf(fs, 0.55);
+    addModes(x, fs, 0, [[rr(rng, 2850, 3050), 0.3, 0.12], [rr(rng, 4600, 4900), 0.2, 0.08], [rr(rng, 6800, 7200), 0.12, 0.05], [rr(rng, 1450, 1550), 0.22, 0.09]], 0.0003);
+    addNoise(x, fs, rng, 0, 0.012, { mode: 2, fc: 3500, q: 0.7, amp: 0.3, attack: 0.0002, tau: 0.002 });
+    filt(x, fs, 'hp', 500, 0.7);
+    fadeOut(x, fs, 0.08);
+    return { ch: [scaleTo(x, 0.3, peakOf(x))], send: 0.25 };
+}
+
 const SFX_RENDER = {
     splash: (fs, rng, o) => renderSplash(fs, rng, o.size == null ? 0.6 : o.size),
     drip: renderDrip,
@@ -1444,11 +1698,19 @@ const SFX_RENDER = {
     colorin: renderColorinNoise,
     sparkle: null, // purely musical
     stopwatch: renderStopwatch,
-    write: renderWrite
+    write: renderWrite,
+    // Äventyr 3
+    rub: renderRub,
+    rubTear: renderRubTear,
+    beam: renderBeam,
+    lamp: renderLamp,
+    pip: renderPip,
+    ice: renderIce
 };
 // how many variants each effect keeps before reusing them (and how many may overlap)
-const SFX_VARIANTS = { thunder: 3, drip: 6, bubble: 6, crabclick: 5, crabvoice: 5, ratchet: 5, pop: 3, splash: 2, wind: 2, unfold: 2, gate: 2, shake: 2, blubb: 2 };
-const SFX_POLY = { hoof: 8, drip: 6, bubble: 6, ratchet: 4, pencil: 3, splash: 4, crabvoice: 1, ui: 3 };
+const SFX_VARIANTS = { thunder: 3, drip: 6, bubble: 6, crabclick: 5, crabvoice: 5, ratchet: 5, pop: 3, splash: 2, wind: 2, unfold: 2, gate: 2, shake: 2, blubb: 2,
+    rub: 3, rubTear: 2, beam: 2, lamp: 3, pip: 3, ice: 4 };
+const SFX_POLY = { hoof: 8, drip: 6, bubble: 6, ratchet: 4, pencil: 3, splash: 4, crabvoice: 1, ui: 3, rub: 2, rubTear: 1, beam: 1, lamp: 3 };
 
 // --- ambience beds (seamless loops) -------------------------------------------------------------
 function renderBed(fs, rng, name) {
@@ -1550,7 +1812,9 @@ function ceilingCurve(n = 4096, knee = 0.60, ceil = 0.82) {
 /** Internal DSP renderers, exported for the QA and dev tools only (not part of the game API). */
 export const __dsp = {
     renderLyre, renderHarm, renderShell, renderPlank, renderDrum, renderReverb, renderHoof, renderBed,
-    renderReverseSwell, SFX_RENDER, mulberry32, mtof, ksString, ceilingCurve
+    renderReverseSwell, SFX_RENDER, mulberry32, mtof, ksString, ceilingCurve,
+    // the arrangements and songs, for the tests (Äventyr 3's settings of Vintergatans visa)
+    ARR, SONGS, CHORDS, BAR_STEPS
 };
 
 // =============================================================================================
@@ -1593,6 +1857,9 @@ function silentAudio() {
         sfx: noop,
         phrase: () => 0,
         note: noop,
+        melodyNote: () => 0,
+        melodyPhrase: () => 0,
+        has: () => false,
         duckSpeech: noop,
         dispose: noop
     };
@@ -1866,7 +2133,7 @@ export function createAudio({ ctx: givenCtx, seed, lifecycle = false, warm = tru
 
     function makePlayer(area, startStep, t0) {
         const spec = ARR[area];
-        const P = { area, spec, eighth: 60 / spec.bpm / 3, step: startStep, nextTime: t0, fading: false, stopAt: Infinity, killAt: Infinity, L: {}, nodes: [] };
+        const P = { area, spec, song: SONGS[spec.song] || SONGS.visa, eighth: 60 / spec.bpm / 3, step: startStep, nextTime: t0, fading: false, stopAt: Infinity, killAt: Infinity, L: {}, nodes: [] };
         const node = (n) => {
             P.nodes.push(n);
             return n;
@@ -1932,6 +2199,8 @@ export function createAudio({ ctx: givenCtx, seed, lifecycle = false, warm = tru
         const sp = motion.speed;
         if (name === 'drum') v *= Math.max(cfg.min || 0, smoothstep(0.3, 0.75, sp)); // walk ≈ 0.27, trot ≈ 0.53, gallop = 1
         if (name === 'acc' && cfg.mode === 'adaptive') v *= 0.55 + 0.45 * smoothstep(0.1, 0.8, sp);
+        // Äventyr 3's gallop: the melody grows with the gallop (standing still it is still there, softly)
+        if (cfg.motion) v *= 0.5 + 0.5 * smoothstep(0.2, 0.9, sp);
         if (motion.hidden) v *= HIDE_MUL[name];
         return v;
     }
@@ -1972,39 +2241,51 @@ export function createAudio({ ctx: givenCtx, seed, lifecycle = false, warm = tru
         const bar = (s / BAR_STEPS) | 0;
         const pos = s - bar * BAR_STEPS;
         const spec = P.spec;
+        const song = P.song;
         const e = P.eighth;
-        const ch = CHORDS[chordNameAt(bar, pos, spec.picardy)];
+        const ch = CHORDS[song.chord(bar, pos, spec.picardy)];
         const sp = motion.speed;
         const busy = voices > 84; // voice budget: skip the accompaniment rather than pile up
-        const dyn = BAR_DYN[bar];
+        const dyn = song.dyn[bar];
+        // Äventyr 3: only these bars of the melody are heard in this setting (never the whole before the gallop)
+        const heard = !spec.mel || !spec.mel.bars || spec.mel.bars.includes(bar);
         t += LILT[pos] * (e / 0.25);
         songBar = bar;
         const on = (name) => P.L[name] && !muted[name] && (P.L[name].target > 0.004 || P.L[name].gains[0].gain.value > 0.004);
 
         // melody
         if (spec.mel && on('mel')) {
-            const m = MEL_MIDI[s];
-            if (m >= 0 && (spec.mel.mode === 'full' || pos === 0 || pos === 3)) {
+            const m = song.midi[s];
+            if (spec.mel.mode === 'rhythm') {
+                // the tune's rhythm without its pitches: each of its notes rolls through the chord's tones
+                if (m >= 0) {
+                    const tone = ch.tones[1 + (s % 3)];
+                    playNote(spec.mel.inst, tone < 60 ? tone + 12 : tone, t + hum(), P.L.mel.dest, (pos === 0 ? 0.9 : pos === 3 ? 0.78 : 0.62) * dyn);
+                }
+            } else if (m >= 0 && heard && (spec.mel.mode === 'full' || pos === 0 || pos === 3)) {
                 const v = (pos === 0 ? 1 : pos === 3 ? 0.9 : 0.76) * dyn * (0.93 + 0.1 * rng());
                 playNote(spec.mel.inst, m, t + hum(), P.L.mel.dest, v);
-                if (spec.mel.inst === 'lyre' && spec.mel.mode === 'sparse' && MEL_LEN[s] >= 3) playNote('lyre', m - 12, t + 0.012, P.L.mel.dest, 0.35 * v);
+                if (spec.mel.inst === 'lyre' && spec.mel.mode === 'sparse' && song.len[s] >= 3) playNote('lyre', m - 12, t + 0.012, P.L.mel.dest, 0.35 * v);
             }
         }
         // lyre harmonics: echo phrase ends (table) or double strong beats an octave up (bay, final)
         if (spec.harm && on('harm') && !busy) {
-            const m = MEL_MIDI[s];
+            const m = song.midi[s];
             if (spec.harm.mode === 'echo') {
                 if ((bar & 1) === 1 && pos === 3 && rng() < 0.8) {
-                    const ref = MEL_MIDI[bar * BAR_STEPS] >= 0 ? MEL_MIDI[bar * BAR_STEPS] : 74;
+                    const ref = song.midi[bar * BAR_STEPS] >= 0 ? song.midi[bar * BAR_STEPS] : 74;
                     playNote('harm', ref + 12, t + e * 0.5, P.L.harm.dest, 0.55);
                 }
-            } else if (m >= 0 && (pos === 0 || pos === 3)) {
+            } else if (spec.harm.mode === 'lone') {
+                // Äventyr 3's Moon and white hole: a lone high bell every few bars, far off (not the tune)
+                if (pos === 0 && (bar & 3) === 0 && rng() < 0.75) playNote('harm', [84, 79, 83, 76][(bar >> 2) & 3], t, P.L.harm.dest, 0.5);
+            } else if (m >= 0 && heard && (pos === 0 || pos === 3)) {
                 playNote('harm', m + 12, t + 0.01, P.L.harm.dest, pos === 0 ? 0.6 : 0.45);
             }
         }
         // pad: one chord per bar (bar 7 of tune A is split)
-        if (spec.pad && on('pad') && (pos === 0 || (bar === 6 && pos === 3))) {
-            const len = bar === 6 ? 3 : BAR_STEPS;
+        if (spec.pad && on('pad') && (pos === 0 || (song.split(bar) && pos === 3))) {
+            const len = song.split(bar) ? 3 : BAR_STEPS;
             padVoice(ch.pad, t, len * e, { attack: spec.pad.attack, release: Math.max(0.5, spec.pad.attack), inL: P.padLP[0], inR: P.padLP[1] });
         }
         // accompaniment
@@ -2611,6 +2892,44 @@ export function createAudio({ ctx: givenCtx, seed, lifecycle = false, warm = tru
         playNote(inst, degreeToMidi(clamp(d, -7, 14)), ctx.currentTime + 0.005, inst === 'harm' ? SFX_MUSIC_HI : SFX_MUSIC, vel);
     }
 
+    /**
+     * Äventyr 3: note k of Vintergatans visa (k wraps round its 47 notes), on lyre | shell | plank | bell-free.
+     * opts: { inst, vel, octave (-1..1), delay }. Returns the note's MIDI number. V5: stride n plays note n; Karlavagnen's
+     * star k rings note k; the belt's stones notes 0, 1, 2.
+     */
+    function melodyNote(i, o) {
+        const opts = o || {};
+        const count = STAR_THEME.midi.length;
+        const k = (((Math.round(Number(i) || 0)) % count) + count) % count;
+        const m = STAR_THEME.midi[k] + 12 * clamp(Math.round(Number(opts.octave) || 0), -1, 1);
+        if (!audible()) return m;
+        const inst = INST_ALIAS[opts.inst] || 'lyre';
+        const vel = opts.vel == null ? 1 : clamp(opts.vel, 0, 1.5);
+        const t = ctx.currentTime + 0.005 + clamp(Number(opts.delay) || 0, 0, 3);
+        playNote(inst, m, t, inst === 'harm' ? SFX_MUSIC_HI : SFX_MUSIC, vel);
+        return m;
+    }
+    /** Äventyr 3: the first n notes of Vintergatans visa in its own rhythm (n omitted: all of it). → seconds */
+    function melodyPhrase(n, o) {
+        if (!audible()) return 0;
+        const opts = o || {};
+        const inst = INST_ALIAS[opts.inst] || 'lyre';
+        const count = clamp(Math.round(n == null ? STAR_THEME.midi.length : Number(n) || 0), 0, STAR_THEME.midi.length);
+        const e = opts.eighth || 0.22;
+        const vel = opts.vel == null ? 1 : clamp(opts.vel, 0, 1.5);
+        const t0 = ctx.currentTime + 0.02;
+        let t = t0;
+        for (let k = 0; k < count; k++) {
+            playNote(inst, STAR_THEME.midi[k], t, inst === 'harm' ? SFX_MUSIC_HI : SFX_MUSIC, vel * (k === 0 || STAR_THEME.eighths[k] >= 2 ? 1 : 0.85));
+            t += STAR_THEME.eighths[k] * e;
+        }
+        return t - t0;
+    }
+    /** Is there a sound (an effect or a stinger) or a music area by this name? */
+    function has(name) {
+        return SFX.includes(name) || STINGERS.includes(name) || AREAS.includes(name);
+    }
+
     function phrase(n, o) {
         if (!audible()) return 0;
         const opts = o || {};
@@ -2800,6 +3119,9 @@ export function createAudio({ ctx: givenCtx, seed, lifecycle = false, warm = tru
         sfx,
         phrase,
         note,
+        melodyNote,
+        melodyPhrase,
+        has,
         dispose,
         // QA / dev hooks (not part of the game contract)
         _tick: tick,

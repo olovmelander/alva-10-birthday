@@ -21,10 +21,23 @@ klara med äventyr 3", and keep everything about the voices. Done in one go:
   The voice test does not ask for Äventyr 3's clips yet.
 - **What playing it changed against the design** is in its section 20.2 (a few words that named the eraser too
   early, the Moon's jumps and shapes, space, the ring that goes round).
-- **Left before release (design section 20.1's gate):** the music (step 10: the pages use the existing areas, the
-  white hole is silent; the one melody is not written), the recording (step 11, when Pappa says so), the audits
-  (step 12: play order, ground, phone; contact sheets under `docs/skoldhast/shots/a3/`), the rubbing squeak as its
-  own sound (it falls back to the pencil), and Pappa playing it on Alva's device with the sound on. Then step 13:
+- **Then, the same evening** (Pappa: "Fortsätt med alla saker … men spela inte in några röster ännu"):
+  - **The music** (step 10): one melody, "Vintergatans visa" (`STAR_THEME` in `src/audio.mjs`), in seven settings:
+    `moon` (a phrase), `stars` (a longer one), `ring` (its rhythm), `white` (almost nothing), `gallop` (whole for the
+    first time, louder the faster the gallop), `sky` (the finale and after) and `starTable` (the epilogue). The music
+    stops at the edge of the fog and holds until the gallop. Each stride of Rita dig själv and each of Karlavagnen's
+    stars plays the next note (`audio.melodyNote`).
+  - **The sounds:** Suddet's squeak (`rub`, nearer and from its side as it is followed), a bite's tearing squeal, the
+    beam's hum, Nova's lamp, Pip, ice, and hooves on moon dust, star-lines and ice.
+  - **The audits** (step 12), in `docs/skoldhast/adventure-3-audit.md`: the play order in both orders, the ground
+    with random players on every page, and every conversation on a phone. What they found is fixed there.
+  - **Contact sheets** under `docs/skoldhast/shots/a3/` (`scripts/skoldhast-a3-sheets.mjs` makes them again), and the
+    rough edges: Stora björnen stands like a bear, the bent trees in the first lightning, Novas kupa readable on a
+    phone. What the sheets showed and what changed is in the audit's "The pictures": the slingshot drawn again (all of
+    Ringo, the shell once and a half round it), the night side's shade lifting when the camera pulls back, Nova kept
+    in the climax on a phone, the forest's page standing behind the ground, a bigger cereal box.
+- **Left before release (design section 20.1's gate):** the recording (step 11, when Pappa says so), and Pappa
+  playing it on Alva's device with the sound on (listen to the music: nobody here can hear it). Then step 13:
   `released: true` and the picker's title.
 
 ### The design (12 November)

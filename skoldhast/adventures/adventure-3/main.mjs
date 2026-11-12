@@ -33,7 +33,7 @@ export const ADVENTURE_ID = 'adventure-3';
 const DEFAULT_SETTINGS = { help: 'ask', holdGallop: false, followFinger: false, holdToHide: false, bigText: false, lessMotion: false, music: 0.8, sfx: 0.9, voice: 1 };
 // the music of each page (src/audio.mjs areas): sparse on the Moon, wide among the stars, rolling on the ring,
 // nothing at all in the white hole (section 16, "Sound"); the great gallop has the whole of it
-const AREA = { mane: 'land', stjarn: 'final', ring: 'sea', sudd: 'quiet', vinter: 'final' };
+const AREA = { mane: 'moon', stjarn: 'stars', ring: 'ring', sudd: 'white', vinter: 'gallop' };
 const REMIND_AFTER = 45;
 
 export function createGame({ host = document.body, assetBase = './skoldhast/', saver: sharedSaver, adventureId = ADVENTURE_ID, slotId,
@@ -201,10 +201,12 @@ export function createGame({ host = document.body, assetBase = './skoldhast/', s
         } catch (err) { console.warn('Sköldhästen: audio unavailable', err); audio = null; }
     }
     function areaNow() {
+        const F = G?.flags;
         if (silenced) return 'quiet';
-        if (G?.flags.has('ended')) return 'final';
-        if (G?.sceneId === 'sudd' && G.flags.has('self_drawn')) return 'final';
-        return AREA[G?.sceneId] || 'land';
+        // from the edge of the fog until the gallop: the first true silence in the series (section 16.1)
+        if (G?.sceneId === 'sudd' && F.has('b:fog') && !F.has('self_drawn')) return 'quiet';
+        if (F?.has('ended') || F?.has('moon_whole')) return 'sky';
+        return AREA[G?.sceneId] || 'moon';
     }
     function showFatal(text) {
         const box = document.createElement('div');
@@ -353,13 +355,13 @@ export function createGame({ host = document.body, assetBase = './skoldhast/', s
     async function drawWith(kind, prompt, o = {}) {
         const g = view.drawGuide?.(kind);
         if (!g?.anchors?.length) return;
-        ui.showControls(false); ui.guide.show(false);
+        ui.showControls(false); ui.guide.show(false); ui.keyPrompt(null);
         await ui.draw({ prompt, anchors: g.anchors, guide: g.guide, numbers: !!g.numbers, allowReverse: !!o.allowReverse, color: o.color || '#d9b43c', width: o.width || 5, dotRadius: o.dot || 12 });
         ui.showControls(true);
     }
     async function picture(name, data) {
         mode = 'table';
-        ui.showControls(false); ui.guide.show(false);
+        ui.showControls(false); ui.guide.show(false); ui.keyPrompt(null);
         try { await pictures.play(name, data); } finally {
             if (state === 'open') { mode = 'play'; ui.showControls(true); }
         }
@@ -379,7 +381,12 @@ export function createGame({ host = document.body, assetBase = './skoldhast/', s
             case 'constellationDraw':
                 await drawWith('constellation', WORDS.drawConstellation, { color: '#e9b949', width: 4.5, dot: 13 });
                 audio?.stinger?.('discovery');
+                audio?.melodyPhrase?.(12, { inst: 'harm' });
                 return view.fx('drawn', { kind: 'constellation' });
+            // Suddet's work is heard: the squeak, and at each bite one tearing squeal (section 16.1)
+            case 'bite': audio?.sfx('rub'); audio?.sfx('rubTear', { delay: 0.6 }); return view.fx(name, data);
+            case 'notesRub': case 'outlineGone': audio?.sfx('rub', { gain: 0.9 }); return view.fx(name, data);
+            case 'pipFlash': audio?.sfx('pip'); return view.fx(name, data);
             case 'forestDark': case 'forestLight': return picture(name, { ...data, flameTexture });
             case 'tableVoices': return; // the table is heard, not seen, between pages
             case 'travel': {
@@ -388,7 +395,8 @@ export function createGame({ host = document.body, assetBase = './skoldhast/', s
             }
             case 'epilogue': {
                 mode = 'table';
-                ui.showControls(false); ui.guide.show(false); ui.guide.clear();
+                ui.showControls(false); ui.guide.show(false); ui.guide.clear(); ui.keyPrompt(null);
+                audio?.setArea('starTable');
                 await view.fx('fadeOut', { rate: 2 });
                 await table.epilogue({ flameTexture });
                 if (state !== 'open') return;
@@ -487,6 +495,7 @@ export function createGame({ host = document.body, assetBase = './skoldhast/', s
             if (view && view.lightsLanded > lightsLanded) { lightsLanded = view.lightsLanded; audio?.note?.(2 + (G.lights() % 6), { inst: 'shell', vel: 0.5 }); }
             if (audio) {
                 const p = G.player;
+                squeak(dt, p);
                 audio.setMotion({ speed01: Math.min(1, Math.abs(p.vx) / 1200), underwater: false, hidden: p.hidden });
                 // in space no sound is heard (rule 10): no wind, no waves; only what is close
                 audio.setEnvironment(G.sceneId === 'mane' ? 'table' : 'table');
@@ -522,6 +531,19 @@ export function createGame({ host = document.body, assetBase = './skoldhast/', s
         }
     }
 
+    // In the white, before the sköldhäst is whole again, Suddet is heard: a slow squeak, three strokes and a pause, nearer
+    // as it is followed, from its side (section 16.1). It never speeds up.
+    let squeakT = 0;
+    function squeak(dt, p) {
+        const s = G.actors.sudd;
+        if (G.sceneId !== 'sudd' || G.flags.has('self_drawn') || !s?.visible || !G.flags.has('b:suddArrive')) { squeakT = 0; return; }
+        squeakT -= dt;
+        if (squeakT > 0) return;
+        squeakT = 2.2;
+        const d = Math.abs(s.x - p.x);
+        audio.sfx('rub', { gain: Math.max(0.1, Math.min(1, 1 - d / (30 * HL))), pan: Math.max(-1, Math.min(1, (s.x - p.x) / (12 * HL))) });
+    }
+
     // --------------------------------------------------------------------------------
     // Events → sound and captions
     // --------------------------------------------------------------------------------
@@ -531,7 +553,8 @@ export function createGame({ host = document.body, assetBase = './skoldhast/', s
             if (!audio) return;
             const space = G.sceneDef?.waters?.some(w => w.kind === 'space');
             switch (type) {
-                case 'hoof': audio.sfx('hoof', { surface: e.surface === 'ice' ? 'plank' : e.surface === 'starline' || e.surface === 'starstone' ? 'plank' : 'sand', foot: e.foot, speed01: Math.min(1, e.speed / 1200) }); break;
+                // the materials are the audio's own surfaces: moon dust, star-lines (each star a note), ice
+                case 'hoof': audio.sfx('hoof', { surface: e.surface || 'moon', foot: e.foot, speed01: Math.min(1, e.speed / 1200) }); break;
                 case 'streckStart': audio.sfx('pencil', { len: 0.8 }); break;
                 case 'ink': if (G.time > inkT) { inkT = G.time + 0.18; audio.sfx('pencil', { len: 0.2 }); } break;
                 case 'streckDone': audio.stinger('aha'); break;
@@ -542,18 +565,21 @@ export function createGame({ host = document.body, assetBase = './skoldhast/', s
                 // in space no sound is heard: a whinny is a small "…" (rule 10)
                 case 'neigh': if (G.sceneId === 'mane' || !space) { audio.sfx('neigh'); ui.caption(CAPTIONS.neigh); } else ui.caption('…'); break;
                 case 'light': audio.sfx('pickup'); audio.sfx('sparkle'); break;
-                case 'push': audio.sfx('thud'); break;
+                case 'push': audio.sfx(G.sceneId === 'ring' ? 'ice' : 'thud'); break;
                 case 'boxFalls': audio.sfx('whoosh', { gain: 0.4 }); break;
-                case 'carryStart': audio.sfx(e.kind === 'beam' ? 'sparkle' : 'whoosh', { gain: 0.6 }); if (e.kind === 'beam') audio.stinger('discovery'); break;
-                case 'wagonStar': audio.note?.(e.n % 7, { inst: 'shell' }); break;
-                case 'beltOne': audio.note?.(e.n * 2, { inst: 'shell' }); break;
+                case 'carryStart': if (e.kind === 'beam' || e.kind === 'catch') audio.sfx('beam'); else audio.sfx('whoosh', { gain: 0.6 }); break;
+                // Karlavagnen's stars and Orion's three ring the melody's notes, one each
+                case 'wagonStar': audio.melodyNote?.(e.n - 1, { inst: 'shell' }); break;
+                case 'beltOne': audio.melodyNote?.(e.n - 1, { inst: 'shell' }); break;
+                case 'novaAngry': audio.sfx('lamp'); break;
                 case 'beltWrong': audio.sfx('snort', { gain: 0.5 }); break;
                 case 'beltLit': audio.stinger('aha'); break;
                 case 'shower': if (e.state === 'shower') audio.sfx('rustle', { gain: 0.8 }); break;
-                case 'iceMelts': audio.sfx('drip'); audio.stinger('discovery'); break;
+                case 'iceMelts': audio.sfx('ice'); audio.stinger('discovery'); break;
                 case 'fogLit': audio.sfx('sparkle'); break;
-                case 'bridgeRubbed': audio.sfx('rustle', { gain: 0.7 }); break;
-                case 'selfStroke': audio.sfx('pencil', { len: 0.4 }); audio.note?.(e.n - 1, { inst: 'shell', vel: 0.7 }); break;
+                case 'bridgeRubbed': audio.sfx('rub'); break;
+                // Rita dig själv: the player gallops the theme into being, one note a stride (section 16.1)
+                case 'selfStroke': audio.sfx('pencil', { len: 0.4 }); audio.melodyNote?.(e.n - 1); break;
                 case 'clue': audio.sfx('write'); ui.pulse?.('journal'); break;
                 case 'notesRubbed': ui.pulse?.('journal'); break;
                 case 'bump': audio.sfx('thud'); break;
@@ -626,7 +652,7 @@ export function createGame({ host = document.body, assetBase = './skoldhast/', s
             getSettings: () => settings,
             setSetting: (k, v) => { settings[k] = v; applySettings(); saveNow(); },
             // a recorded line is its own sound; the chirp and the pencil are for silent lines (Pip says pip)
-            onSay: (who, text, voiced) => { if (!voiced) audio?.sfx(who === 'pip' ? 'pop' : who === 'klo' || who === 'tukan' || who === 'nova' ? 'crabvoice' : 'write'); },
+            onSay: (who, text, voiced) => { if (who === 'pip') { audio?.sfx('pip'); return; } if (!voiced) audio?.sfx(who === 'klo' || who === 'tukan' || who === 'nova' ? 'crabvoice' : 'write'); },
             onPencil: (len) => audio?.sfx('pencil', { len })
         };
     }

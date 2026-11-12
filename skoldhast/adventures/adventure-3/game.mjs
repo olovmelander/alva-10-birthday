@@ -471,7 +471,8 @@ export function createGame() {
         for (const e of events) G.emit(e.type, e);
         G.lastEvents = events;
         const p = G.player;
-        for (const a of G.sceneDef.areas || []) {
+        // a carried shell passes over places without entering them: they are entered where it is set down
+        if (!G.carry) for (const a of G.sceneDef.areas || []) {
             const inside = p.x >= a.x0 && p.x <= a.x1 && (a.y1 === undefined || p.y <= a.y1) && (a.y0 === undefined || p.y >= a.y0);
             if (inside && !G.areas.has(a.id)) { G.areas.add(a.id); G.emit('enter', { id: a.id }); }
             else if (!inside && G.areas.has(a.id)) { G.areas.delete(a.id); G.emit('leave', { id: a.id }); }

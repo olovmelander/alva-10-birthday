@@ -228,7 +228,7 @@ SCENES.stjarn = {
             end: { x: h(81), y: h(-0.4), mode: 'ground', unhide: true } }
     ],
     // a swimmer in Pip's lane is too light: it kicks itself out (rule 4)
-    pushes: [{ id: 'orbit-kick', kind: 'ring', x: h(81), y: h(-0.55), r: h(3.0), band: h(0.7), speed: 520 }],
+    pushes: [{ id: 'orbit-kick', kind: 'ring', x: h(81), y: h(-0.55), r: h(3.0), band: h(0.7), speed: 520, when: '!pip_met' }],
     rocketAt: { x: h(1.6), y: h(-0.05) },
     exits: []
 };

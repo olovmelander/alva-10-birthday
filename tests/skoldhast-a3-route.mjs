@@ -110,6 +110,11 @@ export async function constellations(R) {
 /** R1–R5. */
 export async function ring(R) {
     const { G, p } = R;
+    // out in the open, hide and hold out one shower (Klo measures it: the shell is a shield)
+    await R.goTo(15.4, { max: 40 });
+    await R.hideStill(0.2);
+    await R.until(() => R.has('gravel_held'), {}, 10, 'a shower held out');
+    await R.emerge();
     await R.until(() => p().x > 28.4 * HL && p().mode === 'ground' && !G.busy, () => {
         const q = p(), sh = G.puz.shower;
         if (G.busy) return {};
@@ -144,7 +149,7 @@ export async function ring(R) {
     await R.flag('comet_rest', {}, 12);
     await R.settle();
     assert.ok(R.has('light_l8') && R.has('clue_crooked'), 'R4: Kometen\'s light, and what it saw');
-    await R.goTo(70.4);
+    await R.goTo(71.6);
     await R.until(() => G.puz.shower?.state === 'shower' && G.puz.shower.id === 'gravelGap', {}, 8, 'a shower');
     await R.until(() => G.puz.shower === null || G.puz.shower.id !== 'gravelGap', {}, 4, 'shower over');
     await R.until(() => R.has('gap_drawn'), () => ({ x: 1 }), 6, 'gap drawn');

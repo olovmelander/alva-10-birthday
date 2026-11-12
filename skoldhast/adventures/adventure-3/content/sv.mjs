@@ -791,6 +791,8 @@ export const BALK = {
 // Help (section 12): the goal note says what and why; three hints a puzzle, in either companion's words
 // ---------------------------------------------------------------------------
 export const GOALS = {
+    travel: 'Res vidare med raketen',
+    travelWhy: 'Här finns inga fler stjärnljus. Gå till raketen och res dit det fattas.',
     breakfast: 'Hitta Novas frukost',
     breakfastWhy: 'Hon pratar inte före frukost – och hon vet allt om rymden.',
     moon: (n, total) => `Hitta Alvas stjärnor (${n} av ${total})`,
@@ -861,6 +863,8 @@ export const HINTS = {
     // (Suddet is not met until Smulhögen: "något", not the draft's "Suddet")
     v3: ['Något suddar ut bron bakom dig. Dina streck är sneda.', 'Ett skal är inget streck. Det går inte att sudda.',
         'Göm dig i ljusringen vid brons början. Nova lyfter skalet över.'],
+    // Smulhögen, before the Moon is touched: the small pink one is up on the hill (not named yet)
+    v4: ['Den lilla rosa är uppe på smulhögen.', 'Gå uppför högen, mot månen.', 'Gå ända upp, nära månens kant.'],
     v5: ['Suddet har suddat dina konturer. Men färgen sitter kvar.', 'Alvas penna sitter i dina hovar. Den ritar när du springer fort.',
         'Galoppera! Varje kliv ritar en bit av dig själv.'],
     g1: ['Kometens svans är rak. Den suddar Suddet aldrig.', 'Suddet rider på ditt skal och ritar stjärnor när du springer fort.',

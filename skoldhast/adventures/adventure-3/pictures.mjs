@@ -200,6 +200,9 @@ export function createPictures({ PIXI, app, assets, ui, audio, G, heroFactory = 
             pg.rect(PAGE.x0, y0, PAGE.x1 - PAGE.x0, y1 - y0).fill({ color: c });
         }
         pg.rect(PAGE.x0, PAGE.y0, PAGE.x1 - PAGE.x0, 700 - PAGE.y0).fill(pen.hatch(0x0a0d24, 0.4));
+        // under the night the page is the forest floor's dark green: the hill's pencil fills stop short of the foot of
+        // the page on screen (about y 950, cause not found), and on a tall phone the paper showed there as a grey band
+        pg.rect(PAGE.x0, 700, PAGE.x1 - PAGE.x0, PAGE.y1 - 700).fill({ color: 0x1f3229 });
         for (let i = 0; i < 140; i++) {
             const x = lerp(PAGE.x0, PAGE.x1, hash(i, 341)), y = lerp(PAGE.y0, 600, hash(i, 342)), len = 120 + hash(i, 343) * 220;
             pg.moveTo(x, y).lineTo(x + len * 0.62, y + len * 0.78);
@@ -228,7 +231,8 @@ export function createPictures({ PIXI, app, assets, ui, audio, G, heroFactory = 
         land.moveTo(...hill[0]); for (const p of hill) land.lineTo(...p); land.stroke(pen.line(0x7f9f78, 6, 0.65));
         for (let x = -1300; x < 1300; x += 22) { const y = groundY(x); land.moveTo(x, y + 2).lineTo(x + 4, y - 12).stroke(pen.line(0x5d7c58, 2.4, 0.7)); }
         for (const [x, s] of [[-760, 1.5], [-1080, 1.8], [820, 1.6], [1150, 1.9], [-1500, 2.2], [1560, 2.3]]) tree(land, x, groundY(x) + 6, s, { lean: 0 });
-        land.rect(PAGE.x0, 900, PAGE.x1 - PAGE.x0, PAGE.y1 - 900).fill(pen.fill(0x1a2c22));
+        // darker towards the foot of the page, softly, over the hatching (a solid strip read as a grey band on a phone)
+        for (let i = 0; i < 6; i++) land.rect(PAGE.x0, 860 + i * 60, PAGE.x1 - PAGE.x0, PAGE.y1 - (860 + i * 60)).fill({ color: 0x0f1a14, alpha: 0.12 });
         L.wc.addChild(land);
         // the crowd: the forest has come to wave
         L.crowd = new PIXI.Container(); L.wc.addChild(L.crowd);
@@ -496,9 +500,19 @@ export function createPictures({ PIXI, app, assets, ui, audio, G, heroFactory = 
         const g = new RAW.Graphics(); bands(g, W, H, sky); c.addChild(g);
         return g;
     }
+    /** Rain, driven the way the wind blows (left to right, as the trees bend and the leaves fly). */
     function rain(g, W, H, n = 70, alpha = 0.55, lean = 0.32) {
-        for (let i = 0; i < n; i++) { const x = hash(i, 401) * (W + H * lean), y = hash(i, 402) * H, l = 30 + hash(i, 403) * 40; g.moveTo(x, y).lineTo(x - l * lean, y + l); }
+        for (let i = 0; i < n; i++) { const x = hash(i, 401) * (W + H * lean) - H * lean, y = hash(i, 402) * H, l = 30 + hash(i, 403) * 40; g.moveTo(x, y).lineTo(x + l * lean, y + l); }
         g.stroke({ color: 0x8e98bf, width: 2, alpha, cap: 'round' });
+    }
+    /** A leaf torn off in the storm: pointed, turning in the air, two short dashes of its flight behind it. */
+    function leaf(g, x, y, s, rot, color = LIT.mid) {
+        const c = Math.cos(rot), sn = Math.sin(rot), P = (u, v) => [x + (u * c - v * sn) * s, y + (u * sn + v * c) * s];
+        const a = P(-8, 0), b = P(8, 0), up = P(0, -7), dn = P(1, 6);
+        g.moveTo(...a).quadraticCurveTo(...up, ...b).quadraticCurveTo(...dn, ...a).closePath().fill(pen.fill(color));
+        g.moveTo(...a).lineTo(...b).stroke(pen.line(0x5a628a, 0.9 * s, 0.7));
+        for (let d = 1; d <= 2; d++) g.moveTo(x - (10 + d * 13) * s, y + d * 2.5 * s).lineTo(x - (3 + d * 13) * s, y + d * 1.6 * s);
+        g.stroke({ color: 0x8e98bf, width: 1.4 * s, alpha: 0.55, cap: 'round' });
     }
     /** The lightning itself: a jagged white bolt with a soft glow, from the top of the picture. */
     function bolt(g, x, y, len, w, seed) {
@@ -509,28 +523,113 @@ export function createPictures({ PIXI, app, assets, ui, audio, G, heroFactory = 
         const [bx, by] = pts[Math.floor(pts.length / 2)];
         g.moveTo(bx, by).lineTo(bx + len * 0.18, by + len * 0.2).stroke({ color: 0xffffff, width: w * 0.8, alpha: 0.9, cap: 'round' });
     }
-    /** A tree bent over by the wind: a trunk curving away, its crown torn out sideways in a streaming mass. */
-    function windTree(g, x, y, h, k = 1) {
-        const tx = x + h * 0.55, ty = y - h * 0.62;
-        for (const [w, col] of [[h * 0.09, LIT.ink], [h * 0.05, LIT.ink]]) g.moveTo(x, y).quadraticCurveTo(x + h * 0.05, y - h * 0.5, tx, ty).stroke({ color: col, width: w, cap: 'round' });
-        for (let i = 0; i < 6; i++) {
-            const cx = tx + i * h * 0.13, cy = ty - h * 0.06 + Math.sin(i * 1.7) * h * 0.04, r = h * (0.2 - i * 0.022);
-            g.circle(cx, cy, r).fill(solid(i % 2 ? LIT.mid : LIT.ink));
+    /**
+     * A tree bent over by the storm, drawn in pencil and silhouetted in the flash. The trunk is rooted upright and
+     * leans harder downwind towards the top. Its branches stream the same way. The crown is one leafy mass with a
+     * scalloped edge, blown out sideways and torn into tufts and bare twigs downwind. It has pencil hatching inside,
+     * the clumps of leaves are drawn in lighter lines, and the lightning lights the upper edges. Leaves fly off it.
+     * (12 November: first beads of circles on a bent stick, then hoops with spiky stars on top.)
+     */
+    function windTree(g, x, y, h, k = 1, { far = false } = {}) {
+        const seed = Math.round(x * 7 + h * 3), r = (i) => hash(i, seed), TAU = Math.PI * 2;
+        // a far row behind is paler (the storm's air between), so the trees read one by one
+        const INK = far ? 0x3b4268 : LIT.ink, MID = far ? 0x4a5278 : LIT.mid, LINE = far ? 0x5a628a : 0x3d4574;
+        const rimW = (far ? 1.3 : 2.1) * k, rimA = far ? 0.32 : 0.62;
+        // pressed in dark, with only a little of the paper's tooth showing (full tooth turned them to grey speckle)
+        const ink = (pts, color) => { g.poly(pts).fill(solid(color)); g.poly(pts).fill(pen.fill(mix(color, 0xffffff, 0.1), 0.35)); };
+        // the trunk: upright at the root, then leaning harder and harder downwind
+        const lean = 0.26 + r(1) * 0.14;
+        const top = [x + h * lean, y - h * (0.8 - lean * 0.2)], ctrl = [x + h * 0.05, y - h * 0.5];
+        const at = (u) => [(1 - u) * (1 - u) * x + 2 * (1 - u) * u * ctrl[0] + u * u * top[0], (1 - u) * (1 - u) * y + 2 * (1 - u) * u * ctrl[1] + u * u * top[1]];
+        const L = [], R = [], n = 16;
+        for (let i = 0; i <= n; i++) {
+            const u = i / n, [px, py] = at(u), [qx, qy] = at(Math.min(1, u + 0.02)), [ox, oy] = at(Math.max(0, u - 0.02));
+            const tx = qx - ox, ty = qy - oy, d = Math.hypot(tx, ty) || 1, nx = -ty / d, ny = tx / d;
+            const w = h * (0.046 * (1 - u) + 0.012) * (u < 0.1 ? 1 + (0.1 - u) * 7 : 1);
+            L.push([px + nx * w, py + ny * w]); R.push([px - nx * w, py - ny * w]);
         }
-        for (let i = 0; i < 3; i++) { const cx = tx + i * h * 0.13, cy = ty - h * 0.06 + Math.sin(i * 1.7) * h * 0.04, r = h * (0.2 - i * 0.022); arcAt(g, cx, cy, r - 1, Math.PI * 1.05, Math.PI * 1.5).stroke({ color: LIT.rim, width: 2.2 * k, alpha: 0.55 }); }
-        // leaves torn off it
-        for (let i = 0; i < 5; i++) { const lx = tx + h * (0.7 + hash(i, x) * 0.6), ly = ty - h * (0.1 + hash(i, x + 1) * 0.3); g.ellipse(lx, ly, 7 * k, 3 * k).fill(solid(LIT.mid)); }
+        // two roots gripping the ground
+        ink([x - h * 0.11, y + 3, x - h * 0.02, y - h * 0.07, x + h * 0.01, y + 3], INK);
+        ink([x + h * 0.1, y + 3, x + h * 0.02, y - h * 0.06, x - h * 0.01, y + 3], INK);
+        ink([...L, ...R.slice().reverse()].flat(), INK);
+        // the bark: lit along its upper side, a few pencil lines down its length
+        g.moveTo(...L[1]); for (const q of L.slice(2, -3)) g.lineTo(...q);
+        g.stroke(pen.line(LIT.rim, 1.5 * k, far ? 0.3 : 0.5));
+        if (!far) for (let b = 0; b < 3; b++) {
+            const o = -0.45 + b * 0.4 + r(5 + b) * 0.15, u0 = 0.06 + r(8 + b) * 0.2, u1 = u0 + 0.3 + r(11 + b) * 0.25;
+            const pt = (u) => { const i = Math.min(n, Math.round(u * n)); return [lerp(R[i][0], L[i][0], 0.5 + o * 0.5), lerp(R[i][1], L[i][1], 0.5 + o * 0.5)]; };
+            g.moveTo(...pt(u0)); for (let u = u0 + 0.06; u <= u1; u += 0.06) g.lineTo(...pt(u));
+            g.stroke(pen.line(LINE, 1.1 * k, 0.75));
+        }
+        // branches streaming downwind from the upper trunk, and one on the windward side bent back round
+        for (let b = 0; b < 4; b++) {
+            const [bx, by] = at(0.52 + b * 0.13), len = h * (0.2 + r(10 + b) * 0.16), up = h * (0.03 + r(20 + b) * 0.09);
+            g.moveTo(bx, by).quadraticCurveTo(bx + len * 0.45, by - up * 1.8, bx + len, by - up + h * 0.03)
+                .stroke(pen.line(INK, Math.max(1.4 * k, h * (0.02 - b * 0.0035))));
+        }
+        { const [bx, by] = at(0.7); g.moveTo(bx, by).quadraticCurveTo(bx - h * 0.08, by - h * 0.12, bx + h * 0.02, by - h * 0.21).stroke(pen.line(INK, Math.max(1.2 * k, h * 0.011))); }
+        // the crown: one leafy mass, its edge in scallops, blown out sideways; downwind it tears into tufts
+        const cx = top[0] + h * 0.15, cy = top[1] - h * 0.06, rx = h * (0.3 + r(30) * 0.09), ry = h * (0.16 + r(31) * 0.05);
+        const mass = (sx, sy, sc, sd, N) => {
+            const pts = [], seg = [];
+            for (let j = 0; j < N; j++) {
+                const a0 = j / N * TAU, a1 = (j + 1) / N * TAU, mid = (a0 + a1) / 2;
+                const amp = 0.08 + hash(j, sd) * 0.1;
+                const tuft = Math.cos(mid) > 0.45 && hash(j, sd + 1) > 0.4 ? 0.12 + hash(j, sd + 2) * 0.18 : 0;
+                const s0 = pts.length;
+                for (let q = 0; q < 7; q++) {
+                    const t = q / 7, a = a0 + (a1 - a0) * t, sw = Math.sin(Math.PI * t), tw = Math.pow(sw, 1.2);
+                    const stretch = 1 + 0.4 * Math.max(0, Math.cos(a)) - 0.18 * Math.max(0, -Math.cos(a));
+                    const bump = 1 + Math.pow(sw, 0.6) * amp + tuft * tw;
+                    pts.push([sx + Math.cos(a) * rx * sc * stretch * bump + tuft * tw * rx * sc * 0.2,
+                        sy + Math.sin(a) * ry * sc * (Math.sin(a) > 0 ? 0.78 : 1.12) * bump]);
+                }
+                seg.push([s0, mid]);
+            }
+            return { pts, seg };
+        };
+        const back = mass(cx + h * 0.07, cy + h * 0.06, 0.9, seed + 3, 12), front = mass(cx, cy, 1, seed + 5, 15);
+        ink(back.pts.flat(), MID);
+        // bare twigs the wind has stripped, poking out of the downwind end
+        for (let t = 0; t < (far ? 1 : 3); t++) {
+            const sx = cx + rx * (0.95 + r(90 + t) * 0.3), sy = cy + ry * (-0.35 + r(93 + t) * 0.7), len = h * (0.09 + r(96 + t) * 0.07);
+            g.moveTo(sx - rx * 0.3, sy).quadraticCurveTo(sx + len * 0.4, sy - h * 0.02, sx + len, sy + h * 0.01)
+                .moveTo(sx + len * 0.5, sy - h * 0.012).lineTo(sx + len * 0.75, sy - h * 0.04);
+            g.stroke(pen.line(INK, Math.max(1.1 * k, h * 0.007)));
+        }
+        ink(front.pts.flat(), INK);
+        // pencil inside it: hatching over the whole mass, the clumps of leaves drawn in lighter lines, little leaf ticks
+        g.poly(front.pts.flat()).fill(pen.hatch(LINE, far ? 0.25 : 0.45));
+        if (!far) {
+            for (let c = 0; c < 4; c++) {
+                const px = cx + rx * (-0.5 + c * 0.38 + (r(100 + c) - 0.5) * 0.15), py = cy + ry * (0.25 - (c % 2) * 0.3 + r(104 + c) * 0.15), rr = ry * (0.42 + r(108 + c) * 0.18);
+                arcAt(g, px, py, rr, Math.PI * 1.08, Math.PI * 1.88).stroke(pen.line(LINE, 1.4 * k, 0.85));
+            }
+            for (let i = 0; i < 10; i++) {
+                const tx = cx + rx * (-0.7 + r(40 + i) * 1.5), ty = cy + ry * (-0.5 + r(50 + i) * 1.0);
+                g.moveTo(tx, ty).quadraticCurveTo(tx + 5 * k, ty + 4 * k, tx + 11 * k, ty + 1 * k);
+            }
+            g.stroke(pen.line(LINE, 1.1 * k, 0.7));
+        }
+        // the flash lights the upper edges, scallop by scallop (a hand's arcs, not one ruled line)
+        for (const [s0, mid] of front.seg) {
+            if (Math.sin(mid) > -0.25 || Math.cos(mid) > 0.75) continue;
+            const run = front.pts.slice(s0 + 1, s0 + 7);
+            g.moveTo(...run[0]); for (const q of run.slice(1)) g.lineTo(...q);
+            g.stroke(pen.line(LIT.rim, rimW, rimA));
+        }
+        // leaves torn off it, flying downwind
+        if (!far) for (let i = 0; i < 5; i++) {
+            const lx = cx + rx * (1.25 + r(60 + i) * 1.1), ly = cy - ry * (0.9 - r(70 + i) * 1.8);
+            leaf(g, lx, ly, k, r(80 + i) * 2.4 - 1.2);
+        }
     }
     function ground(g, W, H, y, k) {
         g.moveTo(0, y + 6).quadraticCurveTo(W * 0.5, y - 10 * k, W, y + 8).lineTo(W, H).lineTo(0, H).closePath().fill(solid(LIT.ink));
         g.moveTo(0, y + 6).quadraticCurveTo(W * 0.5, y - 10 * k, W, y + 8).stroke({ color: LIT.rim, width: 2.4, alpha: 0.4 });
     }
     function leaves(g, W, H, n, k, seed) {
-        for (let i = 0; i < n; i++) {
-            const x = hash(i, seed) * W, y = hash(i, seed + 1) * H * 0.75;
-            g.moveTo(x - 40 * k, y + 6 * k).quadraticCurveTo(x - 10 * k, y - 4 * k, x - 4 * k, y).stroke({ color: 0x8e98bf, width: 1.6, alpha: 0.6 });
-            g.ellipse(x, y, 6 * k, 2.6 * k).fill(solid(LIT.mid));
-        }
+        for (let i = 0; i < n; i++) leaf(g, hash(i, seed) * W, hash(i, seed + 1) * H * 0.75, k * 1.1, hash(i, seed + 2) * 3 - 1.5);
     }
     /** Molnet's shape (as Äventyr 2 drew it), in the storm's black. */
     function darkCloud(g, cx, cy, R, twist = 0) {
@@ -546,7 +645,11 @@ export function createPictures({ PIXI, app, assets, ui, audio, G, heroFactory = 
             const k = Math.min(W, H) / 400, g = new RAW.Graphics(); stillBase(c, W, H);
             bolt(g, W * 0.22, -10, H * 0.42, 2.4 * k, 3);
             const gy = H * 0.7;
-            for (let i = 0; i < 8; i++) windTree(g, W * (-0.08 + i * 0.15) + hash(i, 411) * 20 * k, gy + 6, H * (0.34 + hash(i, 412) * 0.12), k);
+            // a far row, paler and smaller, then six near trees of different heights with sky between their crowns
+            // (tree heights follow the narrower side: on a phone held upright they were huge and tangled)
+            const TH = Math.min(H, W * 1.15);
+            for (let i = 0; i < 7; i++) windTree(g, W * (-0.04 + i * 0.16) + hash(i, 421) * 30 * k, gy - 14 * k, TH * (0.18 + hash(i, 422) * 0.07), k, { far: true });
+            for (let i = 0; i < 6; i++) windTree(g, W * (-0.1 + i * 0.2) + hash(i, 411) * 34 * k, gy + 6, TH * (0.28 + hash(i, 412) * 0.18), k);
             ground(g, W, H, gy, k);
             g.ellipse(W * 0.5, gy + 30 * k, 40 * k, 12 * k).stroke({ color: 0x05070e, width: 8 * k });
             g.ellipse(W * 0.5, gy + 30 * k, 40 * k, 12 * k).stroke({ color: LIT.rim, width: 1.4, alpha: 0.35 });
@@ -608,18 +711,20 @@ export function createPictures({ PIXI, app, assets, ui, audio, G, heroFactory = 
             const k = Math.min(W, H) / 400, g = new RAW.Graphics(); stillBase(c, W, H);
             const gy = H * 0.7;
             bolt(g, W * 0.78, -10, H * 0.38, 2.2 * k, 7);
-            for (const [x, h] of [[-0.06, 0.42], [0.1, 0.36], [0.74, 0.4], [0.9, 0.46]]) windTree(g, W * x, gy + 6, H * h, k);
+            for (const [x, h] of [[-0.06, 0.42], [0.1, 0.36], [0.74, 0.4], [0.9, 0.46]]) windTree(g, W * x, gy + 6, Math.min(H, W * 1.15) * h, k);
             ground(g, W, H, gy, k);
             rain(g, W, H, 70, 0.5, 0.5);
             c.addChild(g);
-            const tu = createTukan(PIXI, pen); tu.view.scale.set(k * 1.25); c.addChild(tu.view);
+            // the family fits the width: on a phone held upright the outer little ones ran off the picture's edges
+            const kf = Math.min(k, (W / 2 - 12) / 290);
+            const tu = createTukan(PIXI, pen); tu.view.scale.set(kf * 1.25); c.addChild(tu.view);
             tu.update(0.016, { visible: true, x: W * 0.5, y: gy, facing: 1, pose: 'happy', vx: 0, distance: 0 }, 0.6, { reducedMotion: true });
             const lines = new RAW.Graphics(); c.addChild(lines);
             for (let i = 0; i < 9; i++) {
-                const side = i % 2 ? 1 : -1, d = (70 + Math.floor(i / 2) * 46 + hash(i, 441) * 14) * k, hop = (i % 3 === 1 ? 10 : 0) * k;
-                const x = W * 0.5 + side * d, hk = createHatchling(PIXI, pen); hk.view.scale.set(k * 1.6);
+                const side = i % 2 ? 1 : -1, d = (70 + Math.floor(i / 2) * 46 + hash(i, 441) * 14) * kf, hop = (i % 3 === 1 ? 10 : 0) * kf;
+                const x = W * 0.5 + side * d, hk = createHatchling(PIXI, pen); hk.view.scale.set(kf * 1.6);
                 hk.update(0.016, 0, { facing: -side, reducedMotion: true }); hk.view.position.set(x, gy - hop); hk.view.rotation = -side * 0.12; c.addChild(hk.view);
-                for (let l = 0; l < 3; l++) lines.moveTo(x + side * (20 + l * 4) * k, gy - hop - (6 + l * 7) * k).lineTo(x + side * (40 + l * 6) * k, gy - hop - (6 + l * 7) * k);
+                for (let l = 0; l < 3; l++) lines.moveTo(x + side * (20 + l * 4) * kf, gy - hop - (6 + l * 7) * kf).lineTo(x + side * (40 + l * 6) * kf, gy - hop - (6 + l * 7) * kf);
             }
             lines.stroke({ color: 0xffffff, width: 2.2, alpha: 0.85, cap: 'round' });
         },
@@ -627,7 +732,7 @@ export function createPictures({ PIXI, app, assets, ui, audio, G, heroFactory = 
         (c, W, H) => {
             const k = Math.min(W, H) / 400, g = new RAW.Graphics(); stillBase(c, W, H);
             const gy = H * 0.88;
-            for (let i = 0; i < 7; i++) windTree(g, W * (-0.1 + i * 0.17), gy + 10, H * 0.26, k);
+            for (let i = 0; i < 7; i++) windTree(g, W * (-0.1 + i * 0.17), gy + 10, Math.min(H, W * 1.15) * 0.26, k);
             ground(g, W, H, gy, k);
             for (let i = 0; i < 12; i++) { const x = hash(i, 451) * W, y = hash(i, 452) * H * 0.7; g.moveTo(x, y).quadraticCurveTo(x + 60 * k, y - 18 * k, x + 150 * k, y - 4 * k); }
             g.stroke({ color: 0x8e98bf, width: 2.4, alpha: 0.6, cap: 'round' });
@@ -644,7 +749,8 @@ export function createPictures({ PIXI, app, assets, ui, audio, G, heroFactory = 
         // 6. a toucan claw closed round him: he is safe
         (c, W, H) => {
             stillBase(c, W, H, { sky: [0xdfe4f6, 0xc4cbe6, 0xa2abcd] });
-            const k = Math.min(W, H) / 400, cx = W * 0.42, cy = H * 0.5;
+            // (the beak's tip, and him in it, stay inside the picture on a phone held upright)
+            const k = Math.min(Math.min(W, H) / 400, (W * 0.58 - 12) / 262), cx = W * 0.42, cy = H * 0.5;
             const g = new RAW.Graphics();
             // Tukankrabban's orange shell at the edge of the picture, and her arm reaching out
             g.circle(cx - 260 * k, cy + 200 * k, 180 * k).fill(solid(0xd8862a)).stroke({ color: 0x9a5a14, width: 3 });

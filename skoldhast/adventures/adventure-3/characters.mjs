@@ -1172,6 +1172,19 @@ export function createBearFigure(PIXI, pen, { stars = [], lines = [], nose = nul
     const ys = stars.map(s => s[1]);
     const height = ys.length ? Math.max(...ys) - Math.min(...ys) : 0;
     const R = rise ?? Math.max(200, height * 0.6);
+    // each leg as a chain hip → knee → foot, read from the lines: the knee is the star joined to a foot, the hip the
+    // star joined to that knee. Standing up, the body lifts, the knees rise about half way, the feet stay: a bear
+    // standing up on four legs, not a constellation on stilts (12 November)
+    const nb = (i) => lines.filter(([a, b]) => a === i || b === i).map(([a, b]) => (a === i ? b : a));
+    const chains = legs.map(f => {
+        const k = nb(f).find(j => !feet.has(j));
+        const hip = k === undefined ? undefined : nb(k).find(j => j !== f && !feet.has(j) && !legs.includes(j) && nb(j).length > 1);
+        return { f, k, hip };
+    }).filter(c => c.k !== undefined);
+    const knees = new Set(chains.map(c => c.k));
+    const body = stars.map((_, i) => i).filter(i => !feet.has(i) && !knees.has(i));
+    // the belly (a body star joined to two knees) rises less: standing, the body is deep and the legs short, as a bear's
+    const bellies = new Set(body.filter(i => nb(i).filter(j => knees.has(j)).length >= 2));
     const starG = stars.map(([x, y], i) => {
         const c = new PIXI.Container(); c.position.set(x, y);
         const h = g(PIXI); halo(h, 0, 0, 30, 0xdfe6ff, 0.36, 5); h.blendMode = 'add';
@@ -1184,24 +1197,69 @@ export function createBearFigure(PIXI, pen, { stars = [], lines = [], nose = nul
         const s = starG[i];
         if (!s) return [0, 0];
         if (feet.has(i)) return [s.x, s.y];
+        // a knee rises half as far as the body, and moves a little under it (the leg straightens)
+        if (knees.has(i)) {
+            const ch = chains.find(c => c.k === i), hp = ch.hip !== undefined ? starG[ch.hip] : null, ft = starG[ch.f];
+            const kx = s.x + (hp && ft ? ((hp.x + ft.x) / 2 - s.x) * 0.5 * standing : 0);
+            return [kx, s.y - standing * R * 0.5 + breathY * 0.5];
+        }
+        if (bellies.has(i)) return [s.x, s.y - standing * R * 0.55 + breathY];
         return [s.x, s.y - standing * R + breathY];
+    }
+    function legStroke(P, ch, width, color, alpha) {
+        const pts = [ch.hip !== undefined ? P[ch.hip] : null, P[ch.k], P[ch.f]].filter(Boolean);
+        if (pts.length < 2) return;
+        // a bear's leg: a heavy thigh at the hip, thick to the knee, tapering to a paw
+        // (the thigh sits a third of the way down to the knee: at the hip itself it bulged over his back)
+        if (pts.length === 3) sil.ellipse(lerp(pts[0][0], pts[1][0], 0.38), lerp(pts[0][1], pts[1][1], 0.38), width * 0.62, width * 0.7).fill({ color, alpha });
+        for (let i = 1; i < pts.length; i++) {
+            const w = width * (pts.length === 3 && i === 1 ? 1 : 0.76);
+            sil.moveTo(pts[i - 1][0], pts[i - 1][1]).lineTo(pts[i][0], pts[i][1]).stroke({ color, width: w, alpha, cap: 'round', join: 'round' });
+        }
+        const [fx, fy] = pts.at(-1);
+        sil.ellipse(fx + width * 0.12, fy - width * 0.05, width * 0.5, width * 0.28).fill({ color, alpha });
     }
     function redraw(standing, breathY, awake, noseOn) {
         drawn = { standing, breathY, awake, noseOn };
         const P = starG.map((_, i) => at(i, standing, breathY));
         sil.clear(); linesG.clear(); noseG.clear();
-        if (P.length >= 3) {
-            const cx = P.reduce((a, p) => a + p[0], 0) / P.length, cy = P.reduce((a, p) => a + p[1], 0) / P.length;
-            const H = hull(P);
+        const BP = body.map(i => P[i]);
+        if (BP.length >= 3) {
+            const cx = BP.reduce((a, p) => a + p[0], 0) / BP.length, cy = BP.reduce((a, p) => a + p[1], 0) / BP.length;
+            const H = hull(BP);
+            const fill = (a) => ({ color: PAL.bear, alpha: a * (0.8 + awake * 0.6) });
+            // the legs first, under the body: soft and thick, in layers like the body
+            for (const [wk, a] of [[1.0, 0.06], [0.72, 0.08], [0.48, 0.1]]) for (const ch of chains) legStroke(P, ch, 370 * wk, PAL.bear, a * (0.8 + awake * 0.6));
             for (const [pad, a] of [[150, 0.06], [105, 0.08], [64, 0.1]]) {
                 const out = chaikin(H.map(([x, y]) => { const dx = x - cx, dy = y - cy, d = Math.hypot(dx, dy) || 1; return [x + dx / d * pad, y + dy / d * pad]; }), 3);
-                sil.poly(flat(out)).fill({ color: PAL.bear, alpha: a * (0.8 + awake * 0.6) });
+                sil.poly(flat(out)).fill(fill(a));
             }
-            // a soft fur edge in pencil
+            // a round head where his eye is, an ear above it, and a snout along the nose
+            if (eye) {
+                const hx = eye[0] - 40, hy = eye[1] - standing * R + breathY;
+                for (const [r, a] of [[190, 0.06], [150, 0.08], [112, 0.1]]) sil.circle(hx, hy, r).fill(fill(a));
+                for (const [r, a] of [[70, 0.08], [48, 0.1]]) sil.circle(hx - 60, hy - 150, r).fill(fill(a));
+                if (nose) {
+                    const [ax, ay] = P[nose[0]], [bx, by] = P[nose[1]], mx = (ax + bx) / 2, my = (ay + by) / 2;
+                    const len = Math.hypot(bx - ax, by - ay), rot = Math.atan2(by - ay, bx - ax);
+                    for (const [k, a] of [[1, 0.06], [0.78, 0.08], [0.58, 0.1]]) {
+                        const pts = []; for (let q = 0; q < 24; q++) { const u = q / 24 * TAU, ex = Math.cos(u) * len * 0.56 * k, ey = Math.sin(u) * 95 * k; pts.push(mx + ex * Math.cos(rot) - ey * Math.sin(rot), my + ex * Math.sin(rot) + ey * Math.cos(rot) + 24); }
+                        sil.poly(pts).fill(fill(a));
+                    }
+                }
+            }
+            // a soft fur edge in pencil, round the body and down each leg
             const fur = chaikin(H.map(([x, y]) => { const dx = x - cx, dy = y - cy, d = Math.hypot(dx, dy) || 1; return [x + dx / d * 70, y + dy / d * 70]; }), 3);
             for (let i = 0; i < fur.length; i += 3) {
                 const [x, y] = fur[i], dx = x - cx, dy = y - cy, d = Math.hypot(dx, dy) || 1;
                 sil.moveTo(x, y).lineTo(x + dx / d * 14 + (hash(i, 192) - 0.5) * 8, y + dy / d * 14).stroke({ color: 0x8fa2e8, width: 1.6, alpha: 0.18 + awake * 0.12, cap: 'round' });
+            }
+            for (const ch of chains) {
+                const a = ch.hip !== undefined ? P[ch.hip] : P[ch.k], b = P[ch.f];
+                for (let k = 1; k < 6; k++) {
+                    const u = k / 6, x = a[0] + (b[0] - a[0]) * u, y = a[1] + (b[1] - a[1]) * u;
+                    for (const side of [-1, 1]) sil.moveTo(x + side * 104 * (1 - u * 0.25), y).lineTo(x + side * 120 * (1 - u * 0.25), y + 10).stroke({ color: 0x8fa2e8, width: 1.4, alpha: 0.14 + awake * 0.1, cap: 'round' });
+                }
             }
         }
         for (const [i, j] of lines) constellationLine(linesG, pen, [P[i], P[j]], { width: 3.2, alpha: 0.55 + awake * 0.4 });

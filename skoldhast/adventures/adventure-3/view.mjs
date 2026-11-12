@@ -282,6 +282,8 @@ export function createView(PIXI, app, { assets, G, heroFactory, lightTarget = nu
         sky.setKind(def.sky);
         atmo.setMood(moodFor(), { instant: true });
         V.heroHidden = false;
+        // a page's own big moments never follow to the next page (the bear standing, the wagon's ride)
+        V.bearStand = 0; V.bearWalk = 0; V.wagonRoll = 0; V.rideOffset = null;
         if (id === 'sudd') buildWhitePage(def);
         if (id === 'vinter') buildRide(def);
         for (const s of def.surfaces) if (!s.hidden) buildSurface(s, def);
@@ -385,6 +387,7 @@ export function createView(PIXI, app, { assets, G, heroFactory, lightTarget = nu
                 constellationLine(gr, pen, s.pts, { width: 4.2, ink: PAL.bearLine, alpha: 0.95 });
                 for (const [x, y] of s.pts) starAt(gr, x, y, 13);
                 if (s.bear) S.bearBack = c;
+                if (s.id === 'bearNoseLine') S.bearNose = c;
                 break;
             }
             case 'starstone': {
@@ -612,8 +615,9 @@ export function createView(PIXI, app, { assets, G, heroFactory, lightTarget = nu
         // pale rings of light where Nova's beam can lift a still shell
         for (const c of def.carries || []) if (c.kind === 'beam') S.beamRings.push(beamRing(c));
         // the cereal box (and after the story a second one)
-        S.box = createCerealBox(PIXI, pen); S.box.view.scale.set(0.8); L.objects.addChild(S.box.view);
-        S.box2 = createCerealBox(PIXI, pen); S.box2.view.scale.set(0.8); L.objects.addChild(S.box2.view);
+        // big enough to be the thing to push on a phone (at 0.8 it was a speck beside the sköldhäst)
+        S.box = createCerealBox(PIXI, pen); S.box.view.scale.set(1.2); L.objects.addChild(S.box.view);
+        S.box2 = createCerealBox(PIXI, pen); S.box2.view.scale.set(1.2); L.objects.addChild(S.box2.view);
         // hoofprints stay where they were made (no air, no wind)
         S.prints = new PIXI.Container(); L.mid.addChild(S.prints);
         for (const pr of G.moonPrints || []) printAt(pr.x, pr.y);
@@ -1054,8 +1058,17 @@ export function createView(PIXI, app, { assets, G, heroFactory, lightTarget = nu
             const v = Math.max(V.vista, V.earthrise);
             // far off and low: only its top over the horizon, faint (at play size it read as a box on the ground)
             const sc = lerp(clamp(W / 3400, 0.11, 0.28), clamp(Math.min(W, H) / 1500, 0.22, 0.55), v);
-            const baseY = clamp(groundSy, H * 0.35, H * 1.1) + 95 * sc;
-            fp.alpha = lerp(0.55, 1, v);
+            // behind the ground where it stands: the Moon's own ground under the page, so it never floats over a dip,
+            // and is not seen at all from down in a crater or up on the rocks (there is no horizon there)
+            const px = W * 0.76 - cam.x * cam.zoom * 0.004, wx = cam.x + (px - W / 2) / cam.zoom;
+            const floor = G.terrain?.floorAt(wx, h(-0.8));
+            const onHorizon = floor !== null && floor !== undefined && floor < h(1);
+            S.forestK = lerp(S.forestK ?? (onHorizon ? 1 : 0), onHorizon ? 1 : 0, 1 - Math.exp(-4 * dt));
+            const localSy = onHorizon ? world.position.y + floor * cam.zoom : groundSy;
+            // its top third over the horizon: Molnet and the mountain's peak, enough to know it
+            const baseY = Math.min(localSy, H * 1.1) + 55 * sc;
+            fp.alpha = lerp(0.55 * S.forestK, 1, v);
+            fp.visible = fp.alpha > 0.02;
             // in the vista: low over the Moon's horizon, far down, never hidden behind the ground
             const vistaY = Math.min(H * 0.88, clamp(groundSy, H * 0.3, H) - 150 * sc);
             fp.position.set(lerp(W * 0.76 - cam.x * cam.zoom * 0.004, W * 0.36, v), lerp(baseY, vistaY, v) - V.earthrise * H * 0.12);
@@ -1089,7 +1102,12 @@ export function createView(PIXI, app, { assets, G, heroFactory, lightTarget = nu
         const lit = F.has('novaLit') || G.time < (G.puz.angryUntil ?? -1);
         const nova = G.actors.nova;
         const want = lit ? 0.5 : 0.92;
-        N.dark.alpha = lerp(N.dark.alpha ?? 0.92, want, 1 - Math.exp(-(lit ? 9 : 2.5) * dt));
+        N.k = lerp(N.k ?? 0.92, want, 1 - Math.exp(-(lit ? 9 : 2.5) * dt));
+        // seen from far (the vista, the earthrise, the finished sky) the shade would be a black box over the sky: it lifts
+        const far = Math.max(V.vista, V.earthrise || 0, V.skyRise ? 1 : 0);
+        N.far = lerp(N.far ?? far, far, 1 - Math.exp(-(rm ? 6 : 1.4) * dt));
+        N.dark.alpha = N.k * (1 - N.far);
+        N.dark.visible = N.dark.alpha > 0.01;
         // in the dark the friends are seen only dimly; in her red light they are lit red
         const inNight = p.x > N.d.x0 - h(1) && p.x < N.d.x1;
         S.nightTint = inNight ? mixColor(0x5a5a78, 0xffb0a0, lit ? 1 : 0) : null;
@@ -1128,6 +1146,9 @@ export function createView(PIXI, app, { assets, G, heroFactory, lightTarget = nu
         const awake = F.has('bear_nose') ? 1 : 0;
         S.bear.update(dt, { awake, nose: F.has('bear_nose'), standing: V.bearStand, breath: V.snore > 0 ? 1.4 : awake ? 0.2 : 0.7 }, t, { reducedMotion: rm });
         S.bear.view.x = V.bearWalk * h(3);
+        // standing, his back is no longer where the line lies: the line fades and he is drawn alone
+        const lineK = clamp(1 - V.bearStand * 5, 0, 1);
+        for (const n of [S.bearBack, S.bearNose]) if (n) n.alpha = lineK;
         V.snore = Math.max(0, V.snore - dt);
         // Pip tumbles round his rock; while the shell orbits it goes round to meet him
         const o = S.def.orbit;
@@ -1505,12 +1526,22 @@ export function createView(PIXI, app, { assets, G, heroFactory, lightTarget = nu
         if (S.id === 'sudd' && F.has('climax') && !F.has('outline_gone') && !hint?.override) {
             const m = S.bigMoon.view, R = S.bigMoon.radius;
             const face = { x0: m.x - R * 0.7, x1: m.x + R * 0.9, y0: m.y - R * 0.75, y1: m.y + R * 0.72 };
-            const all = { x0: Math.min(face.x0, p.x - h(1)), x1: Math.max(face.x1, p.x + h(1)), y0: face.y0 - h(0.3), y1: Math.max(face.y1, p.y + h(0.4)) };
+            // the heroes: the sköldhäst and the friends beside it (Nova walks behind, and must not fall out of the picture)
+            const heroes = [{ x0: p.x - h(1), x1: p.x + h(1) }];
+            for (const id of ['nova', 'klo']) { const bx = actorBox(id); if (bx && Math.abs((bx.x0 + bx.x1) / 2 - p.x) < h(3.5)) heroes.push(bx); }
+            const hx0 = Math.min(...heroes.map(q => q.x0)), hx1 = Math.max(...heroes.map(q => q.x1));
+            const all = { x0: Math.min(face.x0, hx0), x1: Math.max(face.x1, hx1), y0: face.y0 - h(0.3), y1: Math.max(face.y1, p.y + h(0.75)) };
             const zf = Math.min(W / (all.x1 - all.x0), H / (all.y1 - all.y0));
             const zFace = Math.min(W / (face.x1 - face.x0 + h(1)), H / (all.y1 - all.y0));
             zoom = portrait ? Math.max(zf, Math.min(zFace, W / h(8.5))) : zf;
             tx = portrait ? clamp((all.x0 + all.x1) / 2, face.x0 + W / zoom / 2 - h(0.5), face.x1 - W / zoom / 2 + h(0.5)) : (all.x0 + all.x1) / 2;
-            if (portrait && W / zoom < all.x1 - all.x0) tx = (face.x0 + face.x1) / 2 - h(0.6);
+            if (portrait && W / zoom < all.x1 - all.x0) {
+                const vw = W / zoom;
+                // the face first, but the heroes whole: when both do not fit, the face's far side goes off the edge
+                tx = (face.x0 + face.x1) / 2 - h(0.6);
+                if (p.x < tx) tx = Math.min(tx, hx0 + h(0.15) + vw / 2);
+                else tx = Math.max(tx, hx1 - h(0.15) - vw / 2);
+            }
             // upright: the heroes low in the picture, the face above them, the room at the top for the speech boxes
             ty = portrait ? Math.min((all.y0 + all.y1) / 2, all.y1 + h(0.3) - H / zoom * 0.78 + H / zoom / 2) : (all.y0 + all.y1) / 2;
         }
@@ -1522,6 +1553,8 @@ export function createView(PIXI, app, { assets, G, heroFactory, lightTarget = nu
         }
         // the finished sky: up from Nova's crater until all of it is in view
         if (V.skyRise) { const k = ease(V.skyRise.u); zoom = lerp(zoom, zoom * 0.5, k); ty = lerp(ty, ty - H / zoom * 0.3, k); }
+        // pulled back, never past the page's height: an upright phone would see under the ground
+        if (V.vista > 0.01 || V.earthrise > 0.01 || V.skyRise) zoom = Math.max(zoom, H / (b.y1 - b.y0));
         // the bear stands up: the camera pulls back until he fills the height of the screen, the heroes small on his back
         if (V.bearStand > 0.01) { const k = ease(V.bearStand); zoom = lerp(zoom, Math.min(W / h(24), H / h(10.5)), k); ty = lerp(ty, h(-2.8), k); tx = lerp(tx, h(60.5), k); }
         if (!hint && !(S.id === 'sudd' && F.has('climax') && !F.has('outline_gone')) && V.vista < 0.01 && V.bearStand < 0.01) ({ tx, ty, zoom } = frameSpeaker(tx, ty, zoom, W, H));
@@ -1733,7 +1766,15 @@ export function createView(PIXI, app, { assets, G, heroFactory, lightTarget = nu
                 await animate(1.8, (u) => { const e = ease(u); k.update(1 / 60, { x: lerp(p.x + h(16), p.x - h(3), e), y: lerp(h(-9), p.y - h(1.6), e), facing: -1, tail: h(14) * (0.4 + e), speed: 1 - e }, G.time, { reducedMotion: rm }); });
                 flash = 0.35;
                 await waitGame(0.6);
-                k.destroy();
+                // it lies still along the edge of the white while it calls them up (it is the one speaking now)
+                S.arrivedKomet = k;
+                return;
+            }
+            case 'pipCalls': {
+                // Pip has seen everything and called for help: he tumbles into the picture, high up, from the right
+                const q = createPip(PIXI, pen); q.view.scale.set(1.2); L.fx.addChild(q.view);
+                S.callPip = q;
+                await animate(rm ? 0.3 : 1.2, (u) => { const e = ease(u); q.update(1 / 60, { x: lerp(p.x + h(9), p.x + h(2.6), e), y: lerp(h(-6), p.y - h(2.6), e), tumble: 2.2, flash: 0 }, G.time, { reducedMotion: rm }); });
                 return;
             }
             case 'rimHeals': {
@@ -1793,44 +1834,71 @@ export function createView(PIXI, app, { assets, G, heroFactory, lightTarget = nu
             default: return;
         }
     }
-    /** Big picture 4: the shell goes round the planet; its curve fills the screen, the rings flash past edge-on, and the
-     *  sun rises over the planet's limb as the shell comes out of the shadow. */
+    /** Big picture 4: the shell goes once and a half round Ringo in its rings' plane and is flung off, and the sun rises
+     *  over the planet's limb as the shell comes out of the shadow. */
     async function slingshot() {
-        const W0 = app.screen.width, H0 = app.screen.height, rm = !!G.lessMotion;
+        // big picture 4: all of Ringo, its rings tilted towards us; the shell comes in from the left, goes once and a half
+        // round it in the rings' plane (behind the planet over the top, in front of it underneath) and is flung off to
+        // the right, out of the shadow and into the sun. Sized to the screen's short side, so a phone sees all of it.
+        const rm = !!G.lessMotion;
         const pic = new RAW.Container(); pictureLayer.addChild(pic);
-        const bgp = new RAW.Graphics(); pic.addChild(bgp);
-        const pl = new RAW.Container(); pic.addChild(pl);
-        const sun = new RAW.Sprite(TX.glow); sun.anchor.set(0.5); sun.tint = 0xfff0c0; sun.blendMode = 'add'; pic.addChild(sun);
-        const shell = new RAW.Graphics(); shell.circle(0, 0, 9).fill({ color: 0x6f9a5a }).stroke({ color: 0x2f4a2a, width: 2 }); pic.addChild(shell);
-        const trail = new RAW.Graphics(); pic.addChild(trail);
-        // Ringo, filling the screen
-        const R = Math.max(W0, H0) * 0.9;
+        const bgp = new RAW.Graphics();
+        const sun = new RAW.Sprite(TX.glow); sun.anchor.set(0.5); sun.tint = 0xfff0c0; sun.blendMode = 'add';
+        const ringsBack = new RAW.Graphics(), trailBack = new RAW.Graphics(), ringsFront = new RAW.Graphics(), trailFront = new RAW.Graphics();
+        const shellAt = () => { const g = new RAW.Graphics(); g.circle(0, 0, 10).fill({ color: 0x6f9a5a }).stroke({ color: 0x2f4a2a, width: 2.4 }); g.moveTo(-6, -2).lineTo(6, -2).moveTo(-4, 4).lineTo(4, 4).stroke({ color: 0x2f4a2a, width: 1.4, alpha: 0.7 }); return g; };
+        const shellBack = shellAt(), shellFront = shellAt();
+        const pl = new RAW.Container();
+        pic.addChild(bgp, sun, ringsBack, trailBack, shellBack, pl, ringsFront, trailFront, shellFront);
+        const R0 = 100;
         const disc = new RAW.Graphics();
-        disc.circle(0, 0, R).fill({ color: 0xb79be6 });
+        disc.circle(0, 0, R0).fill({ color: 0xb79be6 });
         const stripes = [0xf2a0c4, 0x7fd4d0, 0xf6e08a, 0xb79be6, 0xe6a6d8, 0x8fc9f0];
-        for (let i = 0; i < stripes.length; i++) { const y0 = -R + (i + 0.5) * (2 * R / stripes.length); disc.rect(-R, y0 - R * 0.09, 2 * R, R * 0.18).fill({ color: stripes[i], alpha: 0.75 }); }
-        for (let k = 0; k < 220; k++) { const x = (hash(k, 201) - 0.5) * 2 * R, y = (hash(k, 202) - 0.5) * 2 * R; disc.moveTo(x, y).lineTo(x + 46, y + 18).stroke({ color: 0xffffff, width: 3, alpha: 0.08 }); }
-        const clip = new RAW.Graphics(); clip.circle(0, 0, R).fill(0xffffff); disc.mask = clip;
-        const night = new RAW.Graphics(); night.circle(0, 0, R).fill({ color: 0x0b0d22, alpha: 0.55 });
-        pl.addChild(disc, clip, night);
-        const rings = new RAW.Graphics(); pl.addChild(rings);
-        const fadeIn = rm ? 0.2 : 0.3;
-        await animate(rm ? 1.4 : 2.6, (u) => {
+        for (let i = 0; i < stripes.length; i++) { const y0 = -R0 + (i + 0.5) * (2 * R0 / stripes.length); disc.rect(-R0, y0 - R0 * 0.09, 2 * R0, R0 * 0.18).fill({ color: stripes[i], alpha: 0.75 }); }
+        for (let k = 0; k < 90; k++) { const x = (hash(k, 201) - 0.5) * 2 * R0, y = (hash(k, 202) - 0.5) * 2 * R0; disc.moveTo(x, y).lineTo(x + 6, y + 2.4).stroke({ color: 0xffffff, width: 0.8, alpha: 0.1 }); }
+        const clip = new RAW.Graphics(); clip.circle(0, 0, R0).fill(0xffffff); disc.mask = clip;
+        const rim = new RAW.Graphics(); rim.circle(0, 0, R0).stroke({ color: 0x2a2048, width: 2.2, alpha: 0.8 });
+        const night = new RAW.Graphics(); night.circle(0, 0, R0).fill({ color: 0x0b0d22, alpha: 0.6 });
+        pl.addChild(disc, clip, night, rim);
+        const TILT = -0.14, TURNS = 2.75 * Math.PI, IN = 0.16, OUT = 0.86;
+        // the path in Ringo's units (radius 1): back = behind the planet
+        const orbit = (th) => { const x = Math.cos(th) * 1.45, y = Math.sin(th) * 0.42; return { x: x * Math.cos(TILT) - y * Math.sin(TILT), y: x * Math.sin(TILT) + y * Math.cos(TILT), back: Math.sin(th) < 0 }; };
+        const start = { x: -2.6, y: -1.2, back: false };
+        const path = (u) => {
+            if (u < IN) { const e = u / IN, o = orbit(Math.PI); return { x: lerp(start.x, o.x, e), y: lerp(start.y, o.y, e), back: false }; }
+            if (u <= OUT) return orbit(Math.PI + (u - IN) / (OUT - IN) * TURNS);
+            const a = orbit(Math.PI + TURNS), b = orbit(Math.PI + TURNS - 0.02), k = (u - OUT) / (OUT - IN) * TURNS / 0.02 * 1.8;
+            return { x: a.x + (a.x - b.x) * k, y: a.y + (a.y - b.y) * k, back: false };
+        };
+        const ringPts = (rx, ry, from, to) => { const out = []; for (let i = 0; i <= 40; i++) { const th = lerp(from, to, i / 40), x = Math.cos(th) * rx, y = Math.sin(th) * ry; out.push([x * Math.cos(TILT) - y * Math.sin(TILT), x * Math.sin(TILT) + y * Math.cos(TILT)]); } return out; };
+        const fadeIn = rm ? 0.12 : 0.14;
+        await animate(rm ? 1.8 : 3.4, (u) => {
             const W = app.screen.width, H = app.screen.height;
+            const R = Math.min(W, H) * 0.29, cx = W * 0.5, cy = H * 0.55;
+            const hidden = (q) => q.back && Math.hypot(q.x, q.y) < 1.02;
             bgp.clear(); bgp.rect(0, 0, W, H).fill({ color: 0x0b0e22 });
+            for (let k = 0; k < 70; k++) bgp.circle(hash(k, 301) * W, hash(k, 302) * H, 0.8 + hash(k, 303) * 1.6).fill({ color: 0xffffff, alpha: 0.25 + hash(k, 304) * 0.45 });
             pic.alpha = clamp(Math.min(u / fadeIn, (1 - u) / fadeIn), 0, 1);
-            pl.position.set(W * 0.5, H * 1.25); pl.rotation = -0.2 + u * 0.5;
-            night.alpha = 1 - ease((u - 0.45) / 0.4);
-            rings.clear();
-            for (let k = 0; k < 4; k++) { const y = -R * 0.04 + k * 9 + Math.sin(u * 40 + k) * 4; rings.moveTo(-R * 1.6, y).lineTo(R * 1.6, y + (k % 2 ? 6 : -4)).stroke({ color: 0xdff0ff, width: 6 - k, alpha: 0.75 }); }
-            // the shell goes round, low over the curve
-            const a = -Math.PI * 0.95 + u * Math.PI * 0.9, rr = R * 1.06;
-            const sx = W * 0.5 + Math.cos(a + pl.rotation) * rr, sy = H * 1.25 + Math.sin(a + pl.rotation) * rr;
-            shell.position.set(sx, sy);
-            trail.clear(); for (let k = 1; k < 14; k++) { const aa = a - k * 0.035; trail.circle(W * 0.5 + Math.cos(aa + pl.rotation) * rr, H * 1.25 + Math.sin(aa + pl.rotation) * rr, 6 - k * 0.35).fill({ color: 0xffffff, alpha: 0.5 - k * 0.03 }); }
-            // the sun rises over the limb as the shell comes out of the shadow
-            const su = ease((u - 0.5) / 0.4);
-            sun.position.set(W * 0.82, H * 1.25 - R * 0.98 - su * H * 0.18); sun.width = sun.height = Math.min(W, H) * (0.5 + su * 0.9); sun.alpha = su;
+            pl.position.set(cx, cy); pl.scale.set(R / R0); pl.rotation = -0.12 + u * 0.3;
+            // the shell comes out of Ringo's shadow on the last round: the night lifts and the sun rises over the limb
+            night.alpha = 1 - ease((u - 0.5) / 0.35);
+            const su = ease((u - 0.55) / 0.35);
+            sun.position.set(cx + R * 0.8, cy - R * (0.55 + su * 0.6)); sun.width = sun.height = R * (1.2 + su * 1.6); sun.alpha = su;
+            // the rings: the far half behind the planet, the near half in front
+            ringsBack.clear(); ringsFront.clear();
+            for (const [k, col, w, al] of [[1.32, 0xdff0ff, 5, 0.7], [1.5, 0xf2c8e8, 7, 0.5], [1.7, 0xbfe6f0, 3.5, 0.55]]) {
+                const tr = (pts) => pts.map(([x, y]) => [cx + x * R, cy + y * R]);
+                lineAlong(ringsBack, tr(ringPts(k, k * 0.29, Math.PI, 2 * Math.PI))).stroke({ color: col, width: w * R / 120, alpha: al * 0.8, cap: 'round' });
+                lineAlong(ringsFront, tr(ringPts(k, k * 0.29, 0, Math.PI))).stroke({ color: col, width: w * R / 120, alpha: al, cap: 'round' });
+            }
+            // the shell and its trail of light
+            const q = path(u), sc = Math.max(0.8, R / 110);
+            for (const [g, back] of [[shellBack, true], [shellFront, false]]) { g.position.set(cx + q.x * R, cy + q.y * R); g.scale.set(sc); g.visible = q.back === back && !hidden(q); }
+            trailBack.clear(); trailFront.clear();
+            for (let k = 1; k < 18; k++) {
+                const qq = path(Math.max(0, u - k * 0.007));
+                if (hidden(qq)) continue;
+                (qq.back ? trailBack : trailFront).circle(cx + qq.x * R, cy + qq.y * R, Math.max(1, (7 - k * 0.35) * sc)).fill({ color: 0xffffff, alpha: Math.max(0, 0.55 - k * 0.03) });
+            }
         });
         pic.destroy({ children: true });
     }
@@ -1901,9 +1969,9 @@ export function createView(PIXI, app, { assets, G, heroFactory, lightTarget = nu
             if (who === 'klo') return S.A.klo.container.visible ? S.A.klo.headBounds() : null;
             if (who === 'nova') return S.A.nova.view.visible ? S.A.nova.view.getBounds() : null;
             if (who === 'sudd') return S.A.sudd.view.visible ? S.A.sudd.view.getBounds() : null;
-            if (who === 'komet') { const v = S.komet?.view || S.rideKomet?.view; return v?.visible ? v.getBounds() : null; }
+            if (who === 'komet') { const v = S.komet?.view || S.rideKomet?.view || S.arrivedKomet?.view; return v?.visible ? v.getBounds() : null; }
             if (who === 'bjorn' && S.bear) return S.bear.view.getBounds();
-            if (who === 'pip') { const v = S.pip?.view || S.ridePip?.view; return v?.visible ? v.getBounds() : null; }
+            if (who === 'pip') { const v = S.pip?.view || S.ridePip?.view || S.callPip?.view; return v?.visible ? v.getBounds() : null; }
             return null;
         },
         /** For the harness and checks. */
