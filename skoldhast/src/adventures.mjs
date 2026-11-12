@@ -5,9 +5,8 @@ export const ADVENTURES = Object.freeze([
     Object.freeze({ id: FIRST_ADVENTURE, number: 1, released: true, requires: null, module: './main.mjs' }),
     // Den magiska skogen (adventures/adventure-2/), released on 4 November 2026.
     Object.freeze({ id: 'adventure-2', number: 2, released: true, requires: FIRST_ADVENTURE, module: '../adventures/adventure-2/main.mjs' }),
-    // De försvunna stjärnorna (adventures/adventure-3/): built, not released. Preview: dev/play.html?adventure=3.
-    // Released whole, when finished (docs/skoldhast/adventure-3.md, section 20.1); its title stays hidden until then.
-    Object.freeze({ id: 'adventure-3', number: 3, released: false, requires: 'adventure-2', module: '../adventures/adventure-3/main.mjs' })
+    // De försvunna stjärnorna (adventures/adventure-3/), released whole on 12 November 2026 (Pappa: "Släpp äventyr 3").
+    Object.freeze({ id: 'adventure-3', number: 3, released: true, requires: 'adventure-2', module: '../adventures/adventure-3/main.mjs' })
 ]);
 
 export function getAdventure(id) {

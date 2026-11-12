@@ -105,7 +105,7 @@ export const ADVENTURE_UI = {
     titles: {
         'havet-mellan-sidorna': 'Havet mellan sidorna',
         'adventure-2': 'Den magiska skogen',
-        'adventure-3': 'Ett nytt äventyr'
+        'adventure-3': 'De försvunna stjärnorna'
     },
     completed: 'Avklarat', playing: 'Pågår', ready: 'Redo att spelas',
     locked: 'Låst', developing: 'Under arbete',

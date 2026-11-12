@@ -2,29 +2,30 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { ADVENTURES, FIRST_ADVENTURE, getAdventure, adventureStatus, previewIds, withPreview } from '../skoldhast/src/adventures.mjs';
 
-test('three adventures have stable identities; Den magiska skogen is released, the third is not', () => {
+test('three adventures have stable identities; all three are released (De försvunna stjärnorna on 12 November)', () => {
     assert.deepEqual(ADVENTURES.map(({ id, number, requires, released }) => ({ id, number, requires, released })), [
         { id: FIRST_ADVENTURE, number: 1, requires: null, released: true },
         { id: 'adventure-2', number: 2, requires: FIRST_ADVENTURE, released: true },
-        { id: 'adventure-3', number: 3, requires: 'adventure-2', released: false }
+        { id: 'adventure-3', number: 3, requires: 'adventure-2', released: true }
     ]);
     assert.equal(getAdventure(FIRST_ADVENTURE).module, './main.mjs');
     assert.equal(getAdventure('adventure-2').module, '../adventures/adventure-2/main.mjs');
-    // built and previewable (dev/play.html?adventure=3), but not released: nobody can choose it yet
+    // released (Pappa, 12 November: "Släpp äventyr 3"); still previewable (dev/play.html?adventure=3)
     assert.equal(getAdventure('adventure-3').module, '../adventures/adventure-3/main.mjs');
-    assert.equal(getAdventure('adventure-3').released, false);
+    assert.equal(getAdventure('adventure-3').released, true);
     assert.equal(getAdventure('missing'), null);
     assert.deepEqual(adventureStatus(FIRST_ADVENTURE), { unlocked: true, released: true, playable: true, completed: false });
 });
 
-test('completion earns the next unlock but cannot publish unfinished adventures', () => {
+test('completion earns the next unlock, one adventure at a time', () => {
     const profile = { completedAdventures: [FIRST_ADVENTURE], released: true, adventures: { 'adventure-3': { released: true } } };
     assert.deepEqual(adventureStatus('adventure-2', profile), { unlocked: true, released: true, playable: true, completed: false });
     assert.deepEqual(adventureStatus('adventure-2', { completedAdventures: [] }), { unlocked: false, released: true, playable: false, completed: false },
         'Den magiska skogen waits until Äventyr 1 is finished');
-    assert.equal(adventureStatus('adventure-3', profile).unlocked, false);
-    assert.deepEqual(adventureStatus('adventure-3', { completedAdventures: [FIRST_ADVENTURE, 'adventure-2'], adventures: { 'adventure-3': { released: true } } }),
-        { unlocked: true, released: false, playable: false, completed: false }, 'a save cannot publish the third adventure');
+    assert.deepEqual(adventureStatus('adventure-3', profile), { unlocked: false, released: true, playable: false, completed: false },
+        'De försvunna stjärnorna waits until Den magiska skogen is finished');
+    assert.deepEqual(adventureStatus('adventure-3', { completedAdventures: [FIRST_ADVENTURE, 'adventure-2'] }),
+        { unlocked: true, released: true, playable: true, completed: false }, 'after Den magiska skogen, De försvunna stjärnorna');
     assert.equal(adventureStatus(FIRST_ADVENTURE, profile).completed, true);
     assert.equal(adventureStatus('adventure-2', { completedAdventures: 'havet-mellan-sidorna' }).unlocked, false);
     assert.deepEqual(adventureStatus('missing', profile), { unlocked: false, released: false, playable: false, completed: false });
@@ -40,7 +41,8 @@ test('released sequels become playable sequentially using previously earned comp
     assert.equal(adventureStatus('adventure-3', firstDone, released).playable, false);
     assert.equal(adventureStatus('adventure-3', secondDone, released).playable, true);
     assert.equal(adventureStatus('adventure-2', firstDone).playable, true, 'the shipped catalogue has Den magiska skogen');
-    assert.equal(adventureStatus('adventure-3', secondDone).playable, false, 'the shipped catalogue has no third adventure yet');
+    assert.equal(adventureStatus('adventure-3', firstDone).playable, false, 'the shipped catalogue asks for Den magiska skogen first');
+    assert.equal(adventureStatus('adventure-3', secondDone).playable, true, 'the shipped catalogue has De försvunna stjärnorna');
 });
 
 test('a release flag alone cannot launch an adventure without an entry module', () => {

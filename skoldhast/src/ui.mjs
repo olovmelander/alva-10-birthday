@@ -943,7 +943,7 @@ export function createUI(host, { assetBase, handlers, voice = null }) {
                 card.setAttribute('aria-label', `${ADVENTURE_UI.number(adventure.number)}: ${name}`);
                 const cover = el('div', 'sk-adventure-cover');
                 cover.setAttribute('aria-hidden', 'true');
-                cover.append(icon(adventure.released ? ({ 'adventure-2': 'cloud' }[adventure.id] || 'wave') : 'pencil')); // each its own: the sea, Mira's cloud
+                cover.append(icon(adventure.released ? ({ 'adventure-2': 'cloud', 'adventure-3': 'star' }[adventure.id] || 'wave') : 'pencil')); // each its own: the sea, Mira's cloud, Alva's stars
                 if (adventure.completed) cover.append(icon('check', 'sk-adventure-check'));
                 card.append(cover, el('p', 'sk-adventure-number', ADVENTURE_UI.number(adventure.number)), el('h3', 'sk-adventure-name', name));
                 const status = adventure.completed ? ADVENTURE_UI.completed

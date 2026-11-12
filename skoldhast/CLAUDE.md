@@ -19,9 +19,10 @@ Do not start the next chapter's content in the same PR. Keep `RELEASED_CHAPTER`
 The full existing story is **Äventyr 1**, containing Kapitel 1–3. The series catalogue
 (`src/adventures.mjs`) reserves three adventures. **Äventyr 2: Den magiska skogen** is built in
 `adventures/adventure-2/` and released (4 November 2026): it opens once Äventyr 1 is finished. **Äventyr 3: De försvunna
-stjärnorna** is built in `adventures/adventure-3/` but not released (`released: false`; preview
-`dev/play.html?adventure=3`); its design is `docs/skoldhast/adventure-3.md` (section 20.2: what the build changed).
-Its voices are not recorded until Pappa says the adventure is finished: `docs/skoldhast/voices.md`. Their release flags are independent of
+stjärnorna** is built in `adventures/adventure-3/` and released (12 November 2026): it opens once Äventyr 2 is
+finished (preview without the unlock: `dev/play.html?adventure=3`); its design is `docs/skoldhast/adventure-3.md`
+(section 20.2: what the build changed). Every line of all three adventures is recorded acted; who speaks with which
+voice and how to record: `docs/skoldhast/voices.md`. Their release flags are independent of
 `RELEASED_CHAPTER`. Use `src/launcher.mjs` for host integration and the adventure-aware
 save API; never reset other stories or permanent completion when replaying one.
 The runtime contract and release steps are in plan §8.6, "Adventure series".

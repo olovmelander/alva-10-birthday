@@ -26,16 +26,26 @@ function fixture({ catalogue = ADVENTURES, profile = {}, loadRuntime } = {}) {
     return { game, events, runtimes, saver };
 }
 
-test('unreleased adventures cannot load, even with every prerequisite completed; Den magiska skogen can', async () => {
+test('the released sequels load once their prerequisites are completed; an unknown adventure never does', async () => {
     const { game, events } = fixture({ profile: { completedAdventures: [FIRST_ADVENTURE, 'adventure-2'] } });
     await game.open();
     assert.equal(game.activeAdventure, FIRST_ADVENTURE);
-    assert.equal(await game.switchAdventure('adventure-3'), false);
     assert.equal(await game.switchAdventure('unknown'), false);
     assert.deepEqual(events.filter(e => e[0] === 'load'), [['load', FIRST_ADVENTURE]]);
-    assert.equal(await game.switchAdventure('adventure-2'), true, 'the released sequel loads');
+    assert.equal(await game.switchAdventure('adventure-2'), true, 'Den magiska skogen loads');
     assert.equal(game.activeAdventure, 'adventure-2');
-    assert.deepEqual(events.filter(e => e[0] === 'load'), [['load', FIRST_ADVENTURE], ['load', 'adventure-2']]);
+    assert.equal(await game.switchAdventure('adventure-3'), true, 'De försvunna stjärnorna loads after it');
+    assert.equal(game.activeAdventure, 'adventure-3');
+    assert.deepEqual(events.filter(e => e[0] === 'load'), [['load', FIRST_ADVENTURE], ['load', 'adventure-2'], ['load', 'adventure-3']]);
+    await game.close();
+});
+
+test('De försvunna stjärnorna waits until Den magiska skogen is finished', async () => {
+    const { game, events } = fixture({ profile: { completedAdventures: [FIRST_ADVENTURE] } });
+    await game.open();
+    assert.equal(await game.switchAdventure('adventure-3'), false);
+    assert.equal(game.activeAdventure, FIRST_ADVENTURE);
+    assert.deepEqual(events.filter(e => e[0] === 'load'), [['load', FIRST_ADVENTURE]]);
     await game.close();
 });
 

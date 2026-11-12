@@ -1,3 +1,18 @@
+## Äventyr 3 is released (12 November, night)
+
+Pappa: "Släpp äventyr 3." `released: true` for `adventure-3` in `src/adventures.mjs`. Anyone who has finished Den
+magiska skogen gets **De försvunna stjärnorna** under **Välj äventyr** (with a star on its card) and as "next
+adventure" on Äventyr 2's ending card; players who have not finished Äventyr 2 see it locked with its reason.
+
+- **Tests changed on purpose:** `tests/skoldhast-adventures.test.mjs` and `tests/skoldhast-launcher.test.mjs` expect
+  Äventyr 3 released, playable after Äventyr 2 and locked before it; `tests/browser/skoldhast-adventures.mjs` gains a
+  case that opens it from the picker after Äventyr 2 (new shots `adventure-3-selector-844x390.webp` and
+  `adventure-3-title-844x390.webp` in `docs/skoldhast/shots/adventures/`).
+- **Verification:** `npm test` passes (487); `skoldhast-adventures.mjs` and `skoldhast-a3.mjs` pass.
+- **Not done by Claude:** playing it on Alva's device with the sound on (the design's gate). Pappa released it
+  before that; play it there soon, and listen to the voices and the music, which nobody here could hear.
+- Merge at least 15 minutes before Alva plays: GitHub Pages caches every file for 10 minutes.
+
 ## Äventyr 1 and 2 recorded again, acted (12 November, night)
 
 Pappa: "Spela in äventyr 1 och 2 med regi också." All 921 lines of Äventyr 1 and 2 are recorded again with
