@@ -1,3 +1,22 @@
+## Äventyr 3, the last fine-tuning before release (12 November, night)
+
+Pappa: "spela igenom äventyr 3 och fixa saker som behöver fixas … ett enastående och roligt mästerverk". Played
+through twice by the robot (both orders, every line read as a player), every conversation in a real browser at
+844×390 with a picture per line, all 24 contact sheets, and every secret after the story. Still not released, still
+no voices recorded. The details are in `docs/skoldhast/adventure-3-audit.md`, "The last playthrough".
+
+- **Words:** "Han är kär" now answers Nova's question from the night side ("Nu blinkar han igen …"); the goal note
+  stops asking "Vem – och varför?" once Suddet is known (and says "Ta stjärnorna hem" at ten); no thought said twice
+  in a row; Klo's chatter no longer contradicts his postcard.
+- **Play:** after Utsikten Nova is furious at the thief and her lamps light the night side all the way back to the
+  rocket (no second round of the dark puzzle). After the story Kometens svans says how to get home, and no longer
+  repeats "Jag sprattlade". All eight secrets were found by the robot.
+- **Pictures:** speakers shown on a sideways phone in the climax, the bear's lines and the camera's look-ahead; the
+  far walls of the Moon's hollows; the bear's face; Pip by the heroes when he speaks; the forest's page redrawn; skies
+  hatched three ways; ice chips round the ring; half-erased drawings and Suddet's crumbs in the white; the storm's
+  speakers as eyes in the dark; Alva's portrait after a reload.
+- **Left on purpose:** Klo stays up on the rim of Djupa kratern and speaks from there (his edge badge shows him).
+
 ## Äventyr 3 is built, not released: De försvunna stjärnorna (12 November, evening)
 
 Pappa: "implementera hela Äventyr 3 i ett svep … Röstinspelningen avvaktar vi med tills jag säger att vi är helt

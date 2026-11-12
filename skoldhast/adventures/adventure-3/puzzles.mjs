@@ -199,6 +199,10 @@ export function stepPuzzles(G, events, dt) {
             if (!was) G.emit('novaAngry', { x: nova.x });
         }
     }
+    // after Utsikten Nova is furious at the thief ("En stjärntjuv. På MIN himmel."): her lamps burn red all the way
+    // back to the rocket, so the night side is not a chore the second time
+    if (sc.dark && nova?.visible && nova.scene === G.sceneId && nova.follow && F.has('m5_view') && !F.has('fin_drawn') && !F.has('ended'))
+        P.angryUntil = Math.max(P.angryUntil, G.time + 0.5);
     if (sc.dark) {
         const inDark = p.x >= sc.dark.x0 - 2 * HL && p.x <= sc.dark.x1;
         const lit = G.time < P.angryUntil;

@@ -1264,15 +1264,36 @@ export function createBearFigure(PIXI, pen, { stars = [], lines = [], nose = nul
         }
         for (const [i, j] of lines) constellationLine(linesG, pen, [P[i], P[j]], { width: 3.2, alpha: 0.55 + awake * 0.4 });
         if (nose) constellationLine(noseG, pen, [P[nose[0]], P[nose[1]]], { dashed: !noseOn, width: 3.2, alpha: 0.6 + awake * 0.4 });
+        // his face, drawn in a pencil line over the soft shapes so it reads when he speaks: the head's round, the ear,
+        // the snout's underside with a mouth, and a nose of his own at the tip once it is drawn
+        if (eye && BP.length >= 3) {
+            const hx = eye[0] - 40, hy = eye[1] - standing * R + breathY, ink = { color: 0xa9baf4, cap: 'round' };
+            sil.moveTo(hx - 150 * Math.cos(0.9), hy + 150 * Math.sin(0.9)).arc(hx, hy, 150, Math.PI - 0.9, Math.PI * 1.75).stroke({ ...ink, width: 4, alpha: 0.22 + awake * 0.3 });
+            sil.circle(hx - 60, hy - 150, 58).stroke({ ...ink, width: 3.4, alpha: 0.2 + awake * 0.3 });
+            sil.circle(hx - 60, hy - 150, 30).fill({ color: 0x8fa2e8, alpha: 0.08 + awake * 0.1 });
+            if (nose) {
+                const [ax, ay] = P[nose[0]], [bx, by] = P[nose[1]], rot = Math.atan2(by - ay, bx - ax);
+                const nx = -Math.sin(rot), ny = Math.cos(rot);
+                const pts = []; for (let q = 0; q <= 12; q++) { const u = 0.12 + q / 12 * 0.8; pts.push([ax + (bx - ax) * u + nx * (70 + Math.sin(u * Math.PI) * 26), ay + (by - ay) * u + ny * (70 + Math.sin(u * Math.PI) * 26)]); }
+                sil.moveTo(pts[0][0], pts[0][1]); for (const [x, y] of pts.slice(1)) sil.lineTo(x, y);
+                sil.stroke({ ...ink, width: 4, alpha: 0.2 + awake * 0.3 });
+                if (awake > 0.3) { const [mx, my] = pts[9]; sil.moveTo(mx - 50, my - 6).quadraticCurveTo(mx - 20, my + 22 * awake, mx + 14, my - 2).stroke({ ...ink, width: 4.4, alpha: 0.5 * awake }); }
+                if (noseOn) { sil.ellipse(bx + 8, by + 6, 34, 24).fill({ color: 0x1c2250, alpha: 0.75 }).stroke({ ...ink, width: 3, alpha: 0.7 }); sil.ellipse(bx, by - 2, 10, 6).fill({ color: 0xdfe6ff, alpha: 0.6 }); }
+            }
+        }
         starG.forEach((s, i) => { s.c.position.set(P[i][0], P[i][1]); });
         eyeG.clear();
         if (eye) {
-            const [ex, ey] = [eye[0], eye[1] - standing * R + breathY];
+            // big enough to be seen from his back on a phone (it was a speck at 15)
+            eyeG.position.set(eye[0], eye[1] - standing * R + breathY);
             if (awake > 0.5) {
-                eyeG.circle(ex, ey, 15).fill({ color: 0xeef2ff, alpha: 0.9 }).stroke(pen.line(0x9aa8e0, 2));
-                eyeG.circle(ex + 3, ey + 1, 6).fill({ color: 0x1a2040 });
-                eyeG.circle(ex + 1, ey - 2, 2).fill({ color: 0xffffff });
-            } else eyeG.moveTo(ex - 14, ey).quadraticCurveTo(ex, ey + 9, ex + 14, ey).stroke(pen.line(0xcfd8ff, 3, 0.8));
+                eyeG.circle(0, 0, 40).fill({ color: 0xeef2ff, alpha: 0.95 }).stroke(pen.line(0x9aa8e0, 3.4));
+                eyeG.circle(7, 3, 17).fill({ color: 0x1a2040 });
+                eyeG.circle(2, -6, 6).fill({ color: 0xffffff });
+            } else {
+                eyeG.moveTo(-36, 0).quadraticCurveTo(0, 22, 36, 0).stroke(pen.line(0xcfd8ff, 5, 0.85));
+                for (const k of [-0.6, 0, 0.6]) eyeG.moveTo(k * 30, 10 - Math.abs(k) * 5).lineTo(k * 36, 22 - Math.abs(k) * 4).stroke(pen.line(0xcfd8ff, 3, 0.7));
+            }
         }
     }
     let standNow = 0, awakeNow = 0;
@@ -1292,6 +1313,14 @@ export function createBearFigure(PIXI, pen, { stars = [], lines = [], nose = nul
             for (const st of starG) {
                 st.h.alpha = (0.55 + 0.45 * awakeNow) * (reducedMotion ? 1 : 0.8 + 0.2 * Math.sin(t * 1.7 + st.o));
             }
+            // awake, he blinks now and then (slowly: he is very big)
+            const bl = reducedMotion || awakeNow < 0.5 ? 1 : ((t % 4.6) < 0.22 ? 0.12 : 1);
+            eyeG.scale.set(1, bl);
+        },
+        /** His head in world units now (for the speaker's mark). */
+        headAt() {
+            if (!eye) return null;
+            return { x: eye[0] - 40, y: eye[1] - (drawn ? drawn.standing * R - drawn.breathY : 0) };
         },
         destroy() { view.destroy({ children: true }); }
     };

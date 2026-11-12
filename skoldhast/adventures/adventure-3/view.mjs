@@ -164,6 +164,14 @@ export function createView(PIXI, app, { assets, G, heroFactory, lightTarget = nu
         gravel: texFrom(g => { g.poly([-3, -2, 2, -3, 4, 1, 0, 3, -3, 2]).fill({ color: 0x9aa6b8 }); g.moveTo(-3, -2).lineTo(4, 1).stroke({ width: 1, color: 0x4a5468 }); }, 10, 10),
         streak: texFrom(g => g.moveTo(-16, 0).lineTo(16, 0).stroke({ width: 2.4, color: 0xd9e4f2, alpha: 0.8, cap: 'round' }), 36, 6),
         shadow: texFrom(g => { for (let i = 6; i >= 1; i--) g.ellipse(0, 0, i * 9.5, i * 2.4).fill({ color: 0x1a1424, alpha: 0.075 }); }, 124, 32),
+        // the ring's own bits of ice and stone, and far rocks drifting in space (the drifters, behind everything)
+        chip: texFrom(g => { g.poly([-7, -3, -2, -7, 6, -5, 8, 2, 1, 6, -6, 4]).fill({ color: 0xffffff }); g.poly([-7, -3, -2, -7, 6, -5, 8, 2, 1, 6, -6, 4]).stroke({ width: 1.4, color: 0x6a7c9a, alpha: 0.8 }); g.moveTo(-3, -4).lineTo(3, -4).stroke({ width: 1.6, color: 0xffffff, alpha: 0.9 }); }, 20, 16),
+        rock: texFrom(g => {
+            const pts = []; for (let k = 0; k < 13; k++) { const a = k / 13 * TAU, r = 30 * (0.72 + hash(k, 401) * 0.4); pts.push(Math.cos(a) * r * 1.35, Math.sin(a) * r * 0.85); }
+            g.poly(pts).fill({ color: 0xffffff }); g.poly(pts).stroke({ width: 2.4, color: 0x2a2436, alpha: 0.6 });
+            for (let k = 0; k < 4; k++) g.ellipse((hash(k, 402) - 0.5) * 50, (hash(k, 403) - 0.5) * 26, 5 + hash(k, 404) * 6, 3 + hash(k, 405) * 3).fill({ color: 0x2a2436, alpha: 0.35 });
+            g.ellipse(-12, -12, 20, 6).fill({ color: 0xffffff, alpha: 0.35 });
+        }, 92, 60),
         // a grey smudge, rubbed in with a pencil's side: soft all round, hatched
         smear: canvasTex(256, 256, (c, w, hh) => {
             const g = c.createRadialGradient(w / 2, hh / 2, 0, w / 2, hh / 2, w / 2);
@@ -293,6 +301,7 @@ export function createView(PIXI, app, { assets, G, heroFactory, lightTarget = nu
         if (id === 'stjarn') buildConstellations(def);
         if (id === 'ring') buildRing(def);
         if (id === 'sudd') buildWhiteThings(def);
+        buildDrifters(id);
         buildCommon(def);
         buildActors();
         refreshWhen();
@@ -591,6 +600,38 @@ export function createView(PIXI, app, { assets, G, heroFactory, lightTarget = nu
     // --- the Moon --------------------------------------------------------------------------------------
     function buildMoon(def) {
         const sp = def.spots;
+        // the far side of every hollow: where the ground dips (Novas krater, Hoppfälten's rifts, Djupa kratern) the
+        // dip's far wall is seen across it, in its own shade, with rubble at its foot; never the sky through the Moon
+        {
+            const fw = new PIXI.Graphics(), fx0 = h(7.6), fx1 = h(56.2), bottom = def.bounds.y1 + h(4);
+            const rim = [];
+            // level with the plain (just under its line, so it shows only across a dip)
+            for (let x = fx0; x <= fx1 + 1; x += h(0.2)) rim.push([x, h(0.03) + hash(Math.round(x), 61) * h(0.03)]);
+            const body = [...rim, [fx1, bottom], [fx0, bottom]];
+            poly(fw, body).fill({ color: 0xc2b68c });
+            poly(fw, body).fill(pen.hatch(0x9a8f6a, 0.5));
+            // the light comes from the upper left: the far wall's face is in shade, deeper the further down
+            for (const [d, a] of [[0.35, 0.16], [1.1, 0.2], [2.2, 0.24], [3.4, 0.28]]) poly(fw, [...offset(rim, h(d)), [fx1, bottom], [fx0, bottom]]).fill({ color: 0x4a4436, alpha: a });
+            // strata across the wall of Djupa kratern, and boulders at its foot
+            for (let k = 0; k < 5; k++) {
+                const y = h(0.7 + k * 0.62), pts = [];
+                for (let x = h(45.6); x <= h(54.4); x += h(0.4)) pts.push([x, y + Math.sin(x * 0.004 + k * 1.3) * h(0.08)]);
+                lineAlong(fw, pts).stroke(pen.line(0x6d6450, 1.6, 0.35));
+            }
+            for (let k = 0; k < 9; k++) {
+                const x = lerp(h(46.2), h(53.8), hash(k, 63)), r = h(0.16 + hash(k, 64) * 0.22);
+                fw.ellipse(x, h(4) - r * 0.45, r, r * 0.6).fill(pen.fill(0xa89d78, 0.9)).stroke(pen.line(0x5d5644, 1.6, 0.7));
+                fw.ellipse(x - r * 0.25, h(4) - r * 0.75, r * 0.45, r * 0.18).fill({ color: 0xfff6d4, alpha: 0.35 });
+            }
+            for (let k = 0; k < 6; k++) {
+                const x = lerp(h(46.4), h(53.6), hash(k, 66)), y = h(1 + hash(k, 67) * 2.3), r = h(0.14 + hash(k, 68) * 0.16);
+                fw.ellipse(x, y, r, r * 0.45).fill({ color: 0x5d5644, alpha: 0.35 }).stroke(pen.line(0x4a4436, 1.2, 0.5));
+            }
+            // the far rim: a lit edge against the sky
+            lineAlong(fw, rim).stroke(pen.line(0x6d6248, 2.4, 0.8));
+            lineAlong(fw, offset(rim, 5)).stroke(pen.line(0xfff6d4, 1.8, 0.5));
+            L.back.addChildAt(fw, 0);
+        }
         // Nova's bed: a hollow with a blanket of moon dust
         const bed = new PIXI.Graphics();
         bed.ellipse(sp.novaBed.x, sp.novaBed.y + 6, h(0.9), h(0.16)).fill(pen.fill(0xb9ae88, 0.9)).stroke(pen.line(0x7d7356, 1.6, 0.8));
@@ -659,7 +700,7 @@ export function createView(PIXI, app, { assets, G, heroFactory, lightTarget = nu
             [8, 16], [16, 12], [6, 17], [17, 5]];
         const bear = createBearFigure(PIXI, pen, { stars, lines, nose: [6, 7], legs: [10, 11, 14, 15], eye: [hx + h(0.9), hy + h(0.25)], rise: h(3.2) });
         L.back.addChild(bear.view);
-        S.bear = bear;
+        S.bear = bear; S.bearHead = { x: hx + h(0.9), y: hy + h(0.25) };
         // l5: the light he sleeps on ("den är varm")
         // Pip and his lane of pull
         const o = def.orbit;
@@ -831,6 +872,51 @@ export function createView(PIXI, app, { assets, G, heroFactory, lightTarget = nu
         for (let i = 0; i < 160; i += 2) { const p = left[i]; g.circle(p[0] + h(0.15) + hash(i, 85) * h(0.5), p[1], 3 + hash(i, 86) * 4).fill({ color: 0x2a2e48, alpha: 0.35 }); }
         L.back.addChildAt(g, 0);
         S.sheet = g;
+        // what was drawn here once, rubbed nearly away: a sun, a flower, a cloud, a butterfly, a tree, a heart (pale
+        // grey pencil, broken where the eraser went over it, with the paper's smear on top). Not in the fog: what
+        // stands there is its own (V2)
+        const ghosts = new PIXI.Graphics(), gl = pen.line(0x928ea2, 3.6, 0.7);
+        const broken = (pts, seed) => { // a stroke the eraser went over: every third piece gone
+            for (let i = 1; i < pts.length; i++) if (hash(i, seed) > 0.3) ghosts.moveTo(pts[i - 1][0], pts[i - 1][1]).lineTo(pts[i][0], pts[i][1]).stroke(gl);
+        };
+        const ring = (cx, cy, r, n = 18, seed = 1, ry = r) => Array.from({ length: n + 1 }, (_, i) => [cx + Math.cos(i / n * TAU) * r, cy + Math.sin(i / n * TAU) * ry + (hash(i, seed) - 0.5) * 6]);
+        // the sun
+        broken(ring(h(13.2), h(-5.6), h(0.7), 20, 3), 4);
+        for (let k = 0; k < 9; k++) { const a = k / 9 * TAU; if (hash(k, 5) > 0.35) ghosts.moveTo(h(13.2) + Math.cos(a) * h(0.95), h(-5.6) + Math.sin(a) * h(0.95)).lineTo(h(13.2) + Math.cos(a) * h(1.35), h(-5.6) + Math.sin(a) * h(1.35)).stroke(gl); }
+        // a flower on the line where the ground was
+        broken([[h(19.6), h(-0.1)], [h(19.7), h(-0.9)], [h(19.6), h(-1.6)]], 6);
+        for (let k = 0; k < 5; k++) { const a = k / 5 * TAU; broken(ring(h(19.6) + Math.cos(a) * h(0.28), h(-1.85) + Math.sin(a) * h(0.28), h(0.2), 10, 7 + k), 8 + k); }
+        broken([[h(19.65), h(-0.7)], [h(20.1), h(-0.95)], [h(19.7), h(-0.85)]], 13);
+        // a cloud
+        broken([[h(23.0), h(-6.4)], ...ring(h(23.6), h(-6.7), h(0.6), 10, 14).slice(5, 10), ...ring(h(24.6), h(-7.0), h(0.75), 10, 15).slice(5, 10), ...ring(h(25.6), h(-6.6), h(0.55), 10, 16).slice(5, 10), [h(26.1), h(-6.4)], [h(23.0), h(-6.4)]], 17);
+        // a butterfly
+        broken(ring(h(51.6), h(-4.6), h(0.5), 12, 18, h(0.62)), 19); broken(ring(h(52.6), h(-4.6), h(0.5), 12, 20, h(0.62)), 21);
+        broken([[h(52.1), h(-5.2)], [h(52.1), h(-4.0)]], 22); broken([[h(52.1), h(-5.2)], [h(51.8), h(-5.7)]], 23); broken([[h(52.1), h(-5.2)], [h(52.4), h(-5.7)]], 24);
+        // a tree
+        broken([[h(57.0), h(-0.2)], [h(57.05), h(-1.4)], [h(56.95), h(-2.0)]], 25);
+        broken(ring(h(57.0), h(-2.7), h(0.85), 16, 26, h(0.7)), 27);
+        // a heart
+        broken([[h(60.4), h(-5.0)], [h(59.8), h(-5.6)], [h(60.0), h(-6.1)], [h(60.4), h(-5.9)], [h(60.8), h(-6.1)], [h(61.0), h(-5.6)], [h(60.4), h(-5.0)]], 28);
+        L.back.addChild(ghosts);
+        for (const [x, y, w] of [[13.2, -5.6, 3.4], [19.8, -1.3, 2.2], [24.5, -6.7, 3.6], [52.1, -4.7, 2.6], [57.0, -2.0, 2.8], [60.4, -5.6, 1.8]]) {
+            const s = softSprite(TX.smear, h(x) + h(0.3), h(y), h(w), h(w * 0.55), 0xfbf8f1, 0.55, L.back);
+            s.rotation = -0.3; // the eraser's strokes: one way, across
+            softSprite(TX.smear, h(x) - h(0.2), h(y) + h(0.2), h(w * 0.9), h(w * 0.4), 0x9a96a8, 0.1, L.back).rotation = -0.3;
+        }
+        // Suddet's trail: pink crumbs on the dents, thicker the nearer Smulhögen
+        const crumbsG = new PIXI.Graphics();
+        // (none in the fog: there the way is hidden until the seed lights it)
+        const dents = [...def.surfaces.filter(q => q.mat === 'dent'), ...(def.dashed || []).filter(q => q.id === 'lastBridge')];
+        for (let i = 0; i < 70; i++) {
+            const u = Math.sqrt(hash(i, 131)), x = lerp(h(9), h(61), u);
+            if (x > h(29.2) && x < h(46.6)) continue;
+            const on = dents.find(q => x >= q.pts[0][0] && x <= q.pts.at(-1)[0]);
+            const y = on ? heightOn(on.pts, x) : null;
+            if (y === null || y === undefined) continue;
+            const r = 3 + hash(i, 132) * 4, a = hash(i, 133) * TAU;
+            crumbsG.moveTo(x + Math.cos(a) * r, y - 3 + Math.sin(a) * r).arc(x, y - 3, r, a, a + 3.6).stroke(pen.line(i % 4 ? PAL.crumb : PAL.crumbLo, 2.4 + r * 0.2, 0.85));
+        }
+        L.mid.addChild(crumbsG);
     }
     function buildWhiteThings(def) {
         const sp = def.spots;
@@ -888,6 +974,36 @@ export function createView(PIXI, app, { assets, G, heroFactory, lightTarget = nu
         for (const [x, y] of wst) starAt(S.rideWagon, x, y, 11);
         S.rideBearC.addChild(S.rideWagon);
         S.ridePip = createPip(PIXI, pen); S.ridePip.view.scale.set(1.2); L.actors.addChild(S.ridePip.view);
+    }
+
+    // --- the drifters: what floats far behind the play, in slow parallax --------------------------------------------
+    // On the ring: its own bits of ice and stone, in bands above and below the floes (the ring is made of them). In the
+    // constellations: a few far rocks tumbling. They wrap round a strip a little wider than the screen, so a few dozen
+    // sprites fill any width; nearer ones are larger, brighter and move faster.
+    function buildDrifters(id) {
+        S.drifters = [];
+        const add = (n, mk) => { for (let i = 0; i < n; i++) { const d = mk(i); const s = new RAW.Sprite(d.tex); s.anchor.set(0.5); s.tint = d.tint; L.back.addChild(s); S.drifters.push({ s, ...d }); } };
+        if (id === 'ring') {
+            // two bands of chips: a thin one high behind, a thick one low in front of the planet
+            add(72, (i) => { const low = i % 4 !== 0, p = low ? 0.55 + hash(i, 410) * 0.3 : 0.3 + hash(i, 411) * 0.2;
+                return { tex: hash(i, 412) > 0.25 ? TX.chip : TX.gravel, tint: hash(i, 413) > 0.4 ? 0xe6f6ff : 0xc4cce0, u: hash(i, 414), p,
+                    y: low ? h(1.05 + hash(i, 415) * 1.0) : h(-2.4 - hash(i, 416) * 1.7), k: (low ? 2.4 : 1.3) * (0.7 + hash(i, 417) * 1.1) * p * 1.6, a: (low ? 0.9 : 0.5) * (0.6 + p * 0.5), spin: (hash(i, 418) - 0.5) * 0.8, drift: h(0.05 + hash(i, 419) * 0.08) }; });
+        } else if (id === 'stjarn') {
+            add(9, (i) => { const p = 0.12 + hash(i, 420) * 0.22;
+                // far and faint, dark against the nebula: never mistaken for a rock to land on
+                return { tex: TX.rock, tint: [0x4a4268, 0x544c74, 0x423c5e][i % 3], u: hash(i, 421), p, y: h(-6 + hash(i, 422) * 9), k: 0.8 + hash(i, 423) * 1.2, a: 0.16 + p * 0.35, spin: (hash(i, 424) - 0.5) * 0.12, drift: h(0.02 + hash(i, 425) * 0.04) }; });
+        }
+    }
+    function stepDrifters(dt, t, W, H, rm) {
+        if (!S.drifters?.length) return;
+        const vw = W / cam.zoom, strip = vw * 1.5 + h(6);
+        for (const d of S.drifters) {
+            // where it is on the strip: fixed by its own place, the camera (times its depth) and a slow drift of its own
+            const off = d.u * strip - cam.x * d.p + (rm ? 0 : t * d.drift);
+            const x = cam.x + (((off % strip) + strip) % strip) - strip / 2;
+            d.s.position.set(x, d.y + cam.y * (1 - d.p) * 0.35 + (rm ? 0 : Math.sin(t * 0.4 + d.u * 9) * h(0.05)));
+            d.s.scale.set(d.k); d.s.alpha = d.a; d.s.rotation = rm ? 0 : t * d.spin + d.u * 6;
+        }
     }
 
     // --- things every page may have: the rocket, the star-lights, the Moon in a sky ------------------------------
@@ -1003,6 +1119,7 @@ export function createView(PIXI, app, { assets, G, heroFactory, lightTarget = nu
         if (S.id === 'ring') stepRing(dt, t, F, rm, snap, W, H);
         if (S.id === 'sudd') stepWhite(dt, t, F, rm, snap);
         if (S.id === 'vinter') stepRide(dt, t, F, rm, snap, W, H);
+        stepDrifters(dt, t, W, H, rm);
         // the rocket
         if (S.rocket) {
             const here = rocketHere(G) || (S.id === 'sudd' && F.has('rocket_gone'));
@@ -1021,7 +1138,7 @@ export function createView(PIXI, app, { assets, G, heroFactory, lightTarget = nu
             let vis = st.state !== 'got', x = st.x, y = st.y, k = 1;
             if (st.state === 'held') k = 0.45;
             if (st.state === 'ice') { x = st.x; y = st.y - h(0.7); k = 0.55; }
-            if (st.state === 'given') { k = 0.55; if (l.id === 'l6') { const pp = pipPos(t); x = pp.x; y = pp.y; } }
+            if (st.state === 'given') { k = 0.55; if (l.id === 'l6') { const pp = S.pipNow || pipPos(t); x = pp.x; y = pp.y; } }
             if (st.state === 'tail') { const kp = S.kometPos; vis = !!kp; if (kp) { x = kp.lx; y = kp.ly; } }
             if (st.state === 'dent') vis = false;
             sl.view.visible = vis;
@@ -1075,7 +1192,8 @@ export function createView(PIXI, app, { assets, G, heroFactory, lightTarget = nu
             fp.scale.set(sc); fp.rotation = lerp(-0.06, -0.02, v);
             const bitten = F.has('moon_bitten') && !F.has('moon_whole');
             const P = fp._parts;
-            P.dim.alpha = bitten ? 0.88 : F.has('ended') ? 0.08 : clamp(0.18 + (10 - found) * 0.035, 0, 0.6);
+            P.dim.alpha = bitten ? 0.82 : F.has('ended') ? 0.04 : clamp(0.12 + (10 - found) * 0.035, 0, 0.5);
+            if (P.halo) P.halo.alpha = (1 - P.dim.alpha) * 0.45;
             P.nest.alpha = bitten ? 0.15 : 0.8;
             P.moln.alpha = 1;
             if (V.earthrise > 0) P.nest.alpha = 0.8 + 0.2 * Math.sin(t * 6);
@@ -1158,9 +1276,18 @@ export function createView(PIXI, app, { assets, G, heroFactory, lightTarget = nu
             const end = Math.atan2(G.carry.path.at(-2)[1] - o.y, G.carry.path.at(-2)[0] - o.x);
             S.pipAngle = lerp(S.pipAngle, end, 1 - Math.exp(-2 * dt));
         }
-        const pp = pipPos(t);
+        let pp = pipPos(t);
+        // when he speaks he tumbles over to the heroes and stays a breath (from his rock he was a speck on a phone)
+        const p = G.player;
+        S.pipTalk = G.speaker === 'pip' && !G.carry ? 3 : Math.max(0, (S.pipTalk || 0) - dt);
+        S.pipNear = lerp(S.pipNear || 0, S.pipTalk > 0 ? 1 : 0, 1 - Math.exp(-(rm ? 8 : 2.4) * dt));
+        if (S.pipNear > 0.01) {
+            const side = (p.facing || 1), nx = p.x + side * h(1.7), ny = p.y - h(1.6) + (rm ? 0 : Math.sin(t * 2.6) * h(0.12));
+            pp = { x: lerp(pp.x, nx, ease(S.pipNear)), y: lerp(pp.y, ny, ease(S.pipNear)) };
+        }
+        S.pipNow = pp;
         V.pipFlash = Math.max(0, V.pipFlash - dt * 1.6);
-        S.pip.update(dt, { x: pp.x, y: pp.y, tumble: 0.9, flash: V.pipFlash }, t, { reducedMotion: rm });
+        S.pip.update(dt, { x: pp.x, y: pp.y, tumble: 0.9 * (1 - S.pipNear * 0.6), flash: V.pipFlash }, t, { reducedMotion: rm });
         // Orion's belt: each stone lit in turn, Nova's order blinking over them
         const lit = F.has('belt_lit') ? ['b1', 'b2', 'b3'] : G.puz.belt || [];
         for (const [id, st] of Object.entries(S.beltStones || {})) {
@@ -1370,7 +1497,9 @@ export function createView(PIXI, app, { assets, G, heroFactory, lightTarget = nu
             let sx = s.x, sy = s.y, pose = s.pose || 'idle', facing = s.facing || 1;
             if (s.riding || (S.id === 'vinter' && !F.has('caught'))) { sx = p.x - (p.facing || 1) * h(0.12); sy = p.y - h(0.82); pose = Math.abs(p.vx) > 900 ? 'rub' : 'idle'; facing = -(p.facing || 1); }
             if (G.carry?.def.kind === 'beam' && S.id === 'sudd') { /* stays put */ }
-            A.sudd.update(dt, { visible: true, x: sx, y: sy, facing, pose, size: s.size ?? 0.8, eyes: !!s.eyes || F.has('ended'), goldStar: !!s.goldStar || F.has('ended'), talking: G.speaker === 'sudd' }, t, { reducedMotion: rm });
+            // small it is, but never a speck: pulled far back (the climax on a phone on its side) it is drawn as big as in play
+            const zk = s.riding || S.id !== 'sudd' ? 1 : clamp(0.28 / (cam.zoom || 0.3), 1, 2.2);
+            A.sudd.update(dt, { visible: true, x: sx, y: sy, facing, pose, size: (s.size ?? 0.8) * zk, eyes: !!s.eyes || F.has('ended'), goldStar: !!s.goldStar || F.has('ended'), talking: G.speaker === 'sudd' }, t, { reducedMotion: rm });
         } else A.sudd.view.visible = false;
         // the speech bubble over whoever "Prata" would talk to
         const c = G.context, who = c?.id?.startsWith('talk-') && !G.speaker ? c.who : null, a = who ? act[who] : null;
@@ -1485,6 +1614,9 @@ export function createView(PIXI, app, { assets, G, heroFactory, lightTarget = nu
         if (all.x1 - all.x0 <= vw) tx = clamp(tx, all.x1 - vw / 2, all.x0 + vw / 2);
         else if (look) tx = them.x1 - them.x0 <= vw ? clamp(p.x, them.x1 - vw / 2, them.x0 + vw / 2) : (them.x0 + them.x1) / 2;
         else tx = p.x + Math.sign((box.x0 + box.x1) / 2 - p.x) * (vw / 2 - h(0.9));
+        // the sköldhäst at the edge of the picture is kept whole (at Kanten the ledge pushed it half out); a look far
+        // away, with the sköldhäst out of the picture altogether, is left as it is
+        if (Math.abs(p.x - tx) < vw / 2 + h(1.5) && vw > h(3)) tx = clamp(tx, p.x + h(1.0) - vw / 2, p.x - h(1.0) + vw / 2);
         if (all.y1 - all.y0 <= vh) ty = clamp(ty, all.y1 - vh / 2, all.y0 + vh / 2);
         else if (look) ty = them.y1 - them.y0 <= vh ? clamp(p.y, them.y1 - vh / 2, them.y0 + vh / 2) : (them.y0 + them.y1) / 2;
         return { tx, ty, zoom };
@@ -1531,8 +1663,11 @@ export function createView(PIXI, app, { assets, G, heroFactory, lightTarget = nu
             for (const id of ['nova', 'klo']) { const bx = actorBox(id); if (bx && Math.abs((bx.x0 + bx.x1) / 2 - p.x) < h(3.5)) heroes.push(bx); }
             const hx0 = Math.min(...heroes.map(q => q.x0)), hx1 = Math.max(...heroes.map(q => q.x1));
             const all = { x0: Math.min(face.x0, hx0), x1: Math.max(face.x1, hx1), y0: face.y0 - h(0.3), y1: Math.max(face.y1, p.y + h(0.75)) };
-            const zf = Math.min(W / (all.x1 - all.x0), H / (all.y1 - all.y0));
-            const zFace = Math.min(W / (face.x1 - face.x0 + h(1)), H / (all.y1 - all.y0));
+            // lying down (a phone on its side, a computer) the speech box covers the bottom of the screen, where the heroes
+            // stand: the picture is made for the screen above it (at 844×390 the heroes were hidden behind every line)
+            const strip = portrait ? 0 : Math.min(150, H * 0.3), Hs = H - strip;
+            const zf = Math.min(W / (all.x1 - all.x0), Hs / (all.y1 - all.y0));
+            const zFace = Math.min(W / (face.x1 - face.x0 + h(1)), Hs / (all.y1 - all.y0));
             zoom = portrait ? Math.max(zf, Math.min(zFace, W / h(8.5))) : zf;
             tx = portrait ? clamp((all.x0 + all.x1) / 2, face.x0 + W / zoom / 2 - h(0.5), face.x1 - W / zoom / 2 + h(0.5)) : (all.x0 + all.x1) / 2;
             if (portrait && W / zoom < all.x1 - all.x0) {
@@ -1543,7 +1678,7 @@ export function createView(PIXI, app, { assets, G, heroFactory, lightTarget = nu
                 else tx = Math.max(tx, hx1 - h(0.15) - vw / 2);
             }
             // upright: the heroes low in the picture, the face above them, the room at the top for the speech boxes
-            ty = portrait ? Math.min((all.y0 + all.y1) / 2, all.y1 + h(0.3) - H / zoom * 0.78 + H / zoom / 2) : (all.y0 + all.y1) / 2;
+            ty = portrait ? Math.min((all.y0 + all.y1) / 2, all.y1 + h(0.3) - H / zoom * 0.78 + H / zoom / 2) : (all.y0 + all.y1) / 2 + strip / 2 / zoom;
         }
         // the vista from Utsikten (M5) and the earthrise: the camera turns to the whole sky
         if (V.vista > 0.01 || V.earthrise > 0.01) {
@@ -1559,6 +1694,12 @@ export function createView(PIXI, app, { assets, G, heroFactory, lightTarget = nu
         if (V.bearStand > 0.01) { const k = ease(V.bearStand); zoom = lerp(zoom, Math.min(W / h(24), H / h(10.5)), k); ty = lerp(ty, h(-2.8), k); tx = lerp(tx, h(60.5), k); }
         if (!hint && !(S.id === 'sudd' && F.has('climax') && !F.has('outline_gone')) && V.vista < 0.01 && V.bearStand < 0.01) ({ tx, ty, zoom } = frameSpeaker(tx, ty, zoom, W, H));
         else if (hint && Math.abs(hint.x - snap.x) < W / zoom * 0.45 && !(S.id === 'sudd' && F.has('climax') && !F.has('outline_gone'))) ({ tx, ty, zoom } = frameSpeaker(tx, ty, zoom, W, H));
+        // a look that leaves the sköldhäst half over the edge (the end of the ring, "Ringen tar slut") keeps it whole;
+        // a look far away, the big pictures and the climax keep their own picture
+        if (hint && !hint.peak && !hint.override && V.vista < 0.01 && V.bearStand < 0.01 && !G.carry && !(S.id === 'sudd' && F.has('climax') && !F.has('outline_gone'))) {
+            const vw0 = W / zoom;
+            if (Math.abs(snap.x - tx) < vw0 / 2 + h(1.5) && vw0 > h(3)) tx = clamp(tx, snap.x + h(0.9) - vw0 / 2, snap.x - h(0.9) + vw0 / 2);
+        }
         const vw = W / zoom, vh = H / zoom;
         tx = vw >= b.x1 - b.x0 ? (b.x0 + b.x1) / 2 : clamp(tx, b.x0 + vw / 2, b.x1 - vw / 2);
         ty = vh >= b.y1 - b.y0 ? (b.y0 + b.y1) / 2 : clamp(ty, b.y0 + vh / 2, b.y1 - vh / 2);
@@ -1970,7 +2111,13 @@ export function createView(PIXI, app, { assets, G, heroFactory, lightTarget = nu
             if (who === 'nova') return S.A.nova.view.visible ? S.A.nova.view.getBounds() : null;
             if (who === 'sudd') return S.A.sudd.view.visible ? S.A.sudd.view.getBounds() : null;
             if (who === 'komet') { const v = S.komet?.view || S.rideKomet?.view || S.arrivedKomet?.view; return v?.visible ? v.getBounds() : null; }
-            if (who === 'bjorn' && S.bear) return S.bear.view.getBounds();
+            if (who === 'bjorn' && S.bear) {
+                // his head, not all twenty lengths of him (standing, the whole of him ran off the top of the screen)
+                const hd = S.bear.headAt?.() || S.bearHead, x = hd.x + S.bear.view.x, y = hd.y;
+                const a = toScreen(x - h(0.6), y - h(0.6)), b = toScreen(x + h(0.6), y + h(0.4));
+                return { minX: a.x, maxX: b.x, minY: a.y, maxY: b.y };
+            }
+            if (who === 'bjorn' && S.rideBearC?.visible) return S.rideBearC.getBounds();
             if (who === 'pip') { const v = S.pip?.view || S.ridePip?.view || S.callPip?.view; return v?.visible ? v.getBounds() : null; }
             return null;
         },

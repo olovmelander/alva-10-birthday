@@ -368,7 +368,8 @@ export function createStory(G, io) {
     function objective() {
         const n = lightsFound(G);
         if (!F.has('b:arrive')) return null;
-        if (F.has('ended')) return { id: 'free', text: GOALS.free, why: GOALS.freeWhy };
+        // on Kometens svans there is no rocket: the way home is the jump Nova catches
+        if (F.has('ended')) return { id: 'free', text: GOALS.free, why: G.sceneId === 'vinter' ? GOALS.freeVinter : GOALS.freeWhy };
         if (!F.has('breakfast')) return { id: 'breakfast', text: GOALS.breakfast, why: GOALS.breakfastWhy };
         if (F.has('moon_whole')) return { id: 'crater', text: GOALS.crater, why: GOALS.craterWhy };
         if (F.has('caught')) return { id: 'rim', text: GOALS.rim, why: GOALS.rimWhy };
@@ -386,6 +387,9 @@ export function createStory(G, io) {
         // every light of this page found: on with the rocket
         const here = LIGHTS_ON[G.sceneId];
         if (here && !F.has('rocket_gone') && here.every(id => F.has(lightFlag(id)))) return { id: 'travel', text: GOALS.travel, why: GOALS.travelWhy };
+        // the question is answered once Suddet is known: then it is about getting the stars home
+        if (F.has('clue_sudd')) return n >= LIGHT_TOTAL ? { id: 'homeward', text: GOALS.homeward, why: GOALS.homewardWhy }
+            : { id: 'lights', text: GOALS.lights(n, LIGHT_TOTAL), why: GOALS.lightsWhyKnown };
         return { id: 'lights', text: GOALS.lights(n, LIGHT_TOTAL), why: GOALS.lightsWhy };
     }
     /** Per page: lights found there, visited, named (the chart names a place once the story has named it). */
@@ -473,6 +477,7 @@ export function createStory(G, io) {
         else if (id === 'l2') beat('nightDone', () => say(STORY.nightDone));
         else if (id === 'l3') beat('ledgeDone', () => say(STORY.ledgeDone));
         else if (id === 'l4') beat('beltDone', () => say(STORY.beltDone));
+        else if (id === 'l7' && n !== 9) think(STORY.iceLight, { gap: 0, force: true });
         else if (!['l5', 'l6', 'l8', 'l10'].includes(id) && n !== 9) think(STORY.lightLine[lightLine++ % STORY.lightLine.length], { gap: 0, force: true });
         // nine: Nova knows where the tenth is; at the table Mira sees Molnet flash again (whichever light is the ninth)
         if (n === 9 && !F.has('rocket_gone')) beat('gapDone', async () => {
@@ -482,7 +487,7 @@ export function createStory(G, io) {
         });
         // Klo and Nova, after stars 1, 2 and 3 (section 11.5)
         const moon = LIGHTS_ON.mane.filter(l => F.has(lightFlag(l))).length;
-        if (G.sceneId === 'mane' && moon >= 1 && moon <= 3 && (moon > 1 || F.has('beam_used'))) beat('rival' + moon, () => say(STORY['rival' + moon]));
+        if (G.sceneId === 'mane' && moon >= 1 && moon <= 3 && (moon > 1 || F.has('beam_used'))) beat('rival' + moon, async () => { await say(STORY['rival' + moon]); if (moon === 3) await say(STORY.rival3b); });
         G.emit('lightCount', { n });
         io.save?.();
     }
@@ -798,7 +803,8 @@ export function createStory(G, io) {
             if (kind === 'sling' && G.scenes.ring.carries.find(c => c.id === id)?.go) { thinkOnce('slingGo', STORY.slingGo); fx('slingshot', {}); }
             if (kind === 'lane') { if (!F.has('comet_lane')) G.flag('comet_lane'); }
             if (kind === 'catch') { if (!F.has('caught')) G.flag('caught'); think(STORY.liftCaught, { force: true }); }
-            if (kind === 'loop') think(STORY.liftMiss, { gap: 4 });
+            // (after the story the loop is only the way round again: no "I flailed")
+            if (kind === 'loop' && !F.has('ended')) think(STORY.liftMiss, { gap: 4 });
         }),
         G.on('carryEnd', ({ id, kind, back, go }) => {
             if (kind === 'beam' && G.sceneId === 'mane' && id !== 'beamDeepW' && id !== 'beamDeepE') { /* back up from the ledge */ }
@@ -837,11 +843,13 @@ export function createStory(G, io) {
         }),
         G.on('nightLit', () => {
             if (!F.has('night_lit')) { G.flag('night_lit'); remark(STORY.nightAngry[0]); }
-            think(STORY.nightLit, { gap: 9 });
+            // the thought helps while the dark is the puzzle; on the way back from Utsikten she is lit by her own fury
+            if (!F.has(lightFlag('l2'))) think(STORY.nightLit, { gap: 9 });
+            else if (F.has('m5_view') && !F.has('fin_drawn')) thinkOnce('nightFurious', STORY.nightFurious);
             const face = G.scenes.mane.spots.face;
             if (Math.abs(G.player.x - face.x) < 4 * HL && !done('nightFace')) beat('nightFace', () => say(STORY.nightFace), { lock: true });
         }),
-        G.on('nightOut', () => think(STORY.nightOut, { gap: 6 })),
+        G.on('nightOut', () => { if (!F.has(lightFlag('l2'))) think(STORY.nightOut, { gap: 6 }); }),
         G.on('hide', ({ air }) => { if (air && G.sceneId === 'mane' && G.areas.has('edge')) thinkOnce('drop', STORY.drop); }),
         G.on('land', () => {
             const p = G.player;
