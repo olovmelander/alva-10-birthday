@@ -1,15 +1,16 @@
 /*
  * Sköldhästen: the recorded voices.
  *
- * Builds the voice script from both adventures' Swedish text (src/content/sv.mjs and
- * adventures/adventure-2/content/sv.mjs), records every line that has no clip yet with
- * ElevenLabs, checks each clip by reading it back with speech-to-text, and writes
+ * Builds the voice script from the adventures' Swedish text (src/content/sv.mjs,
+ * adventures/adventure-2/content/sv.mjs and adventures/adventure-3/content/sv.mjs), records every line that has no
+ * clip yet with ElevenLabs, checks each clip by reading it back with speech-to-text, and writes
  * skoldhast/voice/<key>.mp3 and skoldhast/voice/manifest.json. The game looks a clip up by
  * who speaks and what is shown (src/voice-key.mjs); a line without a clip stays silent.
  * docs/skoldhast/voice-audit.md says what is voiced, by whom, and why.
  *
  *   node scripts/skoldhast-voice.mjs                 # the script: lines, characters and clips per voice
  *   node scripts/skoldhast-voice.mjs --missing       # what is not recorded yet
+ *   … --a3                                           # with Äventyr 3's lines too (pending: see PENDING)
  *   NODE_USE_ENV_PROXY=1 ELEVENLABS_API_KEY=… SKOLDHAST_NARRATOR_VOICE=<voice id> \
  *     node scripts/skoldhast-voice.mjs --record [--only klo] [--limit 20] [--report out.json]
  *   … --record --redo out.json [--below 0.9] [--tries 5]   # retake what a report heard badly; keep the better clip
@@ -18,6 +19,16 @@
  *
  * The characters are the voices named "Sköldhästen – <roll>" in Pappa's ElevenLabs account; the
  * narrator is his own voice, given by id. Recording is Eleven v4 in Swedish, 24 kHz mono, MP3 48 kbit/s.
+ *
+ * Direction (docs/skoldhast/adventure-3.md, section 17.1): an adventure with a `regi.mjs` beside its `sv.mjs` is
+ * recorded acted. Each line is sent as its own entry's `say` (English audio tags in square brackets around the shown
+ * words), or with its voice's default tag; Eleven v4 at stability 0.35; read back with the audio events heard, and a
+ * take is kept only when no tag word comes back as speech. An adventure without a `regi.mjs` is read plainly, as
+ * Äventyr 1 and 2 were recorded (until their direction is written, section 17.2).
+ *
+ * Pending: Pappa's word on 12 November 2026 is that nothing of Äventyr 3 is recorded until he says the adventure is
+ * finished. Its lines are left out of the voice script (and of the check that every line is recorded) unless they
+ * are asked for with --a3; --record --a3 is the only way to record them. When he says so, empty PENDING.
  */
 import fs from 'node:fs';
 import path from 'node:path';
@@ -30,7 +41,20 @@ const OUT = path.join(root, 'skoldhast/voice');
 const MANIFEST = path.join(OUT, 'manifest.json');
 const A1 = await import(pathToFileURL(path.join(root, 'skoldhast/src/content/sv.mjs')).href);
 const A2 = await import(pathToFileURL(path.join(root, 'skoldhast/adventures/adventure-2/content/sv.mjs')).href);
+const A3 = await import(pathToFileURL(path.join(root, 'skoldhast/adventures/adventure-3/content/sv.mjs')).href);
 const { splitSentences } = await import(pathToFileURL(path.join(root, 'skoldhast/src/opening-notes.mjs')).href);
+
+/** Adventures written but not to be recorded yet (Pappa, 12 November 2026: Äventyr 3 waits until it is finished). */
+export const PENDING = Object.freeze(['a3']);
+
+/** Each adventure's text folder, by the prefix its lines' `src` starts with. Its direction is `regi.mjs` there. */
+const CONTENT = { a1: 'skoldhast/src/content', a2: 'skoldhast/adventures/adventure-2/content', a3: 'skoldhast/adventures/adventure-3/content' };
+/** Every adventure's direction that exists: { a1?: { DEFAULT, LINES }, a2?: …, a3?: … }. */
+export const DIRECTION = {};
+for (const [id, dir] of Object.entries(CONTENT)) {
+    const file = path.join(root, dir, 'regi.mjs');
+    if (fs.existsSync(file)) DIRECTION[id] = await import(pathToFileURL(file).href);
+}
 
 /** The voice of each role: the account's voice name, or the narrator's id from the environment. */
 export const VOICES = {
@@ -59,8 +83,14 @@ function walk(v, at, visit) {
 }
 const strip = at => at.replace(/\.\d+(?=\.|$)/g, '');
 
-/** Every voiced line: { key, speaker, text, voice, src }. One entry per key. */
-export function voiceScript() {
+// Äventyr 3: bare strings in STORY are the sköldhäst's thoughts, except these lists of another voice's remarks
+// and the caption; Pip is a sound, not a voice, so his lines are never recorded.
+const A3_STRINGS = { novaGallop: 'nova', suddTalk: 'sudd', finaleCaption: 'narrator' };
+const A3_SILENT = new Set(['pip']);
+
+/** Every voiced line: { key, speaker, text, voice, src }. One entry per key. With `pending`, the adventures that are
+ *  written but not to be recorded yet (PENDING) are in it too. */
+export function voiceScript({ pending = false } = {}) {
     const lines = new Map();
     const add = (speaker, text, voice, src) => {
         if (!text) return;
@@ -101,7 +131,74 @@ export function voiceScript() {
     walk(A2.HINTS, '', (t, at) => both(t, `a2 HINTS.${at}`));
     for (const [k, where] of Object.entries(A2.WHERE)) both(A2.NEXT_EGG(where), `a2 NEXT_EGG(WHERE.${k})`);
     for (const [who, list] of Object.entries(A2.CHATTER)) list.forEach((t, i) => add(who, t, who, `a2 CHATTER.${who}.${i}`));
+
+    // Äventyr 3 (docs/skoldhast/adventure-3.md, section 17): pending until Pappa says it is finished
+    if (pending || !PENDING.includes('a3')) {
+        const speak = (src) => (v, at) => {
+            if (Array.isArray(v)) {
+                const [who, text] = v;
+                if (A3_SILENT.has(who)) return;
+                if (who === 'caption') add('caption', text, 'narrator', `${src}.${at}`);
+                else add(who, text, who, `${src}.${at}`);
+                return;
+            }
+            const voice = A3_STRINGS[strip(at).split('.')[0]] || 'horse';
+            add(voice === 'narrator' ? 'caption' : voice, v, voice, `${src}.${at}`);
+        };
+        // (a pair here may be a caption: ['caption', text], which the shared walk would take for two thoughts)
+        const pair3 = v => Array.isArray(v) && v.length === 2 && typeof v[1] === 'string' && (v[0] === 'caption' || v[0] in A3.NAMES);
+        const walk3 = (v, at, visit) => {
+            if (typeof v === 'string' || pair3(v)) visit(v, at);
+            else if (Array.isArray(v)) v.forEach((x, i) => walk3(x, at ? `${at}.${i}` : String(i), visit));
+            else if (v && typeof v === 'object') for (const [k, x] of Object.entries(v)) walk3(x, at ? `${at}.${k}` : k, visit);
+        };
+        walk3(A3.STORY, '', speak('a3 STORY'));
+        // the table: speech in Alva's and Mira's voices, captions read by the narrator
+        for (const [k, v] of Object.entries(A3.TABLE)) {
+            if (Array.isArray(v)) add(v[0], v[1], v[0], `a3 TABLE.${k}`);
+            else add('caption', v, 'narrator', `a3 TABLE.${k}`);
+        }
+        walk(A3.BALK, '', (t, at) => add('horse', t, 'horse', `a3 BALK.${at}`));
+        // talking to a companion: either of them can give any hint (Nova and Klo)
+        walk(A3.HINTS, '', (t, at) => { add('klo', t, 'klo', `a3 HINTS.${at}`); add('nova', t, 'nova', `a3 HINTS.${at}`); });
+        // Pekklon: where the nearest light is, in Nova's words
+        for (const [k, t] of Object.entries(A3.POINT)) add('nova', t, 'nova', `a3 POINT.${k}`);
+        A3.CHATTER.nova.forEach((t, i) => add('nova', t, 'nova', `a3 CHATTER.nova.${i}`));
+        A3.CHATTER.klo.forEach((t, i) => add('klo', t, 'klo', `a3 CHATTER.klo.${i}`));
+        add('nova', A3.CHATTER.novaAfter, 'nova', 'a3 CHATTER.novaAfter');
+    }
     return [...lines.values()];
+}
+
+/** The shown words of a directed line: the tags in square brackets taken out, the spaces evened. */
+export function untag(say) {
+    return String(say).replace(/\[[^\]]*\]/g, ' ').replace(/\s+/g, ' ').trim();
+}
+const norm = (s) => String(s).replace(/\s+/g, ' ').trim();
+/** The English words of a line's tags (three letters or more): the words that must never be heard as speech. */
+export function tagWords(say) {
+    return [...String(say).matchAll(/\[([^\]]*)\]/g)].flatMap(m => m[1].toLowerCase().split(/[^a-z]+/)).filter(w => w.length > 2);
+}
+/** Tag words that came back from speech-to-text as speech (the audio events in brackets do not count), and that
+ *  are not words of the line itself. */
+export function tagWordsHeard(say, text, heard) {
+    const own = new Set(String(text).toLowerCase().split(/[^\p{L}]+/u));
+    const speech = String(heard).replace(/[[(][^\])]*[\])]/g, ' ');
+    return [...new Set(tagWords(say))].filter(w => !own.has(w) && new RegExp(`\\b${w}\\b`, 'i').test(speech));
+}
+/**
+ * How a line is to be read (section 17.1): { say, directed, entry }. In an adventure with a regi.mjs, its own entry
+ * (matched by voice and by the shown text once the tags are out), else its voice's default tag; elsewhere the plain
+ * text. `say` is what the voice is given, before spoken().
+ */
+export function directionFor(line, direction = DIRECTION) {
+    const adv = String(line.src).split(' ')[0];
+    const d = direction[adv];
+    if (!d) return { say: line.text, directed: false, entry: null };
+    const entry = (d.LINES || []).find(([voice, say]) => voice === line.voice && untag(say) === norm(line.text)) || null;
+    if (entry) return { say: entry[1], directed: true, entry };
+    const tag = d.DEFAULT?.[line.voice];
+    return { say: tag ? `[${tag}] ${line.text}` : line.text, directed: true, entry: null };
 }
 
 /** What the voice is given: the signature slash is not read aloud, and capitals are words, not letters. */
@@ -170,27 +267,45 @@ export function match(a, b) {
         d[i][j] = Math.min(d[i - 1][j] + 1, d[i][j - 1] + 1, d[i - 1][j - 1] + (x[i - 1] === y[j - 1] ? 0 : 1));
     return 1 - d[x.length][y.length] / Math.max(1, x.length, y.length);
 }
+/** A directed line is acted more freely: stability 0.35 lets a sigh or a laugh through (section 17.1). */
+export const DIRECTED_SETTINGS = Object.freeze({ stability: 0.35 });
+
+/** What is sent for one line: the model, the text (directed or plain) and the settings. Never calls the API. */
+export function ttsBody(line, direction = DIRECTION) {
+    const d = directionFor(line, direction);
+    const body = { text: spoken(d.say), model_id: 'eleven_v4', language_code: 'sv' };
+    if (d.directed) body.voice_settings = { ...DIRECTED_SETTINGS };
+    return { body, directed: d.directed, say: d.say };
+}
 async function recordOne(line, voiceId) {
+    const { body, directed, say } = ttsBody(line);
     const r = await api(`/v1/text-to-speech/${voiceId}?output_format=pcm_24000`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text: spoken(line.text), model_id: 'eleven_v4', language_code: 'sv' })
+        body: JSON.stringify(body)
     });
     const pcm = Buffer.from(await r.arrayBuffer());
     const mp3 = spawnSync('ffmpeg', ['-v', 'error', '-f', 's16le', '-ar', '24000', '-ac', '1', '-i', 'pipe:0',
         '-c:a', 'libmp3lame', '-b:a', '48k', '-f', 'mp3', 'pipe:1'], { input: pcm, maxBuffer: 1 << 28 });
     if (mp3.status !== 0) throw new Error('ffmpeg: ' + mp3.stderr);
-    return { mp3: mp3.stdout, seconds: pcm.length / 2 / 24000 };
+    return { mp3: mp3.stdout, seconds: pcm.length / 2 / 24000, directed, say };
 }
-async function heard(mp3) {
+/** Speech-to-text of a take. A directed take is heard with its audio events (a sigh, a laugh), which are kept out
+ *  of the words compared. */
+async function heard(mp3, { events = false } = {}) {
     const form = new FormData();
     form.append('model_id', 'scribe_v1');
     form.append('language_code', 'sv');
-    form.append('tag_audio_events', 'false');
+    form.append('tag_audio_events', events ? 'true' : 'false');
     form.append('file', new Blob([mp3], { type: 'audio/mpeg' }), 'clip.mp3');
     return (await (await api('/v1/speech-to-text', { method: 'POST', body: form })).json()).text || '';
 }
+/** How a take is judged: the words that came back (audio events left out), and any tag word heard as speech. */
+export function judge(line, say, back) {
+    const speech = String(back).replace(/[[(][^\])]*[\])]/g, ' ');
+    return { score: match(spoken(line.text), speech), tagsHeard: tagWordsHeard(say, line.text, back) };
+}
 
-async function record({ only, limit, report, redo, below = 0.9, tries = 3, word = null }) {
+async function record({ only, limit, report, redo, below = 0.9, tries = 3, word = null, pending = false }) {
     if (!KEY) throw new Error('set ELEVENLABS_API_KEY');
     const ids = await resolveVoices();
     const m = readManifest();
@@ -198,43 +313,51 @@ async function record({ only, limit, report, redo, below = 0.9, tries = 3, word 
     const retake = redo ? new Map(JSON.parse(fs.readFileSync(redo, 'utf8')).filter(l => l.match < below && !/\d/.test(l.heard)).map(l => [l.key, l.match])) : null;
     // a name the voices sometimes blur: retake its lines until it is heard
     const name = word?.toLowerCase();
-    const todo = voiceScript().filter(l => name ? l.text.toLowerCase().includes(name) : retake ? retake.has(l.key) : !m.clips[l.key] || !fs.existsSync(path.join(OUT, l.key + '.mp3')))
+    const todo = voiceScript({ pending }).filter(l => name ? l.text.toLowerCase().includes(name) : retake ? retake.has(l.key) : !m.clips[l.key] || !fs.existsSync(path.join(OUT, l.key + '.mp3')))
         .filter(l => !only || l.voice === only).slice(0, limit || Infinity);
     console.log(`recording ${todo.length} clips`);
     const log = [];
     let done = 0;
+    const entry = (line, best, extra = {}) => ({ key: line.key, voice: line.voice, src: line.src, text: line.text, say: best.say, heard: best.back,
+        match: Math.round(best.score * 100) / 100, ...(best.tagsHeard?.length ? { tagsHeard: best.tagsHeard } : {}), ...extra });
     const work = async (line) => {
         let best = null;
         for (let attempt = 0; attempt < tries; attempt++) {
             const clip = await recordOne(line, ids[line.voice]);
-            const back = await heard(clip.mp3);
-            const score = match(spoken(line.text), back);
+            const back = await heard(clip.mp3, { events: clip.directed });
+            const { score, tagsHeard } = judge(line, clip.say, back);
             const named = !name || back.toLowerCase().includes(name);
-            if (!best || (named && !best.named) || (named === best.named && score > best.score)) best = { ...clip, back, score, named };
-            if (name ? named : score >= (retake ? 0.99 : 0.8)) break;
+            // a take with a tag spoken aloud is never better than one without (the tag was read as words)
+            const clean = !tagsHeard.length;
+            const better = !best || (named && !best.named) || (named === best.named && (clean && !best.clean || clean === best.clean && score > best.score));
+            if (better) best = { ...clip, back, score, named, tagsHeard, clean };
+            if (name ? named : clean && score >= (retake ? 0.99 : 0.8)) break;
         }
-        if (name && !best.named) { log.push({ key: line.key, voice: line.voice, src: line.src, text: line.text, heard: best.back, match: Math.round(best.score * 100) / 100, kept: 'old' }); done++; return; }
+        if (name && !best.named) { log.push(entry(line, best, { kept: 'old' })); done++; return; }
         // a retake replaces the clip only when it is heard better
-        if (retake && best.score <= retake.get(line.key)) { log.push({ key: line.key, voice: line.voice, src: line.src, text: line.text, heard: best.back, match: Math.round(best.score * 100) / 100, kept: 'old' }); done++; return; }
+        if (retake && best.score <= retake.get(line.key)) { log.push(entry(line, best, { kept: 'old' })); done++; return; }
+        // a directed take whose tag was read aloud keeps the old clip if there is one
+        if (!best.clean && m.clips[line.key]) { log.push(entry(line, best, { kept: 'old' })); done++; return; }
         fs.writeFileSync(path.join(OUT, line.key + '.mp3'), best.mp3);
         m.clips[line.key] = Math.round(best.seconds * 100) / 100;
         (m.lufs ||= {})[line.key] = loudness(path.join(OUT, line.key + '.mp3'));
         if (m.lufs[line.key] === null) delete m.lufs[line.key];
-        log.push({ key: line.key, voice: line.voice, src: line.src, text: line.text, heard: best.back, match: Math.round(best.score * 100) / 100 });
+        log.push(entry(line, best));
         if (++done % 20 === 0) { writeManifest(m); console.log(`${done}/${todo.length}`); }
     };
     fs.mkdirSync(OUT, { recursive: true });
     const queue = [...todo];
     await Promise.all(Array.from({ length: 4 }, async () => { while (queue.length) await work(queue.shift()); }));
     writeManifest(m);
-    const low = log.filter(l => l.match < 0.8).sort((a, b) => a.match - b.match);
-    console.log(`done: ${done} clips; ${low.length} below 0.8 after three tries`);
-    for (const l of low) console.log(`  ${l.match} ${l.voice} ${l.src}\n    said:  ${l.text}\n    heard: ${l.heard}`);
+    const low = log.filter(l => l.match < 0.8 || l.tagsHeard).sort((a, b) => a.match - b.match);
+    console.log(`done: ${done} clips; ${low.length} below 0.8 or with a tag read aloud after three tries`);
+    for (const l of low) console.log(`  ${l.match} ${l.voice} ${l.src}${l.tagsHeard ? ' (tag read aloud: ' + l.tagsHeard.join(', ') + ')' : ''}\n    said:  ${l.say}\n    heard: ${l.heard}`);
     if (report) fs.writeFileSync(report, JSON.stringify(log, null, 1));
 }
 
 function prune() {
-    const keep = new Set(voiceScript().map(l => l.key));
+    // clips of a pending adventure are kept too (a line of it may have been recorded on purpose, with --a3)
+    const keep = new Set(voiceScript({ pending: true }).map(l => l.key));
     const m = readManifest();
     let removed = 0;
     for (const f of fs.existsSync(OUT) ? fs.readdirSync(OUT) : []) {
@@ -246,8 +369,8 @@ function prune() {
     console.log(`removed ${removed} clips no line uses`);
 }
 
-function summary(missingOnly) {
-    const lines = voiceScript(), m = readManifest();
+function summary(missingOnly, pending = false) {
+    const lines = voiceScript({ pending }), m = readManifest();
     const by = {};
     for (const l of lines) {
         const s = by[l.voice] ??= { lines: 0, chars: 0, recorded: 0, seconds: 0 };
@@ -261,9 +384,12 @@ function summary(missingOnly) {
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
     const arg = (n) => { const i = process.argv.indexOf(n); return i > 0 ? process.argv[i + 1] : undefined; };
-    if (process.argv.includes('--record')) await record({ only: arg('--only'), limit: Number(arg('--limit')) || 0, report: arg('--report'),
+    // --a3: Äventyr 3's lines as well (pending: recorded only when Pappa says the adventure is finished)
+    const pending = process.argv.includes('--a3');
+    if (pending && process.argv.includes('--record')) console.warn('Recording Äventyr 3 too (--a3). Pappa said: only when the adventure is finished.');
+    if (process.argv.includes('--record')) await record({ only: arg('--only'), limit: Number(arg('--limit')) || 0, report: arg('--report'), pending,
         redo: arg('--redo'), below: Number(arg('--below')) || 0.9, word: arg('--word'), tries: Number(arg('--tries')) || (arg('--redo') || arg('--word') ? 6 : 3) });
     else if (process.argv.includes('--prune')) prune();
     else if (process.argv.includes('--level')) level();
-    else summary(process.argv.includes('--missing'));
+    else summary(process.argv.includes('--missing'), pending);
 }

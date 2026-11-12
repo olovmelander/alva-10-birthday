@@ -2026,6 +2026,35 @@ Decided 12 November, on this document's recommendation:
   where there is no way back, is not.
 - Until then nothing of it shows: `released: false`, and the only glimpse stays the rocket from Utsiktskullen.
 
+### 20.2 What the build changed (12 November)
+
+Pappa asked for the whole adventure in one go ("implementera hela Äventyr 3 i ett svep"), with the recording left until
+he says the adventure is finished. Steps 1–9 of the build order were built together; step 10 (the music) uses the
+existing areas for now; step 11 (recording) waits; steps 12 and 13 remain. The robots
+(`tests/skoldhast-a3-playthrough.test.mjs`, `tests/skoldhast-a3-order.test.mjs`) play it from breakfast to the gold
+stars with ordinary inputs (about 330 s, 310 boxes). What playing it changed against this document:
+
+- **Words.** Nobody may say "sudd" before hypothesis 3 (section 7), and some drafted lines did: `bearNose` and the
+  second hint of `s3` now say "bara streckad"; `gap` and the first hint of `r5` say "Ringen är borta här"; the clue
+  `crumbs` says "Fenan var borta"; the first hint of `v3` begins "Något suddar …". New refusals: `BALK.gravel`,
+  `BALK.breakfast` (before breakfast the way east refuses) and `BALK.fog`. The ninth light, wherever it is found,
+  plays `gapDone` and `nine` (the ring's last light is not always the ninth).
+- **The Moon jump.** A jump pressed standing still with the stick held goes forward as high as a running one, and on
+  the Moon the stick steers a jump a little in the air, so a rock a length wide can be landed on. Not over the ledge
+  (M4): there every jump floats past, and a jump that comes down on it without hiding floats on past it; the ledge's
+  light can be taken only after the shell has dropped there.
+- **The Moon's shapes.** Positions are as in `content/world.mjs` (Hoppfälten 20–44, Djupa kratern 44–56, Nattsidan
+  56–76 with five lengths of run-up before the dark, Kanten 76–95, Utsikten 95–100; the stairs rise at most 1.35
+  lengths). Walls that must hold (the crater, Hyllan) are explicit walls beside separate floors: a slope nearly
+  vertical can be crept up in the shared sim, and a wall exactly vertical drops whoever pushes on it through the floor.
+- **Space.** Floating is faster than swimming (about four lengths a second); a hidden shell hangs still unless
+  something pulls it; Hoppa beside a rock or a floe climbs onto it. The kick of Pip's lane always throws a swimmer
+  outward (from his rock too: he is not a trap).
+- **The ring goes round.** On past the last floe the page wraps to Isbryggan; a fourth lane takes a hidden shell from
+  Skuggsidan's west end back to the ring's end. A swimmer under the ring is pulled back onto the ice after a moment.
+- **The rocket's door** answers from 2.2 lengths. After the story Mira's new rocket stands at every page's dock, the
+  white hole's too.
+
 ## 21. Risks and what to tune
 
 - **The Moon jump may feel floaty rather than fun.** Tune `g` between 0.35 and 0.5 with a real child's hands. The

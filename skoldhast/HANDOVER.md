@@ -1,7 +1,36 @@
-## Äventyr 3 is designed: De försvunna stjärnorna (12 November)
+## Äventyr 3 is built, not released: De försvunna stjärnorna (12 November, evening)
+
+Pappa: "implementera hela Äventyr 3 i ett svep … Röstinspelningen avvaktar vi med tills jag säger att vi är helt
+klara med äventyr 3", and keep everything about the voices. Done in one go:
+
+- **The adventure** is `skoldhast/adventures/adventure-3/`: `main.mjs` (runtime), `game.mjs` (the step wrapper:
+  Moon gravity, hiding in mid-air, floating, the carried shell), `puzzles.mjs`, `story.mjs`, `content/world.mjs`
+  (five pages), `content/sv.mjs` (every word), `content/regi.mjs` (the direction, never loaded by the game),
+  `characters.mjs` (Nova in watercolour, Suddet, Pip, Kometen, the bear, the rocket, the sky Moon with its bites),
+  `view.mjs` and `view-sky.mjs`, `table.mjs` (prologue with the flame drawn, epilogue), `pictures.mjs` (the launch,
+  the forest in lightning, the forest lit again), `ui.mjs` and `a3.css` (Novas kupa, the seven-tab notebook, the
+  travel card). Characters' dev page: `dev/a3-characters.html`.
+- **Catalogue:** `adventure-3` has its module but stays `released: false`, and its title in the picker stays "Ett
+  nytt äventyr" until the release. Preview: `skoldhast/dev/play.html?adventure=3`.
+- **Tests:** a robot plays it all with ordinary inputs (`tests/skoldhast-a3-playthrough.test.mjs`, about 330 s of
+  play, 310 boxes; ten lights; every measure, hypothesis, clue and fact), gates and another order
+  (`tests/skoldhast-a3-order.test.mjs`), the words and the direction (`tests/skoldhast-a3-words.test.mjs`), and a
+  browser check of every page, the climax and the ending at three sizes (`tests/browser/skoldhast-a3.mjs`).
+- **Voices:** everything is in `docs/skoldhast/voices.md` (who has which voice, the direction, the trial, how to
+  record). Nothing of Äventyr 3 is recorded: `PENDING = ['a3']` in the recording script, and only `--a3` records it.
+  The voice test does not ask for Äventyr 3's clips yet.
+- **What playing it changed against the design** is in its section 20.2 (a few words that named the eraser too
+  early, the Moon's jumps and shapes, space, the ring that goes round).
+- **Left before release (design section 20.1's gate):** the music (step 10: the pages use the existing areas, the
+  white hole is silent; the one melody is not written), the recording (step 11, when Pappa says so), the audits
+  (step 12: play order, ground, phone; contact sheets under `docs/skoldhast/shots/a3/`), the rubbing squeak as its
+  own sound (it falls back to the pencil), and Pappa playing it on Alva's device with the sound on. Then step 13:
+  `released: true` and the picker's title.
+
+### The design (12 November)
 
 Pappa asked for the whole of Äventyr 3 to be written down so that it can be built from the document, and for it to be
-the most epic of the adventures. Nothing is built yet: `adventure-3` still has no module and `released: false`.
+the most epic of the adventures.
 
 - **The design is `docs/skoldhast/adventure-3.md`**: the story, Rymdkrabban, five pages, 24 puzzle steps, the whole
   script in Swedish (about 330 boxes), goals and hints, the notebook, Klo's count, the secrets, pictures and sound,
@@ -42,8 +71,7 @@ the most epic of the adventures. Nothing is built yet: `adventure-3` still has n
   recorded until Pappa says so.** What must be built first, the order, the cost and the narrator's missing voice id
   are in the design's section 17.2. The trial's lines, tags and approved takes are in `rymdkrabban/roster/omgang3/`
   on Pappa's PC.
-- **Open:** only whether Alva has more facts of her own about Nova (the design's section 22). Nothing blocks the
-  build. Next step: build step 1 in the design's section 20, "Nova stands on the Moon".
+- **Open:** only whether Alva has more facts of her own about Nova (the design's section 22).
 
 ## A night playtest of both adventures: what a player sees on a phone (8 November, night)
 

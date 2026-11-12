@@ -8,7 +8,7 @@ import fs from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { voiceKey } from '../skoldhast/src/voice-key.mjs';
 import { createVoice, ASIDE_GAP, LEVEL, levelGain } from '../skoldhast/src/voice.mjs';
-import { voiceScript, spoken, match, VOICES } from '../scripts/skoldhast-voice.mjs';
+import { voiceScript, spoken, match, VOICES, ttsBody, directionFor, untag, tagWordsHeard, judge } from '../scripts/skoldhast-voice.mjs';
 import { STORY } from '../skoldhast/src/content/sv.mjs';
 import { STORY as STORY2, HINTS } from '../skoldhast/adventures/adventure-2/content/sv.mjs';
 
@@ -172,9 +172,39 @@ test('every line in the voice script is recorded, and no clip is left over', () 
     const missing = [...keys].filter(k => !clips[k] || !fs.existsSync(dir + k + '.mp3'));
     assert.deepEqual(missing.map(k => voiceScript().find(l => l.key === k).src), [],
         'record them: NODE_USE_ENV_PROXY=1 node scripts/skoldhast-voice.mjs --record');
+    // a pending adventure's line (Äventyr 3, recorded only when Pappa says so) is not left over
+    const any = new Set(voiceScript({ pending: true }).map(l => l.key));
     const files = fs.readdirSync(dir).filter(f => f.endsWith('.mp3')).map(f => f.slice(0, -4));
-    assert.deepEqual(files.filter(k => !keys.has(k)), [], 'remove them: node scripts/skoldhast-voice.mjs --prune');
-    assert.deepEqual(Object.keys(clips).filter(k => !keys.has(k)), []);
+    assert.deepEqual(files.filter(k => !any.has(k)), [], 'remove them: node scripts/skoldhast-voice.mjs --prune');
+    assert.deepEqual(Object.keys(clips).filter(k => !any.has(k)), []);
+});
+
+test('direction (section 17.1): a line is acted where its adventure has a regi.mjs, read plainly elsewhere', () => {
+    const a1 = voiceScript().find(l => l.src.startsWith('a1 ') && l.voice === 'klo');
+    const direction = {
+        a3: { DEFAULT: { klo: 'helpful, curious' }, LINES: [['klo', '[relieved, shaky] Vi landade! [proud] Men vi landade.']] }
+    };
+    // Äventyr 1 has no direction (yet): sent as before, plain and with no settings
+    const plain = ttsBody(a1, direction);
+    assert.equal(plain.directed, false);
+    assert.equal(plain.body.text, spoken(a1.text));
+    assert.equal(plain.body.voice_settings, undefined);
+    assert.equal(plain.body.model_id, 'eleven_v4');
+    // a line with its own entry is sent as its `say`, freer (stability 0.35)
+    const own = { key: 'x', src: 'a3 STORY.arrive.0', voice: 'klo', speaker: 'klo', text: 'Vi landade!  Men vi landade.' };
+    const d = ttsBody(own, direction);
+    assert.equal(d.body.text, '[relieved, shaky] Vi landade! [proud] Men vi landade.');
+    assert.deepEqual(d.body.voice_settings, { stability: 0.35 });
+    // a line with none takes its voice's default tag; a voice with no default is sent as it is
+    assert.equal(directionFor({ ...own, text: 'Hej.' }, direction).say, '[helpful, curious] Hej.');
+    assert.equal(directionFor({ ...own, voice: 'nova', text: 'Hej.' }, direction).say, 'Hej.');
+    assert.equal(untag('[a, b] Hej [c] där.'), 'Hej där.');
+    // a take: the audio events are no words, and a tag word heard as speech is caught (unless the line has it)
+    const say = '[groggy, furious] VEM parkerar? [exasperated sigh] Före frukost?!';
+    assert.deepEqual(tagWordsHeard(say, 'VEM parkerar? Före frukost?!', 'Vem parkerar? [suck] Före frukost?'), []);
+    assert.deepEqual(tagWordsHeard(say, 'VEM parkerar? Före frukost?!', 'Groggy, vem parkerar? Före frukost?'), ['groggy']);
+    const j = judge({ text: 'VEM parkerar? Före frukost?!' }, say, 'Vem parkerar? (suck) Före frukost?');
+    assert.equal(j.score, 1); assert.deepEqual(j.tagsHeard, []);
 });
 
 test('a voice never holds the game up: before the first tap the context is suspended, and nothing waits', async () => {

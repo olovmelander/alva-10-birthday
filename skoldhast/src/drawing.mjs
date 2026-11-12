@@ -223,6 +223,15 @@ export function createDrawing(root, { host = root, words, onPencil, onUiSound } 
                     ctx.lineWidth = i === trace.progress ? 3 : 1.5;
                     ctx.strokeStyle = i === trace.progress ? '#bd812b' : '#887b69'; ctx.stroke();
                     if (i === trace.progress) { ctx.beginPath(); ctx.arc(...p, radius + 6, 0, Math.PI * 2); ctx.strokeStyle = 'rgba(189,129,43,.32)'; ctx.lineWidth = 4; ctx.stroke(); }
+                    // dot to dot (Äventyr 3's constellation): the number beside each dot, from one
+                    if (opts.numbers) {
+                        const size = Math.max(13, Math.min(20, radius * 1.15));
+                        ctx.font = `bold ${size}px "Patrick Hand", "Comic Sans MS", sans-serif`;
+                        ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+                        const ox = p[0] + radius + size * 0.55, oy = p[1] - radius - size * 0.35;
+                        ctx.lineWidth = 3.4; ctx.strokeStyle = 'rgba(251,248,241,.9)'; ctx.strokeText(String(i + 1), ox, oy);
+                        ctx.fillStyle = i < trace.progress ? '#668469' : '#3b3530'; ctx.fillText(String(i + 1), ox, oy);
+                    }
                 });
             }
         }

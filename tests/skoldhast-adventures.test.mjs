@@ -10,7 +10,9 @@ test('three adventures have stable identities; Den magiska skogen is released, t
     ]);
     assert.equal(getAdventure(FIRST_ADVENTURE).module, './main.mjs');
     assert.equal(getAdventure('adventure-2').module, '../adventures/adventure-2/main.mjs');
-    assert.equal(getAdventure('adventure-3').module, null);
+    // built and previewable (dev/play.html?adventure=3), but not released: nobody can choose it yet
+    assert.equal(getAdventure('adventure-3').module, '../adventures/adventure-3/main.mjs');
+    assert.equal(getAdventure('adventure-3').released, false);
     assert.equal(getAdventure('missing'), null);
     assert.deepEqual(adventureStatus(FIRST_ADVENTURE), { unlocked: true, released: true, playable: true, completed: false });
 });
@@ -42,7 +44,7 @@ test('released sequels become playable sequentially using previously earned comp
 });
 
 test('a release flag alone cannot launch an adventure without an entry module', () => {
-    const incompleteRelease = ADVENTURES.map((adventure) => ({ ...adventure, released: true }));
+    const incompleteRelease = ADVENTURES.map((adventure) => ({ ...adventure, released: true, module: adventure.id === 'adventure-3' ? null : adventure.module }));
     assert.equal(adventureStatus('adventure-3', { completedAdventures: [FIRST_ADVENTURE, 'adventure-2'] }, incompleteRelease).playable, false);
 });
 
@@ -50,7 +52,9 @@ test('?adventure=2 opens Den magiska skogen without its unlock; nothing else cha
     assert.deepEqual(previewIds('?adventure=2'), ['adventure-2']);
     assert.deepEqual(previewIds('?skoldhast&adventure=2'), ['adventure-2']);
     assert.deepEqual(previewIds('#adventure=2'), ['adventure-2']);
-    assert.deepEqual(previewIds('?adventure=3'), [], 'an adventure without a module cannot be previewed');
+    // Äventyr 3 is built and can be previewed before it is released; a number with no adventure cannot
+    assert.deepEqual(previewIds('?adventure=3'), ['adventure-3']);
+    assert.deepEqual(previewIds('?adventure=4'), [], 'an adventure that does not exist cannot be previewed');
     assert.deepEqual(previewIds(''), []);
     const previewed = withPreview(ADVENTURES, previewIds('?adventure=2'));
     assert.equal(adventureStatus('adventure-2', { completedAdventures: [] }, previewed).playable, true);
