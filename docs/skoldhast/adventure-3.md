@@ -14,7 +14,7 @@ is in `skoldhast/adventures/adventure-2/`, and its design is `docs/skoldhast/adv
 
 0. The promise: the most epic adventure
 1. Premise
-2. What Pappa and Alva have decided, and what is proposed
+2. What is decided
 3. Rymdkrabban Nova: the drawing, the character, what she can do
 4. The cast
 5. World rules
@@ -98,7 +98,7 @@ Length and shape: the longest of the three. Five pages (four worlds and the ride
 stars, one for every year Alva turns), 24 puzzle steps, about 330 dialogue boxes, a robot play time of about 8
 minutes (Äventyr 2: four pages, 21 steps, about 175 boxes, 5 minutes).
 
-## 2. What is decided, and what is proposed
+## 2. What is decided
 
 **Decided by Pappa (12 November):**
 - Äventyr 3 is set in space.
@@ -115,10 +115,19 @@ minutes (Äventyr 2: four pages, 21 steps, about 175 boxes, 5 minutes).
   over (section 8.6).
 - **The Moon is to be as scary as it can be** when it is rubbed out (section 16.1).
 
-**Proposed here (Alva decides; section 22 lists the questions):**
-- Her shell is read as a **flying saucer** (that is what the painting looks like), and the blue-violet strokes under
-  her as a **beam of light** she hovers on and can lift things with.
-- Everything else about her below (breakfast, the lamps, what she is crazy about).
+**Decided by Pappa on 12 November, on this document's recommendation** ("Gör det du rekommenderar"), instead of
+waiting for answers from Alva:
+- Her shell is a **flying saucer** (that is what the painting looks like).
+- The blue-violet strokes under her are a **beam of light** she hovers on and can lift things with.
+- The five dots are **lamps** that show her mood.
+- Her breakfast is **kometflingor**.
+- She is crazy about **stjärnbilder, frukost och att ha rätt**.
+- She is grumpy in the morning for no reason at all. She just is, and nobody in the game asks why.
+- In the fog stands Alva's first, rubbed-out try at a sköldhäst, **"med fel ben"**, as written.
+- There is **no setting to soften the Moon**: "Mindre läskigt", drafted in section 16.1, is removed.
+
+Nova is still Alva's creature. If Alva says something else about her, or adds facts of her own as she did for the
+tukankrabba, her word wins and this document is changed.
 
 ## 3. Rymdkrabban Nova
 
@@ -1098,12 +1107,6 @@ MIG!" · while galloping: `drawSelf2` "Ett ben! Ryggen! Skalet!" · if the playe
 - sudd: Och strecken ritade du tillbaka. Själv. Det har ingen gjort förut.
 - sudd: Då är du inget misstag.
 
-With "Mindre läskigt" on (16.1), `offer` is followed directly by `rubbedGentle` (a squeak, and nothing happens), and
-then `sudd4` without its first line:
-- sudd: Du … går inte bort.
-- nova: Färg går inte att sudda. Bara blyerts. Det vet alla.
-- sudd: Då är du inget misstag.
-
 `alva1`:
 - alva: Suddet. Det var jag. Jag suddade den första stjärnan.
 - alva: Den blev sned, och jag blev arg på den. Sen ångrade jag mig.
@@ -1619,12 +1622,8 @@ flash; the notes in ink; the stars in gold.
 - It cannot be left half-way in a bad state: a save made anywhere inside the scene resumes from Smulhögen before
   the first bite (section 18.4).
 - **Mindre rörelse** stills the lightning to slow fades and the drifting patches to a hold.
-
-**"Mindre läskigt"** (a new setting, off by default, in Inställningar under "Mindre rörelse"): for a younger player,
-or a second time through. With it on: one bite and no face; the light dims and does not go out; the forest is one
-still picture of Molnet trembling, with no storm and no hatchling in the wind; the notebook page is not rubbed out;
-Suddet rubs at the sköldhäst and nothing happens (the old, gentle version: "Du … går inte bort."), so V5 is skipped
-and its measure is written in anyway. The story, the reveal and everything after are the same.
+- **There is one version of this scene.** A setting to soften it ("Mindre läskigt") was drafted and removed at
+  Pappa's word on 12 November: everyone who plays meets the same Moon.
 
 **Sound.** There is no sound in space, said the script, so the *world* is quiet out there: no wind, no birds.
 What is heard is close and soft: hooves on moon dust (dull thumps), hooves on star-lines (each star a note, as
@@ -1784,8 +1783,6 @@ Each item names the rule it serves and the nearest existing code.
     keeps counting underneath, so nothing is really lost.
 29. **Silence, and the squeak.** `audio` needs a way to fade the music to nothing and hold it (today it changes
     area), and one new sound, the rubbing, with its volume and pan set from Suddet's distance and side.
-30. **"Mindre läskigt".** One more setting beside `lessMotion` in the shared settings card and the profile
-    (`settings.gentle`); `G.gentle` is read by the climax's beats and fx (16.1). Äventyr 1 and 2 ignore it.
 
 ### 18.3 World data (`content/world.mjs`)
 
@@ -1841,8 +1838,7 @@ As for Äventyr 2, and a PR is not done without them.
   the catch; a missed catch always comes round again; a player who stops on the tail for a minute loses nothing.
 - The climax: the robot plays V4 and V5 through (and asserts that a walk draws nothing, that standing still for
   30 s changes nothing, that twelve strides complete the outline); a save taken at every beat inside the scene
-  restores to `crumbs` before the first bite and can still finish; with `gentle` on, the same robot reaches the
-  ending without V5, and every flag the finale needs is still set; the notebook's Mätningar page is rubbed between
+  restores to `crumbs` before the first bite and can still finish; the notebook's Mätningar page is rubbed between
   `notes` and `ink` and whole before and after, with the same lines.
 - Words: short boxes, no key names in help, Alva and Mira only as voices, nobody says "sned" or "sudd" before its
   time (section 7), every hint ladder has three steps.
@@ -1857,7 +1853,7 @@ As for Äventyr 2, and a PR is not done without them.
   dark, each of the six forest flashes, the drain, the notes, the outline going, colour only, half drawn, whole):
   the face reads at every size; in the dark every speaker can still be told apart; the colour patches are on screen
   and the stride count shows; nothing is pure black for more than the two seconds asked for. The same with "Mindre
-  läskigt" and with "Mindre rörelse".
+  rörelse".
 - A check with Större text and Mindre rörelse. With less motion, the launch, the bear's rising, the slingshot, the
   gallop's scrolling sky and the catch each have a calm version (a cross-fade between two still pictures instead of a
   sweep), and the story still plays to the end.
@@ -1877,10 +1873,10 @@ One PR, one visible outcome (`skoldhast/CLAUDE.md`). `released` stays `false` un
 4. **Stjärnbildsfältet.** Floating, star-lines, Karlavagnen's ride, the belt, the bear (who stands), Pip.
 5. **Ringplaneten.** Showers, the sling with its picture, the ice, Kometen, the gap.
 6. **Det vita hålet.** The white page, the rocket rubbed out, the pursuit, the fog and what stands in it, the
-   bridge, Suddet, the tenth star. The climax in its gentle form first (one bite, no rubbing of the hero), so that
-   the page plays from end to end.
+   bridge, Suddet, the tenth star. The climax as a plain stand-in first (the talk only, the Moon untouched), so
+   that the page plays from end to end. The stand-in is never released.
 6b. **Månen suddas.** The full climax of section 16.1: the three bites and the face, the `dread` light, the forest
-   in flashes, the notes, the sköldhäst without its outline and **Rita dig själv**, "Mindre läskigt". *Its own PR,
+   in flashes, the notes, the sköldhäst without its outline and **Rita dig själv**. *Its own PR,
    with its own contact sheet. Play it with the sound on before merging.*
 7. **Den stora galoppen.** The `vinter` page, the trail, the friends alongside, the catch, the Moon's rim, the light
    back in the forest. *This PR is the heart of the adventure; give it the time.*
@@ -1918,7 +1914,9 @@ One PR, one visible outcome (`skoldhast/CLAUDE.md`). `released` stays `false` un
   of fright: one that feels unfair, that goes on too long, or that leaves a child alone in it. So: the player is
   never chased and never loses; a friend's voice is heard in every dark moment; the worst of it (from the first bite
   to the controls coming back) is under two minutes; and every thing taken is given back before the end, on screen.
-  Play it once with Alva, and with Mira beside her, before release. "Mindre läskigt" is there if it is needed.
+  Play it once with Alva, and with Mira beside her, before release. There is no softer version to fall back on
+  (Pappa removed the setting), so if it proves too much, the scene itself is what gets tuned: the number of bites,
+  the two seconds of dark, the hatchling in the wind.
 - **A one-way page.** `sudd` cannot be left. The gate (nine lights) makes sure nothing is left behind, and the tests
   in section 19 must prove a save anywhere in it can still finish.
 - **The great gallop could be long and empty, or long and wonderful.** 160 lengths is about 25 seconds at a full
@@ -1935,29 +1933,35 @@ One PR, one visible outcome (`skoldhast/CLAUDE.md`). `released` stays `false` un
 
 ## 22. Frågor till Alva och Pappa
 
-For Alva (she invented the creature; the game follows her):
+**Settled on 12 November.** Pappa answered, or said to go with this document's recommendation:
 
-1. ~~Vad heter rymdkrabban?~~ **Bestämt 12 november: Nova** (sur: "Surnova", jätteglad: "Supernova").
-2. **Är skalet ett flygande tefat?** Och det blålila under henne: är det en ljusstråle, ben, eller en kjol?
-3. **Vad är prickarna på skalet?** Här är de fem lampor som visar hennes humör.
-4. **Vad äter hon till frukost?** Här: kometflingor.
-5. **Vad är hon galen i?** Här: stjärnbilder, frukost och att ha rätt.
-6. **Varför är hon morgonsur?** (Spelet behöver ingen anledning. Men Alva kanske har en.)
-7. **Har hon några fler fakta**, som tukankrabbans lista? Alla fakta från Alva blir kanon, som förra gången.
+| Question | Answer |
+| --- | --- |
+| Vad heter rymdkrabban? | **Nova** (sur: "Surnova", jätteglad: "Supernova"). |
+| Är skalet ett flygande tefat? | Ja. |
+| Vad är det blålila under henne? | En ljusstråle. Hon svävar på den och lyfter saker med den. |
+| Vad är prickarna på skalet? | Fem lampor som visar hennes humör. |
+| Vad äter hon till frukost? | Kometflingor. |
+| Vad är hon galen i? | Stjärnbilder, frukost och att ha rätt. |
+| Varför är hon morgonsur? | Av ingen anledning. Hon är det bara. |
+| Hur läskig ska månen vara? | "Gör månen så läskig du bara kan." Section 16.1. |
+| En inställning som gör månen snällare? | Nej. "Mindre läskigt" är borttagen. |
+| Får det vita hålet vara enkelriktat? | Ja. |
+| Alvas första, utsuddade försök till en sköldhäst i dimman? | Det står där "med fel ben", som skrivet. |
 
-For Pappa:
+**Still open, for Alva** (none of it blocks the build):
+
+1. **Har Nova fler fakta**, som tukankrabbans lista? Alla fakta från Alva blir kanon, som förra gången.
+2. Om något i tabellen ovan är fel om hennes egen krabba, är det Alva som har rätt.
+
+**Still open, for Pappa:**
 
 1. Is Suddet right as the one who takes the stars, with Alva's own rubbed-out star as the cause? It makes Alva part
-   of the problem and of the solution, gently.
+   of the problem and of the solution, gently. (Pappa on the outline of this story: "Allt som du skrivit låter
+   bra!", so the document builds on yes.)
 2. Should Tukankrabban come along after all? Here she stays home with ten small researchers, and Klo writes to her.
 3. Mira names the ring planet "Ringo" in one line. Keep, or does Mira have her own name for it?
 4. Ten stars, "en för varje år jag fyller": this ties the adventure to her tenth birthday. Still right if she plays
    it after she has turned eleven?
 5. Four new voices in ElevenLabs (Nova, Suddet, Stora björnen, Kometen): Pappa creates them, as before.
-6. ~~Is the Moon's bite the right size of fright?~~ **Answered 12 November: "Gör månen så läskig du bara kan."**
-   Section 16.1 is the result. One thing is added that Pappa did not ask for: a setting, "Mindre läskigt", off by
-   default, for Mira or for a second play (16.1). Say if it should go.
-7. ~~May the white hole be one-way?~~ **Answered 12 November: yes**, as recommended.
-8. In the fog stands Alva's first, rubbed-out try at a sköldhäst, "med fel ben". Did she make such a first try? If
-   she remembers what was wrong with it, use that instead.
-9. When should it be released?
+6. When should it be released?

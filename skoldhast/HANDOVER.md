@@ -19,10 +19,13 @@ the most epic of the adventures. Nothing is built yet: `adventure-3` still has n
   - The Moon is to be as scary as it can be when it is rubbed out. The design's section 16.1 is the plan: three
     bites that become a face, the light going out, the storm back in the forest, Klo's notes rubbed out of the
     player's own notebook, and the sköldhäst's outline rubbed away until the player gallops it back ("Rita dig
-    själv"). It also says where the fright stops. A setting, "Mindre läskigt" (off by default), was added by the
-    session for Mira; Pappa has not asked for it and may remove it.
-- **Still proposed, for Alva to decide:** that her shell is a flying saucer, that the blue-violet under her is a
-  beam of light, her five lamps, her cereal, what she is crazy about.
+    själv"). It also says where the fright stops.
+  - **No setting softens it.** The session had drafted one, "Mindre läskigt"; Pappa had it removed. Do not add it
+    back. If the scene proves too much when played, tune the scene.
+  - The questions that were waiting for Alva are settled as the design proposed: the shell is a flying saucer, the
+    blue-violet under her is a beam of light, the five dots are lamps for her mood, she eats kometflingor, she is
+    crazy about stjärnbilder, frukost och att ha rätt, and Alva's rubbed-out first sköldhäst in the fog has "fel
+    ben". Nova is still Alva's: if she says otherwise, her word wins.
 - **Frågor till Alva och Pappa** are in the design's section 22.
 
 ## A night playtest of both adventures: what a player sees on a phone (8 November, night)
