@@ -34,9 +34,14 @@ the most epic of the adventures. Nothing is built yet: `adventure-3` still has n
   sportkommentator". They are in Pappa's ElevenLabs account as "Sköldhästen – <namn>" and in `VOICES` in
   `scripts/skoldhast-voice.mjs`; the replaced voices are deleted. Nothing is recorded with them yet.
 - **Every line of Äventyr 3 is to be acted.** Pappa found the plain lines flat and chose direction line by line:
-  English audio tags beside each line (`say` in sv.mjs, never in the shown text, which is the clip key), recorded
-  with Eleven v4 at `stability: 0.35`. The design's section 17.1 says how, and how a take is checked. Äventyr 1 and 2
-  stay plain unless Pappa asks.
+  English audio tags beside each line (in a `regi.mjs` beside each adventure's `sv.mjs`, never in the shown text,
+  which is the clip key), recorded with Eleven v4 at `stability: 0.35`. The design's section 17.1 says how, and how a
+  take is checked.
+- **Äventyr 1 and 2 are to be recorded again with direction, every line** (Pappa, 12 November). A before-and-after
+  trial of 31 lines (audition page, round three) won with direction in all six scenes. **Not started: nothing is
+  recorded until Pappa says so.** What must be built first, the order, the cost and the narrator's missing voice id
+  are in the design's section 17.2. The trial's lines, tags and approved takes are in `rymdkrabban/roster/omgang3/`
+  on Pappa's PC.
 - **Open:** only whether Alva has more facts of her own about Nova (the design's section 22). Nothing blocks the
   build. Next step: build step 1 in the design's section 20, "Nova stands on the Moon".
 
