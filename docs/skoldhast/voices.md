@@ -9,9 +9,9 @@ section 17 (Äventyr 3's voices and the direction).
 | Adventure | Lines | Recorded | Direction |
 | --- | --- | --- | --- |
 | Äventyr 1 and 2 | 921 | Yes, every line (plain, as written) | **To be recorded again with direction, every line** (Pappa, 12 November). Not started: waits for Pappa's word. |
-| Äventyr 3 | 567 (about 26,800 characters) | **No.** Pending until Pappa says the adventure is completely finished. | Written: every story and table line has its tags in `adventures/adventure-3/content/regi.mjs`. |
+| Äventyr 3 | 578 (about 27,700 characters) | **Yes, every line, acted** (12 November, night: Pappa, "Spela in rösterna nu!", after the last playthrough). | Every story and table line with its own tags in `adventures/adventure-3/content/regi.mjs`, the rest with its voice's default. |
 
-Nothing is recorded until Pappa says so. The recording script cannot record Äventyr 3 by accident: it needs `--a3`.
+Äventyr 1 and 2's new recording with direction still waits for Pappa's word.
 
 ## The cast: the voice of every role
 
@@ -21,7 +21,7 @@ design children's voices: Alva and Mira are young adult women, and descriptions 
 
 | Role (key) | Voice in the account | Chosen | How it was designed |
 | --- | --- | --- | --- |
-| Berättaren (`narrator`, captions) | Pappa's own cloned voice, given to the script by id (`SKOLDHAST_NARRATOR_VOICE`; **the id is not in `.env`**) | 5 November | Public on the site by Pappa's decision |
+| Berättaren (`narrator`, captions) | Pappa's own cloned voice, "olov-voice" in the account (the only cloned voice there), given to the script by id (`SKOLDHAST_NARRATOR_VOICE`; **the id is not in `.env`**: look it up in the account's voice list) | 5 November | Public on the site by Pappa's decision |
 | Sköldhästen (`horse`) | Sköldhästen – Sköldhästen | 5 November | Soft, neither man nor woman (sounds female). Its pronoun stays "den". |
 | Professor Klo (`klo`) | Sköldhästen – Professor Klo | 5 November | A small, precise, nervous crab |
 | Kartväktaren (`kv`, and his notes) | Sköldhästen – Kartväktaren | 5 November | An old, anxious man of paper |
@@ -86,15 +86,17 @@ node scripts/skoldhast-voice.mjs --level             # every clip's loudness (EB
 node scripts/skoldhast-voice.mjs --prune             # remove clips no line uses
 ```
 
-- **Äventyr 3:** when Pappa says the adventure is finished, empty `PENDING` in the script (or record with `--a3`);
-  read the script aloud once first (design section 20, step 11), since a changed line means a new clip.
+- **Äventyr 3** was recorded on 12 November (night) with `PENDING` emptied: every line acted, read back with
+  speech-to-text, and kept only when no tag word was heard as speech. A line changed from now on needs a new clip
+  (`--record` records what is missing; `--prune` removes what is left over).
 - **Äventyr 1 and 2 again with direction** (design section 17.2, in this order): write the two `regi.mjs` files; let
   the script record existing lines again where their direction has changed (keep which `say` each clip was recorded
   with beside the clips, e.g. `skoldhast/voice/regi.json`, so a run can stop and go on); record a voice at a time,
   Äventyr 1 then Äventyr 2; listen to a sample of each voice before the next; then commit. The old clips stay in git
   history, so a single line can go back.
-- **On Pappa's PC** the ffmpeg has no `libmp3lame`: ask ElevenLabs for `output_format=mp3_44100_64` directly and
-  measure loudness with the local ffmpeg (the Lenovo one has `ebur128`).
+- **On Pappa's PC** the ffmpeg has no `libmp3lame`: set `SKOLDHAST_FFMPEG` to the Lenovo ffmpeg (`C:/Program
+  Files/Lenovo/GamingAI/<version>/services/autoeditor/ffmpeg.exe`, which has `ebur128`). The script then asks
+  ElevenLabs for `mp3_44100_64` directly and uses that ffmpeg only to measure and decode.
 - **The narrator** is Pappa's own voice. Its id is not in `.env`: without it the narrator's lines keep their present
   clips (25 in Äventyr 1 and 2).
 - **Cost** (the account's month is 168,382 characters): Äventyr 1 and 2 again about 51,000 characters plus a fifth to
@@ -102,7 +104,7 @@ node scripts/skoldhast-voice.mjs --prune             # remove clips no line uses
 
 ## Tests
 
-- `tests/skoldhast-voice.test.mjs` fails until every recorded adventure's line has its clip and loudness, and nothing
-  is left over; Äventyr 3's lines are pending and not asked for yet.
+- `tests/skoldhast-voice.test.mjs` fails until every line of all three adventures has its clip and loudness, and
+  nothing is left over.
 - `tests/skoldhast-a3-words.test.mjs` checks Äventyr 3's direction (every entry matches exactly one line, no line has
   two, every story line has one) and its words (short boxes, three-step hints, nothing said too early).
