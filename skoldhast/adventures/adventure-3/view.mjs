@@ -1510,7 +1510,7 @@ export function createView(PIXI, app, { assets, G, heroFactory, lightTarget = nu
             const zFace = Math.min(W / (face.x1 - face.x0 + h(1)), H / (all.y1 - all.y0));
             zoom = portrait ? Math.max(zf, Math.min(zFace, W / h(8.5))) : zf;
             tx = portrait ? clamp((all.x0 + all.x1) / 2, face.x0 + W / zoom / 2 - h(0.5), face.x1 - W / zoom / 2 + h(0.5)) : (all.x0 + all.x1) / 2;
-            if (portrait && W / zoom < all.x1 - all.x0) tx = (face.x0 + face.x1) / 2 - h(0.6);
+            if (portrait && W / zoom < all.x1 - all.x0) tx = Math.min((face.x0 + face.x1) / 2 - h(0.6), p.x - h(0.9) + W / zoom / 2);
             // upright: the heroes low in the picture, the face above them, the room at the top for the speech boxes
             ty = portrait ? Math.min((all.y0 + all.y1) / 2, all.y1 + h(0.3) - H / zoom * 0.78 + H / zoom / 2) : (all.y0 + all.y1) / 2;
         }
@@ -1733,7 +1733,15 @@ export function createView(PIXI, app, { assets, G, heroFactory, lightTarget = nu
                 await animate(1.8, (u) => { const e = ease(u); k.update(1 / 60, { x: lerp(p.x + h(16), p.x - h(3), e), y: lerp(h(-9), p.y - h(1.6), e), facing: -1, tail: h(14) * (0.4 + e), speed: 1 - e }, G.time, { reducedMotion: rm }); });
                 flash = 0.35;
                 await waitGame(0.6);
-                k.destroy();
+                // it lies still along the edge of the white while it calls them up (it is the one speaking now)
+                S.arrivedKomet = k;
+                return;
+            }
+            case 'pipCalls': {
+                // Pip has seen everything and called for help: he tumbles into the picture, high up, from the right
+                const q = createPip(PIXI, pen); q.view.scale.set(1.2); L.fx.addChild(q.view);
+                S.callPip = q;
+                await animate(rm ? 0.3 : 1.2, (u) => { const e = ease(u); q.update(1 / 60, { x: lerp(p.x + h(9), p.x + h(2.6), e), y: lerp(h(-6), p.y - h(2.6), e), tumble: 2.2, flash: 0 }, G.time, { reducedMotion: rm }); });
                 return;
             }
             case 'rimHeals': {
@@ -1901,9 +1909,9 @@ export function createView(PIXI, app, { assets, G, heroFactory, lightTarget = nu
             if (who === 'klo') return S.A.klo.container.visible ? S.A.klo.headBounds() : null;
             if (who === 'nova') return S.A.nova.view.visible ? S.A.nova.view.getBounds() : null;
             if (who === 'sudd') return S.A.sudd.view.visible ? S.A.sudd.view.getBounds() : null;
-            if (who === 'komet') { const v = S.komet?.view || S.rideKomet?.view; return v?.visible ? v.getBounds() : null; }
+            if (who === 'komet') { const v = S.komet?.view || S.rideKomet?.view || S.arrivedKomet?.view; return v?.visible ? v.getBounds() : null; }
             if (who === 'bjorn' && S.bear) return S.bear.view.getBounds();
-            if (who === 'pip') { const v = S.pip?.view || S.ridePip?.view; return v?.visible ? v.getBounds() : null; }
+            if (who === 'pip') { const v = S.pip?.view || S.ridePip?.view || S.callPip?.view; return v?.visible ? v.getBounds() : null; }
             return null;
         },
         /** For the harness and checks. */

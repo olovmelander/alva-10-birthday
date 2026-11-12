@@ -2029,8 +2029,10 @@ Decided 12 November, on this document's recommendation:
 ### 20.2 What the build changed (12 November)
 
 Pappa asked for the whole adventure in one go ("implementera hela Äventyr 3 i ett svep"), with the recording left until
-he says the adventure is finished. Steps 1–9 of the build order were built together; step 10 (the music) uses the
-existing areas for now; step 11 (recording) waits; steps 12 and 13 remain. The robots
+he says the adventure is finished. Steps 1–9 of the build order were built together; step 10 (the music: the melody
+`STAR_THEME`, "Vintergatans visa", in seven settings) and step 12 (the audits, `docs/skoldhast/adventure-3-audit.md`,
+and the contact sheets in `docs/skoldhast/shots/a3/`) followed the same evening; step 11 (recording) waits for
+Pappa's word, and step 13 (release) for the rest of the gate. The robots
 (`tests/skoldhast-a3-playthrough.test.mjs`, `tests/skoldhast-a3-order.test.mjs`) play it from breakfast to the gold
 stars with ordinary inputs (about 330 s, 310 boxes). What playing it changed against this document:
 

@@ -135,8 +135,9 @@ export function stepShowers(G, events) {
     const sc = G.sceneDef, p = G.player, F = G.flags;
     const all = sc?.showers || [];
     let now = null;
-    const here = all.filter(s => p.x >= s.x0 - 3 * HL && p.x <= s.x1 + 3 * HL);
-    for (const s of here.length ? here : all) {
+    // only where the sköldhäst is: far from the ring's showers there is none (the warning used to come at Isbryggan)
+    const here = all.filter(s => p.x >= s.x0 - 4 * HL && p.x <= s.x1 + 4 * HL);
+    for (const s of here) {
         const t = (G.time + s.phase) % s.period;
         const state = t < s.shower ? 'shower' : t > s.period - s.warn ? 'warn' : null;
         if (state) { now = { id: s.id, state, s }; break; }
