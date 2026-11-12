@@ -8,10 +8,11 @@ section 17 (Äventyr 3's voices and the direction).
 
 | Adventure | Lines | Recorded | Direction |
 | --- | --- | --- | --- |
-| Äventyr 1 and 2 | 921 | Yes, every line (plain, as written) | **To be recorded again with direction, every line** (Pappa, 12 November). Not started: waits for Pappa's word. |
+| Äventyr 1 and 2 | 921 | **Yes, every line again, acted** (12 November, night: "Spela in äventyr 1 och 2 med regi också"). The trial's 31 lines are Pappa's approved takes from round three. | Every line of dialogue with its own tags in `skoldhast/src/content/regi.mjs` and `skoldhast/adventures/adventure-2/content/regi.mjs`, the rest with its voice's default. |
 | Äventyr 3 | 578 (about 27,700 characters) | **Yes, every line, acted** (12 November, night: Pappa, "Spela in rösterna nu!", after the last playthrough). | Every story and table line with its own tags in `adventures/adventure-3/content/regi.mjs`, the rest with its voice's default. |
 
-Äventyr 1 and 2's new recording with direction still waits for Pappa's word.
+Every line of all three adventures is recorded with the direction it has now; `tests/skoldhast-regi.test.mjs` fails
+when a line's direction changes until it is recorded again (`--record --changed`).
 
 ## The cast: the voice of every role
 
@@ -59,9 +60,9 @@ game plays them and recorded again with direction) was won by direction in all s
   voice, for every line without its own) and `LINES` (`[voice, say]`). With its tags taken out, `say` is exactly the
   shown text; a test checks that every entry matches exactly one line.
   - `skoldhast/adventures/adventure-3/content/regi.mjs`: written (352 lines and the defaults).
-  - `skoldhast/src/content/regi.mjs` (Äventyr 1) and `skoldhast/adventures/adventure-2/content/regi.mjs`: to be
-    written when the re-recording begins. The trial's 31 lines and their tags are the model; they are in
-    `rymdkrabban/roster/omgang3/omgang3.json` on Pappa's PC, with their approved clips.
+  - `skoldhast/src/content/regi.mjs` (Äventyr 1) and `skoldhast/adventures/adventure-2/content/regi.mjs`: written
+    12 November (night), every line of dialogue with its own tags, the trial's 31 lines as the model (they are in
+    `rymdkrabban/roster/omgang3/omgang3.json` on Pappa's PC, with their approved clips).
   - Default tags used in the trial for Äventyr 1 and 2: Klo `[helpful, curious]`, Tukankrabban `[curious, bubbly]`,
     the sköldhäst `[thoughtful, to itself]`. Äventyr 3's defaults: Nova `[dry, deadpan]`, Klo `[helpful, a little
     nervous]`, the sköldhäst `[thoughtful, to itself]`, Suddet `[earnest]`, Stora björnen `[slow, deep, kind]`,
@@ -89,11 +90,18 @@ node scripts/skoldhast-voice.mjs --prune             # remove clips no line uses
 - **Äventyr 3** was recorded on 12 November (night) with `PENDING` emptied: every line acted, read back with
   speech-to-text, and kept only when no tag word was heard as speech. A line changed from now on needs a new clip
   (`--record` records what is missing; `--prune` removes what is left over).
-- **Äventyr 1 and 2 again with direction** (design section 17.2, in this order): write the two `regi.mjs` files; let
-  the script record existing lines again where their direction has changed (keep which `say` each clip was recorded
-  with beside the clips, e.g. `skoldhast/voice/regi.json`, so a run can stop and go on); record a voice at a time,
-  Äventyr 1 then Äventyr 2; listen to a sample of each voice before the next; then commit. The old clips stay in git
-  history, so a single line can go back.
+- **Which direction each clip was recorded with** is in `skoldhast/voice/regi.json` (key → `say`; a clip with no
+  entry was read plainly). `--record --changed` records again every line whose clip differs from its direction now
+  (and every missing one), `--adv a1` and `--only klo` narrow it; a run can stop and go on. A line recorded again keeps
+  its old clip unless the new take is heard well (0.8 or more, no tag read aloud). The old clips stay in git history,
+  so a single line can go back.
+- **Äventyr 1 and 2 again with direction** (design section 17.2): Pappa said "Spela in äventyr 1 och 2 med regi
+  också" on 12 November (night). Their `regi.mjs` files are written (`skoldhast/src/content/regi.mjs`,
+  `skoldhast/adventures/adventure-2/content/regi.mjs`; `tests/skoldhast-regi.test.mjs` checks them as Äventyr 3's
+  test does) and recorded with `--changed`, Äventyr 1 first: 914 of 921 new takes were heard well at once (none with
+  a tag read aloud); the trial's 31 lines got Pappa's approved takes from round three; the last few were taken again.
+  About 34,700 characters. `regi.mjs` under `skoldhast/src/` is left out of the loader's prefetch (the game never
+  reads it).
 - **On Pappa's PC** the ffmpeg has no `libmp3lame`: set `SKOLDHAST_FFMPEG` to the Lenovo ffmpeg (`C:/Program
   Files/Lenovo/GamingAI/<version>/services/autoeditor/ffmpeg.exe`, which has `ebur128`). The script then asks
   ElevenLabs for `mp3_44100_64` directly and uses that ffmpeg only to measure and decode.

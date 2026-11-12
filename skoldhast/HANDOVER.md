@@ -1,3 +1,20 @@
+## Äventyr 1 and 2 recorded again, acted (12 November, night)
+
+Pappa: "Spela in äventyr 1 och 2 med regi också." All 921 lines of Äventyr 1 and 2 are recorded again with
+direction, as the trial (round three) chose:
+
+- **The direction** is written in `skoldhast/src/content/regi.mjs` (382 lines of their own) and
+  `skoldhast/adventures/adventure-2/content/regi.mjs` (255). Every line of dialogue has its own tags; hints, thoughts
+  and refusals take their voice's default, as Pappa approved in the trial's "Vanliga ledtrådar". The trial's lines
+  are word for word as approved.
+- **The recording:** 914 of 921 new takes were heard well at once, and none had a tag read aloud. The trial's 31
+  lines got the very takes Pappa chose (`rymdkrabban/roster/omgang3/`). The last few were taken again, and Klo's
+  "Lilla … Klo …" was kept once heard as "Lilla Clo".
+- **What each clip was recorded with** is in `skoldhast/voice/regi.json`. `--record --changed` records again what
+  differs from its direction, and `tests/skoldhast-regi.test.mjs` fails until it has been.
+- **Cost:** about 34,700 characters (77,638 of 168,382 used this month).
+- **Nobody here can hear them.** The old plain clips are in git history, so a single line can go back.
+
 ## Äventyr 3's voices are recorded (12 November, night)
 
 Pappa: "Spela in rösterna nu!" Every line of Äventyr 3 is recorded, acted (`content/regi.mjs`, Eleven v4, stability
@@ -13,8 +30,8 @@ and seven came back better (Nova's "MIN MÅNE!" among them). The rest are speech
 - The account counted about 19,200 characters for it (42,934 of the month's 168,382 used; resets 10 December).
 - **Nobody here can hear them.** Pappa and Alva: listen while playing. A line that sounds wrong can be taken again
   alone (`--record --redo` with a report of just that line).
-- **Still before `released: true`:** Pappa plays it on Alva's device with the sound on. Äventyr 1 and 2's new
-  recording with direction still waits for his word.
+- **Still before `released: true`:** Pappa plays it on Alva's device with the sound on. (Äventyr 1 and 2 were
+  recorded again with direction the same night: see above.)
 
 ## Äventyr 3, the last fine-tuning before release (12 November, night)
 
