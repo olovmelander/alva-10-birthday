@@ -134,6 +134,8 @@ waiting for answers from Alva:
   oskuldsfull", Stora björnen "Jättelik bas", Kometen "Hes sportkommentator" (section 17).
 - **Every line is acted** (section 17.1): English audio tags beside each line, recorded with a freer setting. Chosen
   over plain reading, context and whole-scene takes.
+- **Äventyr 1 and 2 are to be recorded again with direction, every line** (Pappa, 12 November, after a before-and-after
+  trial where the directed take won in all six scenes; section 17.2). Not started: it waits for Pappa's word.
 - **It is released whole, when it is finished; the day to aim for is julafton** (section 20.1).
 
 Nova is still Alva's creature. If Alva says something else about her, or adds facts of her own as she did for the
@@ -1687,7 +1689,7 @@ role), and in `VOICES` in `scripts/skoldhast-voice.mjs`.
 Pappa's word after the first auditions: the lines had no feeling. Äventyr 1 and 2 are recorded as plain text, one
 line at a time. The second round read two scenes four ways (plain; with direction; with direction and the lines
 around it as context; the whole scene in one take), and Pappa chose **direction, line by line** (way B). So, for every
-spoken line of Äventyr 3:
+spoken line of Äventyr 3, and of Äventyr 1 and 2 when they are recorded again (section 17.2):
 
 - **The line carries its direction:** English audio tags in square brackets, before the words they colour, and as
   many as the line needs, mid-line too:
@@ -1695,14 +1697,18 @@ spoken line of Äventyr 3:
   Eleven v4 acts the tags and does not read them aloud (checked on 12 November: speech-to-text hears the words, and
   hears a sigh or a yawn where one was asked for).
 - **The tags never touch what is shown.** The clip is found by who speaks and the shown text (`src/voice-key.mjs`),
-  and the speech box must not show brackets. So the direction lives beside the line, not in it: in
-  `adventures/adventure-3/content/sv.mjs` a line may have a third element, `['nova', 'VEM parkerar …?!', { say:
-  '[groggy, furious] VEM parkerar … [exasperated sigh] Före frukost?!' }]`. The game ignores it. The recording script
-  sends `say` when there is one, and a test asserts that `say` with its tags removed is exactly the shown text, so
-  the two cannot drift apart.
-- **Lines with no `say`** (hints, Nova's pointing words, chatter, remarks, thoughts) still get acted: one default tag
-  per speaker in the recording script. Nova `[dry, deadpan]`, Klo `[helpful, a little nervous]`, the sköldhäst
-  `[thoughtful, to itself]` for thoughts, Suddet `[earnest]`, the narrator `[warm, storytelling]`. A line's own `say`
+  and the speech box must not show brackets. So the direction lives beside the text, in a file of its own that the
+  game never loads: `regi.mjs` next to each adventure's `sv.mjs` (`src/content/regi.mjs`,
+  `adventures/adventure-2/content/regi.mjs`, `adventures/adventure-3/content/regi.mjs`). It exports `DEFAULT` (the
+  default tag per voice) and `LINES`, a list of `[voice, say]`, where `say` is the line as shown with its tags in:
+  `['nova', '[groggy, furious] VEM parkerar en raket på MIN måne? [exasperated sigh] Före frukost?!']`. A side file
+  rather than a third element in `sv.mjs`, because Äventyr 1 and 2 also have bare strings (hints, thoughts) that
+  have nowhere to carry one, and because the game's text then stays exactly as it is. The recording script matches
+  each entry to its line by voice and by `say` with the tags removed. A test asserts that every entry matches exactly
+  one line of `voiceScript()` (so a changed line cannot keep a stale direction) and that no line has two.
+- **Lines with no entry** (hints, Nova's pointing words, chatter, remarks, thoughts) still get acted: the `DEFAULT`
+  tag of their voice. For Äventyr 3: Nova `[dry, deadpan]`, Klo `[helpful, a little nervous]`, the sköldhäst
+  `[thoughtful, to itself]` for thoughts, Suddet `[earnest]`, the narrator `[warm, storytelling]`. A line's own entry
   always wins.
 - **Settings:** Eleven v4, Swedish, `voice_settings: { stability: 0.35 }` (freer than the default, which is what lets
   a sigh or a laugh through). No `previous_text`/`next_text` (way C was not chosen), no whole-scene takes (way D).
@@ -1728,8 +1734,44 @@ Note for recording on Pappa's PC: its ffmpeg has no `libmp3lame`. Ask ElevenLabs
 (`output_format=mp3_44100_64`) and measure loudness with the local ffmpeg, as the re-recorded map hint was on
 8 November (the handover of that day).
 
-**Äventyr 1 and 2** stay as they are recorded: plain. Recording them again with direction is possible (about 920
-lines, about 51,000 characters, a third of the account's month) and is Pappa's call, not part of this adventure.
+### 17.2 Äventyr 1 and 2 recorded again with direction
+
+**Decided, not started.** On 12 November Pappa and Alva listened to a before-and-after trial on the audition page
+(round three): 31 lines in six scenes, each as the game plays it today and recorded again with direction, at the
+game's loudness. The directed take won in all six: "Klo träffar Sköldhästen", "Stoppuret", "Kartväktaren i fyren",
+"Molnet på Åsktoppen", "Klo är kär", and the plain hints with only their voice's default tag. Pappa's choice: **record
+every line of Äventyr 1 and 2 again with direction** (not only the story). **Nothing is recorded until Pappa says
+so.**
+
+The trial is the model. Its 31 lines, their tags and the speech-to-text of each take are in
+`rymdkrabban/roster/omgang3/omgang3.json` on Pappa's PC (gitignored), with the clips. Those takes are approved and
+can be kept as they are instead of recorded again. Default tags used in the trial: Klo `[helpful, curious]`,
+Tukankrabban `[curious, bubbly]`, the sköldhäst `[thoughtful, to itself]`.
+
+What comes first, before the first clip, in this order:
+
+1. **Direction in the recording script** (`scripts/skoldhast-voice.mjs`): read the `regi.mjs` files (section 17.1);
+   send `say`, or the line with its voice's default tag; Eleven v4 at `stability: 0.35`; speech-to-text with audio
+   events, and no tag word heard as speech. The test in `tests/skoldhast-voice.test.mjs` for the entries.
+2. **A way to record existing lines again.** Today `--record` takes only lines without a clip. Keep, beside the
+   clips but outside the manifest the game loads, which `say` each clip was recorded with (for example
+   `skoldhast/voice/regi.json`, key → `say`). A line is to be recorded again when its current `say` differs; a
+   run can then stop and go on, and a direction changed later re-records only that line. A take that fails the
+   check keeps the old clip.
+3. **Write the direction.** Own tags for the story (about 400 lines in `regi.mjs`, the trial's 31 included),
+   `DEFAULT` for every voice: Sköldhästen, Klo, Kartväktaren, Signe, Alva, Mira, Tukankrabban, Molnet, Tordyveln,
+   Skatan and the narrator. Hints, greetings and small talk (about 520 lines) get the default only, as the trial's
+   hint scene did.
+4. **The narrator's voice id.** The narrator is Pappa's own voice, given to the script as
+   `SKOLDHAST_NARRATOR_VOICE`; it is not in `.env`. Pappa gives it, or the narrator's 25 lines stay as they are.
+5. **Record in parts**: Äventyr 1, then Äventyr 2, a voice at a time; measure loudness (`--level`); listen to a
+   sample of each voice on the audition page before the next; then commit. The old clips stay in git history, so a
+   single line can go back.
+
+Cost: about 920 lines and 51,000 characters, plus a fifth to a third for retakes: about 60,000–65,000, roughly 40 %
+of the account's month. On Pappa's PC, whose ffmpeg has no `libmp3lame`, the clips come as `mp3_44100_64` from
+ElevenLabs: a third larger than today's 48 kbit/s (the voice folder is 28 MB; clips load one line at a time and are
+not in the first download).
 
 ## 18. Implementation
 
@@ -1749,6 +1791,7 @@ skoldhast/adventures/adventure-3/
   ui.mjs            the counter (Novas kupa), the notebook's pages, the ending card, the journey picker
   a3.css
   content/sv.mjs    every player-facing string (section 11–15)
+  content/regi.mjs  the direction for the recordings, never loaded by the game (section 17.1)
   content/world.mjs the five pages
 ```
 
@@ -2048,6 +2091,7 @@ Decided 12 November, on this document's recommendation:
 | "Tio stjärnor, en för varje år" efter att Alva har fyllt elva? | De är hennes tioårsstjärnor: "Jag ritade en för varje år när jag fyllde tio." Suddet suddar fram en ny för varje år efter det. |
 | Vem skapar de fyra nya rösterna? | De är skapade, och valda på gehör av Pappa och Alva (section 17). |
 | Hur ska replikerna låta levande? | Regi på varje replik: ljudtaggar bredvid texten, inspelade friare (section 17.1). |
+| Ska Äventyr 1 och 2 spelas in igen med regi? | Ja, alla repliker. Regin vann i alla sex scener i före-och-efter-provet. Inte påbörjat (section 17.2). |
 | När ska äventyret släppas? | Helt och färdigt, inte i delar. Sikta på julafton 2026; grinden i section 20.1 avgör. |
 | Är Suddet rätt som den som tar stjärnorna, med Alvas egen utsuddade stjärna som orsak? | Ja. ("Allt som du skrivit låter bra!") |
 
@@ -2059,4 +2103,4 @@ Decided 12 November, on this document's recommendation:
 **For Pappa to do** (not questions any more):
 
 1. **Play it through before release**, on Alva's device, as the gate in section 20.1 asks.
-2. Whether Äventyr 1 and 2 should be recorded again with direction too (section 17, last paragraph).
+2. **Say when Äventyr 1 and 2 may be recorded again**, and give the narrator voice's id (section 17.2).
