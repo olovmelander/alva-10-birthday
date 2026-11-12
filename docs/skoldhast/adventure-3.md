@@ -130,7 +130,10 @@ waiting for answers from Alva:
 - **Mira's ring planet is called Ringo**, by Mira. Nova says "Ringplaneten". Klo writes down both.
 - **The ten stars stay ten**, and are true whenever the adventure is played: "Jag ritade en för varje år när jag
   fyllde tio." For the years after, Suddet rubs out a new one (the epilogue, and Suddet's own line on the Moon).
-- **The four new voices are made** (section 17). They wait for Pappa's and Alva's ears.
+- **The four new voices are chosen by ear** (Pappa and Alva, 12 November): Nova as first made, Suddet "Ljus och
+  oskuldsfull", Stora björnen "Jättelik bas", Kometen "Hes sportkommentator" (section 17).
+- **Every line is acted** (section 17.1): English audio tags beside each line, recorded with a freer setting. Chosen
+  over plain reading, context and whole-scene takes.
 - **It is released whole, when it is finished; the day to aim for is julafton** (section 20.1).
 
 Nova is still Alva's creature. If Alva says something else about her, or adds facts of her own as she did for the
@@ -1662,29 +1665,53 @@ the table.
 
 Every spoken line is recorded (ElevenLabs, `scripts/skoldhast-voice.mjs`; the key is in `.env`).
 
-**The four new voices exist** (created 12 November, at Pappa's word, the way the first ten were: ElevenLabs Voice
-Design from a description, category "generated", labels `game: skoldhasten`, `language: sv` and the role). They are
-in `VOICES` in the recording script already.
+**The four new voices are chosen** (Pappa and Alva, 12 November, by ear, on the audition page "Röstprov Äventyr 3":
+two rounds, eight proposals each in the second). They are in the ElevenLabs account under the names the recording
+script expects (ElevenLabs Voice Design, category "generated", labels `game: skoldhasten`, `language: sv` and the
+role), and in `VOICES` in `scripts/skoldhast-voice.mjs`.
 
-| Role | Voice in the account | Designed as |
-| --- | --- | --- |
-| `nova` | Sköldhästen – Nova | A grumpy space crab whose shell is a little flying saucer, and who knows everything about space. Low, dry, slightly hoarse adult female voice, unhurried and deadpan, as if just woken and not pleased about it. Never shrill, warmth hidden underneath. |
-| `sudd` | Sköldhästen – Suddet | A small pink eraser who truly believes it is helping. Small, light, soft and earnest, plain and sincere, a little hesitant, never sorry for itself. A soft androgynous young adult voice that sounds small without being a child. |
-| `bjorn` | Sköldhästen – Stora björnen | A huge, sleepy bear made of stars. Very deep, very slow, rumbling elderly male voice, drowsy and kind, just woken, with a yawn in it. |
-| `komet` | Sköldhästen – Kometen | A comet that is always in a hurry. Fast, bright, breathless and excitable adult male voice, light and quick, cheerful and a little vain. |
+| Role | Voice in the account | Chosen from | Designed as |
+| --- | --- | --- | --- |
+| `nova` | Sköldhästen – Nova | the first round's first proposal | A grumpy space crab whose shell is a little flying saucer, and who knows everything about space. Low, dry, slightly hoarse adult female voice, unhurried and deadpan, as if just woken and not pleased about it. Never shrill, warmth hidden underneath. |
+| `sudd` | Sköldhästen – Suddet | "Ljus och oskuldsfull" | A little pink eraser, innocent and sincere. A light, clear, bright and simple young adult voice with a naive, wide-eyed tone, plain and honest, gentle and unhurried. |
+| `bjorn` | Sköldhästen – Stora björnen | "Jättelik bas" | An enormous bear made of stars, as big as the sky. A huge, booming, cavernous, resonant bass male voice, extremely deep and slow, like a friendly giant. |
+| `komet` | Sköldhästen – Kometen | "Hes sportkommentator" | An over-excited sports commentator of a comet. A hoarse, loud, rapid-fire adult male voice, shouting with excitement, breathless and thrilled. |
 
-- Each was chosen from three designed previews speaking the character's own lines. The session cannot hear: it chose
-  by reading every preview back with speech-to-text (all were understood at 95–100 %) and, between equals, by
-  tempo (the slowest bear, the fastest comet). **Pappa and Alva should listen and may choose another.**
-- To listen: `rymdkrabban/roster/` on Pappa's PC (gitignored) holds the three previews of each (`nova-forslag-1.mp3`
-  …), a test line or two in each chosen voice with the game's recording settings (`nova-prov-1.mp3` …), and
-  `roster.json` with which preview was chosen and every preview's id.
-- To change one: delete the voice in ElevenLabs and create it again from another preview's id while the previews
-  last, or design a new one from the description above. Nothing is recorded with these voices yet, so a change costs
-  nothing now. After recording it means recording that character again.
-- Nova in the finale (the gold lines) should be warmer and slower: that is direction for the recording, not another
-  voice.
+- Every proposal's id, description and audition clip is in `rymdkrabban/roster/` on Pappa's PC (gitignored), with
+  `roster.json`. Nothing is recorded with these voices yet, so a change still costs nothing; after recording it means
+  recording that character again.
 - Pip is a sound, not a voice.
+
+### 17.1 Direction: every line is acted
+
+Pappa's word after the first auditions: the lines had no feeling. Äventyr 1 and 2 are recorded as plain text, one
+line at a time. The second round read two scenes four ways (plain; with direction; with direction and the lines
+around it as context; the whole scene in one take), and Pappa chose **direction, line by line** (way B). So, for every
+spoken line of Äventyr 3:
+
+- **The line carries its direction:** English audio tags in square brackets, before the words they colour, and as
+  many as the line needs, mid-line too:
+  `[groggy, furious] VEM parkerar en raket på MIN måne? [exasperated sigh] Före frukost?!`
+  Eleven v4 acts the tags and does not read them aloud (checked on 12 November: speech-to-text hears the words, and
+  hears a sigh or a yawn where one was asked for).
+- **The tags never touch what is shown.** The clip is found by who speaks and the shown text (`src/voice-key.mjs`),
+  and the speech box must not show brackets. So the direction lives beside the line, not in it: in
+  `adventures/adventure-3/content/sv.mjs` a line may have a third element, `['nova', 'VEM parkerar …?!', { say:
+  '[groggy, furious] VEM parkerar … [exasperated sigh] Före frukost?!' }]`. The game ignores it. The recording script
+  sends `say` when there is one, and a test asserts that `say` with its tags removed is exactly the shown text, so
+  the two cannot drift apart.
+- **Lines with no `say`** (hints, Nova's pointing words, chatter, remarks, thoughts) still get acted: one default tag
+  per speaker in the recording script. Nova `[dry, deadpan]`, Klo `[helpful, a little nervous]`, the sköldhäst
+  `[thoughtful, to itself]` for thoughts, Suddet `[earnest]`, the narrator `[warm, storytelling]`. A line's own `say`
+  always wins.
+- **Settings:** Eleven v4, Swedish, `voice_settings: { stability: 0.35 }` (freer than the default, which is what lets
+  a sigh or a laugh through). No `previous_text`/`next_text` (way C was not chosen), no whole-scene takes (way D).
+- **Writing the direction is part of build step 11** (section 20), together with reading the script aloud: each box
+  of section 11 gets its tags then, in the spirit of the auditions (the lines on the audition page are the model).
+  The tags describe what the character feels, not how loud the recording is; keep them short, two or three words.
+- **Checking a take:** speech-to-text with audio events on (`tag_audio_events: true`). A take is kept when the words
+  come back (80 % or more) and no tag word is heard as speech. A tag that is spoken aloud means it was put where the
+  model read it as text: move it or shorten it.
 
 Existing voices used: Sköldhästen, Professor Klo, Alva, Mira, Tukankrabban and Molnet (the launch and the two
 pictures of the forest), the narrator.
@@ -1697,7 +1724,12 @@ chatter and remarks.
 means a new clip. Read the whole script aloud once (the voice audit's method, `docs/skoldhast/voice-audit.md`) before
 the first recording.
 
-Note for recording on Pappa's PC: its ffmpeg has no `libmp3lame`; see the handover of 8 November for the way round.
+Note for recording on Pappa's PC: its ffmpeg has no `libmp3lame`. Ask ElevenLabs for MP3 directly
+(`output_format=mp3_44100_64`) and measure loudness with the local ffmpeg, as the re-recorded map hint was on
+8 November (the handover of that day).
+
+**Äventyr 1 and 2** stay as they are recorded: plain. Recording them again with direction is possible (about 920
+lines, about 51,000 characters, a third of the account's month) and is Pappa's call, not part of this adventure.
 
 ## 18. Implementation
 
@@ -1924,7 +1956,8 @@ One PR, one visible outcome (`skoldhast/CLAUDE.md`). `released` stays `false` un
    card, free play with the sky changed on every page.
 9. **The notebook complete, the secrets, Klo's count.**
 10. **Music.** The one melody and its five settings.
-11. **Read aloud, then record.** The voice audit, then all clips.
+11. **Read aloud, direct, then record.** The voice audit; then the direction for every line (section 17.1); then
+    all clips.
 12. **Audits.** Play-order audit, ground audit, phone audit, a critic's read for "is it epic?" against section 0,
     contact sheets (the audits Äventyr 2 needed after release, done before it this time).
 13. **Release.** `released: true`, the tests that expect Äventyr 3 locked changed on purpose, the handover.
@@ -2013,7 +2046,8 @@ Decided 12 November, on this document's recommendation:
 | Ska Tukankrabban följa med upp i rymden? | Nej. Hon stannar hemma med ungarna, Klo skriver till henne, och på slutet skriver hon tillbaka. |
 | Ska ringplaneten heta "Ringo"? | Ja, av Mira. Nova säger "Ringplaneten". |
 | "Tio stjärnor, en för varje år" efter att Alva har fyllt elva? | De är hennes tioårsstjärnor: "Jag ritade en för varje år när jag fyllde tio." Suddet suddar fram en ny för varje år efter det. |
-| Vem skapar de fyra nya rösterna? | De är skapade (section 17). |
+| Vem skapar de fyra nya rösterna? | De är skapade, och valda på gehör av Pappa och Alva (section 17). |
+| Hur ska replikerna låta levande? | Regi på varje replik: ljudtaggar bredvid texten, inspelade friare (section 17.1). |
 | När ska äventyret släppas? | Helt och färdigt, inte i delar. Sikta på julafton 2026; grinden i section 20.1 avgör. |
 | Är Suddet rätt som den som tar stjärnorna, med Alvas egen utsuddade stjärna som orsak? | Ja. ("Allt som du skrivit låter bra!") |
 
@@ -2024,6 +2058,5 @@ Decided 12 November, on this document's recommendation:
 
 **For Pappa to do** (not questions any more):
 
-1. **Listen to the four new voices** with Alva, in `rymdkrabban/roster/`, and say if any should be another (section
-   17). It costs nothing to change before recording.
-2. **Play it through before release**, on Alva's device, as the gate in section 20.1 asks.
+1. **Play it through before release**, on Alva's device, as the gate in section 20.1 asks.
+2. Whether Äventyr 1 and 2 should be recorded again with direction too (section 17, last paragraph).
