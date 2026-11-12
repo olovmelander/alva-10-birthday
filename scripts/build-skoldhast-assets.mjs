@@ -108,8 +108,9 @@ async function main() {
         for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
             const p = path.join(dir, e.name);
             if (e.isDirectory()) walk(p);
-            // URLs, so always forward slashes (path.relative uses backslashes on Windows)
-            else if (e.name.endsWith('.mjs')) src.push(path.relative(path.join(ROOT, 'skoldhast'), p).split(path.sep).join('/'));
+            // URLs, so always forward slashes (path.relative uses backslashes on Windows); regi.mjs is the recordings'
+            // direction, read only by scripts/skoldhast-voice.mjs, never by the game
+            else if (e.name.endsWith('.mjs') && e.name !== 'regi.mjs') src.push(path.relative(path.join(ROOT, 'skoldhast'), p).split(path.sep).join('/'));
         }
     };
     walk(path.join(ROOT, 'skoldhast', 'src'));

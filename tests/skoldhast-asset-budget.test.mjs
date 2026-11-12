@@ -12,7 +12,8 @@ test('the complete first playable stays within its 10 MB download budget', () =>
     const prefetched = new Set(files);
     assert.equal(prefetched.size, files.length, 'each resource is counted and fetched once');
     const sourceFiles = fs.readdirSync(path.join(root, 'src'), { recursive: true })
-        .filter(file => file.endsWith('.mjs')).map(file => `src/${file.split(path.sep).join('/')}`);
+        // (regi.mjs is the recordings' direction: only the voice script reads it, the game never does)
+        .filter(file => file.endsWith('.mjs') && path.basename(file) !== 'regi.mjs').map(file => `src/${file.split(path.sep).join('/')}`);
     for (const file of [...sourceFiles, ...manifest.bundles.boot.files, ...manifest.bundles.land.files]) {
         assert.ok(prefetched.has(file), `${file} must be ready for the opening; rebuild the asset manifest`);
     }

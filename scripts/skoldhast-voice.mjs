@@ -14,6 +14,8 @@
  *   NODE_USE_ENV_PROXY=1 ELEVENLABS_API_KEY=… SKOLDHAST_NARRATOR_VOICE=<voice id> \
  *     node scripts/skoldhast-voice.mjs --record [--only klo] [--limit 20] [--report out.json]
  *   … --record --redo out.json [--below 0.9] [--tries 5]   # retake what a report heard badly; keep the better clip
+ *   … --record --changed [--adv a1] [--only klo]         # record again what was recorded with another direction
+ *                                                        # (or plainly) than its regi.mjs gives now
  *   node scripts/skoldhast-voice.mjs --prune         # remove clips no line uses, rewrite the manifest
  *   node scripts/skoldhast-voice.mjs --level         # measure every clip's loudness (EBU R128, ffmpeg) into the manifest
  *
@@ -324,16 +326,36 @@ export function judge(line, say, back) {
     return { score: match(spoken(line.text), speech), tagsHeard: tagWordsHeard(say, line.text, back) };
 }
 
-async function record({ only, limit, report, redo, below = 0.9, tries = 3, word = null, pending = false }) {
+/** Which `say` every clip was recorded with (skoldhast/voice/regi.json): a clip recorded before its adventure had
+ *  direction has no entry (it was read plainly). `--changed` records again what differs from its direction now. */
+const REGI = path.join(OUT, 'regi.json');
+export const readRegi = () => { try { return JSON.parse(fs.readFileSync(REGI, 'utf8')); } catch { return {}; } };
+function writeRegi(r, keys) {
+    const out = Object.fromEntries(Object.entries(r).filter(([k]) => keys.has(k)).sort(([a], [b]) => a.localeCompare(b)));
+    fs.mkdirSync(OUT, { recursive: true });
+    fs.writeFileSync(REGI, JSON.stringify(out, null, 0).replace(/","/g, '",\n"').replace(/^\{/, '{\n').replace(/\}$/, '\n}') + '\n');
+}
+/** Is a recorded line's clip out of date with its direction (recorded plainly, or with other tags)? */
+export function directionChanged(line, regi = readRegi(), direction = DIRECTION) {
+    const d = directionFor(line, direction);
+    return (regi[line.key] ?? line.text) !== d.say;
+}
+
+async function record({ only, adv, limit, report, redo, below = 0.9, tries = 3, word = null, pending = false, changed = false }) {
     if (!KEY) throw new Error('set ELEVENLABS_API_KEY');
     const ids = await resolveVoices();
     const m = readManifest();
+    const regi = readRegi();
+    const has = (l) => !!m.clips[l.key] && fs.existsSync(path.join(OUT, l.key + '.mp3'));
     // a retake: lines a report heard below `below` (digits mean the words were right but written as numbers)
     const retake = redo ? new Map(JSON.parse(fs.readFileSync(redo, 'utf8')).filter(l => l.match < below && !/\d/.test(l.heard)).map(l => [l.key, l.match])) : null;
     // a name the voices sometimes blur: retake its lines until it is heard
     const name = word?.toLowerCase();
-    const todo = voiceScript({ pending }).filter(l => name ? l.text.toLowerCase().includes(name) : retake ? retake.has(l.key) : !m.clips[l.key] || !fs.existsSync(path.join(OUT, l.key + '.mp3')))
-        .filter(l => !only || l.voice === only).slice(0, limit || Infinity);
+    // --changed: lines whose clip was recorded with another direction (or plainly) than they have now, and missing ones
+    const todo = voiceScript({ pending }).filter(l => name ? l.text.toLowerCase().includes(name) : retake ? retake.has(l.key)
+        : changed ? !has(l) || directionChanged(l, regi) : !has(l))
+        .filter(l => !only || l.voice === only).filter(l => !adv || l.src.startsWith(adv + ' ')).slice(0, limit || Infinity);
+    const allKeys = new Set(voiceScript({ pending: true }).map(l => l.key));
     console.log(`recording ${todo.length} clips`);
     const log = [];
     let done = 0;
@@ -357,17 +379,21 @@ async function record({ only, limit, report, redo, below = 0.9, tries = 3, word 
         if (retake && best.score <= retake.get(line.key)) { log.push(entry(line, best, { kept: 'old' })); done++; return; }
         // a directed take whose tag was read aloud keeps the old clip if there is one
         if (!best.clean && m.clips[line.key]) { log.push(entry(line, best, { kept: 'old' })); done++; return; }
+        // a line recorded again for its new direction keeps its old clip unless the new one is heard well
+        if (changed && m.clips[line.key] && best.score < 0.8) { log.push(entry(line, best, { kept: 'old' })); done++; return; }
         fs.writeFileSync(path.join(OUT, line.key + '.mp3'), best.mp3);
         m.clips[line.key] = Math.round(best.seconds * 100) / 100;
         (m.lufs ||= {})[line.key] = loudness(path.join(OUT, line.key + '.mp3'));
         if (m.lufs[line.key] === null) delete m.lufs[line.key];
+        regi[line.key] = best.say;
         log.push(entry(line, best));
-        if (++done % 20 === 0) { writeManifest(m); console.log(`${done}/${todo.length}`); }
+        if (++done % 20 === 0) { writeManifest(m); writeRegi(regi, allKeys); console.log(`${done}/${todo.length}`); }
     };
     fs.mkdirSync(OUT, { recursive: true });
     const queue = [...todo];
     await Promise.all(Array.from({ length: 4 }, async () => { while (queue.length) await work(queue.shift()); }));
     writeManifest(m);
+    writeRegi(regi, allKeys);
     const low = log.filter(l => l.match < 0.8 || l.tagsHeard).sort((a, b) => a.match - b.match);
     console.log(`done: ${done} clips; ${low.length} below 0.8 or with a tag read aloud after three tries`);
     for (const l of low) console.log(`  ${l.match} ${l.voice} ${l.src}${l.tagsHeard ? ' (tag read aloud: ' + l.tagsHeard.join(', ') + ')' : ''}\n    said:  ${l.say}\n    heard: ${l.heard}`);
@@ -385,19 +411,20 @@ function prune() {
     }
     for (const k of Object.keys(m.clips)) if (!keep.has(k)) delete m.clips[k];
     writeManifest(m);
+    writeRegi(readRegi(), keep);
     console.log(`removed ${removed} clips no line uses`);
 }
 
 function summary(missingOnly, pending = false) {
-    const lines = voiceScript({ pending }), m = readManifest();
+    const lines = voiceScript({ pending }), m = readManifest(), regi = readRegi();
     const by = {};
     for (const l of lines) {
-        const s = by[l.voice] ??= { lines: 0, chars: 0, recorded: 0, seconds: 0 };
+        const s = by[l.voice] ??= { lines: 0, chars: 0, recorded: 0, seconds: 0, stale: 0 };
         s.lines++; s.chars += l.text.length;
-        if (m.clips[l.key]) { s.recorded++; s.seconds += m.clips[l.key]; }
+        if (m.clips[l.key]) { s.recorded++; s.seconds += m.clips[l.key]; if (directionChanged(l, regi)) s.stale++; }
         else if (missingOnly) console.log(`${l.voice.padEnd(8)} ${l.src}: ${l.text}`);
     }
-    for (const [v, s] of Object.entries(by)) console.log(`${v.padEnd(9)} ${String(s.lines).padStart(4)} lines ${String(s.chars).padStart(6)} chars  ${s.recorded} recorded, ${(s.seconds / 60).toFixed(1)} min`);
+    for (const [v, s] of Object.entries(by)) console.log(`${v.padEnd(9)} ${String(s.lines).padStart(4)} lines ${String(s.chars).padStart(6)} chars  ${s.recorded} recorded, ${(s.seconds / 60).toFixed(1)} min${s.stale ? `, ${s.stale} with another direction than now` : ''}`);
     console.log(`total ${lines.length} lines, ${lines.reduce((n, l) => n + l.text.length, 0)} chars`);
 }
 
@@ -406,7 +433,7 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
     // --a3: Äventyr 3's lines as well (pending: recorded only when Pappa says the adventure is finished)
     const pending = process.argv.includes('--a3');
     if (pending && process.argv.includes('--record')) console.warn('Recording Äventyr 3 too (--a3). Pappa said: only when the adventure is finished.');
-    if (process.argv.includes('--record')) await record({ only: arg('--only'), limit: Number(arg('--limit')) || 0, report: arg('--report'), pending,
+    if (process.argv.includes('--record')) await record({ only: arg('--only'), adv: arg('--adv'), changed: process.argv.includes('--changed'), limit: Number(arg('--limit')) || 0, report: arg('--report'), pending,
         redo: arg('--redo'), below: Number(arg('--below')) || 0.9, word: arg('--word'), tries: Number(arg('--tries')) || (arg('--redo') || arg('--word') ? 6 : 3) });
     else if (process.argv.includes('--prune')) prune();
     else if (process.argv.includes('--level')) level();
