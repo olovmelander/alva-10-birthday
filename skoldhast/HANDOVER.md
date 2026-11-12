@@ -26,7 +26,17 @@ the most epic of the adventures. Nothing is built yet: `adventure-3` still has n
     blue-violet under her is a beam of light, the five dots are lamps for her mood, she eats kometflingor, she is
     crazy about stjärnbilder, frukost och att ha rätt, and Alva's rubbed-out first sköldhäst in the fog has "fel
     ben". Nova is still Alva's: if she says otherwise, her word wins.
-- **Frågor till Alva och Pappa** are in the design's section 22.
+  - Tukankrabban stays at home (she writes back at the end); Mira's planet is called Ringo; the ten stars are
+    Alva's "tioårsstjärnor", true whenever it is played; it is released whole, when finished, and the day to aim
+    for is julafton 2026 (the design's section 20.1 has the gate).
+- **The four new voices are made** (12 November): "Sköldhästen – Nova", "– Suddet", "– Stora björnen" and "–
+  Kometen" in Pappa's ElevenLabs account, designed from descriptions as the first ten were, and added to `VOICES` in
+  `scripts/skoldhast-voice.mjs`. Nothing is recorded with them. The session chose among three previews each by
+  speech-to-text and tempo, since it cannot hear: **Pappa and Alva should listen** to the previews and test lines in
+  `rymdkrabban/roster/` (gitignored, on Pappa's PC) and may swap any of them before recording. The account stands at
+  19 of 30 voice slots.
+- **Open:** only whether Alva has more facts of her own about Nova (the design's section 22). Nothing blocks the
+  build. Next step: build step 1 in the design's section 20, "Nova stands on the Moon".
 
 ## A night playtest of both adventures: what a player sees on a phone (8 November, night)
 
