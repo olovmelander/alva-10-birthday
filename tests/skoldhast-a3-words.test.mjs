@@ -25,9 +25,9 @@ function dialogue() {
     return out;
 }
 
-test('Äventyr 3 waits to be recorded: its lines are in the voice script only when asked for', () => {
-    assert.ok(PENDING.includes('a3'), 'Pappa: nothing of Äventyr 3 is recorded until he says it is finished');
-    assert.equal(voiceScript().filter(l => l.src.startsWith('a3 ')).length, 0);
+test('Äventyr 3 is recorded: its lines are in the voice script (Pappa: "Spela in rösterna nu!", 12 November)', () => {
+    assert.ok(!PENDING.includes('a3'), 'Äventyr 3 is finished and recorded');
+    assert.equal(voiceScript().filter(l => l.src.startsWith('a3 ')).length, a3().length);
     const lines = a3();
     assert.ok(lines.length > 450, `about 520 clips are expected, got ${lines.length}`);
     for (const l of lines) assert.ok(l.voice in VOICES, `${l.src}: unknown voice ${l.voice}`);

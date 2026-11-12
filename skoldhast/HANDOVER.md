@@ -1,3 +1,21 @@
+## Äventyr 3's voices are recorded (12 November, night)
+
+Pappa: "Spela in rösterna nu!" Every line of Äventyr 3 is recorded, acted (`content/regi.mjs`, Eleven v4, stability
+0.35): 578 clips in `skoldhast/voice/`, the four new voices (Nova, Suddet, Stora björnen, Kometen) for the first
+time, and the narrator in Pappa's own voice ("olov-voice", the account's only cloned voice). Every take was read back
+with speech-to-text: 534 came back word for word, none with a tag spoken aloud; nine doubtful ones were taken again
+and seven came back better (Nova's "MIN MÅNE!" among them). The rest are speech-to-text spelling ("sträcket",
+"i kapp", "22 sekunder").
+
+- `PENDING` in `scripts/skoldhast-voice.mjs` is empty; the voice test asks for every line of all three adventures.
+- On this PC: `SKOLDHAST_FFMPEG` = the Lenovo ffmpeg; the script then gets MP3 straight from ElevenLabs
+  (`docs/skoldhast/voices.md`).
+- The account counted about 19,200 characters for it (42,934 of the month's 168,382 used; resets 10 December).
+- **Nobody here can hear them.** Pappa and Alva: listen while playing. A line that sounds wrong can be taken again
+  alone (`--record --redo` with a report of just that line).
+- **Still before `released: true`:** Pappa plays it on Alva's device with the sound on. Äventyr 1 and 2's new
+  recording with direction still waits for his word.
+
 ## Äventyr 3, the last fine-tuning before release (12 November, night)
 
 Pappa: "spela igenom äventyr 3 och fixa saker som behöver fixas … ett enastående och roligt mästerverk". Played

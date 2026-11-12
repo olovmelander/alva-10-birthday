@@ -26,9 +26,12 @@
  * take is kept only when no tag word comes back as speech. An adventure without a `regi.mjs` is read plainly, as
  * Äventyr 1 and 2 were recorded (until their direction is written, section 17.2).
  *
- * Pending: Pappa's word on 12 November 2026 is that nothing of Äventyr 3 is recorded until he says the adventure is
- * finished. Its lines are left out of the voice script (and of the check that every line is recorded) unless they
- * are asked for with --a3; --record --a3 is the only way to record them. When he says so, empty PENDING.
+ * Pending: an adventure in PENDING is left out of the voice script (and of the check that every line is recorded)
+ * unless asked for with --a3. Äventyr 3 waited there until Pappa said it was finished (12 November 2026); it is
+ * recorded now, and PENDING is empty.
+ *
+ * Pappa's PC: its ffmpeg has no libmp3lame. Set SKOLDHAST_FFMPEG to the Lenovo ffmpeg (it has ebur128); then
+ * ElevenLabs is asked for MP3 (44.1 kHz, 64 kbit/s) directly, and that ffmpeg only measures and decodes.
  */
 import fs from 'node:fs';
 import path from 'node:path';
@@ -44,8 +47,9 @@ const A2 = await import(pathToFileURL(path.join(root, 'skoldhast/adventures/adve
 const A3 = await import(pathToFileURL(path.join(root, 'skoldhast/adventures/adventure-3/content/sv.mjs')).href);
 const { splitSentences } = await import(pathToFileURL(path.join(root, 'skoldhast/src/opening-notes.mjs')).href);
 
-/** Adventures written but not to be recorded yet (Pappa, 12 November 2026: Äventyr 3 waits until it is finished). */
-export const PENDING = Object.freeze(['a3']);
+/** Adventures written but not to be recorded yet. Äventyr 3 waited until Pappa said it was finished; on 12 November
+ *  2026, after its last playthrough, he said "Spela in rösterna nu!". */
+export const PENDING = Object.freeze([]);
 
 /** Each adventure's text folder, by the prefix its lines' `src` starts with. Its direction is `regi.mjs` there. */
 const CONTENT = { a1: 'skoldhast/src/content', a2: 'skoldhast/adventures/adventure-2/content', a3: 'skoldhast/adventures/adventure-3/content' };
@@ -214,9 +218,17 @@ function writeManifest(m) {
     fs.mkdirSync(OUT, { recursive: true });
     fs.writeFileSync(MANIFEST, JSON.stringify({ format: 'mp3', clips, lufs }) + '\n');
 }
+/** The ffmpeg to use: SKOLDHAST_FFMPEG if set (Pappa's PC: the Lenovo one, which has ebur128 but no libmp3lame). */
+const FFMPEG = process.env.SKOLDHAST_FFMPEG || 'ffmpeg';
+let lameChecked = null;
+/** Can this ffmpeg encode MP3? Without libmp3lame ElevenLabs is asked for MP3 directly. */
+function hasLame() {
+    if (lameChecked === null) lameChecked = /libmp3lame/.test(spawnSync(FFMPEG, ['-hide_banner', '-encoders'], { encoding: 'utf8' }).stdout || '');
+    return lameChecked;
+}
 /** A clip's integrated loudness in LUFS (EBU R128, measured by ffmpeg), or null without ffmpeg. */
 function loudness(file) {
-    const r = spawnSync('ffmpeg', ['-hide_banner', '-nostats', '-i', file, '-af', 'ebur128', '-f', 'null', '-'], { encoding: 'utf8' });
+    const r = spawnSync(FFMPEG, ['-hide_banner', '-nostats', '-i', file, '-af', 'ebur128', '-f', 'null', '-'], { encoding: 'utf8' });
     const m = /Integrated loudness:\s*I:\s*(-?[\d.]+) LUFS/.exec(r.stderr || '');
     return m ? Math.round(Number(m[1]) * 10) / 10 : null;
 }
@@ -279,12 +291,19 @@ export function ttsBody(line, direction = DIRECTION) {
 }
 async function recordOne(line, voiceId) {
     const { body, directed, say } = ttsBody(line);
-    const r = await api(`/v1/text-to-speech/${voiceId}?output_format=pcm_24000`, {
+    const tts = (format) => api(`/v1/text-to-speech/${voiceId}?output_format=${format}`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body)
     });
-    const pcm = Buffer.from(await r.arrayBuffer());
-    const mp3 = spawnSync('ffmpeg', ['-v', 'error', '-f', 's16le', '-ar', '24000', '-ac', '1', '-i', 'pipe:0',
+    // without libmp3lame (Pappa's PC): MP3 straight from ElevenLabs, its length read back by decoding it
+    if (!hasLame()) {
+        const mp3 = Buffer.from(await (await tts('mp3_44100_64')).arrayBuffer());
+        const pcm = spawnSync(FFMPEG, ['-v', 'error', '-i', 'pipe:0', '-f', 's16le', '-ac', '1', '-ar', '24000', 'pipe:1'], { input: mp3, maxBuffer: 1 << 28 });
+        const seconds = pcm.status === 0 ? pcm.stdout.length / 2 / 24000 : mp3.length * 8 / 64000;
+        return { mp3, seconds, directed, say };
+    }
+    const pcm = Buffer.from(await (await tts('pcm_24000')).arrayBuffer());
+    const mp3 = spawnSync(FFMPEG, ['-v', 'error', '-f', 's16le', '-ar', '24000', '-ac', '1', '-i', 'pipe:0',
         '-c:a', 'libmp3lame', '-b:a', '48k', '-f', 'mp3', 'pipe:1'], { input: pcm, maxBuffer: 1 << 28 });
     if (mp3.status !== 0) throw new Error('ffmpeg: ' + mp3.stderr);
     return { mp3: mp3.stdout, seconds: pcm.length / 2 / 24000, directed, say };
