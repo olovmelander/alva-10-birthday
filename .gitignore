@@ -29,3 +29,7 @@ Thumbs.db
 
 # local secrets (the ElevenLabs key for scripts/skoldhast-voice.mjs)
 .env
+
+# Alva's painting of Rymdkrabban (photos): never committed, the repository is public.
+# Its features are written down in docs/skoldhast/adventure-3.md (section 3.1).
+/rymdkrabban/

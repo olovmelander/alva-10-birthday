@@ -1,3 +1,30 @@
+## Äventyr 3 is designed: De försvunna stjärnorna (12 November)
+
+Pappa asked for the whole of Äventyr 3 to be written down so that it can be built from the document, and for it to be
+the most epic of the adventures. Nothing is built yet: `adventure-3` still has no module and `released: false`.
+
+- **The design is `docs/skoldhast/adventure-3.md`**: the story, Rymdkrabban, five pages, 24 puzzle steps, the whole
+  script in Swedish (about 330 boxes), goals and hints, the notebook, Klo's count, the secrets, pictures and sound,
+  voices, the engine work item by item, tests, and a build order. Start at its section 0 and section 20.
+- **The story:** Alva's ten stars vanish. The sköldhäst and Klo fly up in Mira's rocket and meet the space crab. The
+  one who takes the stars is Suddet, Alva's eraser, which rubs out what is crooked because Alva rubbed out one
+  crooked star herself. It ends with a gallop on a comet's tail across the whole sky, which draws Vintergatan, and a
+  new constellation: Sköldhästen.
+- **Rymdkrabban** is Alva's, painted in watercolour on 9 November. Pappa: she is good at everything about space,
+  easily annoyed, and grumpy in the morning. Her features are written down as a fidelity contract in the design's
+  section 3.1. **The photos are in `rymdkrabban/`, which is now in `.gitignore`: never commit them.**
+- **Decided by Pappa (12 November):**
+  - Her name is **Nova** ("Surnova" when cross, "Supernova" when delighted).
+  - The white hole is one-way: the rocket is rubbed out on arrival.
+  - The Moon is to be as scary as it can be when it is rubbed out. The design's section 16.1 is the plan: three
+    bites that become a face, the light going out, the storm back in the forest, Klo's notes rubbed out of the
+    player's own notebook, and the sköldhäst's outline rubbed away until the player gallops it back ("Rita dig
+    själv"). It also says where the fright stops. A setting, "Mindre läskigt" (off by default), was added by the
+    session for Mira; Pappa has not asked for it and may remove it.
+- **Still proposed, for Alva to decide:** that her shell is a flying saucer, that the blue-violet under her is a
+  beam of light, her five lamps, her cereal, what she is crazy about.
+- **Frågor till Alva och Pappa** are in the design's section 22.
+
 ## A night playtest of both adventures: what a player sees on a phone (8 November, night)
 
 Pappa asked for both adventures to be played through and for everything found to be fixed: conversations, design,
