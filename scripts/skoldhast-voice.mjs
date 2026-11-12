@@ -35,7 +35,9 @@ const { splitSentences } = await import(pathToFileURL(path.join(root, 'skoldhast
 /** The voice of each role: the account's voice name, or the narrator's id from the environment. */
 export const VOICES = {
     narrator: null, horse: 'Sköldhästen', klo: 'Professor Klo', kv: 'Kartväktaren', signe: 'Sköldpaddan Signe',
-    alva: 'Alva', mira: 'Mira', tukan: 'Tukankrabban', moln: 'Molnet', dyvel: 'Tordyveln', skata: 'Skatan'
+    alva: 'Alva', mira: 'Mira', tukan: 'Tukankrabban', moln: 'Molnet', dyvel: 'Tordyveln', skata: 'Skatan',
+    // Äventyr 3 (docs/skoldhast/adventure-3.md, section 17): designed on 12 November, no lines recorded yet
+    nova: 'Nova', sudd: 'Suddet', bjorn: 'Stora björnen', komet: 'Kometen'
 };
 
 // Äventyr 1: bare strings in STORY are Klo's hint bubbles, except these.

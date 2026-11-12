@@ -95,7 +95,7 @@ What the adventure is about underneath: **what you draw by hand is allowed to be
 for mistakes. On a dark sky an eraser can *draw*: it rubs out small white points, and those are stars.
 
 Length and shape: the longest of the three. Five pages (four worlds and the ride home), ten things to find (ten
-stars, one for every year Alva turns), 24 puzzle steps, about 330 dialogue boxes, a robot play time of about 8
+stars: Alva drew one for every year when she turned ten), 24 puzzle steps, about 330 dialogue boxes, a robot play time of about 8
 minutes (Äventyr 2: four pages, 21 steps, about 175 boxes, 5 minutes).
 
 ## 2. What is decided
@@ -125,6 +125,13 @@ waiting for answers from Alva:
 - She is grumpy in the morning for no reason at all. She just is, and nobody in the game asks why.
 - In the fog stands Alva's first, rubbed-out try at a sköldhäst, **"med fel ben"**, as written.
 - There is **no setting to soften the Moon**: "Mindre läskigt", drafted in section 16.1, is removed.
+
+- **Tukankrabban stays at home.** Klo writes to her, and at the end she writes back (sections 4 and 13.6).
+- **Mira's ring planet is called Ringo**, by Mira. Nova says "Ringplaneten". Klo writes down both.
+- **The ten stars stay ten**, and are true whenever the adventure is played: "Jag ritade en för varje år när jag
+  fyllde tio." For the years after, Suddet rubs out a new one (the epilogue, and Suddet's own line on the Moon).
+- **The four new voices are made** (section 17). They wait for Pappa's and Alva's ears.
+- **It is released whole, when it is finished; the day to aim for is julafton** (section 20.1).
 
 Nova is still Alva's creature. If Alva says something else about her, or adds facts of her own as she did for the
 tukankrabba, her word wins and this document is changed.
@@ -232,6 +239,10 @@ She also carries Klo in the beam over any gap he could not cross ("Jag är ingen
 
 - **Sköldhästen** (the player). Same verbs as before. New in space: it is light on the Moon and weightless among the
   stars, but **the shell is always heavy**.
+- **Tukankrabban stays at home**, with ten small researchers to look after (decided 12 November). The adventure is
+  better for it: the forest has someone in it to be afraid for when the dark comes; Klo's lantern, his postcards and
+  his stillness in the fog all come from missing her; and there is room for Nova. She is in the launch, in the two
+  pictures of the forest, and in the notebook, where at the end she writes back.
 - **Professor Klo.** Out of his depth: "Expert på land och vatten" has nothing to say about space, and Nova tells him
   so. He copes by measuring everything anyway, and by becoming, slowly, her assistant and then her colleague. He
   misses Tukankrabban, carries the moonshine seed she gave him ("det lyser bara när dina klor är stilla"), and writes
@@ -347,7 +358,7 @@ wrong, and says so. The stamp "Stämmer inte" is drawn like "Stämmer!" but in g
 
 **Clues**, in the order they can be found (`CLUE_ORDER`):
 
-1. `ten`: Tio av Alvas stjärnor är borta. En för varje år hon fyller.
+1. `ten`: Alvas tio stjärnor är borta. Hon ritade en för varje år när hon fyllde tio.
 2. `light`: Stjärnans ljus blir kvar när stjärnan försvinner. Det driver iväg.
 3. `white`: Hålen i himlen är vita. Ett svart hål är det inte.
 4. `crumbs`: Vid raketen låg rosa smulor. Fenan var bortsuddad.
@@ -546,7 +557,7 @@ seed). Nothing can fail, nothing is timed, and showers and laps come round again
    beside the rocket up through the sky until the air ends. Then the forest is a small lit page far below, and the
    Moon fills the picture. **The landing:** the rocket comes down crooked in a cloud of slow dust. Nova wakes. "Inte
    före frukost."
-3. **Breakfast (M1).** Then she talks: her name, the count, hypothesis 1, the question. Alva: one for every year.
+3. **Breakfast (M1).** Then she talks: her name, the count, hypothesis 1, the question. Alva: her ten-year stars, one for every year.
 4. **The Moon, freely** (M2–M4). After the first star: what a star-light is, and "under kupan". Klo and Nova's
    rivalry in three short scenes, after stars 1, 2 and 3 (section 11.5).
 5. **The view (M5).** White holes. Nova's hypothesis falls; her lamps go red, then dim.
@@ -599,7 +610,7 @@ recording (section 17).
 - caption: Mira ritar raketen. Ena fenan blir sned.
 - mira: Den ska vara sned. Då svänger den bättre.
 - *(the player draws)* prompt: Rita raketens eld med Miras penna!
-- alva: Titta, mina stjärnor från förra sidan. Tio stycken. En för varje år jag fyller.
+- alva: Titta, mina tio stjärnor! Jag ritade en för varje år när jag fyllde tio.
 - alva: Fast den där blev sned …
 - caption: Alva suddar ut den sneda stjärnan.
 - caption: Då slocknar en stjärna till. Och en till.
@@ -651,7 +662,7 @@ fjäder."
 
 `count`:
 - nova: Tio är borta sedan i natt. Jag håller reda på varenda stjärna på himlen.
-- alva: Tio stjärnor. En för varje år jag fyller. Snälla, hitta dem!
+- alva: Det är mina tioårsstjärnor. En för varje år. Snälla, hitta dem!
 - horse: Vem tar Alvas stjärnor – och varför?
 
 `hypothesis1`:
@@ -881,8 +892,13 @@ måne."
 
 `ringArrive`:
 - nova: Morgon. Igen. Vem bestämde att det ska vara morgon så ofta?
-- mira: Det är min planet! Den har ringar. Jag döpte den till Ringo.
-- nova: Ringarna är is och sten. Precis som Saturnus. Fast randigare.
+- mira: Det är min planet! Den har ringar. Den heter Ringo.
+- nova: Den heter Ringplaneten. Ringarna är is och sten, precis som Saturnus.
+
+`ringo`:
+- mira: Ringo.
+- nova: Jag bråkar inte med någon före frukost. … Ringplaneten.
+- klo: Jag antecknar båda.
 
 `gravel`:
 - horse: Aj! Det regnar grus!
@@ -1246,6 +1262,8 @@ caption: Över hela himlen lyser Vintergatan. Mitt i den galopperar en stjärnbi
 - mira: Där är ju suddet! Det har ögon. Dem har jag ritat.
 - alva: Och en guldstjärna. Den har jag ritat. Sned.
 - mira: Och jag har ritat en ny raket. Ännu snedare.
+- alva: Tio stjärnor för tio år. Vad gör jag när jag fyller elva?
+- mira: Då får Suddet sudda fram en till!
 - mira: Får suddet sova i pennfodralet?
 - alva: Ja. Det har jobbat hela natten.
 - mira: Varför är rymdkrabban så sur?
@@ -1268,6 +1286,7 @@ Nova's chatter (`CHATTER.nova`, when "Prata" has no hint to give):
 - Jag har haft rymden för mig själv i tusen år. Det var … tyst.
 - Stjärnor blinkar inte här uppe. Det är er luft som blinkar.
 - Mina lampor är inte till för att tittas på.
+- Ringo är inget namn på en planet. … Det är ett ganska bra namn. *(only after the story)*
 
 Klo's chatter (`CHATTER.klo`):
 - Här väger jag ingenting. Mitt hjärta väger lika mycket som vanligt.
@@ -1275,7 +1294,8 @@ Klo's chatter (`CHATTER.klo`):
 - Expert på land och vatten. Och, från och med nu, lite på rymden.
 - Lyktan lyser när jag tänker på henne. Den lyser ganska ofta.
 
-After the story: Suddet on the Moon (`suddTalk`): "Jag ritar en ny stjärna varje natt. En liten." · "Mira ritade
+After the story: Suddet on the Moon (`suddTalk`): "Jag ritar en ny stjärna varje natt. En liten." · "När Alva
+fyller år suddar jag fram en stor. Det har Mira bestämt." · "Mira ritade
 mina ögon. Nu ser jag vad jag gör." · "Jag suddar bara när någon ber om det. Och frågar två gånger."
 
 Refusals (`BALK`): `paper` "Här tar sidan slut." · `dark` (M3) · `thin` "Strecket håller inte än. I full galopp
@@ -1373,7 +1393,8 @@ The shared book (`book()` in `src/ui.mjs`), filled by `adventures/adventure-3/ui
    as taped slips (the same ladder as "Prata").
 3. **Stjärnkartan.** The four places as a sky chart: the Moon, the constellations, the ring planet, the white hole
    (a white patch, "?" until it is named), with the rocket's routes between them and "n av t" lights for each. A
-   place is named once the story has named it. Listed as text underneath as well. After the great gallop the chart
+   place is named once the story has named it (the ring planet is printed "Ringplaneten", with "Ringo" beside it in
+   Mira's pencil). Listed as text underneath as well. After the great gallop the chart
    gains **Vintergatan**, drawn right across it, and after the finale the constellation Sköldhästen by the Moon.
 4. **Frågan.** The question, the numbered hypotheses with their stamps (**Stämmer!** in red; **Stämmer inte** in
    grey, for the first time in the series), and Svaret once Suddet is met.
@@ -1424,6 +1445,9 @@ found, with a small drawn stamp. They are read, not spoken (no recording needed)
 - **Det vita hålet:** "Kära Tukankrabban! Här finns ingenting alls. Då märker man vad man saknar. /Klo"
 - **After the end:** "Kära Tukankrabban! Titta upp i natt. Den nya stjärnbilden har hovar. Jag kommer hem med ett
   teleskop. /Din Klo"
+- **Her answer**, the last thing written into the notebook, a little while into free play (the notebook button
+  marks it): "Käre Klo! Vi såg allt härifrån. Lilla Klo har ritat av stjärnbilden, med elva ben. Den glänser mer än
+  guldmyntet. Kom hem snart. Ta med teleskopet – och den sura. /Din Tukankrabba"
 
 ## 14. Klo's research: häst eller sköldpadda, in space
 
@@ -1636,20 +1660,36 @@ the table.
 
 ## 17. Voices
 
-Every spoken line is recorded (ElevenLabs, `scripts/skoldhast-voice.mjs`; the key is in `.env`). New voices to
-create in Pappa's account, named as the script expects:
+Every spoken line is recorded (ElevenLabs, `scripts/skoldhast-voice.mjs`; the key is in `.env`).
 
-- **Sköldhästen – Nova**: a grown woman, low and dry, unhurried, a little hoarse, as if just woken. Never shrill, even
-  when cross. The gold lines in the finale warmer and slower.
-- **Sköldhästen – Suddet**: small, light, earnest, a child's plainness without being a child. No self-pity.
-- **Sköldhästen – Stora björnen**: very deep, very slow, sleepy.
-- **Sköldhästen – Kometen**: fast, bright, out of breath.
+**The four new voices exist** (created 12 November, at Pappa's word, the way the first ten were: ElevenLabs Voice
+Design from a description, category "generated", labels `game: skoldhasten`, `language: sv` and the role). They are
+in `VOICES` in the recording script already.
+
+| Role | Voice in the account | Designed as |
+| --- | --- | --- |
+| `nova` | Sköldhästen – Nova | A grumpy space crab whose shell is a little flying saucer, and who knows everything about space. Low, dry, slightly hoarse adult female voice, unhurried and deadpan, as if just woken and not pleased about it. Never shrill, warmth hidden underneath. |
+| `sudd` | Sköldhästen – Suddet | A small pink eraser who truly believes it is helping. Small, light, soft and earnest, plain and sincere, a little hesitant, never sorry for itself. A soft androgynous young adult voice that sounds small without being a child. |
+| `bjorn` | Sköldhästen – Stora björnen | A huge, sleepy bear made of stars. Very deep, very slow, rumbling elderly male voice, drowsy and kind, just woken, with a yawn in it. |
+| `komet` | Sköldhästen – Kometen | A comet that is always in a hurry. Fast, bright, breathless and excitable adult male voice, light and quick, cheerful and a little vain. |
+
+- Each was chosen from three designed previews speaking the character's own lines. The session cannot hear: it chose
+  by reading every preview back with speech-to-text (all were understood at 95–100 %) and, between equals, by
+  tempo (the slowest bear, the fastest comet). **Pappa and Alva should listen and may choose another.**
+- To listen: `rymdkrabban/roster/` on Pappa's PC (gitignored) holds the three previews of each (`nova-forslag-1.mp3`
+  …), a test line or two in each chosen voice with the game's recording settings (`nova-prov-1.mp3` …), and
+  `roster.json` with which preview was chosen and every preview's id.
+- To change one: delete the voice in ElevenLabs and create it again from another preview's id while the previews
+  last, or design a new one from the description above. Nothing is recorded with these voices yet, so a change costs
+  nothing now. After recording it means recording that character again.
+- Nova in the finale (the gold lines) should be warmer and slower: that is direction for the recording, not another
+  voice.
 - Pip is a sound, not a voice.
 
 Existing voices used: Sköldhästen, Professor Klo, Alva, Mira, Tukankrabban and Molnet (the launch and the two
 pictures of the forest), the narrator.
 
-Add to `VOICES` and to `voiceScript()` (a section "Äventyr 3" beside "Äventyr 2"), with hints for both companions
+Add to `voiceScript()` a section "Äventyr 3" beside "Äventyr 2" (`VOICES` is done), with hints for both companions
 (`klo` and `nova`). Roughly 520 new clips: about 330 story boxes, 24 hint ladders × 3 steps × 2 voices, the pointers,
 chatter and remarks.
 
@@ -1889,6 +1929,27 @@ One PR, one visible outcome (`skoldhast/CLAUDE.md`). `released` stays `false` un
     contact sheets (the audits Äventyr 2 needed after release, done before it this time).
 13. **Release.** `released: true`, the tests that expect Äventyr 3 locked changed on purpose, the handover.
 
+### 20.1 When it is released
+
+Decided 12 November, on this document's recommendation:
+
+- **All of it at once, and only when it is finished.** No first part. The mystery is one arc, the white hole is
+  one-way, and the gallop is the reward for everything before it; a half would spend the surprise.
+- **The occasion to aim for is julafton, 24 December 2026**: an adventure this size deserves a day, and six weeks is
+  a fair time for thirteen steps, the recording and the audits. Merge it in the evening of 23 December (GitHub Pages
+  caches for ten minutes, and nobody should be merging on the day).
+- **The gate, all of it, or it waits:**
+  1. build steps 1–12 are merged;
+  2. `npm test` and `tests/browser/skoldhast-a3.mjs` pass, and every line has its clip;
+  3. the play-order audit, the ground audit and the phone audit are done and their findings fixed;
+  4. Pappa has played it from the table to the table on the device Alva uses, with the sound on, and has watched the
+     Moon be rubbed out (16.1) with his own eyes;
+  5. Alva has finished Äventyr 2 in her own save, since that is what unlocks Äventyr 3.
+- **If the gate is not met by 20 December, it is not a Christmas present.** It is released when the gate is met, on
+  the next day that is an occasion. A late adventure is forgotten in a week; one that breaks in the white hole,
+  where there is no way back, is not.
+- Until then nothing of it shows: `released: false`, and the only glimpse stays the rocket from Utsiktskullen.
+
 ## 21. Risks and what to tune
 
 - **The Moon jump may feel floaty rather than fun.** Tune `g` between 0.35 and 0.5 with a real child's hands. The
@@ -1949,19 +2010,20 @@ One PR, one visible outcome (`skoldhast/CLAUDE.md`). `released` stays `false` un
 | Får det vita hålet vara enkelriktat? | Ja. |
 | Alvas första, utsuddade försök till en sköldhäst i dimman? | Det står där "med fel ben", som skrivet. |
 
+| Ska Tukankrabban följa med upp i rymden? | Nej. Hon stannar hemma med ungarna, Klo skriver till henne, och på slutet skriver hon tillbaka. |
+| Ska ringplaneten heta "Ringo"? | Ja, av Mira. Nova säger "Ringplaneten". |
+| "Tio stjärnor, en för varje år" efter att Alva har fyllt elva? | De är hennes tioårsstjärnor: "Jag ritade en för varje år när jag fyllde tio." Suddet suddar fram en ny för varje år efter det. |
+| Vem skapar de fyra nya rösterna? | De är skapade (section 17). |
+| När ska äventyret släppas? | Helt och färdigt, inte i delar. Sikta på julafton 2026; grinden i section 20.1 avgör. |
+| Är Suddet rätt som den som tar stjärnorna, med Alvas egen utsuddade stjärna som orsak? | Ja. ("Allt som du skrivit låter bra!") |
+
 **Still open, for Alva** (none of it blocks the build):
 
 1. **Har Nova fler fakta**, som tukankrabbans lista? Alla fakta från Alva blir kanon, som förra gången.
 2. Om något i tabellen ovan är fel om hennes egen krabba, är det Alva som har rätt.
 
-**Still open, for Pappa:**
+**For Pappa to do** (not questions any more):
 
-1. Is Suddet right as the one who takes the stars, with Alva's own rubbed-out star as the cause? It makes Alva part
-   of the problem and of the solution, gently. (Pappa on the outline of this story: "Allt som du skrivit låter
-   bra!", so the document builds on yes.)
-2. Should Tukankrabban come along after all? Here she stays home with ten small researchers, and Klo writes to her.
-3. Mira names the ring planet "Ringo" in one line. Keep, or does Mira have her own name for it?
-4. Ten stars, "en för varje år jag fyller": this ties the adventure to her tenth birthday. Still right if she plays
-   it after she has turned eleven?
-5. Four new voices in ElevenLabs (Nova, Suddet, Stora björnen, Kometen): Pappa creates them, as before.
-6. When should it be released?
+1. **Listen to the four new voices** with Alva, in `rymdkrabban/roster/`, and say if any should be another (section
+   17). It costs nothing to change before recording.
+2. **Play it through before release**, on Alva's device, as the gate in section 20.1 asks.
