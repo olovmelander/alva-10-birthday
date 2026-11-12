@@ -80,10 +80,12 @@ function paintNebula(c, w, h, { seed = 5, colors = [0x8a5fc8, 0x3fa0b8, 0xd06aa0
     }
     c.globalCompositeOperation = 'destination-out';
     c.lineCap = 'round';
-    for (let i = 0; i < 2200; i++) {
-        const x = hash(i, seed + 20) * w, y = hash(i, seed + 21) * h, len = 20 + hash(i, seed + 22) * 40;
-        c.strokeStyle = `rgba(0,0,0,${0.08 + hash(i, seed + 23) * 0.18})`; c.lineWidth = 1 + hash(i, seed + 24) * 2;
-        c.beginPath(); c.moveTo(x, y); c.lineTo(x + len * 0.8, y + len * 0.55); c.stroke();
+    // the pencil's side lifts the colour in short strokes that cross each other (all one way, they read as rain)
+    const dirs = [[0.8, 0.55], [-0.45, 0.89], [0.97, -0.24]];
+    for (let i = 0; i < 2400; i++) {
+        const x = hash(i, seed + 20) * w, y = hash(i, seed + 21) * h, len = 8 + hash(i, seed + 22) * 18, [dx, dy] = dirs[i % 3];
+        c.strokeStyle = `rgba(0,0,0,${0.06 + hash(i, seed + 23) * 0.14})`; c.lineWidth = 1 + hash(i, seed + 24) * 2.2;
+        c.beginPath(); c.moveTo(x, y); c.lineTo(x + len * dx, y + len * dy); c.stroke();
     }
     c.globalCompositeOperation = 'source-over';
 }
@@ -127,30 +129,56 @@ export function createSky(RAW, PIXI, app, pen) {
     // --- the magic forest's page, far below (seen from the Moon and from Utsikten) ------------------------------
     const forest = new PIXI.Container(); forest.label = 'forest-page';
     {
-        const gr = new PIXI.Graphics();
+        // Äventyr 2's page as it lies far below: a sheet of paper with its night sky, its hills of round trees, the
+        // river, the mountain with its peak and Molnet; a soft light round it (it is a world, not a box)
         const W = 600, H = 300;
-        gr.poly([-W / 2, -H / 2, W / 2, -H / 2 - 10, W / 2 + 8, H / 2, -W / 2 + 6, H / 2 + 8]).fill(pen.material('mat-paper', 1, 0xfbf8f1));
-        gr.poly([-W / 2, -H / 2, W / 2, -H / 2 - 10, W / 2 + 8, H / 2, -W / 2 + 6, H / 2 + 8]).fill({ color: 0x1b2244, alpha: 0.55 });
-        // the river, the forest, the mountain with its peak, the nest's sandbank
-        gr.moveTo(-W / 2 + 20, 60).bezierCurveTo(-80, 20, 60, 110, W / 2 - 10, 70).stroke(pen.line(0x5d8eaa, 16, 0.85));
-        for (let i = 0; i < 70; i++) {
-            const x = -W / 2 + 30 + hash(i, 300) * (W - 60), y = -60 + hash(i, 301) * 160, r = 14 + hash(i, 302) * 20;
-            if (Math.abs(y - (60 + Math.sin((x + W / 2) / W * Math.PI) * 30)) < 22) continue;
-            gr.circle(x, y, r).fill(pen.fill([0x2f5a3e, 0x3d6a45, 0x4f7c50][i % 3], 0.95));
+        const edge = [];
+        const corners = [[-W / 2, -H / 2], [W / 2, -H / 2 - 10], [W / 2 + 8, H / 2], [-W / 2 + 6, H / 2 + 8]];
+        for (let c = 0; c < 4; c++) {
+            const [ax, ay] = corners[c], [bx, by] = corners[(c + 1) % 4];
+            for (let i = 0; i < 14; i++) { const u = i / 14; edge.push(ax + (bx - ax) * u + (hash(c * 14 + i, 310) - 0.5) * 5, ay + (by - ay) * u + (hash(c * 14 + i, 311) - 0.5) * 5); }
         }
-        gr.poly([150, 40, 230, -110, 300, 40]).fill(pen.fill(0x6e6a86)).stroke(pen.line(0x3b3546, 2));
-        gr.ellipse(-40, 52, 46, 14).fill(pen.fill(0xd9c08a));
-        gr.poly([-W / 2, -H / 2, W / 2, -H / 2 - 10, W / 2 + 8, H / 2, -W / 2 + 6, H / 2 + 8]).stroke(pen.line(0x8d806a, 3));
-        forest.addChild(gr);
-        const nest = new RAW.Sprite(tex.glow); nest.anchor.set(0.5); nest.position.set(-40, 48); nest.tint = 0xffe6a0; nest.width = nest.height = 90; nest.blendMode = 'add';
-        forest.addChild(nest);
+        const halo = new RAW.Sprite(tex.glow); halo.anchor.set(0.5); halo.width = W * 1.7; halo.height = H * 2.1; halo.tint = 0xbfd0ff; halo.alpha = 0.35; halo.blendMode = 'add';
+        const shadow = new PIXI.Graphics(); shadow.poly(edge.map((v, i) => v + (i % 2 ? 14 : 10))).fill({ color: 0x05060f, alpha: 0.45 });
+        const gr = new PIXI.Graphics();
+        gr.poly(edge).fill(pen.material('mat-paper', 1, 0xfbf8f1));
+        const clip = new PIXI.Graphics(); clip.poly(edge).fill(0xffffff);
+        const art = new PIXI.Container(); art.mask = clip;
+        const a = new PIXI.Graphics();
+        // the page's night sky, and its own small stars
+        a.rect(-W / 2 - 10, -H / 2 - 20, W + 30, H + 40).fill({ color: 0x24305e });
+        a.rect(-W / 2 - 10, -H / 2 - 20, W + 30, H + 40).fill(pen.hatch(0x161d40, 0.5));
+        for (let i = 0; i < 26; i++) { const x = -W / 2 + 20 + hash(i, 320) * (W - 40), y = -H / 2 + 12 + hash(i, 321) * 90, r = 1.6 + hash(i, 322) * 2.4; a.circle(x, y, r).fill({ color: 0xfff6d8, alpha: 0.85 }); }
+        // the mountain with its peak, far back
+        a.poly([110, 70, 228, -112, 250, -96, 330, 70]).fill(pen.fill(0x6e6a86)).stroke(pen.line(0x3b3546, 2));
+        a.poly([206, -78, 228, -112, 250, -96, 238, -76, 224, -86]).fill(pen.fill(0xeef0fa));
+        // the hills, rolling, and the round trees on them in three greens
+        a.poly([-W / 2 - 10, 10, -180, -24, -60, -6, 60, -30, 180, -2, W / 2 + 20, -20, W / 2 + 20, H / 2 + 20, -W / 2 - 10, H / 2 + 20]).fill(pen.fill(0x3d6a45));
+        a.poly([-W / 2 - 10, 60, -120, 34, 20, 52, 160, 36, W / 2 + 20, 56, W / 2 + 20, H / 2 + 20, -W / 2 - 10, H / 2 + 20]).fill(pen.fill(0x4f7c50));
+        for (let i = 0; i < 64; i++) {
+            const x = -W / 2 + 20 + hash(i, 300) * (W - 40), y = -20 + hash(i, 301) * 150, r = 12 + hash(i, 302) * 16;
+            if (Math.abs(y - (64 + Math.sin((x + W / 2) / W * Math.PI) * 26)) < 22) continue;
+            a.rect(x - 2, y, 4, r * 0.9).fill({ color: 0x4a3524 });
+            a.circle(x, y, r).fill(pen.fill([0x2f5a3e, 0x3d6a45, 0x5a8a54][i % 3], 0.95)).stroke(pen.line(0x1f3a28, 1.4, 0.6));
+            a.circle(x - r * 0.3, y - r * 0.35, r * 0.35).fill({ color: 0x9cc48a, alpha: 0.35 });
+        }
+        // the river, with the moon's light on it, and the nest's sandbank
+        a.moveTo(-W / 2 - 10, 62).bezierCurveTo(-80, 22, 60, 112, W / 2 + 20, 70).stroke(pen.line(0x5d8eaa, 18, 0.95));
+        a.moveTo(-W / 2 + 30, 58).bezierCurveTo(-70, 26, 60, 104, W / 2 - 20, 66).stroke({ color: 0xcfe6f6, width: 3, alpha: 0.6 });
+        a.ellipse(-40, 52, 46, 14).fill(pen.fill(0xd9c08a));
+        art.addChild(a);
+        const nest = new RAW.Sprite(tex.glow); nest.anchor.set(0.5); nest.position.set(-40, 48); nest.tint = 0xffe6a0; nest.width = nest.height = 110; nest.blendMode = 'add';
+        art.addChild(nest);
         const moln = new PIXI.Graphics();
         for (const [x, y, r] of [[-120, -100, 26], [-94, -112, 32], [-66, -100, 24], [-94, -92, 26]]) moln.circle(x, y, r).fill(pen.fill(0xb3aecb)).stroke(pen.line(0x5f587e, 1.6, 0.8));
-        forest.addChild(moln);
+        moln.circle(-104, -104, 3).fill({ color: 0x3b3546 }); moln.circle(-86, -104, 3).fill({ color: 0x3b3546 });
+        art.addChild(moln);
+        // the dimming of a page whose sky is missing its stars: a night-blue wash, not black (the paper's edge stays)
         const dim = new PIXI.Graphics();
-        dim.poly([-W / 2, -H / 2, W / 2, -H / 2 - 10, W / 2 + 8, H / 2, -W / 2 + 6, H / 2 + 8]).fill({ color: 0x05060f });
-        forest.addChild(dim);
-        forest._parts = { nest, moln, dim };
+        dim.poly(edge).fill({ color: 0x0a1030 });
+        const rim = new PIXI.Graphics(); rim.poly(edge).stroke(pen.line(0x8d806a, 3)); rim.poly(edge).stroke({ color: 0xfff6dc, width: 1.4, alpha: 0.5 });
+        forest.addChild(halo, shadow, gr, clip, art, dim, rim);
+        forest._parts = { nest, moln, dim, halo };
     }
     forest.visible = false;
     root.addChild(forest);

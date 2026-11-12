@@ -781,9 +781,47 @@ export function createPictures({ PIXI, app, assets, ui, audio, G, heroFactory = 
         const D = { kind: 'forestDark', layer: new RAW.Container(), black: new RAW.Graphics(), flashG: new RAW.Graphics(), stills: [], blackA: 0, flash: 0, showing: -1, showA: 0 };
         root.addChild(D.layer);
         D.holder = new RAW.Container();
-        D.layer.addChild(D.black, D.holder, D.flashG);
+        // in the black, only eyes: whoever speaks is seen by the whites of their eyes (Molnet's, wide with fright;
+        // Tukankrabban's on their stalks, and her little ones' under her)
+        D.eyes = new RAW.Graphics(); D.eyeK = { moln: 0, tukan: 0, kids: 0 }; D.eyeAt = {};
+        D.layer.addChild(D.black, D.holder, D.eyes, D.flashG);
         D.size = { W: 0, H: 0 };
         return D;
+    }
+    function drawEyes(D, W, H, dt) {
+        const g = D.eyes, s = Math.min(W, H) / 420, who = ui.speaker?.() || null, still = D.showA > 0.05, k = D.eyeK;
+        dt = Math.min(dt || 1 / 60, 0.1);
+        for (const id of ['moln', 'tukan']) k[id] = lerp(k[id], who === id && !still ? 1 : 0, 1 - Math.exp(-6 * dt));
+        if (who === 'tukan') k.kids = Math.min(1, k.kids + dt * 0.8);
+        g.clear();
+        const blink = (o) => (rm() ? 1 : ((t + o) % 3.4) < 0.12 ? 0.15 : 1);
+        const eye = (x, y, rx, ry, a, look, o) => {
+            const b = blink(o);
+            g.ellipse(x, y, rx, ry * b).fill({ color: 0xf6f4ec, alpha: a });
+            if (b > 0.5) g.circle(x + look[0] * rx * 0.35, y + look[1] * ry * 0.3, Math.min(rx, ry) * 0.42).fill({ color: 0x0b0d18, alpha: a });
+        };
+        const look = rm() ? [0, 0] : [Math.sin(t * 2.3) * 0.8, Math.cos(t * 1.7) * 0.4];
+        if (k.moln > 0.02) {
+            const shake = rm() ? 0 : Math.sin(t * 31) * 1.6 * s, x = W * 0.5 + shake, y = H * 0.46; // under the caption
+            eye(x - 24 * s, y, 15 * s, 20 * s, k.moln, look, 0); eye(x + 24 * s, y, 15 * s, 20 * s, k.moln, look, 0);
+            // brows, high with fright
+            for (const sd of [-1, 1]) g.moveTo(x + sd * 34 * s, y - 30 * s).quadraticCurveTo(x + sd * 24 * s, y - 40 * s, x + sd * 12 * s, y - 32 * s).stroke({ color: 0xcfd2e8, width: 2.4 * s, alpha: k.moln * 0.8, cap: 'round' });
+            D.eyeAt.moln = { minX: x - 40 * s, maxX: x + 40 * s, minY: y - 30 * s, maxY: y + 22 * s };
+        }
+        if (k.tukan > 0.02 || k.kids > 0.02) {
+            const x = W * 0.52, y = H * 0.6, a = Math.max(k.tukan, 0.55 * k.kids);
+            for (const sd of [-1, 1]) {
+                g.moveTo(x + sd * 10 * s, y + 18 * s).lineTo(x + sd * 20 * s, y - 2 * s).stroke({ color: 0xb08a6a, width: 3 * s, alpha: a * 0.7, cap: 'round' });
+                eye(x + sd * 21 * s, y - 8 * s, 11 * s, 11 * s, a, look, 1.3);
+            }
+            // the little ones, huddled under her, more of them as she gathers them in
+            for (let i = 0; i < 4; i++) {
+                const kk = clamp(k.kids * 4 - i, 0, 1); if (kk <= 0) continue;
+                const cx = x + (i - 1.5) * 26 * s, cy = y + 40 * s + (i % 2) * 6 * s;
+                for (const sd of [-1, 1]) eye(cx + sd * 5 * s, cy, 4 * s, 4.4 * s, kk * 0.9, look, 0.7 + i);
+            }
+            D.eyeAt.tukan = { minX: x - 34 * s, maxX: x + 34 * s, minY: y - 24 * s, maxY: y + 20 * s };
+        }
     }
     function buildStills(D) {
         const { W, H } = size();
@@ -797,6 +835,7 @@ export function createPictures({ PIXI, app, assets, ui, audio, G, heroFactory = 
         D.black.clear().rect(0, 0, W, H).fill({ color: 0x020308, alpha: D.blackA });
         D.stills.forEach((c, i) => { c.visible = i === D.showing && D.showA > 0; c.alpha = D.showA; });
         D.flashG.clear(); if (D.flash > 0) D.flashG.rect(0, 0, W, H).fill({ color: 0xf2f5ff, alpha: D.flash });
+        if (D.eyes) drawEyes(D, W, H, dt);
     }
     /** One stroke of lightning: a white flash, the picture for a quarter of a second, black again, then the thunder. */
     async function strike(D, i, { hold = 0.25 } = {}) {
@@ -822,7 +861,7 @@ export function createPictures({ PIXI, app, assets, ui, audio, G, heroFactory = 
         const D = P = buildDark();
         buildStills(D);
         D.frame = stepDark;
-        D.bounds = () => null;
+        D.bounds = (who) => (D.eyeK?.[who] > 0.3 ? D.eyeAt[who] || null : null);
         const lines = STORY.forestDark || [], lines2 = STORY.forestDark2 || [];
         await tween(0.8, u => { D.blackA = ease(u); });
         D.blackA = 1;

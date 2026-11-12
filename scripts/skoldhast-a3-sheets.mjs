@@ -238,6 +238,8 @@ const SHEETS = {
         await p.close();
         // the epilogue, from the end of the story
         const q = await open(vp, profile(ENDED, 'home', true));
+        // in the real flow the game's notes, buttons and key prompt are hidden while the table is shown (main.mjs)
+        await q.addStyleTag({ content: '.sk-hud, .sk-guide, .sk-keynote { visibility: hidden !important; }' });
         await ev(q, () => { const d = window.__S.d(); window.__tick = setInterval(() => d.table.tick(1 / 30), 33); d.table.epilogue({}); });
         for (let i = 0; i < 6; i++) {
             const until = Date.now() + 2600;

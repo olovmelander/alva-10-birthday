@@ -95,6 +95,37 @@ After the changes every line of every scene shows its speaker at 390×844.
 - **The bear's standing followed to the next page** if the page was left in the middle of it (only the sheets could
   do that, but a page now starts without the last page's big moment).
 
+## The last playthrough (12 November, night)
+
+**How:** the robot played the whole adventure in both orders and every line was read again as a player; every
+conversation was played in a real browser at 844×390 (a picture per line, the speaker checked); all 24 contact sheets
+were made again and looked at; after the story the robot went looking for all eight secrets and the way home from
+Kometens svans.
+
+**Found and changed (the words and the play):**
+- **"Han är kär" came out of nowhere.** Nova asks "Vad är det för fel på honom?" on the night side and the answer came
+  minutes later after the ledge, with nothing to tie it. Now she says "Nu blinkar han igen. Det är något fel på honom."
+  and the sköldhäst answers.
+- **The goal note asked "Vem – och varför?" after the answer.** Once Suddet is known it says "Det var Suddet. Ett ljus
+  fattas – Alva kan rita det igen.", and at ten "Ta stjärnorna hem".
+- **The second crossing of the night side was a chore.** After Utsikten Nova is furious at the thief ("En stjärntjuv.
+  På MIN himmel."): her lamps burn red all the way back to the rocket, and the sköldhäst says so.
+- **Thoughts said twice:** "Hon lyser! Röd som en lykta." on the way back, and two "varmt" at the ice. The night's
+  thoughts are only for the puzzle now, and the ice's light has its own.
+- **Klo's chatter said his heart weighs as much as at home; his postcard says it weighs nothing.** The chatter agrees now.
+- **After the story, Kometens svans repeated "Jag sprattlade"** every time one ran off the head, and nothing said how to
+  get home (there is no rocket there). The goal note says it now ("hoppa från Kometens huvud och göm dig i luften"),
+  and the thought is only for the story's catch. All eight secrets were found.
+
+**Found and changed (the pictures):** a speech box covered the heroes in the climax on a sideways phone (about twenty
+lines showed no speaker; now all do); the bear's speaking mark fell off the screen; the camera's look-ahead cut the
+sköldhäst at the edge; Alva's portrait was blank after a reload. Upgraded: the far walls of the Moon's hollows (the
+sky showed through the Moon), the bear's face and eye, Pip beside the heroes when he speaks, the forest's page
+redrawn, space skies hatched three ways, ice chips round the ring and far rocks among the constellations, half-erased
+drawings and Suddet's crumbs in the white, the storm's speakers as eyes in the dark, Suddet never a speck.
+
+**Left on purpose:** Klo stays on the rim of Djupa kratern and gives his advice from there (his edge badge shows him).
+
 **Found earlier, while building** (design section 20.2): a nearly vertical slope could be crept up in the shared sim
 (Djupa kratern could be climbed out of), and a wall exactly vertical dropped whoever pushed on it through the floor.
 Both are now separate floors with explicit walls.

@@ -122,6 +122,7 @@ export const LINES = [
     ['horse', '[teasing, knowing] Till Tukankrabban.'],
     ['nova', '[suspicious] Hans lampor blinkar. [correcting herself] Jag menar ögon. Vad är det för fel på honom?'],
     // rival3
+    ['nova', '[suspicious, peering] Nu blinkar han igen. [clinical] Det är något fel på honom.'],
     ['horse', '[matter-of-fact, amused] Han är kär.'],
     ['nova', '[baffled, dry] Det finns ingenting om det i mina stjärnkartor.'],
     ['klo', '[flustered, dignified] Det är ett vetenskapligt mysterium. Det har jag skrivit upp.'],

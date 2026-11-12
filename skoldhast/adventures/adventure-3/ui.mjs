@@ -178,6 +178,10 @@ const placeSvg = (id) => `<svg viewBox="0 0 60 60" aria-hidden="true">${['stjarn
 const unknownSvg = '<svg viewBox="0 0 60 60" aria-hidden="true"><rect x="0" y="0" width="60" height="60" rx="8" fill="#3a3f58"/><text x="30" y="42" text-anchor="middle" font-size="34" fill="#cfc8e6">?</text></svg>';
 // Nova's lamp beside a "Stämmer inte": her hypothesis that fell (design 7)
 const LAMP_SVG = '<svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6.5" fill="#7a5a8e" stroke="#3e2260" stroke-width="1.4"/><circle cx="6" cy="6" r="1.6" fill="#c9b0e0"/></svg>';
+// Alva's pencil, red with a pale stripe, sharpened (the speaker's badge and name tag when she speaks in the world)
+const ALVA_PENCIL = '<svg viewBox="0 0 64 48" aria-hidden="true"><path d="M8 40 L44 8 L52 14 L16 46 Z" fill="#d0473c" stroke="#7a2420" stroke-width="2"/>'
+    + '<path d="M12 41.5 L47 10.5" stroke="#f2b8a8" stroke-width="2.2" opacity=".8"/><path d="M44 8 L48 4.5 L56 10.5 L52 14 Z" fill="#f2d7b8" stroke="#7a2420" stroke-width="1.5"/>'
+    + '<path d="M8 40 L4 47 L16 46 Z" fill="#f3e3c4" stroke="#7a2420" stroke-width="1.5"/><path d="M4 47 L7 43" stroke="#3b3530" stroke-width="2"/></svg>';
 // a pink crumb, curled, as an eraser leaves them
 const CRUMB = (r) => `<svg viewBox="0 0 20 14" aria-hidden="true" style="transform:rotate(${Math.round(r)}deg)"><path d="M3 9 Q2 3 8 3 Q15 2 16 7 Q17 12 11 11 Q6 13 5 9 Q9 9 10 7" fill="#f4a7bb" stroke="#9a4a62" stroke-width="1"/></svg>`;
 
@@ -185,6 +189,8 @@ const CRUMB = (r) => `<svg viewBox="0 0 20 14" aria-hidden="true" style="transfo
 export function createA3UI(host, { assetBase, handlers, voice = null }) {
     let suddEyes = false;
     const FACES = {
+        // Alva is never drawn: her red pencil (inline, so it shows when a saved game starts without the table's art)
+        alva: () => ALVA_PENCIL,
         nova: () => novaSvg({ mood: 'morning' }),
         sudd: () => suddSvg({ eyes: suddEyes, star: suddEyes }),
         bjorn: () => BJORN_SVG, komet: () => KOMET_SVG, pip: () => PIP_SVG, tukan: () => TUKAN_SVG, moln: () => MOLN_SVG

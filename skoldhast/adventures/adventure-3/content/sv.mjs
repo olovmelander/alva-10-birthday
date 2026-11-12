@@ -197,6 +197,8 @@ export const STORY = {
     nightDark: 'För mörkt. Jag ser ingenting.',
     nightLit: 'Hon lyser! Röd som en lykta. Jag ser marken!',
     nightOut: 'Lamporna slocknade. Hon har lugnat sig. Mer klapper!',
+    // on the way back from Utsikten: she is still furious at the thief, and her lamps burn all the way
+    nightFurious: 'Nova är fortfarande arg på tjuven. Hennes lampor lyser hela vägen!',
     // the first time, while galloping
     nightAngry: [['nova', 'Det där var MED FLIT. … Bra. Fortsätt.']],
     // in the red light, at the crater
@@ -234,11 +236,13 @@ export const STORY = {
         ['horse', 'Till Tukankrabban.'],
         ['nova', 'Hans lampor blinkar. Jag menar ögon. Vad är det för fel på honom?']
     ],
+    // after the ledge Klo's eyes blink again: Nova's question from the night side gets its answer here
     rival3: [
+        ['nova', 'Nu blinkar han igen. Det är något fel på honom.'],
         ['horse', 'Han är kär.'],
-        ['nova', 'Det finns ingenting om det i mina stjärnkartor.'],
-        ['klo', 'Det är ett vetenskapligt mysterium. Det har jag skrivit upp.']
+        ['nova', 'Det finns ingenting om det i mina stjärnkartor.']
     ],
+    rival3b: [['klo', 'Det är ett vetenskapligt mysterium. Det har jag skrivit upp.']],
 
     // 11.6 The view (M5) and the fin
     view0: [
@@ -410,6 +414,7 @@ export const STORY = {
     ],
     iceWrong: 'Blocket ska in i solen. Jag får knuffa från andra hållet.',
     iceMelts: 'Det smälter! Där är stjärnljuset.',
+    iceLight: 'Alldeles varmt – fast det satt i is!',
     comet: [
         ['komet', 'Hinner inte! Hinner inte! Ur vägen!'],
         ['nova', 'Kometen. Den har aldrig tid. Jag står inte ut med den.'],
@@ -739,7 +744,7 @@ export const STORY = {
     // 11.14 Small lines
     // a thought on finding a star-light that has no scene of its own
     lightLine: [
-        'Ett stjärnljus! Det är alldeles varmt.', 'Ett ljus till under kupan.', 'Där var du, lilla ljus.',
+        'Ett stjärnljus! Det pirrar ända ut i hovarna.', 'Ett ljus till under kupan.', 'Där var du, lilla ljus.',
         'Det lyser som en liten sol!', 'Alva kommer att bli så glad.'
     ],
     // Nova when galloped beside (remarks, in turn, then silent)
@@ -803,6 +808,10 @@ export const GOALS = {
     rocketWhy: 'Stjärnljusen har drivit längre bort än månen.',
     lights: (n, total) => `Hitta Alvas stjärnor (${n} av ${total})`,
     lightsWhy: 'Någon tar dem. Vem – och varför?',
+    // once Suddet is known: the question is answered, and what is left is getting the stars home
+    lightsWhyKnown: 'Det var Suddet. Ett ljus fattas – Alva kan rita det igen.',
+    homeward: 'Ta stjärnorna hem',
+    homewardWhy: 'Alla tio ljusen ligger under Novas kupa. Men raketen är borta.',
     white: 'Res till det vita hålet',
     whiteWhy: 'Det tionde ljuset är där. Och den som suddar.',
     through: 'Ta dig genom det vita',
@@ -818,7 +827,8 @@ export const GOALS = {
     crater: 'Gå till Novas krater',
     craterWhy: 'Stjärnorna ska tillbaka till sina platser, rakt ovanför hennes säng.',
     free: 'Utforska rymden',
-    freeWhy: 'Forskningen fortsätter – ända ut i Vintergatan.'
+    freeWhy: 'Forskningen fortsätter – ända ut i Vintergatan.',
+    freeVinter: 'Hem till månen: hoppa från Kometens huvud och göm dig i luften. Nova fångar dig.'
 };
 
 export const HINTS = {
@@ -944,7 +954,7 @@ export const CHATTER = {
         'Mina lampor är inte till för att tittas på.'
     ],
     klo: [
-        'Här väger jag ingenting. Mitt hjärta väger lika mycket som vanligt.',
+        'Här väger jag ingenting. Hjärtat svävar också – men det gjorde det redan hemma.',
         'Jag antecknar allt hon säger. Hon säger väldigt mycket.',
         'Expert på land och vatten. Och, från och med nu, lite på rymden.',
         'Lyktan lyser när jag tänker på henne. Den lyser ganska ofta.'
