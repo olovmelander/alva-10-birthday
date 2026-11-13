@@ -30,7 +30,8 @@ const CLIMAX_FROM = 'climax';
 const CLIMAX_TO = 'self_drawn';
 
 const MOON_G = 0.4;
-const ROCK_MARGIN = 0.4 * HL; // a jump onto a Moon rock comes down at least this far inside its far end
+const ROCK_MARGIN = 0.4 * HL; // a jump onto a Moon rock comes down at least this far inside its ends
+const REACH_MAX = 700; // the fastest a Moon jump is hurried toward the rock the stick points at (a full steer is 560)
 const LEDGE_REACH = 0.5 * HL; // a shell hidden in the air this near the ledge (M4) drops onto it
 const FLOAT_MAX = 820, FLOAT_ACCEL = 1700;
 
@@ -301,6 +302,10 @@ export function createGame() {
             p.vy = -Math.sqrt(2 * C.gravity * (sc.gravity ?? 1) * C.hopHeight / (sc.gravity ?? 1));
             p.facing = Math.sign(ix);
             p.action = null;
+        } else if ((sc.gravity ?? 1) < 1 && p.jump.kind === 'hop') {
+            // on the Moon a hop from a trot is as high as one from a gallop: the stairs rise 1.3 lengths, and the sim's
+            // trotting hop (0.8 of the height, 1.25 lengths here) never reached the next rock
+            p.vy = Math.min(p.vy, -Math.sqrt(2 * C.gravity * C.hopHeight));
         }
         const g = (sc.gravity ?? 1) * C.gravity;
         const air = 2 * Math.abs(p.vy) / g + 0.2;
@@ -318,16 +323,55 @@ export function createGame() {
 
     /**
      * On the Moon a jump is long and slow: the stick may steer it a little in the air, so a rock a length wide can be
-     * landed on. Not over the ledge at Kanten (M4), where every jump must float past and only a hidden shell drops.
+     * landed on. Not over the ledge at Kanten (M4): there the stick neither slows nor turns a jump, so every jump
+     * floats past and only a hidden shell drops. The rocks still catch a jump there (the third rock to the fourth
+     * crosses the ledge).
      */
     function airSteer(simInput, dt) {
         const p = G.player, sc = G.sceneDef;
         if ((sc.gravity ?? 1) >= 1 || p.mode !== 'air' || !p.jump || p.hidden) return;
-        if ((sc.noSteer || []).some(([a, b]) => p.x >= a && p.x <= b)) return;
-        const want = (simInput.x || 0) * 560;
-        p.jump.vx += (want - p.jump.vx) * Math.min(1, dt * 2.4);
+        const ix = simInput.x || 0;
+        const overLedge = (sc.noSteer || []).some(([a, b]) => p.x >= a && p.x <= b);
+        if (!overLedge) p.jump.vx += (ix * 560 - p.jump.vx) * Math.min(1, dt * 2.4);
+        rockReach(ix);
         rockLanding();
         if (Math.abs(p.jump.vx) > 30) p.facing = Math.sign(p.jump.vx);
+    }
+
+    /**
+     * After the third star (13 November) Alva could not get from the third rock to the fourth: the gap is two lengths,
+     * over the ledge where the stick cannot steer, and a jump from a run or from the middle of the rock came down short,
+     * against the fourth rock's side, and fell to the ground. With the stick held toward a rock higher than the
+     * take-off that the arc still rises above, a jump that would fall short of it now reaches it, a little inside its
+     * near end. It only ever hurries the jump toward that rock, never past it, and never onto the ledge (M4).
+     */
+    function rockReach(ix) {
+        const p = G.player, j = p.jump, T = G.terrain;
+        const dir = Math.abs(ix) >= 0.3 ? Math.sign(ix) : 0;
+        if (!dir || j.vx * dir < -30) return; // the stick does not point the way the jump goes
+        const g = C.gravity * (G.sceneDef.gravity ?? 1);
+        let best = null;
+        for (const s of T.surfaces) {
+            if (!s.rock || s.ledge) continue;
+            const a = s.pts[0][0], b = s.pts.at(-1)[0];
+            const near = dir > 0 ? a : b;
+            const d = (near - p.x) * dir;
+            if (d <= 0 || (best && d >= best.d)) continue; // over it already, behind, or farther than one found
+            const m = Math.min(ROCK_MARGIN, (b - a) / 2);
+            const top = heightOn(s.pts, near + dir * m);
+            if (top === null || top > (j.fromY ?? p.y) - C.stepUp) continue; // not a step up from the take-off
+            const D = p.vy * p.vy + 2 * g * (top - p.y);
+            if (D < 0) continue; // the arc never rises that high
+            const tDown = (-p.vy + Math.sqrt(D)) / g, tUp = (-p.vy - Math.sqrt(D)) / g;
+            if (tDown <= 0) continue;
+            best = { d, m, tDown, tUp };
+        }
+        if (!best) return;
+        const need = (best.d + best.m) / best.tDown;
+        if (need <= Math.abs(j.vx) * (Math.sign(j.vx) === dir ? 1 : 0)) return; // it gets there as it is
+        if (need > REACH_MAX) return; // too far: no jump reaches it
+        if (best.tUp > 0 && best.d / need < best.tUp) return; // it would meet the rock's side while still below its top
+        j.vx = dir * need;
     }
 
     /**
