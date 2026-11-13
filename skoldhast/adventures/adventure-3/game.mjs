@@ -30,6 +30,7 @@ const CLIMAX_FROM = 'climax';
 const CLIMAX_TO = 'self_drawn';
 
 const MOON_G = 0.4;
+const ROCK_MARGIN = 0.4 * HL; // a jump onto a Moon rock comes down at least this far inside its far end
 const FLOAT_MAX = 820, FLOAT_ACCEL = 1700;
 
 export function createGame() {
@@ -299,7 +300,37 @@ export function createGame() {
         if ((sc.noSteer || []).some(([a, b]) => p.x >= a && p.x <= b)) return;
         const want = (simInput.x || 0) * 560;
         p.jump.vx += (want - p.jump.vx) * Math.min(1, dt * 2.4);
+        rockLanding();
         if (Math.abs(p.jump.vx) > 30) p.facing = Math.sign(p.jump.vx);
+    }
+
+    /**
+     * The Moon's arcs are long and its rocks narrow: with the stick held all the way (a thumb on a phone) a jump sailed
+     * over the rock it rose above and fell to the ground. A jump that would pass over a rock higher than where it took
+     * off now comes down on it, short of its far end. It only ever slows the jump, never the ledge (M4).
+     */
+    function rockLanding() {
+        const p = G.player, j = p.jump, T = G.terrain;
+        const dir = Math.sign(j.vx);
+        if (!dir) return;
+        const g = C.gravity * (G.sceneDef.gravity ?? 1);
+        let cap = Infinity;
+        for (const s of T.surfaces) {
+            if (!s.rock || s.ledge) continue;
+            const a = s.pts[0][0], b = s.pts.at(-1)[0];
+            if ((dir > 0 ? p.x > b : p.x < a)) continue; // behind
+            const m = Math.min(ROCK_MARGIN, (b - a) / 2);
+            const far = dir > 0 ? b - m : a + m;
+            const top = heightOn(s.pts, far);
+            if (top === null || top > (j.fromY ?? p.y) - C.stepUp) continue; // not a step up from the take-off
+            // when the arc comes down through the rock's top (y down): y + vy t + g t² / 2 = top
+            const D = p.vy * p.vy + 2 * g * (top - p.y);
+            if (D < 0) continue; // it never rises that high
+            const t = (-p.vy + Math.sqrt(D)) / g;
+            if (t <= 0 || (p.x + j.vx * t - far) * dir <= 0) continue; // already coming down, or lands short of the far end
+            cap = Math.min(cap, Math.max(0, (far - p.x) * dir) / t);
+        }
+        if (Math.abs(j.vx) > cap) j.vx = dir * cap;
     }
 
     /** In space: a hidden shell hangs still unless something pulls it; nothing is wet; floating down onto a rock stands. */

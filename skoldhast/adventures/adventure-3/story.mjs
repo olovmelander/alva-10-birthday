@@ -861,6 +861,7 @@ export function createStory(G, io) {
                 if (!F.has('t:thinRule')) { G.flag('t:thinRule'); think(t, { gap: 0, force: true }); } else think(BALK.thin, { gap: 3 });
             } else if (e.reason === 'dark') think(STORY.nightDark, { gap: 4 });
             else if (e.reason === 'float') think(STORY.ledgeFloat, { gap: 4 });
+            else if (e.reason === 'step') return; // a stair's far end: the snort and the toss of the head say enough
             else think(BALK[e.reason] || BALK.paper, { gap: 3 });
         }),
         G.on('streckDone', (e) => {

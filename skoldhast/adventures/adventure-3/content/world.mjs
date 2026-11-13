@@ -100,7 +100,11 @@ SCENES.mane = {
         // Nattsidan: the sköldhäst will not walk on where it cannot see (lit while Nova is angry: game.mjs)
         ...[59.6, 63.2, 66.0, 69.1, 72.8].map((x, i) => ({ id: 'dark' + i, x: h(x), y: 0, dy: h(1.5), dir: 1, kind: 'balk', reason: 'dark', hop: false, when: '!novaLit' })),
         // a walk off the top of the third rock would only drop it onto the ledge: it refuses; a jump floats past
-        { id: 'stair3-end', x: h(88.15), y: h(-3.9), dir: 1, kind: 'balk', reason: 'float', dy: 60, hop: true }
+        { id: 'stair3-end', x: h(88.15), y: h(-3.9), dir: 1, kind: 'balk', reason: 'float', dy: 60, hop: true },
+        // the other stairs: a sköldhäst landed with the stick still held would gallop off the far end and fall to the
+        // ground; it stops there instead, facing the next rock (a jump goes; the way down is the near end)
+        ...[['stair1', 83.85, -1.3], ['stair2', 86.05, -2.6], ['stair4', 91.35, -5.2], ['stair5', 93.75, -6.5]]
+            .map(([id, x, y]) => ({ id: id + '-end', x: h(x), y: h(y), dir: 1, kind: 'balk', reason: 'step', dy: 60, hop: true }))
     ],
     dashed: [
         // F2: the bitten rim, a dashed arc where the Moon's edge used to be (drawn east → west from the landing)
