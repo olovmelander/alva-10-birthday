@@ -233,7 +233,8 @@ export function createA3UI(host, { assetBase, handlers, voice = null }) {
         kupaText.textContent = WORDS.lightCount ? WORDS.lightCount(n, total) : `${n} av ${total}`;
         const aria = WORDS.lightAria ? WORDS.lightAria(n, total) : `${n} av ${total}`;
         kupa.setAttribute('aria-label', aria);
-        kupa.title = NOTEBOOK.kupa || WORDS.lights || '';
+        // (as the notebook's heading: "Novas kupa" once she has put a light under it)
+        kupa.title = (n ? NOTEBOOK.kupa : WORDS.lights) || WORDS.lights || '';
         if (grew) { kupa.classList.remove('pop'); void kupa.offsetWidth; kupa.classList.add('pop'); }
     }
 
@@ -516,11 +517,16 @@ export function createA3UI(host, { assetBase, handlers, voice = null }) {
                     intro.append(smeared(NB.measuresIntro || '', 1));
                     c.append(intro);
                     let k = 2;
-                    for (const list of [horse, turtle, other]) {
+                    for (const [titleText, list] of [[NB.horseThings, horse], [NB.turtleThings, turtle], [NB.otherThings, other]]) {
                         if (!list.length) continue;
-                        c.append(smeared('xxxxxx xxxxxx', k++));
+                        // the old lines are smears; one written since the rub is in pencil, as is a heading over only new ones
+                        c.append(list.some(m => m.rubbed !== false) ? smeared('xxxxxx xxxxxx', k++) : el('h4', '', titleText));
                         const ul = el('ul', 'sk-j-list a3-smeared');
-                        for (const m of list) { const li = el('li'); li.append(smeared(NB.measure?.[m.id] || m.id, k++)); ul.append(li); }
+                        for (const m of list) {
+                            const li = el('li');
+                            if (m.rubbed === false) li.append(NB.measure?.[m.id] || m.id); else li.append(smeared(NB.measure?.[m.id] || m.id, k++));
+                            ul.append(li);
+                        }
                         c.append(ul);
                     }
                     const crumbs = el('div', 'a3-crumbs');

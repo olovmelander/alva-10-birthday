@@ -4,7 +4,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { createRobot, HL } from './skoldhast-a3-robot.mjs';
-import { STORY, HINTS, OWN_HINTS } from '../skoldhast/adventures/adventure-3/content/sv.mjs';
+import { STORY, HINTS, OWN_HINTS, POINT } from '../skoldhast/adventures/adventure-3/content/sv.mjs';
 import { SCENES, CHECKPOINTS } from '../skoldhast/adventures/adventure-3/content/world.mjs';
 
 async function at(scene, spot, flags = []) {
@@ -167,4 +167,14 @@ test('the notebook writes what is said when it is said: the Moon\'s postcard, th
     assert.ok(!S.story.notebook().facts.some(f => f.id === 'wagon'), 'Karlavagnen is the bear\'s back: written when the bear is met');
     const C = await at('ring', 'icedock', [...AFTER_MOON, 'visited_ring', 'b:ringArrive', 'comet_rest', 'light_l8']);
     assert.ok(!C.has('clue_crooked') || C.has('b:crooked'), 'the crooked clue comes with Nova\'s "De raka stjärnorna är kvar"');
+});
+
+test('Nova\'s claw says "Långt." only when the light is far', { timeout: 120000 }, async () => {
+    const R = await at('stjarn', 'pipArrive', [...STJARN, 'wagon_drawn', 'b:wagonDone', 'belt_lit', 'light_l4', 'b:beltDone', 'bear_nose', 'b:bearWakes', 'light_l5']);
+    const l6 = SCENES.stjarn.lights.find(l => l.id === 'l6');
+    for (const [dx, dir] of [[4, 'aside'], [8, 'side']]) {
+        Object.assign(R.G.player, { x: l6.x - dx * HL, y: l6.y + 0.4 * HL });
+        assert.equal(R.story.pointer()?.dir, dir, `${dx} lengths away`);
+    }
+    assert.ok(!/Långt/.test(POINT.aside) && /Långt/.test(POINT.side));
 });

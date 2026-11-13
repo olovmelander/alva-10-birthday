@@ -56,15 +56,28 @@ Each of the new tests fails on the old code. The design's record of it is sectio
   - `tests/browser/skoldhast-a3.mjs --sizes phone,side`: all pass.
   - Headless Chromium before breakfast: the notebook's cover, "Vad vet vi?" and "Frågan" are right, with no page
     errors.
-- **Left as it was (polish the audit found, not done):**
-  - While Mätningar is rubbed out, measurements written after the rub are smeared too.
-  - "Ett varv runt en planet" goes with a picture that loops about 1.4 times.
-  - Nova's pointing word ends in "Långt." even 2.5 lengths away.
-  - Nova's "Det sista ligger på andra sidan." at Luckan may be wrong if the ice light was skipped (not verified).
-  - The excited thoughts use the thoughts' default tag ("thoughtful, to itself").
+- **Then the audit's polish** (Pappa: "Continue with what you think's left and then create a PR and merge"):
+  - While Mätningar is rubbed out, only the lines from before the rub are smears (`rub_<id>` flags at the rub). One
+    measured after it is in pencil, as is a heading over only new lines. The playthrough test checks it.
+  - The slingshot's measurement reads "Slungades runt en planet: …". The picture loops about 1.4 times, not one lap.
+  - Nova's claw says "Min klo lyser. … Åt det hållet." under six lengths away (`POINT.aside`, recorded). "Långt." is
+    only for farther. The fixes test checks it.
+  - At Luckan Nova says "Min klo lyser. Det finns ett till på andra sidan." (recorded). It used to be "Det sista …",
+    wrong when the ice's light was left behind.
+  - The kupa's tooltip on a computer says "Stjärnljus" until the first light.
+  - `npm test`: 509 pass. `tests/browser/skoldhast-a3.mjs --sizes phone`: all pass. The rubbed page was checked in
+    headless Chromium after Den stora galoppen: old lines smeared, "Galopperade fram Vintergatan" readable, no
+    errors.
+- **Left as it was:**
+  - The excited thoughts keep the thoughts' default tag ("thoughtful, to itself"), the policy Pappa approved in the
+    trial.
   - The m1 hint in Nova's voice still speaks of her in the third person, but she never talks before breakfast.
-- **Frågor till Pappa:** listen to the new clips while playing (nobody here can hear them). One that sounds wrong can be
-  taken again alone.
+- **Frågor till Pappa:**
+  - Listen to the new clips while playing; nobody here can hear them. One that sounds wrong can be taken again alone.
+  - **Listen especially to Nova at Luckan** ("Min klo lyser. Det finns ett till på andra sidan."). Speech-to-text heard
+    "Min klocka lyser" in every take of this one line, in three wordings, and also in the clip that has played since
+    12 November. Her other "Min klo lyser" lines come back right. If you hear "klocka", say so and it gets another
+    wording.
 
 ## Äventyr 3: nobody says "Nova" before she does (13 November)
 
@@ -92,7 +105,7 @@ Pappa: "Jag tror professor klo säger namnet Nova innan rymdkrabban Nova sagt va
   headless Chromium before breakfast: the goal, K (Klo's hint), the notebook's cover and "Vad vet vi?" in the crater
   say no "Nova"; after breakfast they do. No page errors.
 - **Left as it was:** the speaker tab of her first lines shows her painted face only, no name; the counter's hover
-  tooltip on a computer still says "Novas kupa". The design's rule is
+  tooltip on a computer said "Novas kupa" (fixed the same day: "Stjärnljus" until the first light). The design's rule is
   in section 7 of `docs/skoldhast/adventure-3.md`, with the new goal and hint in 12.1 and 12.2.
 
 ## Äventyr 3: Tordyveln at the launch (13 November)

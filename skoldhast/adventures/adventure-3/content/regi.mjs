@@ -263,7 +263,7 @@ export const LINES = [
     ['klo', '[serious, writing] Hypotes nummer fyra: den tar bara det som är snett.'],
     // gap
     ['horse', '[uneasy] Ringen är borta här. Bara ett streck kvar – och grusskurar.'],
-    ['nova', '[focused] Min klo lyser. Det sista ligger på andra sidan.'],
+    ['nova', '[focused] Min klo lyser. Det finns ett till på andra sidan.'],
     ['klo', '[determined, scholarly] Galopp mellan skurarna. Hovarna ritar isen igen.'],
     // gapDone
     ['horse', '[excited, breathless] Nio! Bara ett kvar.'],

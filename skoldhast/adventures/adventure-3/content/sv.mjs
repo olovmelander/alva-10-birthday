@@ -448,7 +448,7 @@ export const STORY = {
     // (the design's draft said "utsuddad": the gap can be reached before hypothesis 3, section 7)
     gap: [
         ['horse', 'Ringen är borta här. Bara ett streck kvar – och grusskurar.'],
-        ['nova', 'Min klo lyser. Det sista ligger på andra sidan.'],
+        ['nova', 'Min klo lyser. Det finns ett till på andra sidan.'],
         ['klo', 'Galopp mellan skurarna. Hovarna ritar isen igen.']
     ],
     gapDone: [
@@ -932,6 +932,8 @@ export const POINT = {
     up: 'Min klo lyser. Uppåt.',
     down: 'Min klo lyser. … Neråt.',
     side: 'Min klo lyser. … Åt det hållet. Långt.',
+    // the same way, but not far (2.5 to 6 lengths)
+    aside: 'Min klo lyser. … Åt det hållet.',
     near: 'Min klo lyser. … Alldeles nära. Titta bättre.'
 };
 
@@ -1069,7 +1071,7 @@ export const NOTEBOOK = {
         noLine: 'Ett skal är inget streck. Gick inte att sudda.',
         caught: 'Fångades mitt i luften. Av en rymdkrabba.',
         weight: 'Vikt på månen: en sjättedel. Av en häst eller av en sköldpadda?',
-        sling: 'Ett varv runt en planet: tjugotvå sekunder (Novas mätning).',
+        sling: 'Slungades runt en planet: tjugotvå sekunder (Novas mätning).',
         mornings: 'Nova har varit morgonsur fyra gånger i dag.',
         self: 'Ritade sina egna kanter. Det gör varken hästar eller sköldpaddor.'
     },

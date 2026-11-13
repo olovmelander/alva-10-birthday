@@ -970,7 +970,7 @@ Thought: `cometLane` "Dess bana korsar ringen. Om skalet följer med banan komme
 
 `gap`:
 - horse: Ringen är utsuddad här. Bara ett streck kvar – och grusskurar.
-- nova: Min klo lyser. Det sista ligger på andra sidan.
+- nova: Min klo lyser. Det finns ett till på andra sidan.
 - klo: Galopp mellan skurarna. Hovarna ritar isen igen.
 
 `gapDone`:
@@ -1400,7 +1400,7 @@ jag igen." · v3 "… Jag lyfter skalet över." · f1 "Jag fångar ett skal som 
 In Klo's (`OWN_HINTS.klo`): v2 "Lyktan lyser bara när mina klor är stilla. Och jag är stilla när du är det."
 
 Pekklon's words (`POINT`, when "Prata" with Nova and a light is near): "Min klo lyser. Uppåt." · "… Neråt." · "… Åt
-det hållet. Långt." · "… Alldeles nära. Titta bättre."
+det hållet. Långt." (or "… Åt det hållet." when it is under six lengths away) · "… Alldeles nära. Titta bättre."
 
 ## 13. The notebook
 
@@ -1494,7 +1494,7 @@ stands even).
 | turtle | `noLine` | V3 | Ett skal är inget streck. Gick inte att sudda. |
 | turtle | `caught` | F1 | Fångades mitt i luften. Av en rymdkrabba. |
 | other | `weight` | M1 | Vikt på månen: en sjättedel. Av en häst eller av en sköldpadda? |
-| other | `sling` | R2 | Ett varv runt en planet: tjugotvå sekunder (Novas mätning). |
+| other | `sling` | R2 | Slungades runt en planet: tjugotvå sekunder (Novas mätning). |
 | other | `mornings` | `sudd` arrival | Nova har varit morgonsur fyra gånger i dag. |
 | other | `self` | V5 (written in ink, after the finale) | Ritade sina egna kanter. Det gör varken hästar eller sköldpaddor. |
 
@@ -2096,6 +2096,9 @@ document and the Swedish), and what came of them. Every change has a test (`test
 - **The notebook**: the Moon's postcard is written when Klo says he writes it (rival2); the Karlavagnen fact when the
   bear is met; Kometen's clue with Nova's "De raka stjärnorna är kvar"; "Stjärnljus" over the kupa until the first light;
   "Inga hypoteser än" before the first.
+- **Polish**: while Mätningar is rubbed out only what was written before the rub is smeared; the slingshot's
+  measurement reads "Slungades runt en planet"; Nova's claw says "Långt." only beyond six lengths; at Luckan she says
+  "Det finns ett till på andra sidan" (the ice's light may still be behind).
 - **This document follows the build** where it had drifted: the white page's postcard is written on arrival (13.6), the
   pipPhoto secret shows no photograph on the page, and cometRace is any wrap at a gallop (15).
 

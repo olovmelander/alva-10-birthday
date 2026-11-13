@@ -341,7 +341,8 @@ export function createStory(G, io) {
         }
         if (!best) return null;
         const dx = best.x - p.x, dy = best.y - (p.y - 0.4 * HL);
-        const dir = bd < 2.5 * HL ? 'near' : dy < -2 * HL && Math.abs(dy) > Math.abs(dx) * 0.6 ? 'up' : dy > 2 * HL && Math.abs(dy) > Math.abs(dx) * 0.6 ? 'down' : 'side';
+        const dir = bd < 2.5 * HL ? 'near' : dy < -2 * HL && Math.abs(dy) > Math.abs(dx) * 0.6 ? 'up' : dy > 2 * HL && Math.abs(dy) > Math.abs(dx) * 0.6 ? 'down'
+            : bd < 6 * HL ? 'aside' : 'side';
         return { light: best, d: bd, dir, glow: Math.max(0.15, 1 - bd / (12 * HL)), fromNova: n };
     }
     // Häst eller sköldpadda?: as a measurement is written in Klo says a word about it, in a bubble while play goes on
@@ -437,7 +438,9 @@ export function createStory(G, io) {
             clues: CLUE_ORDER.filter(id => F.has('clue_' + id)).map(id => ({ id, text: CLUES[id] })),
             facts: FACT_ORDER.filter(id => F.has(FACT_AT[id])).map(id => ({ id, text: FACTS[id] })),
             places: places(), ringo: F.has('b:ringo'), milky: F.has('ride_done'), team: { sudd: F.has('ended'), nova: F.has('breakfast') },
-            measures: MEASURES.filter(m => F.has(m.flag)).map(m => ({ id: m.id, kind: m.kind })),
+            // rubbed: written before Suddet took the notes (a save from before rub_ flags: all of them)
+            measures: MEASURES.filter(m => F.has(m.flag)).map(m => ({ id: m.id, kind: m.kind,
+                rubbed: MEASURES.some(x => F.has('rub_' + x.id)) ? F.has('rub_' + m.id) : true })),
             notesRubbed: F.has('notes_rubbed'), notesInk: F.has('notes_ink'),
             postcards: Object.keys(POSTCARDS).filter(id => F.has(CARD_AT[id])), answerCard: F.has('card_answer'),
             secrets: SECRETS.map(s => ({ id: s.id, page: s.page, found: F.has(s.flag) }))
@@ -644,6 +647,8 @@ export function createStory(G, io) {
             clue('sudd');
             await say(STORY.sudd2);
             await fx('notesRub', {});
+            // the measurements on the page now are the ones rubbed out; those written after it are in pencil again
+            for (const m of MEASURES) if (F.has(m.flag)) G.flag('rub_' + m.id);
             G.flag('notes_rubbed');
             G.emit('notesRubbed', {});
             await say(STORY.notes);

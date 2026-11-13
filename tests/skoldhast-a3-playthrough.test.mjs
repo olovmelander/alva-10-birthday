@@ -50,6 +50,9 @@ test('Äventyr 3: a robot plays the whole adventure over five pages, to the ten 
     const nb = story.notebook();
     assert.equal(nb.measures.filter(m => m.kind === 'horse').length, 8, 'eight horse things');
     assert.equal(nb.measures.filter(m => m.kind === 'turtle').length, 8, 'eight turtle things');
+    // Suddet rubbed out what was written before the climax; what was measured after it was written in pencil again
+    const rubbed = (id) => nb.measures.find(m => m.id === id)?.rubbed;
+    assert.ok(rubbed('moonJump') && rubbed('noLine') && !rubbed('milky') && !rubbed('caught') && !rubbed('rim'), 'only the old lines were rubbed');
     assert.deepEqual(MEASURES.filter(m => !R.has(m.flag)).map(m => m.id), [], 'every measure written in');
     assert.deepEqual(nb.hypotheses.map(hh => [hh.said, hh.result]), [[true, 'no'], [true, 'no'], [true, 'yes'], [true, 'yes']], 'every hypothesis stamped');
     assert.deepEqual(nb.clues.map(c => c.id), CLUE_ORDER, 'every clue written in');
