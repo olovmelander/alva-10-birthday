@@ -387,7 +387,9 @@ wrong, and says so. The stamp "Stämmer inte" is drawn like "Stämmer!" but in g
 calls the missing stars "sneda" before Kometen does; nobody says "sudd" or "sudda" before hypothesis 3, except Mira's
 one line at the table, which does not connect it (this holds for hints and goals too, whichever of pages 2 and 3 is
 played first); the prologue does not show the eraser entering the page; and the thief is never seen before the
-rocket is rubbed out, and then only as a pink blur.
+rocket is rubbed out, and then only as a pink blur. Nobody says "Nova" before she does, at breakfast ("Jag heter
+Nova."): until then she is "rymdkrabban", in the hints, the goal, the sköldhäst's thoughts and the notebook (Pappa,
+13 November: Klo's first hint named her).
 
 ## 8. Four worlds and the ride home (five pages)
 
@@ -1318,7 +1320,7 @@ after #32), so each hint is recorded in both voices. Hints are plain enough for 
 
 | When | Goal | Why |
 | --- | --- | --- |
-| Before M1 | Hitta Novas frukost | Hon pratar inte före frukost – och hon vet allt om rymden. |
+| Before M1 | Hitta rymdkrabbans frukost | Hon pratar inte före frukost – och hon vet allt om rymden. |
 | Moon, stars left there | Hitta Alvas stjärnor (n av 10) | Stjärnornas ljus har drivit iväg över hela rymden. Novas klo lyser när ett är nära. |
 | All three Moon stars, before M5 | Klättra upp till Utsikten | Därifrån ser man hela himlen – och hålen där stjärnorna satt. |
 | After M5, before the fin | Gå tillbaka till raketen | Stjärnljusen har drivit längre bort än månen. |
@@ -1334,7 +1336,7 @@ after #32), so each hint is recorded in both voices. Hints are plain enough for 
 
 ### 12.2 Hints (`HINTS`), three steps each
 
-- **m1**: Novas flingor står på hyllan ovanför hennes krater. · På månen hoppar du mycket högre än hemma. · Hoppa
+- **m1**: Rymdkrabbans flingor står på hyllan ovanför hennes krater. · På månen hoppar du mycket högre än hemma. · Hoppa
   upp på hyllan och knuffa ner asken.
 - **m2**: Stjärnljuset ligger på kraterns botten. Ner kommer du lätt. · Väggarna är för höga att hoppa upp för. Men
   Nova kan lyfta. · Ställ dig i ljusringen och göm dig. Strålen lyfter ett skal som ligger still.

@@ -14,7 +14,8 @@
  * What must not be said too early (design section 7): after the prologue, nobody calls the missing stars "sneda"
  * before Kometen does (cometSaw), and nobody says "sudd" or "sudda" before hypothesis 3, except Mira's one line at
  * the table (eraserGone). Three lines of the design's draft broke that rule and are said otherwise here: the
- * sköldhäst's bearNose, the hint s3 and the ring's gap (with the hint r5 and the clue crumbs).
+ * sköldhäst's bearNose, the hint s3 and the ring's gap (with the hint r5 and the clue crumbs). Nobody says "Nova"
+ * before she does, at breakfast ("Jag heter Nova."): until then she is "rymdkrabban" (Pappa, 13 November).
  *
  * Every spoken line is recorded with a direction (content/regi.mjs, design section 17.1); nothing of Äventyr 3 is
  * recorded until Pappa says the adventure is finished (scripts/skoldhast-voice.mjs, PENDING).
@@ -55,6 +56,8 @@ export const WORDS = {
         whiteEdge: 'Kanten av himlen', marks: 'Märkena', fog: 'Blyertsdimman', lastBridge: 'Sista bron', crumbs: 'Smulhögen',
         tail: 'Kometens svans', cometHead: 'Kometens huvud'
     },
+    // before breakfast, when Nova has not said her name yet
+    placesBefore: { crater: 'Kratern' },
     // the rocket's door: "Res" opens a small picture of the places (section 8.6)
     travel: {
         title: 'Vart reser vi?', stay: 'Stanna här', locked: '?', here: 'Här är vi',
@@ -786,8 +789,9 @@ export const BALK = {
     rubbed: 'Den suddade ut det igen!',
     gravel: 'Gruset knuffar mig bakåt. Jag väntar ut skuren.',
     kick: 'Jag sparkar mig ur banan. Jag är för lätt.',
-    // before breakfast Nova will not come along, and nobody knows the way on (M1 gates everything)
-    breakfast: 'Först frukost. Utan Nova hittar vi inte stjärnorna.',
+    // before breakfast Nova will not come along, and nobody knows the way on (M1 gates everything); she has not said
+    // her name yet
+    breakfast: 'Först frukost. Utan rymdkrabban hittar vi inte stjärnorna.',
     // in the fog no dents can be seen until Klo's seed lights them (V2)
     fog: 'Jag ser inga märken i dimman. Jag vågar inte gå vidare.'
 };
@@ -798,7 +802,8 @@ export const BALK = {
 export const GOALS = {
     travel: 'Res vidare med raketen',
     travelWhy: 'Här finns inga fler stjärnljus. Gå till raketen och res dit det fattas.',
-    breakfast: 'Hitta Novas frukost',
+    // (she says her name at breakfast: until then she is the space crab)
+    breakfast: 'Hitta rymdkrabbans frukost',
     breakfastWhy: 'Hon pratar inte före frukost – och hon vet allt om rymden.',
     moon: (n, total) => `Hitta Alvas stjärnor (${n} av ${total})`,
     moonWhy: 'Stjärnornas ljus har drivit iväg över hela rymden. Novas klo lyser när ett är nära.',
@@ -834,7 +839,8 @@ export const GOALS = {
 export const HINTS = {
     // once a puzzle has freed its light but it has not been touched yet
     pickup: ['Nu ligger stjärnljuset fritt – gå fram och rör vid det!'],
-    m1: ['Novas flingor står på hyllan ovanför hennes krater.', 'På månen hoppar du mycket högre än hemma.',
+    // (before breakfast: she has not said her name yet)
+    m1: ['Rymdkrabbans flingor står på hyllan ovanför hennes krater.', 'På månen hoppar du mycket högre än hemma.',
         'Hoppa upp på hyllan och knuffa ner asken.'],
     m2: ['Stjärnljuset ligger på kraterns botten. Ner kommer du lätt.', 'Väggarna är för höga att hoppa upp för. Men Nova kan lyfta.',
         'Ställ dig i ljusringen och göm dig. Strålen lyfter ett skal som ligger still.'],
@@ -974,8 +980,10 @@ export const NOTEBOOK = {
     coverLine: 'En ny sida i forskningsdagboken. Den här gången är det natt.',
     team: 'Forskarlaget: Sköldhästen, Professor Klo och Nova',
     teamAfter: 'Forskarlaget: Sköldhästen, Professor Klo, Nova och Suddet',
+    // before breakfast she has neither joined nor said her name
+    teamBefore: 'Forskarlaget: Sköldhästen och Professor Klo',
     mission: 'Vårt uppdrag', why: 'Därför', next: 'Nästa steg',
-    kupa: 'Novas kupa',
+    kupa: 'Novas kupa', kupaBefore: 'Stjärnljus',
     kupaAria: (n, total) => `${n} av ${total} stjärnljus under Novas kupa`,
     constellationNote: 'Nu lyser de som en stjärnbild: Sköldhästen.',
     here: place => `Här är vi: ${place}`,

@@ -378,7 +378,8 @@ export function createA3UI(host, { assetBase, handlers, voice = null }) {
                 c.append(svgBox('a3-cover-face', novaSvg({ mood: ended ? 'ordinary' : 'morning' })));
                 if (TABLE.newPage) c.append(el('p', 'sk-j-small', TABLE.newPage));
                 const teamRow = el('div', 'a3-team');
-                teamRow.append(el('p', '', ended || team.sudd ? (NB.teamAfter || NB.team) : NB.team));
+                // before breakfast Nova has neither joined nor said her name (team.nova is false)
+                teamRow.append(el('p', '', ended || team.sudd ? (NB.teamAfter || NB.team) : team.nova === false ? (NB.teamBefore || NB.team) : NB.team));
                 if (team.sudd || ended) teamRow.append(svgBox('a3-team-sudd', suddSvg({ eyes: true, star: true })));
                 c.append(teamRow, el('p', 'sk-j-credit', WORDS.credit || ''));
             },
@@ -390,13 +391,15 @@ export function createA3UI(host, { assetBase, handlers, voice = null }) {
                     c.append(el('p', 'sk-j-question sk-j-mission', objective.text));
                     if (objective.why) c.append(el('h4', '', NB.why), el('p', 'sk-j-recap', objective.why));
                 }
-                c.append(el('h4', '', NB.kupa));
+                const unnamed = team.nova === false;
+                c.append(el('h4', '', unnamed ? (NB.kupaBefore || NB.kupa) : NB.kupa));
                 if (constellation) {
                     const sky = svgBox('a3-kupa-big a3-constellation', constellationSvg({ numbers: true }), NB.constellationName);
                     c.append(sky);
                     if (NB.constellationNote) c.append(el('p', 'sk-j-small', NB.constellationNote));
                 } else {
-                    c.append(svgBox('a3-kupa-big', kupaSvg(lit, { big: true }), nbText('kupaAria', lights, total) || `${lights} av ${total}`));
+                    const aria = unnamed && WORDS.lightAria ? WORDS.lightAria(lights, total) : nbText('kupaAria', lights, total);
+                    c.append(svgBox('a3-kupa-big', kupaSvg(lit, { big: true }), aria || `${lights} av ${total}`));
                 }
                 if (place) c.append(el('p', 'sk-j-small a3-here', nbText('here', place)));
                 if (ended) {

@@ -418,7 +418,7 @@ export function createStory(G, io) {
             hypotheses: hyp(), answered: F.has('clue_sudd'),
             clues: CLUE_ORDER.filter(id => F.has('clue_' + id)).map(id => ({ id, text: CLUES[id] })),
             facts: FACT_ORDER.filter(id => F.has(FACT_AT[id])).map(id => ({ id, text: FACTS[id] })),
-            places: places(), ringo: F.has('b:ringo'), milky: F.has('ride_done'), team: { sudd: F.has('ended') },
+            places: places(), ringo: F.has('b:ringo'), milky: F.has('ride_done'), team: { sudd: F.has('ended'), nova: F.has('breakfast') },
             measures: MEASURES.filter(m => F.has(m.flag)).map(m => ({ id: m.id, kind: m.kind })),
             notesRubbed: F.has('notes_rubbed'), notesInk: F.has('notes_ink'),
             postcards: Object.keys(POSTCARDS).filter(id => F.has(CARD_AT[id])), answerCard: F.has('card_answer'),
