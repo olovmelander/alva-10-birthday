@@ -31,6 +31,7 @@ const CLIMAX_TO = 'self_drawn';
 
 const MOON_G = 0.4;
 const ROCK_MARGIN = 0.4 * HL; // a jump onto a Moon rock comes down at least this far inside its far end
+const LEDGE_REACH = 0.5 * HL; // a shell hidden in the air this near the ledge (M4) drops onto it
 const FLOAT_MAX = 820, FLOAT_ACCEL = 1700;
 
 export function createGame() {
@@ -238,8 +239,30 @@ export function createGame() {
         if (p.jump) { if (moon) p.jump.vx = 0; p.jump.limit = null; }
         else if (moon) p.vx = 0;
         p.vy = Math.max(p.vy, moon ? 160 : 0);
+        if (moon) dropOnLedge();
         p.action = null;
         events.push({ type: 'hide', air: true, x: p.x, y: p.y });
+    }
+
+    /**
+     * M4: the ledge is a length wide and a jump crosses it in under half a second, so a shell hidden a moment early or
+     * late fell past it to the ground. A shell hidden in the air near the ledge, with nothing else under it on the way
+     * down, now drifts onto it as it drops (the rule is the same: only a shell dropping like a stone stays there).
+     */
+    function dropOnLedge() {
+        const p = G.player, T = G.terrain, g = C.gravity; // a hidden shell falls at full weight
+        for (const s of T.surfaces) {
+            if (!s.ledge) continue;
+            const a = s.pts[0][0], b = s.pts.at(-1)[0], top = heightOn(s.pts, (a + b) / 2);
+            if (p.x < a - LEDGE_REACH || p.x > b + LEDGE_REACH || p.y > top - 0.2 * HL) continue;
+            const below = T.floorBelow(p.x, p.y, 0);
+            if (below !== null && below < top - 4) continue; // something else catches it first (the third rock)
+            const t = (-p.vy + Math.sqrt(p.vy * p.vy + 2 * g * (top - p.y))) / g;
+            const to = Math.max(a + 0.3 * HL, Math.min(b - 0.3 * HL, p.x));
+            const vx = (to - p.x) / Math.max(t, 0.2);
+            if (p.jump) p.jump.vx = vx; else p.vx = vx;
+            return;
+        }
     }
 
     /** Floating beside a floe or an asteroid: Hoppa climbs up onto it (in space there is no shore to wade out on). */

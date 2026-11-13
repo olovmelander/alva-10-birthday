@@ -1,4 +1,4 @@
-## Äventyr 3: Kanten's stairs with a thumb on the stick (13 November)
+## Äventyr 3: Kanten's stairs and ledge with a thumb on the stick (13 November)
 
 Pappa, with a screenshot from Alva's phone at Kanten (2 av 10): "I äventyr 3 så går det inte hoppa upp på avsatserna
 nära stjärna 3. Kan vi fixa det?"
@@ -14,8 +14,16 @@ nära stjärna 3. Kan vi fixa det?"
   `stair3-end` already did; a jump always goes, and the way down is the near (west) end. The refusal is silent
   (`reason: 'step'`; the snort and the toss of the head say it), so there is no new line and nothing to record.
 - **Test:** "M4 and M5: the stairs climb with the stick held all the way" in `tests/skoldhast-a3-order.test.mjs`
-  (fails on the old code at the first rock). `npm test`: 488 pass. In headless Chromium at 390×844, → held and Space
+  (fails on the old code at the first rock). `npm test`: 489 pass. In headless Chromium at 390×844, → held and Space
   climbed the first three rocks with no page errors.
+- **The ledge's drop (M4), the next thing she meets:** a thumb moving from Hoppa to Göm dig had to land within
+  0.3–0.6 s of the jump; a press a moment early or late fell to the ground. `dropOnLedge()` in `game.mjs`: a shell
+  hidden in the air within half a length of the ledge, with nothing else under it, drifts onto it as it drops. A press
+  0.1–0.8 s after the jump works now. The rule is the same: only a hidden shell stays. Test: "M4: Göm dig a moment
+  early or late still drops the shell onto the ledge".
+- **Measured with the stick held all the way and found fine:** the slingshot (R2: Göm dig 0.1–1.2 s after the jump),
+  Kometen's lane (R4), the catch from Kometen's head (F1: 0–1.0 s), Pip's orbit (S4), the belt's stones (S2), and
+  galloping across Hoppfälten (the landing help changes nothing there).
 - **Left as it was:** with the stick held for a second and a half, the sköldhäst still gallops off Spiran's wide top at
   its east end. A jump from the near half of the third rock falls short of the fourth, as designed: nothing steers over
   the ledge. "Jag har fastnat" from between the stairs now goes to the checkpoint (Kanten's start), because the new ends

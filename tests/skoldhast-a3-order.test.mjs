@@ -98,6 +98,20 @@ test('M4 and M5: the stairs climb with the stick held all the way, as a thumb on
     await climb(Q, ['spire'], { stays: false });
 });
 
+test('M4: Göm dig a moment early or late still drops the shell onto the ledge (no gesture needs timing)', async () => {
+    // a thumb moves from Hoppa to Göm dig: the ledge used to catch only a press 0.3–0.6 s after the jump
+    for (const delay of [0.15, 0.25, 0.7]) {
+        const R = await at('mane', 'edgeStart', ['light_l1', 'light_l2']);
+        R.G.goto('mane', { x: 87.4 * HL, y: -3.9 * HL - 4, facing: 1 });
+        await R.hold(1.2, { x: 1 });
+        await R.step({ x: 1, hop: true });
+        await R.hold(delay, { x: 1 });
+        await R.step({ x: 1, hide: true });
+        await R.until(() => R.p().mode === 'ground', { x: 1 }, 6, 'down');
+        assert.ok(R.has('m4_drop') && R.p().surface?.id === 'ledge', `Göm dig ${delay} s after Hoppa drops onto the ledge`);
+    }
+});
+
 test('S4 and R4: a swimmer is kicked out of a lane; only a hidden shell is carried', async () => {
     const R = await at('stjarn', 'pipArrive', [...AFTER_MOON, 'wagon_drawn', 'bear_nose', 'b:bearWakes']);
     await R.floatTo(77.6, -0.55, { tol: 0.3, max: 20 });
