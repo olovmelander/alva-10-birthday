@@ -2044,7 +2044,10 @@ stars with ordinary inputs (about 330 s, 310 boxes). What playing it changed aga
 - **The Moon jump.** A jump pressed standing still with the stick held goes forward as high as a running one, and on
   the Moon the stick steers a jump a little in the air, so a rock a length wide can be landed on. Not over the ledge
   (M4): there every jump floats past, and a jump that comes down on it without hiding floats on past it; the ledge's
-  light can be taken only after the shell has dropped there.
+  light can be taken only after the shell has dropped there. Played on a phone (13 November), a thumb holds the stick
+  all the way: a jump that would sail over a rock higher than its take-off now comes down on it, the stairs refuse a
+  walk off their far ends, and a shell hidden in the air within half a length of the ledge drifts onto it as it drops
+  (Göm dig works 0.1–0.8 s after the jump, not only 0.3–0.6 s).
 - **The Moon's shapes.** Positions are as in `content/world.mjs` (Hoppfälten 20–44, Djupa kratern 44–56, Nattsidan
   56–76 with five lengths of run-up before the dark, Kanten 76–95, Utsikten 95–100; the stairs rise at most 1.35
   lengths). Walls that must hold (the crater, Hyllan) are explicit walls beside separate floors: a slope nearly

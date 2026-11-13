@@ -73,6 +73,45 @@ test('M4: no jump lands on the ledge; only a shell dropped from the air', async 
     }
 });
 
+test('M4 and M5: the stairs climb with the stick held all the way, as a thumb on a phone holds it', async () => {
+    // Alva on the phone (13 November): the jumps sailed over the rocks, and a sköldhäst that landed galloped off them
+    const thumb = { x: 1 };
+    async function climb(R, ids, { stays = true } = {}) {
+        for (const id of ids) {
+            await R.step({ ...thumb, hop: true });
+            await R.until(() => R.p().mode === 'ground', thumb, 6, `onto ${id}`);
+            assert.equal(R.p().surface?.id, id, `a jump with the stick held comes down on ${id}`);
+            if (!stays) continue;
+            await R.hold(1.5, thumb);
+            assert.equal(R.p().surface?.id, id, `and stays on ${id} with the stick still held`);
+        }
+    }
+    const R = await at('mane', 'edgeStart', ['light_l1', 'light_l2']);
+    await R.until(() => R.p().x >= 81 * HL, thumb, 6, 'gallop at the stairs');
+    await climb(R, ['stair1', 'stair2', 'stair3']);
+    // after M4 the beam sets the shell down on the third rock: on up to Utsikten
+    const Q = await at('mane', 'edgeStart', AFTER_MOON);
+    Q.G.goto('mane', { x: 87.4 * HL, y: -3.9 * HL - 4, facing: 1 });
+    await Q.hold(1.5, thumb);
+    assert.equal(Q.p().surface?.id, 'stair3', 'the third rock refuses a walk off its end');
+    await climb(Q, ['stair4', 'stair5']);
+    await climb(Q, ['spire'], { stays: false });
+});
+
+test('M4: Göm dig a moment early or late still drops the shell onto the ledge (no gesture needs timing)', async () => {
+    // a thumb moves from Hoppa to Göm dig: the ledge used to catch only a press 0.3–0.6 s after the jump
+    for (const delay of [0.15, 0.25, 0.7]) {
+        const R = await at('mane', 'edgeStart', ['light_l1', 'light_l2']);
+        R.G.goto('mane', { x: 87.4 * HL, y: -3.9 * HL - 4, facing: 1 });
+        await R.hold(1.2, { x: 1 });
+        await R.step({ x: 1, hop: true });
+        await R.hold(delay, { x: 1 });
+        await R.step({ x: 1, hide: true });
+        await R.until(() => R.p().mode === 'ground', { x: 1 }, 6, 'down');
+        assert.ok(R.has('m4_drop') && R.p().surface?.id === 'ledge', `Göm dig ${delay} s after Hoppa drops onto the ledge`);
+    }
+});
+
 test('S4 and R4: a swimmer is kicked out of a lane; only a hidden shell is carried', async () => {
     const R = await at('stjarn', 'pipArrive', [...AFTER_MOON, 'wagon_drawn', 'bear_nose', 'b:bearWakes']);
     await R.floatTo(77.6, -0.55, { tol: 0.3, max: 20 });
