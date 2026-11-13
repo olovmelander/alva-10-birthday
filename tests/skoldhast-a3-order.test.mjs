@@ -112,6 +112,58 @@ test('M4: Göm dig a moment early or late still drops the shell onto the ledge (
     }
 });
 
+test('M5: after the third star a jump from anywhere on the third rock reaches the fourth, from a run too', async () => {
+    // 13 November: after the third star nobody got on. The gap to the fourth rock is two lengths, over the ledge where
+    // the stick cannot steer; only a jump from a standstill at the rock's very end reached it. A jump from a run
+    // (the sim's trotting hop, too low for a 1.3-length step) or from where the beam sets the shell down fell short.
+    for (const x0 of [86.9, 87.4, 87.9]) {
+        for (const stick of [0.4, 0.7, 1]) {
+            for (const run of [0, 0.2, 0.3, 0.4, 1.0]) {
+                const R = await at('mane', 'edgeStart', AFTER_MOON);
+                R.G.goto('mane', { x: x0 * HL, y: -3.9 * HL - 4, facing: 1 });
+                await R.hold(run, { x: stick });
+                await R.step({ x: stick, hop: true });
+                await R.until(() => R.p().mode === 'ground', { x: stick }, 6, 'down');
+                assert.equal(R.p().surface?.id, 'stair4', `from ${x0}, stick ${stick}, ${run} s of run-up: onto the fourth rock`);
+            }
+        }
+    }
+});
+
+test('M4 and M5: every step of the stairs is reached from a run, as from a standstill', async () => {
+    // a hop from a trot was 1.25 lengths high on the Moon, and every step rises 1.3: only a standstill or a gallop got up
+    const steps = [['stair1', 'stair2', 82.6, -1.3], ['stair2', 'stair3', 85.0, -2.6], ['stair3', 'stair4', 86.9, -3.9],
+        ['stair4', 'stair5', 90.3, -5.2], ['stair5', 'spire', 92.7, -6.5]];
+    for (const [from, to, x0, y0] of steps) {
+        for (const run of [0.15, 0.25, 0.35]) {
+            const R = await at('mane', 'edgeStart', AFTER_MOON);
+            R.G.goto('mane', { x: x0 * HL, y: y0 * HL - 4, facing: 1 });
+            await R.hold(run, { x: 1 });
+            assert.equal(R.p().surface?.id, from);
+            await R.step({ x: 1, hop: true });
+            await R.until(() => R.p().mode === 'ground', { x: 1 }, 6, 'down');
+            assert.equal(R.p().surface?.id, to, `${from} to ${to} after ${run} s of run-up`);
+        }
+    }
+});
+
+test('M4: no jump that does not hide stays on the ledge, the stairs\' help or not', async () => {
+    for (const x0 of [86.9, 87.4, 87.9]) {
+        for (const stick of [-0.5, 0, 0.5, 1]) {
+            for (const later of [null, 0, 1]) {
+                const R = await at('mane', 'edgeStart', ['light_l1', 'light_l2']);
+                R.G.goto('mane', { x: x0 * HL, y: -3.9 * HL - 4, facing: 1 });
+                await R.hold(0.2, { x: stick });
+                await R.step({ x: stick, hop: true });
+                // the stick may change in the air
+                await R.until(() => R.p().mode === 'ground', () => ({ x: later !== null && R.p().x > 88.3 * HL ? later : stick }), 6, 'down');
+                await R.hold(1.5);
+                assert.ok(R.p().surface?.id !== 'ledge' && !R.has('m4_drop'), `from ${x0}, stick ${stick} then ${later}: not on the ledge`);
+            }
+        }
+    }
+});
+
 test('S4 and R4: a swimmer is kicked out of a lane; only a hidden shell is carried', async () => {
     const R = await at('stjarn', 'pipArrive', [...AFTER_MOON, 'wagon_drawn', 'bear_nose', 'b:bearWakes']);
     await R.floatTo(77.6, -0.55, { tol: 0.3, max: 20 });

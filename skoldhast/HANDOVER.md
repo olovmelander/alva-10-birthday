@@ -1,3 +1,33 @@
+## Äventyr 3: from the third rock to the fourth, after the third star (13 November)
+
+Pappa, with a screenshot at Kanten (3 av 10, "Klättra upp till Utsikten"): "Efter att man tagit tredje stjärnan i
+äventyr 3 så tar jag mig inte vidare, det går inte hoppa och landa på de svävande platformarna."
+
+- **Why:** the gap from the third rock to the fourth is two lengths, over the ledge where the stick cannot steer
+  (`noSteer`), and only a jump from a standstill at the rock's very end reached it. Two things made the others fall:
+  - A hop from a run is the sim's trotting hop (0.8 of the height): 1.25 lengths on the Moon, and every step of the
+    stairs rises 1.3. It never got up on any step.
+  - From where the beam sets the shell down (87.4), or with less than a full stick, the jump came down short, against
+    the fourth rock's side.
+  Measured over every step of the stairs, every start on the rock below, sticks 0.4–1 and every moment of the jump:
+  744 of 936 jumps landed. The rocks climbed before the star (PR #50) had the same gap, but less of it.
+- **The fix** (`adventures/adventure-3/game.mjs`):
+  - On the Moon a hop from a trot is as high as one from a gallop (`afterHop`).
+  - `rockReach()`: with the stick held (0.3 or more) toward a rock higher than the take-off that the arc still rises
+    above, a jump that would fall short is hurried to land 0.4 lengths inside its near end (at most 700 per second;
+    a full steer is 560). It works over the ledge too, where the stick still neither slows nor turns a jump.
+    `rockLanding()` now applies there as well. Neither ever aims at the ledge.
+  - The same measure after the fix: every rock-to-rock jump lands (780 of 780). The 34 misses left from the ground are
+    hops taken after galloping under and past the first rock.
+- **M4 still holds:** no jump that does not hide stays on the ledge (0 of 360, as before). Göm dig in the air over it
+  drops onto it in 104 of 120 tries; it was 93. The misses hid while still over the third rock and fell back onto it.
+- **Tests** in `tests/skoldhast-a3-order.test.mjs`. The first two fail on the old code:
+  - "M5: after the third star a jump from anywhere on the third rock reaches the fourth, from a run too";
+  - "M4 and M5: every step of the stairs is reached from a run, as from a standstill";
+  - "M4: no jump that does not hide stays on the ledge, the stairs' help or not".
+- **Verification:** `npm test`: 512 pass. In headless Chromium at 1440×900 the jump was made with → held and Space
+  pressed after 0, 150, 250, 300, 400 and 1000 ms of run-up. Every one landed on the fourth rock, with no page errors.
+
 ## Äventyr 3: the audit after the release, and its fixes (13 November)
 
 Pappa: "Any more bugs or things we need to align? Do an audit", then "Continue with what you recommend." Three

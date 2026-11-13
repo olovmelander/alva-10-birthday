@@ -2063,7 +2063,10 @@ stars with ordinary inputs (about 330 s, 310 boxes). What playing it changed aga
   light can be taken only after the shell has dropped there. Played on a phone (13 November), a thumb holds the stick
   all the way: a jump that would sail over a rock higher than its take-off now comes down on it, the stairs refuse a
   walk off their far ends, and a shell hidden in the air within half a length of the ledge drifts onto it as it drops
-  (Göm dig works 0.1–0.8 s after the jump, not only 0.3–0.6 s).
+  (Göm dig works 0.1–0.8 s after the jump, not only 0.3–0.6 s). After the third star (13 November) nobody got from
+  the third rock to the fourth, two lengths away over the ledge. On the Moon a hop from a trot is now as high as one
+  from a gallop (the stairs rise 1.3 lengths; a trotting hop rose 1.25). With the stick toward a higher rock that the
+  arc rises above, a jump that would fall short reaches it, over the ledge too. It never aims at the ledge.
 - **The Moon's shapes.** Positions are as in `content/world.mjs` (Hoppfälten 20–44, Djupa kratern 44–56, Nattsidan
   56–76 with five lengths of run-up before the dark, Kanten 76–95, Utsikten 95–100; the stairs rise at most 1.35
   lengths). Walls that must hold (the crater, Hyllan) are explicit walls beside separate floors: a slope nearly
