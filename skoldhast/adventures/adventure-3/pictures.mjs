@@ -47,6 +47,9 @@ const NIGHT = [0x1f2b4f, 0x3d5282, 0x8a8fb8], STORM = [0x1b1d33, 0x2c2e4c, 0x454
 // the page with the magic forest, in world units (the hill's top at 0, 0; the rocket stands there)
 const PAGE = { x0: -2600, x1: 2600, y0: -3800, y1: 1400 };
 const AIR_ENDS = -2500;   // where Molnet can follow no higher
+// the right of the crowd at the launch: Skatan, then Tordyveln up on his ball (all inside a phone held upright)
+const SKATA_X = 296, BALL_X = 428, BALL_S = 1.35;
+const PORTRAIT_W = 1000, PORTRAIT_CX = -8; // world units across a phone held upright at the launch, and its middle
 const FLIGHT = 5600;      // how far the rocket climbs while the camera still follows it on the page
 
 export function createPictures({ PIXI, app, assets, ui, audio, G, heroFactory = null }) {
@@ -171,6 +174,25 @@ export function createPictures({ PIXI, app, assets, ui, audio, G, heroFactory = 
     // launch
     // ===============================================================================================================
     function groundY(x) { const a = Math.abs(x); return a < 170 ? 0 : Math.min(700, ((a - 170) / 1230) ** 1.6 * 700); }
+    /** Tordyveln's ball of eggshells (as Äventyr 2 draws it after the story): speckled white pieces, the finest yet. */
+    function shellBall(x, y, s) {
+        const sb = new PIXI.Graphics(), R = 34;
+        sb.circle(0, -R, R).fill(pen.fill(0xf3eee0)).stroke(pen.line(0x6f6658, 2.2));
+        for (let i = 0; i < 9; i++) {
+            const a = i * 2.17, r = 8 + (i * 5) % 20, px = Math.cos(a) * r, py = -R + Math.sin(a) * r;
+            sb.poly([px - 6, py - 3, px + 4, py - 6, px + 7, py + 3, px - 2, py + 6]).fill(pen.fill(i % 3 ? 0xe8e1cc : 0xdfe8ef, 0.95)).stroke(pen.line(0x8a8070, 1.2, 0.8));
+        }
+        for (let i = 0; i < 6; i++) sb.circle(Math.cos(i * 1.9) * 15, -R + Math.sin(i * 1.9) * 12, 2).fill({ color: 0x9a8c74, alpha: 0.7 }); // the eggs' speckles
+        sb.ellipse(-8, -R - 10, 6, 3).fill({ color: 0xffffff, alpha: 0.6 });
+        sb.position.set(x, y + 4); sb.scale.set(s);
+        return sb;
+    }
+    /** A pale glow behind a dark one at night (as Skatan's own, in Äventyr 2's characters). */
+    function beetleGlow(x, y) {
+        const g = new PIXI.Graphics();
+        for (const [rx, ry, a] of [[70, 44, 0.08], [56, 35, 0.1], [42, 27, 0.13]]) g.ellipse(x - 6, y - 34, rx, ry).fill({ color: 0xf2ecd8, alpha: a });
+        return g;
+    }
     function buildLaunch({ flameTexture = null, cloudTexture = null } = {}) {
         const L = { kind: 'launch' };
         L.layer = new RAW.Container(); root.addChild(L.layer);
@@ -244,9 +266,16 @@ export function createPictures({ PIXI, app, assets, ui, audio, G, heroFactory = 
             k.view.position.set(x, y); k.view.scale.set(i === 9 ? 1.05 : 1.35); L.crowd.addChild(k.view); L.kids.push({ k, x, i });
         }
         L.skata = createMagpie(PIXI, pen); L.skata.view.scale.set(2); L.crowd.addChild(L.skata.view);
-        L.skataA = { visible: true, x: 300, y: groundY(300), facing: -1, talking: false };
-        L.dyvel = createBeetle(PIXI, pen); L.dyvel.view.scale.set(1.5); L.crowd.addChild(L.dyvel.view);
-        L.dyvelA = { visible: true, x: 390, y: groundY(390), facing: -1, talking: false };
+        L.skataA = { visible: true, x: SKATA_X, y: groundY(SKATA_X), facing: -1, talking: false };
+        // Tordyveln, with his finest ball, rolled from the hatched eggs' shells after Äventyr 2. A dark-blue beetle on
+        // the dark hill at night could not be seen behind Skatan ("Jag saknar tordyveln", 13 November): he is bigger
+        // and stands up on his pale ball (as a dung beetle does to find its way by the Milky Way), with a moonlit glow
+        // behind him as Skatan has
+        const ballY = groundY(BALL_X), topY = ballY - 2 * 34 * BALL_S + 6;
+        L.crowd.addChild(beetleGlow(BALL_X, topY));
+        L.crowd.addChild(shellBall(BALL_X, ballY, BALL_S));
+        L.dyvel = createBeetle(PIXI, pen); L.dyvel.view.scale.set(2); L.crowd.addChild(L.dyvel.view);
+        L.dyvelA = { visible: true, x: BALL_X, y: topY, facing: -1, talking: false };
         // the sköldhäst and Professor Klo, who go aboard
         if (heroFactory) {
             try { L.hero = heroFactory(); L.wc.addChild(L.hero.view); } catch (err) { console.warn('Sköldhästen: launch hero', err); L.hero = null; }
@@ -292,8 +321,8 @@ export function createPictures({ PIXI, app, assets, ui, audio, G, heroFactory = 
         const unit = Math.min(W, H);
         // the camera
         const portrait = H > W * 1.15;
-        const zA = portrait ? W / 940 : Math.min(W / 2100, H / 1250, 1.2);
-        const cxA = -30, cyA = -0.15 * H / zA;
+        const zA = portrait ? W / PORTRAIT_W : Math.min(W / 2100, H / 1250, 1.2);
+        const cxA = portrait ? PORTRAIT_CX : -30, cyA = -0.15 * H / zA;
         const zB = Math.min(W / (PAGE.x1 - PAGE.x0 + 1400), H / (PAGE.y1 - PAGE.y0 + 2600));
         let cx, cy, z;
         if (L.phase === 'ground' || L.phase === 'ignite') { cx = cxA; cy = cyA; z = zA; }

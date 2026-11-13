@@ -1,3 +1,17 @@
+## Äventyr 3: Tordyveln at the launch (13 November)
+
+Pappa: "Jag saknar tordyveln i början av äventyr 3 när alla från skogen är där vid raketen."
+
+- **Why:** he was there, but drawn at Äventyr 2's daytime size (37×20 px on a phone held upright), dark blue on the
+  dark hill at night, mostly behind Skatan at the right edge of the frame.
+- **Now** (`adventures/adventure-3/pictures.mjs`, the launch): he stands up on his finest ball, the pale one he rolled
+  from the hatched eggs' shells after Äventyr 2 (drawn as Äventyr 2 draws it). That is what a dung beetle does to find
+  its way by the Milky Way. He is bigger, and has a moonlit glow behind him like Skatan's. A phone held upright now
+  shows 1000 world units across instead of 940 (`PORTRAIT_W`), so his ball fits inside the frame. Skatan is back
+  beside Klo, where she was before.
+- No line was added, so there is nothing to record. Äventyr 2's own Tordyveln (`createBeetle`) is unchanged.
+- The launch's contact sheets were made again (`docs/skoldhast/shots/a3/big-*.webp`).
+
 ## Äventyr 3: Kanten's stairs and ledge with a thumb on the stick (13 November)
 
 Pappa, with a screenshot from Alva's phone at Kanten (2 av 10): "I äventyr 3 så går det inte hoppa upp på avsatserna
