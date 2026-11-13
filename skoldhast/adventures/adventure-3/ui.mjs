@@ -391,7 +391,8 @@ export function createA3UI(host, { assetBase, handlers, voice = null }) {
                     c.append(el('p', 'sk-j-question sk-j-mission', objective.text));
                     if (objective.why) c.append(el('h4', '', NB.why), el('p', 'sk-j-recap', objective.why));
                 }
-                const unnamed = team.nova === false;
+                // "Novas kupa" once she has put a light under it (the first light's scene) and said her name
+                const unnamed = team.nova === false || (!lights && !constellation);
                 c.append(el('h4', '', unnamed ? (NB.kupaBefore || NB.kupa) : NB.kupa));
                 if (constellation) {
                     const sky = svgBox('a3-kupa-big a3-constellation', constellationSvg({ numbers: true }), NB.constellationName);
@@ -476,7 +477,8 @@ export function createA3UI(host, { assetBase, handlers, voice = null }) {
                     ol.append(li);
                 });
                 c.append(ol);
-                if (hypotheses.some(h => !h.said)) c.append(el('p', 'sk-j-small', NB.hypMore));
+                if (!hypotheses.some(h => h.said)) c.append(el('p', 'sk-j-small', NB.hypNone || NB.hypMore));
+                else if (hypotheses.some(h => !h.said)) c.append(el('p', 'sk-j-small', NB.hypMore));
                 c.append(svgBox('a3-page-face', novaSvg({ mood: answered ? 'ordinary' : 'morning' })));
             },
             // Det vet vi: the clues (with what is true after the end), then Novas rymdfakta

@@ -12,8 +12,8 @@
  * thoughts). LINES has the story's and the table's lines: [voice, say]. Pip is a sound, not a voice.
  *
  * The voices (section 17): Nova as first made; Suddet "Ljus och oskuldsfull"; Stora björnen "Jättelik bas"; Kometen
- * "Hes sportkommentator"; the others as in Äventyr 1 and 2. Recorded with stability 0.35, and nothing of Äventyr 3 is
- * recorded until Pappa says the adventure is finished (PENDING in the recording script).
+ * "Hes sportkommentator"; the others as in Äventyr 1 and 2. Recorded with stability 0.35, and every line of Äventyr 3 is
+ * recorded (12 November; lines changed since are recorded again with them).
  */
 
 export const DEFAULT = {
@@ -208,7 +208,7 @@ export const LINES = [
     ['nova', '[dry] Och att han har fångat något. Ni får hämta det själva. [stubborn] Jag snurrar inte.'],
     // pipDone
     ['nova', '[translating, flat] Han har tagit en bild av tjuven. [slow, serious] Liten. Rosa. Kantig.'],
-    ['klo', '[thoughtful, piecing together] Liten, rosa, kantig – och smulor av gummi …'],
+    ['klo', '[thoughtful, piecing together] Liten, rosa, kantig – och smulor vid raketen …'],
     // hypothesis3
     ['klo', '[triumphant, excited] Hypotes nummer tre: någon suddar ut dem!'],
     ['nova', '[offended, quick] Det var min hypotes. Jag hann bara inte säga den.'],
@@ -426,7 +426,7 @@ export const LINES = [
     // forestLight
     ['narrator', '[warm, relieved] Månskenet faller över den magiska skogen igen. Stormen tystnar.'],
     ['moln', '[joyful, amazed] Det är ljust! Jag slutade! Och titta – en hel väg av stjärnor!'],
-    ['tukan', '[tender, proud] Titta, ungar! Titta, Lilla Klo! Där uppe galopperar han som bar er.'],
+    ['tukan', '[tender, proud] Titta, ungar! Titta, Lilla Klo! Där uppe galopperar den som bar er.'],
     // rimDone
     ['horse', '[satisfied, gentle] Månen är hel. Nu ska stjärnorna hem.'],
     ['nova', '[quiet, tender] Till min krater. Där satt de. Rakt ovanför min säng.'],

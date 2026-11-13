@@ -626,13 +626,13 @@ export function createGame({ host = document.body, assetBase = './skoldhast/', s
         const id = story.activePuzzle();
         if (!id || reminded.has(id) || G.time - progressAt < REMIND_AFTER) return;
         reminded.add(id);
-        const h = story.hint({ peek: true });
+        const h = story.hint({ peek: true, who: 'klo' });
         if (h?.text) ui.guide.hint(h.text, 'klo');
     }
     function openPause() { if (mode !== 'play' || ui.panelOpen()) return; pause(); ui.pauseMenu(); }
     function askKlo() {
         if (G.busy || story.running() || ui.dialogueOpen()) return;
-        const h = story.hint('klo');
+        const h = story.hint({ who: 'klo' });
         if (h?.text) ui.guide.hint(h.text, 'klo');
     }
     function uiHandlers() {

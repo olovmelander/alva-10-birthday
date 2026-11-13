@@ -19,7 +19,7 @@
  * catches everyone; the hooves draw the Moon whole; the ten stars go home in gold.
  */
 import { HL } from '../../src/sim.mjs';
-import { STORY, HINTS, GOALS, POINT, CLUES, CLUE_ORDER, FACTS, FACT_ORDER, POSTCARDS, CHATTER, BALK, WORDS } from './content/sv.mjs';
+import { STORY, HINTS, OWN_HINTS, GOALS, POINT, CLUES, CLUE_ORDER, FACTS, FACT_ORDER, POSTCARDS, CHATTER, BALK, WORDS } from './content/sv.mjs';
 import { LIGHT_TOTAL, LIGHTS_ON, LIGHT_IDS } from './content/world.mjs';
 import { lightsFound, lightFlag, collectLight, lightState, cometState } from './puzzles.mjs';
 
@@ -91,7 +91,7 @@ const SECRETS = [
 ];
 /** When each of Nova's facts is written into the notebook: the flag that means it has been said. (Clues are
  *  written by clue() where they are said.) */
-const FACT_AT = { sixth: 'breakfast', prints: 't:prints', night: 'b:night', side: 'm5_view', sound: 'b:bear', wagon: 'wagon_drawn',
+const FACT_AT = { sixth: 'breakfast', prints: 't:prints', night: 'b:night', side: 'm5_view', sound: 'b:bear', wagon: 'b:bear',
     belt: 'belt_lit', twinkle: 'b:stjarnArrive', rings: 'b:ringArrive', tail: 'b:cometSaw', sun: 't:sunFact', milky: 'ride_done' };
 const CARD_AT = { mane: 'card_mane', stjarn: 'card_stjarn', ring: 'card_ring', sudd: 'b:suddArrive', end: 'ended', answer: 'card_answer' };
 const PAGE_ORDER = ['mane', 'stjarn', 'ring', 'sudd'];
@@ -287,9 +287,15 @@ export function createStory(G, io) {
         return { puzzle: id, level: n, text: HINTS[id][n], ladder: id };
     }
     let plainAsked = null;
-    function hint({ peek = false } = {}) {
+    /** The next hint; with `who`, in that companion's own words (OWN_HINTS: nobody names themselves). */
+    function hint({ peek = false, who = null } = {}) {
         peeking = peek;
-        try { const hh = nextHint(); if (!peek && hh?.text && !hh.ladder) plainAsked = hh.text; return hh; }
+        try {
+            const hh = nextHint();
+            if (!peek && hh?.text && !hh.ladder) plainAsked = hh.text;
+            const own = who && hh?.ladder ? OWN_HINTS[who]?.[`${hh.ladder}.${hh.level}`] : null;
+            return own ? { ...hh, text: own } : hh;
+        }
         finally { peeking = false; }
     }
     function notes() {
@@ -317,8 +323,10 @@ export function createStory(G, io) {
         if (F.has('moon_whole')) return ladder('home');
         if (F.has('caught')) return ladder('f2');
         if (F.has('m5_view') && !F.has('fin_drawn')) return ladder('fin');
-        if (n >= 9 && !F.has('rocket_gone')) return { puzzle: 'white', level: 0, text: GOALS.whiteWhy };
+        if (n >= 9 && !F.has('rocket_gone')) return ladder('white');
         if (!F.has('m5_view') && G.sceneId === 'mane' && LIGHTS_ON.mane.every(id => F.has(lightFlag(id)))) return ladder('m5');
+        // on the Moon before the rocket can travel: further on, not "Res dit det fattas ljus"
+        if (G.sceneId === 'mane' && !F.has('fin_drawn')) return ladder('moon');
         return ladder('more');
     }
     /** Pekklon: the nearest light not yet found within about 12 lengths, and which way (section 3.5). */
@@ -362,7 +370,7 @@ export function createStory(G, io) {
             const pt = pointer();
             if (pt) return beat('talk', () => say([['nova', POINT[pt.dir]]]), { once: false });
         }
-        const hh = hint();
+        const hh = hint({ who });
         let text = hh.text;
         if (!text) {
             const list = who === 'nova' ? [...CHATTER.nova, ...(F.has('ended') ? [CHATTER.novaAfter] : [])] : CHATTER.klo;
@@ -388,9 +396,12 @@ export function createStory(G, io) {
         if (!F.has('m5_view')) {
             const moon = LIGHTS_ON.mane.filter(id => F.has(lightFlag(id))).length;
             if (moon >= 3) return { id: 'view', text: GOALS.view, why: GOALS.viewWhy };
-            return { id: 'moon', text: GOALS.moon(n, LIGHT_TOTAL), why: GOALS.moonWhy };
+            return { id: 'moon', text: GOALS.moon(n, LIGHT_TOTAL), why: n ? GOALS.moonWhy : GOALS.moonWhyBefore };
         }
-        if (!F.has('fin_drawn')) return { id: 'rocket', text: GOALS.rocket, why: GOALS.rocketWhy };
+        if (!F.has('fin_drawn')) {
+            const left = LIGHTS_ON.mane.some(id => !F.has(lightFlag(id)));
+            return { id: 'rocket', text: GOALS.rocket, why: left ? GOALS.rocketWhyLeft : GOALS.rocketWhy };
+        }
         // every light of this page found: on with the rocket
         const here = LIGHTS_ON[G.sceneId];
         if (here && !F.has('rocket_gone') && here.every(id => F.has(lightFlag(id)))) return { id: 'travel', text: GOALS.travel, why: GOALS.travelWhy };
@@ -476,7 +487,8 @@ export function createStory(G, io) {
         io.audio?.sfx?.('sparkle');
         ui().toast?.(WORDS.lightToast(n, LIGHT_TOTAL));
         const page = Object.entries(LIGHTS_ON).find(([, ids]) => ids.includes(id))?.[0];
-        if (page && page !== 'sudd' && !F.has('card_' + page)) G.flag('card_' + page);
+        // (the Moon's card is written when Klo says he writes one: rival2, at its second light)
+        if (page && page !== 'sudd' && page !== 'mane' && !F.has('card_' + page)) G.flag('card_' + page);
         // the first light found, wherever it is (a gallop-jump can land past the crater's): what a star-light is
         if (!done('firstLight')) firstLight();
         if (id === 'l1') beamTalk();
@@ -489,7 +501,11 @@ export function createStory(G, io) {
         if (n === 9 && !F.has('rocket_gone')) nine();
         // Klo and Nova, after stars 1, 2 and 3 (section 11.5)
         const moon = LIGHTS_ON.mane.filter(l => F.has(lightFlag(l))).length;
-        if (G.sceneId === 'mane' && moon >= 1 && moon <= 3 && (moon > 1 || F.has('beam_used'))) beat('rival' + moon, async () => { await say(STORY['rival' + moon]); if (moon === 3) await say(STORY.rival3b); });
+        if (G.sceneId === 'mane' && moon >= 1 && moon <= 3 && (moon > 1 || F.has('beam_used'))) beat('rival' + moon, async () => {
+            await say(STORY['rival' + moon]);
+            if (moon === 2) G.flag('card_mane');
+            if (moon === 3) await say(STORY.rival3b);
+        });
         G.emit('lightCount', { n });
         io.save?.();
     }
@@ -988,7 +1004,6 @@ export function createStory(G, io) {
             collectLight(G, 'l8');
             await say(STORY.cometSaw);
             G.flag('b:cometSaw');
-            clue('crooked');
             // "Hypotes nummer fyra" never before number three (the ring planet can come before the constellations)
             if (done('hypothesis3')) await crooked();
             G.cometHeld = false;
@@ -1022,6 +1037,7 @@ export function createStory(G, io) {
     async function crooked() {
         if (done('crooked')) return;
         await say(STORY.crooked);
+        clue('crooked');
         G.flag('b:crooked');
     }
 

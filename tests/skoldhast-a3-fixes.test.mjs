@@ -4,7 +4,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { createRobot, HL } from './skoldhast-a3-robot.mjs';
-import { STORY, HINTS } from '../skoldhast/adventures/adventure-3/content/sv.mjs';
+import { STORY, HINTS, OWN_HINTS } from '../skoldhast/adventures/adventure-3/content/sv.mjs';
 import { SCENES, CHECKPOINTS } from '../skoldhast/adventures/adventure-3/content/world.mjs';
 
 async function at(scene, spot, flags = []) {
@@ -121,4 +121,50 @@ test('Den stora galoppen: a reload does not say every passed remark at once', { 
     await Q.hold(0.5);
     assert.equal(Q.events.slice(e0).filter(e => e.type === 'rideMark').length, 0);
     assert.equal(Q.G.puz.rideMarks, passed, 'the remarks already passed stay passed');
+});
+
+test('the first light found, wherever it is, says what a star-light is; the crater\'s beam talk only if needed', { timeout: 120000 }, async () => {
+    const R = await at('mane', 'start', ['visited_mane']);
+    R.G.flag('light_l2'); R.G.emit('light', { id: 'l2', n: 1 });
+    await R.settle();
+    assert.ok(R.log.some(l => l.kind === 'say' && l.lines === STORY.firstLight) && R.has('clue_light'), 'on the night side');
+    R.G.flag('beam_used');
+    const n0 = R.log.length;
+    R.G.flag('light_l1'); R.G.emit('light', { id: 'l1', n: 2 });
+    await R.settle();
+    assert.ok(!sinceLog(R, n0).some(l => l.kind === 'say' && (l.lines === STORY.firstLight || l.lines === STORY.beam)), 'not again, and no beam talk');
+});
+
+test('the help on the Moon before travel, and at nine lights, is recorded and says where to go', { timeout: 120000 }, async () => {
+    const R = await at('mane', 'start', ['visited_mane']);
+    assert.equal(R.story.hint({ peek: true }).ladder, 'moon', 'not "Res dit det fattas ljus" before the rocket can travel');
+    const Q = await at('mane', 'start', [...AFTER_MOON, ...['l4', 'l5', 'l6', 'l7', 'l8', 'l9'].map(l => 'light_' + l)]);
+    assert.equal(Q.story.hint({ peek: true }).ladder, 'white');
+    assert.ok(HINTS.white.includes(Q.story.hint({ peek: true }).text));
+});
+
+test('a hint in the companion\'s own words: Nova says "min krater", Klo "mina klor"', { timeout: 120000 }, async () => {
+    const all = [...AFTER_MOON, 'rocket_gone', 'climax', 'moon_bitten', 'outline_gone', 'clue_sudd', 'self_drawn', 'tenth_drawn', 'ride', 'ride_done',
+        'caught', 'moon_whole', 'b:landed', 'b:rimHeals', ...['l4', 'l5', 'l6', 'l7', 'l8', 'l9', 'l10'].map(l => 'light_' + l)];
+    const R = await at('mane', 'start', all);
+    R.G.goto('mane', { x: 4 * 200, y: 0 });
+    await R.hold(0.2);
+    assert.equal(R.story.hint({ peek: true, who: 'nova' }).text, OWN_HINTS.nova['home.0']);
+    assert.equal(R.story.hint({ peek: true, who: 'klo' }).text, HINTS.home[0]);
+    const n0 = R.log.length;
+    R.G.emit('talk', { who: 'nova' });
+    await R.settle();
+    assert.ok(sinceLog(R, n0).some(l => l.kind === 'say' && l.lines[0][0] === 'nova' && l.lines[0][1] === OWN_HINTS.nova['home.0']));
+});
+
+test('the notebook writes what is said when it is said: the Moon\'s postcard, the Karlavagnen fact, Kometen\'s clue', { timeout: 120000 }, async () => {
+    const R = await at('mane', 'start', ['visited_mane', 'light_l1', 'b:firstLight', 'beam_used', 'b:beamTalk', 'b:rival1']);
+    assert.ok(!R.story.notebook().postcards.includes('mane'), 'not at the first light');
+    R.G.flag('light_l2'); R.G.emit('light', { id: 'l2', n: 2 });
+    await R.settle();
+    assert.ok(R.has('b:rival2') && R.story.notebook().postcards.includes('mane'), 'when Klo says he writes one');
+    const S = await at('stjarn', 'beltRock', [...STJARN, 'wagon_drawn', 'b:wagonDone']);
+    assert.ok(!S.story.notebook().facts.some(f => f.id === 'wagon'), 'Karlavagnen is the bear\'s back: written when the bear is met');
+    const C = await at('ring', 'icedock', [...AFTER_MOON, 'visited_ring', 'b:ringArrive', 'comet_rest', 'light_l8']);
+    assert.ok(!C.has('clue_crooked') || C.has('b:crooked'), 'the crooked clue comes with Nova\'s "De raka stjärnorna är kvar"');
 });

@@ -1314,13 +1314,16 @@ här." · `white` "Där finns inget att stå på. Inte än." · `rubbed` "Den su
 
 As in Äventyr 2: the goal note says what and why; every puzzle has an intro that gives the reason; up to three hints
 in a companion's words, never key names. Either companion can give any hint ("Prata" alternates between them, as
-after #32), so each hint is recorded in both voices. Hints are plain enough for either to say.
+after #32), so each hint is recorded in both voices. Hints are plain enough for either to say, except where the plain
+words would have the speaker name itself ("Men Nova kan lyfta."): then that one has its own words (`OWN_HINTS`, audit of
+13 November; nobody names themselves, as in Äventyr 1 and 2), listed after the ladders below.
 
 ### 12.1 Goals (`GOALS`)
 
 | When | Goal | Why |
 | --- | --- | --- |
 | Before M1 | Hitta rymdkrabbans frukost | Hon pratar inte före frukost – och hon vet allt om rymden. |
+| Moon, before the first light | Hitta Alvas stjärnor (0 av 10) | Tio stjärnor är borta sedan i natt. Nova vet allt om rymden – följ med och leta. |
 | Moon, stars left there | Hitta Alvas stjärnor (n av 10) | Stjärnornas ljus har drivit iväg över hela rymden. Novas klo lyser när ett är nära. |
 | All three Moon stars, before M5 | Klättra upp till Utsikten | Därifrån ser man hela himlen – och hålen där stjärnorna satt. |
 | After M5, before the fin | Gå tillbaka till raketen | Stjärnljusen har drivit längre bort än månen. |
@@ -1329,7 +1332,7 @@ after #32), so each hint is recorded in both voices. Hints are plain enough for 
 | In `sudd`, before Suddet | Ta dig genom det vita | Här finns inget ritat. Hovarna får rita vägen. |
 | Rubbed out (V5) | Rita dig själv | Suddet tog dina streck. Färgen sitter kvar – och Alvas penna sitter i hovarna. |
 | After the talk (G1) | Galoppera hem på Kometens svans | Raketen är borta. Suddet rider på skalet och ritar stjärnor hela vägen hem. |
-| At Kometens huvud (F1) | Hoppa till månen | Kometen hinner inte bromsa. Nova fångar ett skal som ligger still. |
+| At Kometens huvud (F1) | Hoppa till månen | Kometen hinner inte bromsa. Nova fångar ett skal som ligger stilla. |
 | On the bitten Moon (F2) | Rita månens kant hel | Utan måne är det mörkt i skogen – och Molnet är rädd för mörkret. |
 | The Moon whole | Gå till Novas krater | Stjärnorna ska tillbaka till sina platser, rakt ovanför hennes säng. |
 | After | Utforska rymden | Forskningen fortsätter – ända ut i Vintergatan. |
@@ -1344,17 +1347,20 @@ after #32), so each hint is recorded in both voices. Hints are plain enough for 
   bredvid Nova. Gå vidare medan lamporna lyser, och galoppera igen när de slocknar.
 - **m4**: Stjärnljuset ligger på en avsats under klippan. · Varje hopp svävar förbi. Du behöver falla rakt ner. ·
   Hoppa ut över avsatsen och göm dig mitt i luften. Skalet faller som en sten.
-- **m5**: Från Spiran ser man hela himlen. · Stenarna hänger som en trappa ut över kanten. · Hoppa från sten till
+- **m5**: Från Utsikten ser man hela himlen. · Stenarna hänger som en trappa ut över kanten. · Hoppa från sten till
   sten ända upp. Här bär varje hopp långt.
-- **fin**: Raketen kan inte flyga utan sin fena. · Mira ritade den. Hon kan rita den igen. · Gå fram till raketen
-  och rita fenan med Miras penna.
+- **moon** (on the Moon before Utsikten, where no puzzle is): Här finns inget mer att hitta. Vi letar längre bort på
+  månen. · Månen är stor. Fortsätt bort från raketen, så långt det går. · Leta i den djupa kratern, på nattsidan och
+  under klippan vid kanten.
+- **fin** (the way back from Utsikten; the fin is found, and drawn, at the rocket): Raketen står kvar där vi landade. ·
+  Gå samma väg tillbaka, förbi kratrarna. · Gå hela vägen tillbaka till raketen.
 - **s1**: Karlavagnens streck är inte dragna. · Dina hovar ritar när du springer riktigt fort. · Ta sats på
   Hamnstenen och galoppera ut längs det streckade strecket, förbi alla sju stjärnorna.
 - **s2**: De tre stjärnorna tänds i en viss ordning. · Novas lampor blinkar ordningen. Prata med henne, så visar hon
   igen. · Sväva till stjärnorna i den ordningen och landa på var och en: mitten, vänster, höger.
 - **s3**: Björnen sover på ett stjärnljus, och ingen kan väcka honom. · Hans nos är utsuddad. Utan nos känner han
   ingen doft av frukost. · Ta sats över hans rygg och galoppera längs den streckade nosen.
-- **s4**: Pip snurrar i en bana runt stenen. · Den som simmar sparkar sig ur banan. Ett skal som ligger still följer
+- **s4**: Pip snurrar i en bana runt stenen. · Den som simmar sparkar sig ur banan. Ett skal som ligger stilla följer
   med. · Sväva in i banan och göm dig. Skalet går i omlopp och möter Pip.
 - **r1**: Grusskurarna knuffar dig bakåt. · I skalet känns gruset inte. Bakom isblocken är det lä. · Göm dig när det
   glimmar, och gå vidare när skuren har dragit förbi.
@@ -1376,7 +1382,7 @@ after #32), so each hint is recorded in both voices. Hints are plain enough for 
   du springer fort. · Galoppera! Varje kliv ritar en bit av dig själv.
 - **g1**: Kometens svans är rak. Den suddar Suddet aldrig. · Suddet rider på ditt skal och ritar stjärnor när du
   springer fort. · Galoppera längs hela svansen, ända fram till Kometens huvud. Stannar du går inget förlorat.
-- **f1**: Kometen kan inte bromsa, och månen är för långt bort för ett hopp. · Nova fångar ett skal som ligger still.
+- **f1**: Kometen kan inte bromsa, och månen är för långt bort för ett hopp. · Nova fångar ett skal som ligger stilla.
   Precis som i kratern. · Ta sats, hoppa från Kometens huvud och göm dig mitt i luften.
 - **f2**: Månens kant är utsuddad, men märket finns kvar. · Hovarna ritar i full galopp. På månen blir kliven
   långa. · Ta sats och galoppera längs hela den streckade kanten.
@@ -1384,6 +1390,14 @@ after #32), so each hint is recorded in both voices. Hints are plain enough for 
   Novas krater.
 - **more**: Det finns fler stjärnljus. Novas klo lyser när ett är nära. · Titta på stjärnkartan i dagboken: där står
   hur många du har hittat på varje plats. · Res dit det fattas ljus, och prata med Nova där.
+- **white** (nine lights): Det tionde ljuset är i det vita hålet. · Raketen kan resa dit nu. · Gå till raketen och res
+  till det vita hålet.
+
+In Nova's own words (`OWN_HINTS.nova`): m2 "… Men jag kan lyfta dig." · m3 "Mina lampor lyser bäst när jag är arg." /
+"Jag blir arg av hovklapper." / "Galoppera bredvid mig. …" · s2 "Mina lampor blinkar ordningen. Prata med mig, så visar
+jag igen." · v3 "… Jag lyfter skalet över." · f1 "Jag fångar ett skal som ligger stilla. …" · home "… under min kupa." /
+"… ovanför min krater." / "Gå till min krater." · more "… Min klo lyser när ett är nära." / "… och prata med mig där."
+In Klo's (`OWN_HINTS.klo`): v2 "Lyktan lyser bara när mina klor är stilla. Och jag är stilla när du är det."
 
 Pekklon's words (`POINT`, when "Prata" with Nova and a light is near): "Min klo lyser. Uppåt." · "… Neråt." · "… Åt
 det hållet. Långt." · "… Alldeles nära. Titta bättre."
@@ -2061,6 +2075,29 @@ stars with ordinary inputs (about 330 s, 310 boxes). What playing it changed aga
   Skuggsidan's west end back to the ring's end. A swimmer under the ring is pulled back onto the ice after a moment.
 - **The rocket's door** answers from 2.2 lengths. After the story Mira's new rocket stands at every page's dock, the
   white hole's too.
+
+### 20.3 What the audit changed (13 November)
+
+Three read-only audits after the release (the story's order and who says what; the runtime; the notebook, this
+document and the Swedish), and what came of them. Every change has a test (`tests/skoldhast-a3-reload.test.mjs`,
+`tests/skoldhast-a3-fixes.test.mjs`, `tests/skoldhast-a3-words.test.mjs`).
+
+- **Nobody says "Nova" before she does** (Pappa's find): section 7. Until breakfast she is "rymdkrabban".
+- **Closing in the middle of a scene loses nothing**: a scene a one-time event started (the box landing, a light, a drawn
+  line, Pip's photograph, Kometen's rest, an arrival) is played again after a restore if it did not end. Before, the
+  bear's light could be lost for good, and with it the white page.
+- **Play**: Karlavagnen is drawn before anyone floats on to Orions bälte; talking to Nova at the belt blinks the order;
+  the gravel measurement is written for every player, so "åtta mot åtta" holds; "Jag har fastnat" never skips open
+  space; the floating ledge rule is the Moon's only; the bridge hints wait for the bridge to be rubbed out; after the
+  story the comet ride home saves on the Moon.
+- **Words**: the first star-light's scene plays on whichever light is found first; the hints above that were added
+  (moon, white) or rewritten (fin, m5) and the own words; "galopperar den som bar er" (Tukankrabban: the sköldhäst is
+  "den" in the series); Klo's "smulor vid raketen" at Pip (Pip can come before the bear's rubber).
+- **The notebook**: the Moon's postcard is written when Klo says he writes it (rival2); the Karlavagnen fact when the
+  bear is met; Kometen's clue with Nova's "De raka stjärnorna är kvar"; "Stjärnljus" over the kupa until the first light;
+  "Inga hypoteser än" before the first.
+- **This document follows the build** where it had drifted: the white page's postcard is written on arrival (13.6), the
+  pipPhoto secret shows no photograph on the page, and cometRace is any wrap at a gallop (15).
 
 ## 21. Risks and what to tune
 

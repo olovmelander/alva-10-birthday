@@ -17,8 +17,9 @@
  * sköldhäst's bearNose, the hint s3 and the ring's gap (with the hint r5 and the clue crumbs). Nobody says "Nova"
  * before she does, at breakfast ("Jag heter Nova."): until then she is "rymdkrabban" (Pappa, 13 November).
  *
- * Every spoken line is recorded with a direction (content/regi.mjs, design section 17.1); nothing of Äventyr 3 is
- * recorded until Pappa says the adventure is finished (scripts/skoldhast-voice.mjs, PENDING).
+ * Every spoken line is recorded with a direction (content/regi.mjs, design section 17.1): change a line, and record it
+ * again (scripts/skoldhast-voice.mjs). A hint is recorded in both companions' voices; where the plain words would
+ * have one name itself ("Men Nova kan lyfta."), OWN_HINTS gives that one its own (audit of 13 November).
  */
 
 export const NAMES = {
@@ -366,7 +367,7 @@ export const STORY = {
     pipDone: [
         ['pip', 'Pip. Pip pip. Pip!'],
         ['nova', 'Han har tagit en bild av tjuven. Liten. Rosa. Kantig.'],
-        ['klo', 'Liten, rosa, kantig – och smulor av gummi …']
+        ['klo', 'Liten, rosa, kantig – och smulor vid raketen …']
     ],
     // plays when both the photograph and the rubber are known, wherever that happens
     hypothesis3: [
@@ -695,7 +696,7 @@ export const STORY = {
     forestLight: [
         ['caption', 'Månskenet faller över den magiska skogen igen. Stormen tystnar.'],
         ['moln', 'Det är ljust! Jag slutade! Och titta – en hel väg av stjärnor!'],
-        ['tukan', 'Titta, ungar! Titta, Lilla Klo! Där uppe galopperar han som bar er.']
+        ['tukan', 'Titta, ungar! Titta, Lilla Klo! Där uppe galopperar den som bar er.']
     ],
     rimDone: [
         ['horse', 'Månen är hel. Nu ska stjärnorna hem.'],
@@ -807,10 +808,14 @@ export const GOALS = {
     breakfastWhy: 'Hon pratar inte före frukost – och hon vet allt om rymden.',
     moon: (n, total) => `Hitta Alvas stjärnor (${n} av ${total})`,
     moonWhy: 'Stjärnornas ljus har drivit iväg över hela rymden. Novas klo lyser när ett är nära.',
+    // before the first light, which is where Nova explains what a star-light is and that her claw finds them
+    moonWhyBefore: 'Tio stjärnor är borta sedan i natt. Nova vet allt om rymden – följ med och leta.',
     view: 'Klättra upp till Utsikten',
     viewWhy: 'Därifrån ser man hela himlen – och hålen där stjärnorna satt.',
     rocket: 'Gå tillbaka till raketen',
     rocketWhy: 'Stjärnljusen har drivit längre bort än månen.',
+    // after Utsikten with a Moon light still where it lay (Spiran can be climbed before the ledge)
+    rocketWhyLeft: 'Ett stjärnljus finns kvar här på månen. Hämta det på vägen tillbaka.',
     lights: (n, total) => `Hitta Alvas stjärnor (${n} av ${total})`,
     lightsWhy: 'Någon tar dem. Vem – och varför?',
     // once Suddet is known: the question is answered, and what is left is getting the stars home
@@ -826,7 +831,7 @@ export const GOALS = {
     ride: 'Galoppera hem på Kometens svans',
     rideWhy: 'Raketen är borta. Suddet rider på skalet och ritar stjärnor hela vägen hem.',
     jump: 'Hoppa till månen',
-    jumpWhy: 'Kometen hinner inte bromsa. Nova fångar ett skal som ligger still.',
+    jumpWhy: 'Kometen hinner inte bromsa. Nova fångar ett skal som ligger stilla.',
     rim: 'Rita månens kant hel',
     rimWhy: 'Utan måne är det mörkt i skogen – och Molnet är rädd för mörkret.',
     crater: 'Gå till Novas krater',
@@ -848,10 +853,13 @@ export const HINTS = {
         'Galoppera bredvid Nova. Gå vidare medan lamporna lyser, och galoppera igen när de slocknar.'],
     m4: ['Stjärnljuset ligger på en avsats under klippan.', 'Varje hopp svävar förbi. Du behöver falla rakt ner.',
         'Hoppa ut över avsatsen och göm dig mitt i luften. Skalet faller som en sten.'],
-    m5: ['Från Spiran ser man hela himlen.', 'Stenarna hänger som en trappa ut över kanten.',
+    m5: ['Från Utsikten ser man hela himlen.', 'Stenarna hänger som en trappa ut över kanten.',
         'Hoppa från sten till sten ända upp. Här bär varje hopp långt.'],
-    fin: ['Raketen kan inte flyga utan sin fena.', 'Mira ritade den. Hon kan rita den igen.',
-        'Gå fram till raketen och rita fenan med Miras penna.'],
+    // on the Moon before Utsikten, with no puzzle where the sköldhäst stands (no travel yet: "more" would say "Res")
+    moon: ['Här finns inget mer att hitta. Vi letar längre bort på månen.', 'Månen är stor. Fortsätt bort från raketen, så långt det går.',
+        'Leta i den djupa kratern, på nattsidan och under klippan vid kanten.'],
+    // after Utsikten, on the way back: the fin is found (and drawn) when the rocket is reached
+    fin: ['Raketen står kvar där vi landade.', 'Gå samma väg tillbaka, förbi kratrarna.', 'Gå hela vägen tillbaka till raketen.'],
     s1: ['Karlavagnens streck är inte dragna.', 'Dina hovar ritar när du springer riktigt fort.',
         'Ta sats på Hamnstenen och galoppera ut längs det streckade strecket, förbi alla sju stjärnorna.'],
     s2: ['De tre stjärnorna tänds i en viss ordning.', 'Novas lampor blinkar ordningen. Prata med henne, så visar hon igen.',
@@ -892,7 +900,31 @@ export const HINTS = {
     home: ['Alla tio ljusen ligger under Novas kupa.', 'Stjärnornas märken sitter kvar ovanför Novas krater.', 'Gå till Novas krater.'],
     more: ['Det finns fler stjärnljus. Novas klo lyser när ett är nära.',
         'Titta på stjärnkartan i dagboken: där står hur många du har hittat på varje plats.',
-        'Res dit det fattas ljus, och prata med Nova där.']
+        'Res dit det fattas ljus, och prata med Nova där.'],
+    // nine lights: the tenth is in the white
+    white: ['Det tionde ljuset är i det vita hålet.', 'Raketen kan resa dit nu.', 'Gå till raketen och res till det vita hålet.']
+};
+
+/** A hint in the voice of the one it names (key: ladder.step): "Prata" gives a hint in Klo's or Nova's voice, and
+ *  nobody names themselves (the rule of Äventyr 1 and 2). m1 is not here: she does not talk before breakfast. */
+export const OWN_HINTS = {
+    nova: {
+        'm2.1': 'Väggarna är för höga att hoppa upp för. Men jag kan lyfta dig.',
+        'm3.0': 'På nattsidan behövs ljus. Mina lampor lyser bäst när jag är arg.',
+        'm3.1': 'Jag blir arg av hovklapper.',
+        'm3.2': 'Galoppera bredvid mig. Gå vidare medan lamporna lyser, och galoppera igen när de slocknar.',
+        's2.1': 'Mina lampor blinkar ordningen. Prata med mig, så visar jag igen.',
+        'v3.2': 'Göm dig i ljusringen vid brons början. Jag lyfter skalet över.',
+        'f1.1': 'Jag fångar ett skal som ligger stilla. Precis som i kratern.',
+        'home.0': 'Alla tio ljusen ligger under min kupa.',
+        'home.1': 'Stjärnornas märken sitter kvar ovanför min krater.',
+        'home.2': 'Gå till min krater.',
+        'more.0': 'Det finns fler stjärnljus. Min klo lyser när ett är nära.',
+        'more.2': 'Res dit det fattas ljus, och prata med mig där.'
+    },
+    klo: {
+        'v2.1': 'Lyktan lyser bara när mina klor är stilla. Och jag är stilla när du är det.'
+    }
 };
 
 /** Pekklon (3.5): what Nova says when "Prata" finds a light near her, by where it lies. */
@@ -1007,6 +1039,7 @@ export const NOTEBOOK = {
     ],
     confirmed: 'Stämmer!', notConfirmed: 'Stämmer inte',
     hypMore: 'Fler hypoteser kommer när vi forskar vidare.',
+    hypNone: 'Inga hypoteser än. Vi har precis börjat forska.',
     // what we know
     clues: 'Det vet vi', cluesEmpty: 'Inget än. Vi har precis börjat forska.',
     cluesAfter: { white: 'Nu är de fyllda.', gone: 'Det sover i pennfodralet.' },
