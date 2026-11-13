@@ -1,3 +1,84 @@
+## Äventyr 3: the audit after the release, and its fixes (13 November)
+
+Pappa: "Any more bugs or things we need to align? Do an audit", then "Continue with what you recommend." Three
+read-only audits ran: the story's order and who says what, the runtime, and the notebook, the design and the Swedish.
+The browser checks of every page passed at two sizes. Everything below is fixed and has a test
+(`tests/skoldhast-a3-reload.test.mjs`, `tests/skoldhast-a3-fixes.test.mjs`, two in `tests/skoldhast-a3-words.test.mjs`).
+Each of the new tests fails on the old code. The design's record of it is section 20.3 of
+`docs/skoldhast/adventure-3.md`.
+
+- **Could stop her from finishing:** closing or reloading while Stora björnen talked lost his light for good, so only
+  eight lights could be found and the white page never opened.
+- **Closing in the middle of a scene lost it** (`story.mjs`, `replayUnfinished()` in `start()`):
+  - breakfast's count, clue and hypothesis 1;
+  - every arrival (on the white page the rocket stayed and Suddet was invisible);
+  - Pip's photo, Kometen's clue, the view's hypothesis 2, the first light's scene, the wagon's ride to the belt, the
+    bridge talk and "nine".
+  - Now every beat a one-time event started is queued again on restore if it did not end. The arrivals are their own
+    beats, and `m5_view` is written when the view ends. Suddet shows once `rocket_gone` is set (it used to wait for
+    `b:suddArrive`, which is now written at the end).
+- **Play:**
+  - Karlavagnen must be drawn before floating on to Orions bälte (a wall at 31 while `!wagon_drawn`, with "Strecket
+    håller inte än").
+  - "Prata" with Nova at the belt blinks the order. Her pointing claw used to answer first.
+  - The gravel measurement is written on reaching the slingshot, so Klo's "åtta mot åtta" holds for a player who never
+    hid.
+  - "Jag har fastnat" never skips open space (the slingshot, Kometen's lane).
+  - The floating ledge rule only applies under the Moon's gravity. At Sista bron a hop sent the sköldhäst into the
+    white.
+  - The bridge hints wait until the bridge is rubbed out. Before that, the marks' hints.
+  - After the story, the comet ride home saves on the Moon.
+  - A reload during Den stora galoppen keeps the remarks already passed.
+  - A reload during the catch's flight makes the jump again.
+- **Words (recorded):**
+  - Klo and Nova each say a hint in their own words where the plain ones would have them name themselves
+    (`OWN_HINTS`: 12 of Nova's, 1 of Klo's, e.g. "Gå till min krater.").
+  - New hint ladders: `moon` (on the Moon before travel, instead of "Res dit det fattas ljus") and `white` (nine
+    lights; it used to read out an unrecorded goal line).
+  - `fin` is rewritten as the way back to the rocket; it was only ever heard before the fin was found.
+  - m5 says "Utsikten", not "Spiran".
+  - Tukankrabban: "galopperar den som bar er".
+  - Klo at Pip: "smulor vid raketen" (Pip can come before the bear's rubber).
+  - 35 clips: all came back word for word from speech-to-text (about 1,700 characters). 23 old clips are pruned.
+- **Not recorded, and the notebook:**
+  - The first light's scene plays on whichever light is found first. A gallop-jump can land past the crater's.
+  - The beam talk plays only when the beam is still needed.
+  - New goal notes: one before the first light, and "Ett stjärnljus finns kvar här på månen" when Utsikten is climbed
+    with a Moon light left. "ligger stilla" in the jump's goal.
+  - The Moon's postcard is written at rival2, when Klo says he writes one.
+  - The Karlavagnen fact is written when the bear is met.
+  - Kometen's clue comes with Nova's "De raka stjärnorna är kvar" (`tests/skoldhast-a3-route.mjs` checks that).
+  - "Stjärnljus" heads the kupa until the first light, and "Inga hypoteser än" shows before the first hypothesis.
+  - Clean-up: the unused `CLUE_AT` is removed, `b:notes` became `notes_rubbed`, and the headers say that everything is
+    recorded.
+- **Verification:**
+  - `npm test`: 508 pass.
+  - `tests/browser/skoldhast-a3.mjs --sizes phone,side`: all pass.
+  - Headless Chromium before breakfast: the notebook's cover, "Vad vet vi?" and "Frågan" are right, with no page
+    errors.
+- **Then the audit's polish** (Pappa: "Continue with what you think's left and then create a PR and merge"):
+  - While Mätningar is rubbed out, only the lines from before the rub are smears (`rub_<id>` flags at the rub). One
+    measured after it is in pencil, as is a heading over only new lines. The playthrough test checks it.
+  - The slingshot's measurement reads "Slungades runt en planet: …". The picture loops about 1.4 times, not one lap.
+  - Nova's claw says "Min klo lyser. … Åt det hållet." under six lengths away (`POINT.aside`, recorded). "Långt." is
+    only for farther. The fixes test checks it.
+  - At Luckan Nova says "Min klo lyser. Det finns ett till på andra sidan." (recorded). It used to be "Det sista …",
+    wrong when the ice's light was left behind.
+  - The kupa's tooltip on a computer says "Stjärnljus" until the first light.
+  - `npm test`: 509 pass. `tests/browser/skoldhast-a3.mjs --sizes phone`: all pass. The rubbed page was checked in
+    headless Chromium after Den stora galoppen: old lines smeared, "Galopperade fram Vintergatan" readable, no
+    errors.
+- **Left as it was:**
+  - The excited thoughts keep the thoughts' default tag ("thoughtful, to itself"), the policy Pappa approved in the
+    trial.
+  - The m1 hint in Nova's voice still speaks of her in the third person, but she never talks before breakfast.
+- **Frågor till Pappa:**
+  - Listen to the new clips while playing; nobody here can hear them. One that sounds wrong can be taken again alone.
+  - **Listen especially to Nova at Luckan** ("Min klo lyser. Det finns ett till på andra sidan."). Speech-to-text heard
+    "Min klocka lyser" in every take of this one line, in three wordings, and also in the clip that has played since
+    12 November. Her other "Min klo lyser" lines come back right. If you hear "klocka", say so and it gets another
+    wording.
+
 ## Äventyr 3: nobody says "Nova" before she does (13 November)
 
 Pappa: "Jag tror professor klo säger namnet Nova innan rymdkrabban Nova sagt vad hon heter. Kan vi fixa detta I
@@ -24,7 +105,7 @@ Pappa: "Jag tror professor klo säger namnet Nova innan rymdkrabban Nova sagt va
   headless Chromium before breakfast: the goal, K (Klo's hint), the notebook's cover and "Vad vet vi?" in the crater
   say no "Nova"; after breakfast they do. No page errors.
 - **Left as it was:** the speaker tab of her first lines shows her painted face only, no name; the counter's hover
-  tooltip on a computer still says "Novas kupa". The design's rule is
+  tooltip on a computer said "Novas kupa" (fixed the same day: "Stjärnljus" until the first light). The design's rule is
   in section 7 of `docs/skoldhast/adventure-3.md`, with the new goal and hint in 12.1 and 12.2.
 
 ## Äventyr 3: Tordyveln at the launch (13 November)

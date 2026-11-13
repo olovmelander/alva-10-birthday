@@ -5,7 +5,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { voiceScript, untag, directionFor, VOICES, PENDING } from '../scripts/skoldhast-voice.mjs';
-import { STORY, TABLE, HINTS, GOALS, POINT, CHATTER, BALK, NAMES, WORDS, NOTEBOOK } from '../skoldhast/adventures/adventure-3/content/sv.mjs';
+import { STORY, TABLE, HINTS, OWN_HINTS, GOALS, POINT, CHATTER, BALK, NAMES, WORDS, NOTEBOOK } from '../skoldhast/adventures/adventure-3/content/sv.mjs';
 import { DEFAULT, LINES } from '../skoldhast/adventures/adventure-3/content/regi.mjs';
 
 const a3 = () => voiceScript({ pending: true }).filter(l => l.src.startsWith('a3 '));
@@ -149,4 +149,21 @@ test('nobody says "Nova" before she does, at breakfast (Pappa, 13 November: Klo 
     // the first hint is said by Klo (and by her) and is recorded in both voices
     const lines = a3().filter(l => l.text === HINTS.m1[0]);
     assert.deepEqual([...new Set(lines.map(l => l.voice))].sort(), ['klo', 'nova']);
+});
+
+test('nobody names themselves in a hint: Klo and Nova each say it in their own words (audit of 13 November)', () => {
+    const lines = voiceScript({ pending: true }); // (a line Äventyr 1 or 2 has in the same voice is their clip)
+    for (const [who, re] of [['klo', /\bKlos?\b/], ['nova', /\bNovas?\b/]]) {
+        for (const [k, ladder] of Object.entries(HINTS)) ladder.forEach((t, i) => {
+            const own = OWN_HINTS[who]?.[`${k}.${i}`];
+            const said = own ?? t;
+            assert.ok(!re.test(said), `${who} would say HINTS.${k}.${i}: "${said}"`);
+            assert.ok(lines.some(l => l.voice === who && l.text === said), `${who}'s HINTS.${k}.${i} is in the voice script`);
+            if (own) {
+                assert.ok(own.length <= 100, `short: ${own}`);
+                if (!['white', 'home', 'v1', 'v2', 'v3', 'v4', 'v5', 'g1', 'f1', 'f2'].includes(k)) assert.ok(!/sudd|\bsned/i.test(own), `not too early: ${own}`);
+            }
+        });
+        for (const key of Object.keys(OWN_HINTS[who] || {})) { const [k, i] = key.split('.'); assert.ok(HINTS[k]?.[+i], `OWN_HINTS.${who}.${key} has a hint`); }
+    }
 });

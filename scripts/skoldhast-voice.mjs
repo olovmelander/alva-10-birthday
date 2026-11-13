@@ -165,8 +165,10 @@ export function voiceScript({ pending = false } = {}) {
             else add('caption', v, 'narrator', `a3 TABLE.${k}`);
         }
         walk(A3.BALK, '', (t, at) => add('horse', t, 'horse', `a3 BALK.${at}`));
-        // talking to a companion: either of them can give any hint (Nova and Klo)
-        walk(A3.HINTS, '', (t, at) => { add('klo', t, 'klo', `a3 HINTS.${at}`); add('nova', t, 'nova', `a3 HINTS.${at}`); });
+        // talking to a companion: either of them can give any hint (Nova and Klo), in its own words where the plain
+        // ones would have it name itself (OWN_HINTS)
+        const own = A3.OWN_HINTS || {};
+        walk(A3.HINTS, '', (t, at) => { for (const who of ['klo', 'nova']) add(who, own[who]?.[at] ?? t, who, `a3 HINTS.${at}`); });
         // Pekklon: where the nearest light is, in Nova's words
         for (const [k, t] of Object.entries(A3.POINT)) add('nova', t, 'nova', `a3 POINT.${k}`);
         A3.CHATTER.nova.forEach((t, i) => add('nova', t, 'nova', `a3 CHATTER.nova.${i}`));

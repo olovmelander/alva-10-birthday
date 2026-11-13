@@ -360,6 +360,9 @@ export function restorePuzzles(G, puz) {
     G.puz.box = Number.isFinite(puz.box) ? puz.box : null;
     G.puz.ice = Number.isFinite(puz.ice) ? puz.ice : null;
     G.puz.ride = Number.isFinite(puz.ride) ? puz.ride : 0;
+    // the remarks along Den stora galoppen that were passed before the reload are not said again all at once
+    const ride = G.scenes.vinter?.ride;
+    G.puz.rideMarks = ride ? ride.marks.filter(m => G.puz.ride >= m.at).length : 0;
     G.puz.belt = Array.isArray(puz.belt) ? puz.belt.filter(x => typeof x === 'string') : [];
     G.puz.bridgeRubs = Number.isFinite(puz.bridgeRubs) ? puz.bridgeRubs : 0;
     // an interrupted fall or melt is finished on reload

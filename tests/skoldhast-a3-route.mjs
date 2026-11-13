@@ -148,7 +148,9 @@ export async function ring(R) {
     await R.emerge();
     await R.flag('comet_rest', {}, 12);
     await R.settle();
-    assert.ok(R.has('light_l8') && R.has('clue_crooked'), 'R4: Kometen\'s light, and what it saw');
+    // (the clue "Bara de sneda …" is written with Nova's "De raka stjärnorna är kvar", after hypothesis 3)
+    assert.ok(R.has('light_l8') && R.has('b:cometSaw'), 'R4: Kometen\'s light, and what it saw');
+    assert.equal(R.has('clue_crooked'), R.has('b:crooked'));
     await R.goTo(71.6);
     await R.until(() => G.puz.shower?.state === 'shower' && G.puz.shower.id === 'gravelGap', {}, 8, 'a shower');
     await R.until(() => G.puz.shower === null || G.puz.shower.id !== 'gravelGap', {}, 4, 'shower over');
