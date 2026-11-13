@@ -5,7 +5,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { voiceScript, untag, directionFor, VOICES, PENDING } from '../scripts/skoldhast-voice.mjs';
-import { STORY, TABLE, HINTS, GOALS, POINT, CHATTER, BALK, NAMES, WORDS } from '../skoldhast/adventures/adventure-3/content/sv.mjs';
+import { STORY, TABLE, HINTS, GOALS, POINT, CHATTER, BALK, NAMES, WORDS, NOTEBOOK } from '../skoldhast/adventures/adventure-3/content/sv.mjs';
 import { DEFAULT, LINES } from '../skoldhast/adventures/adventure-3/content/regi.mjs';
 
 const a3 = () => voiceScript({ pending: true }).filter(l => l.src.startsWith('a3 '));
@@ -127,4 +127,26 @@ test('nothing is said too early (section 7): no eraser before hypothesis 3, no c
     }
     // the one allowed early word: Mira at the table
     assert.match(STORY.eraserGone[0][1], /suddet/);
+});
+
+test('nobody says "Nova" before she does, at breakfast (Pappa, 13 November: Klo named her in his first hint)', () => {
+    // she says it in the second box of the breakfast beat; the flag "breakfast" is set just before that beat
+    assert.match(STORY.breakfast[1][1], /^Jag heter Nova\./);
+    const said = (v) => typeof v === 'string' ? [v] : isPair(v) ? [v[1]] : Array.isArray(v) ? v.flatMap(said) : [];
+    const keys = Object.keys(TABLE), prologue = keys.slice(0, keys.indexOf('evening'));
+    const texts = [
+        ...prologue.flatMap(k => said(TABLE[k]).map(t => [`TABLE.${k}`, t])),
+        ...['launch', 'launch2', 'launch3', 'arrive', 'arrive2', 'arrive3', 'shelfSeen', 'boxFalls', 'novaGallop', 'rescued']
+            .flatMap(k => said(STORY[k]).map(t => [`STORY.${k}`, t])),
+        ['STORY.breakfast.0', STORY.breakfast[0][1]],
+        ...said(STORY.measure).map(t => ['STORY.measure', t]),
+        ...HINTS.m1.map((t, i) => [`HINTS.m1.${i}`, t]),
+        ['BALK.breakfast', BALK.breakfast], ['GOALS.breakfast', GOALS.breakfast], ['GOALS.breakfastWhy', GOALS.breakfastWhy],
+        ['WORDS.drawFlame', WORDS.drawFlame], ['WORDS.placesBefore.crater', WORDS.placesBefore.crater],
+        ['NOTEBOOK.teamBefore', NOTEBOOK.teamBefore], ['NOTEBOOK.kupaBefore', NOTEBOOK.kupaBefore]
+    ];
+    for (const [at, t] of texts) assert.ok(!/nova/i.test(t), `${at}: "${t}"`);
+    // the first hint is said by Klo (and by her) and is recorded in both voices
+    const lines = a3().filter(l => l.text === HINTS.m1[0]);
+    assert.deepEqual([...new Set(lines.map(l => l.voice))].sort(), ['klo', 'nova']);
 });

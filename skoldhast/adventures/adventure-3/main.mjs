@@ -611,7 +611,9 @@ export function createGame({ host = document.body, assetBase = './skoldhast/', s
     // --------------------------------------------------------------------------------
     function placeName() {
         const id = [...(G?.areas || [])].reverse().find(a => WORDS.places[a]);
-        return id ? WORDS.places[id] : WORDS.pages[G?.sceneId] || '';
+        if (!id) return WORDS.pages[G?.sceneId] || '';
+        // "Novas krater" only once she has said her name (at breakfast)
+        return (!G.flags.has('breakfast') && WORDS.placesBefore?.[id]) || WORDS.places[id];
     }
     function openJournal() {
         if (mode !== 'play' || ui.panelOpen()) return;

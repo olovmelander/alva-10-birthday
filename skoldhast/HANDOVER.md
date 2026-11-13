@@ -1,3 +1,32 @@
+## Äventyr 3: nobody says "Nova" before she does (13 November)
+
+Pappa: "Jag tror professor klo säger namnet Nova innan rymdkrabban Nova sagt vad hon heter. Kan vi fixa detta I
+äventyr 3?"
+
+- **Why:** she says her name at breakfast ("Jag heter Nova."), but Klo's first hint for the cereal box (M1, asked
+  with "Fråga Klo", "Prata" or the reminder) was "Novas flingor står på hyllan ovanför hennes krater." Before
+  breakfast the goal note also said "Hitta Novas frukost", the sköldhäst's thought at the way on said "Utan Nova
+  hittar vi inte stjärnorna", and the notebook said "Forskarlaget: … och Nova", "Novas kupa" and "Här är vi: Novas
+  krater".
+- **Now** (`adventures/adventure-3/content/sv.mjs`), until breakfast she is "rymdkrabban", as Alva calls her at the
+  table: the hint "Rymdkrabbans flingor står på hyllan ovanför hennes krater.", the goal "Hitta rymdkrabbans
+  frukost", the thought "Först frukost. Utan rymdkrabban hittar vi inte stjärnorna." In the notebook the team is
+  "Sköldhästen och Professor Klo" (she has not joined yet), the counter's heading "Stjärnljus" and the place
+  "Kratern" (`teamBefore`, `kupaBefore`, `WORDS.placesBefore`; `team.nova` from `story.notebook()`, and `placeName()`
+  in `main.mjs`). From breakfast on everything says "Nova" as before.
+- **Recorded:** the hint in Klo's and Nova's voices and the thought in the sköldhäst's (default direction, about 180
+  characters); all three came back word for word from speech-to-text. The three old clips are pruned. ElevenLabs'
+  key is now a network secret on the cloud environment these sessions run in, so a cloud session can record without
+  Pappa's PC (`ELEVENLABS_API_KEY=proxy-injected`, `SKOLDHAST_NARRATOR_VOICE` a placeholder unless a narrator line
+  is recorded).
+- **Test:** "nobody says "Nova" before she does" in `tests/skoldhast-a3-words.test.mjs` (the prologue, the launch,
+  the arrival, the M1 hints, the goal, the thought, the notebook's words before breakfast). `npm test`: 490 pass. In
+  headless Chromium before breakfast: the goal, K (Klo's hint), the notebook's cover and "Vad vet vi?" in the crater
+  say no "Nova"; after breakfast they do. No page errors.
+- **Left as it was:** the speaker tab of her first lines shows her painted face only, no name; the counter's hover
+  tooltip on a computer still says "Novas kupa". The design's rule is
+  in section 7 of `docs/skoldhast/adventure-3.md`, with the new goal and hint in 12.1 and 12.2.
+
 ## Äventyr 3: Tordyveln at the launch (13 November)
 
 Pappa: "Jag saknar tordyveln i början av äventyr 3 när alla från skogen är där vid raketen."
