@@ -536,7 +536,7 @@ export function createGame({ host = document.body, assetBase = './skoldhast/', s
     let squeakT = 0;
     function squeak(dt, p) {
         const s = G.actors.sudd;
-        if (G.sceneId !== 'sudd' || G.flags.has('self_drawn') || !s?.visible || !G.flags.has('b:suddArrive')) { squeakT = 0; return; }
+        if (G.sceneId !== 'sudd' || G.flags.has('self_drawn') || !s?.visible || !G.flags.has('rocket_gone')) { squeakT = 0; return; }
         squeakT -= dt;
         if (squeakT > 0) return;
         squeakT = 2.2;

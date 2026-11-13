@@ -204,6 +204,9 @@ export function createGame() {
             const between = (x, a, b = a) => (x > x0 ? b > x0 && a <= x : a < x0 && b >= x);
             const shut = (x) => {
                 for (const e of T.edges || []) { if (e.kind !== 'pass' && between(x, e.x)) return true; }
+                // a stretch of open space (the slingshot's, Kometen's lane) is a puzzle, never skipped: only the one the
+                // sköldhäst is in (the star field is one) may be crossed
+                for (const w of T.waters || []) if (w.kind === 'space' && !(x0 >= w.x0 && x0 <= w.x1) && between(x, w.x0, w.x1)) return true;
                 for (const d of T.dashed || []) if (between(x, Math.min(d.pts[0][0], d.pts.at(-1)[0]), Math.max(d.pts[0][0], d.pts.at(-1)[0]))) return true;
                 for (const w of T.walls || []) if (between(x, w.x)) return true;
                 return false;
@@ -413,6 +416,8 @@ export function createGame() {
     /** M4: a jump that comes down on the ledge without hiding floats on past it; only a shell dropping like a stone stays. */
     function ledgeFloat(events) {
         const p = G.player;
+        // only under the Moon's light gravity (the white page's bridge start is a ledge too: there a hop just lands)
+        if ((G.sceneDef.gravity ?? 1) >= 1) return;
         if (p.mode !== 'ground' || p.hidden || !p.surface?.ledge || !events.some(e => e.type === 'land')) return;
         p.mode = 'air'; p.surface = null; p.vy = -240;
         p.jump = { kind: 'hop', vx: 520, limit: null, dir: 1, fromY: p.y };

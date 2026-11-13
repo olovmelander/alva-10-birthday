@@ -191,7 +191,9 @@ SCENES.stjarn = {
     ],
     walls: [
         { id: 'west-paper', x: h(-3.8), y0: h(-14), y1: h(9), balk: 'paper' },
-        { id: 'east-paper', x: h(93.8), y0: h(-14), y1: h(9), balk: 'paper' }
+        { id: 'east-paper', x: h(93.8), y0: h(-14), y1: h(9), balk: 'paper' },
+        // S1 before S2: Karlavagnen is drawn before anyone floats on to Orions bälte (its scene shows Nova's order)
+        { id: 'wagon-unfinished', x: h(31), y0: h(-14), y1: h(9), dir: 1, balk: 'thin', when: '!wagon_drawn' }
     ],
     edges: [],
     dashed: [

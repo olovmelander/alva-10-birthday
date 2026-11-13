@@ -6,8 +6,11 @@
  *   story.step(dt);                     // from G.step: companions follow, beats queue
  *
  * As Äventyr 2's: beats run one at a time and hold play while they run (G.busy); a beat's "b:<id>" flag is
- * written when it ends, so a beat cut short by closing plays again. fx(name, data) runs a staged moment in the
- * view (the robot resolves it at once).
+ * written when it ends, so a beat cut short by closing plays again: a beat started by entering a place plays when
+ * the place is entered again, and start() queues again every beat that a one-time event started (the box landing,
+ * a light, a drawn line, Pip's photograph, Kometen's rest, an arrival) and that did not end (audit of 13 November:
+ * a reload while the bear talked lost his light for good). fx(name, data) runs a staged moment in the view (the
+ * robot resolves it at once).
  *
  * The spine: ten star-lights on four pages, and one question – who takes Alva's stars, and why? Four
  * hypotheses (the first and the second wrong, which is new for the series). The answer is Suddet, the eraser
@@ -41,7 +44,9 @@ const PUZZLES = [
     { id: 'r5', scene: 'ring', areas: ['gap'], solved: F => F.has(lightFlag('l9')) },
     { id: 'v1', scene: 'sudd', areas: ['whiteEdge', 'marks'], solved: F => F.has('dent4') },
     { id: 'v2', scene: 'sudd', areas: ['fog'], solved: F => F.has('fogd3') },
-    { id: 'v3', scene: 'sudd', areas: ['lastBridge'], solved: F => F.has('bridge_crossed') },
+    // Sista bron is galloped like a mark until it is rubbed out twice; only then is Nova's ring of light there (V3)
+    { id: 'bridge', hints: 'v1', scene: 'sudd', areas: ['lastBridge'], solved: F => F.has('bridge_refused') || F.has('bridge_crossed') },
+    { id: 'v3', scene: 'sudd', areas: ['lastBridge'], solved: F => F.has('bridge_crossed'), needs: 'bridge_refused' },
     { id: 'v4', scene: 'sudd', areas: ['crumbs'], solved: F => F.has('climax') || F.has('self_drawn'), needs: 'bridge_crossed' },
     { id: 'v5', scene: 'sudd', areas: ['crumbs'], solved: F => F.has('self_drawn'), needs: 'outline_gone' },
     { id: 'g1', scene: 'vinter', areas: ['tail'], solved: F => F.has('ride_done'), needs: 'ride' },
@@ -84,9 +89,8 @@ const SECRETS = [
     { id: 'cometRace', flag: 's:cometRace', page: 'ring' },
     { id: 'whiteDraw', flag: 's:whiteDraw', page: 'sudd' }
 ];
-/** When each of Klo's facts and clues is written into the notebook: the flag that means it has been said. */
-const CLUE_AT = { ten: 'b:count', light: 'b:firstLight', white: 'b:view2', crumbs: 'b:fin', rubber: 'b:bearGives', photo: 'b:pipDone',
-    crooked: 'b:cometSaw', gone: 'b:eraserGone', sudd: 'b:drain', colour: 'self_drawn', milky: 'ride_done' };
+/** When each of Nova's facts is written into the notebook: the flag that means it has been said. (Clues are
+ *  written by clue() where they are said.) */
 const FACT_AT = { sixth: 'breakfast', prints: 't:prints', night: 'b:night', side: 'm5_view', sound: 'b:bear', wagon: 'wagon_drawn',
     belt: 'belt_lit', twinkle: 'b:stjarnArrive', rings: 'b:ringArrive', tail: 'b:cometSaw', sun: 't:sunFact', milky: 'ride_done' };
 const CARD_AT = { mane: 'card_mane', stjarn: 'card_stjarn', ring: 'card_ring', sudd: 'b:suddArrive', end: 'ended', answer: 'card_answer' };
@@ -174,15 +178,15 @@ export function createStory(G, io) {
         }
         // Suddet: far ahead in the white; on its hill; a small friend on the Moon after the story
         const sudd = actor('sudd', { visible: false, scene: null });
-        if (sc === 'sudd' && F.has('b:suddArrive') && !F.has('ended')) Object.assign(sudd, { visible: true, scene: 'sudd', x: suddWait(), y: 0, size: F.has('self_drawn') ? 0.5 : suddSize(), pose: 'hop' });
+        if (sc === 'sudd' && F.has('rocket_gone') && !F.has('ended')) Object.assign(sudd, { visible: true, scene: 'sudd', x: suddWait(), y: 0, size: F.has('self_drawn') ? 0.5 : suddSize(), pose: 'hop' });
         else if (sc === 'mane' && F.has('ended')) Object.assign(sudd, { visible: true, scene: 'mane', x: sp.novaBed.x + 2.2 * HL, y: sp.novaBed.y - 0.02 * HL, size: 0.6, pose: 'idle', eyes: true, goldStar: true });
         else if (sc === 'vinter' && !F.has('caught')) Object.assign(sudd, { visible: true, scene: 'vinter', riding: true, size: 0.55, pose: 'rub' });
         else if (sc === 'mane' && F.has('caught')) Object.assign(sudd, { visible: true, scene: 'mane', riding: !F.has('moon_whole'), staged: false,
             x: p.x - p.facing * 0.9 * HL, y: p.y, size: 0.55, pose: 'idle', eyes: false });
-        if (sc === 'sudd' && F.has('b:suddArrive')) { const y = G.terrain.support(sudd.x, h(-3), h(4), h(4))?.y; if (y !== undefined) sudd.y = y; }
+        if (sc === 'sudd' && F.has('rocket_gone')) { const y = G.terrain.support(sudd.x, h(-3), h(4), h(4))?.y; if (y !== undefined) sudd.y = y; }
         G.moon = moonState(F);
     }
-    function suddSize() { return F.has('b:notes') ? 0.42 : F.has('b:bridge') ? 0.55 : 0.7; }
+    function suddSize() { return F.has('notes_rubbed') ? 0.42 : F.has('b:bridge') ? 0.55 : 0.7; }
     function suddWait() {
         const waits = G.scenes.sudd.suddWaits, p = G.player;
         return waits.find(w => w > p.x + 9 * HL) ?? waits.at(-1);
@@ -308,7 +312,7 @@ export function createStory(G, io) {
         const fl = freeLight();
         if (fl && (fl.how === 'belt' || fl.how === 'melt')) return { puzzle: 'pickup', level: 0, text: HINTS.pickup[0] };
         const pz = activePuzzle();
-        if (pz) return ladder(pz.id);
+        if (pz) return ladder(pz.hints || pz.id);
         const n = lightsFound(G);
         if (F.has('moon_whole')) return ladder('home');
         if (F.has('caught')) return ladder('f2');
@@ -349,6 +353,11 @@ export function createStory(G, io) {
     function talk(who) {
         if (who === 'klo' && F.has('ended') && !done('measureEnd')) return beat('measureEnd', () => say(STORY.measureEnd));
         if (who === 'sudd') return beat('suddTalk', () => say([['sudd', STORY.suddTalk[chatter.sudd++ % STORY.suddTalk.length]]]), { once: false });
+        // S2: at the belt, talking to Nova blinks the order again (before her claw would point at the belt's light)
+        if (who === 'nova' && G.sceneId === 'stjarn' && G.areas.has('belt') && !F.has('belt_lit') && !F.has('ended')) {
+            fx('beltBlink', {});
+            return beat('talk', () => say([STORY.belt[2]]), { once: false });
+        }
         if (who === 'nova' && !F.has('ended')) {
             const pt = pointer();
             if (pt) return beat('talk', () => say([['nova', POINT[pt.dir]]]), { once: false });
@@ -360,8 +369,6 @@ export function createStory(G, io) {
             text = list[chatter[who]++ % list.length];
             if (who === 'nova' && text === CHATTER.nova[0]) G.flag('t:sunFact');
         }
-        // S2: talking to Nova at the belt, she blinks the order again
-        if (who === 'nova' && G.sceneId === 'stjarn' && G.areas.has('belt') && !F.has('belt_lit')) fx('beltBlink', {});
         beat('talk', () => say([[who, text]]), { once: false });
     }
 
@@ -452,7 +459,8 @@ export function createStory(G, io) {
     function breakfast() {
         beat('breakfast', async () => {
             stage();
-            await fx('eat', {});
+            // (played again after a reload in the middle: she has eaten already)
+            if (!F.has('breakfast')) await fx('eat', {});
             mood('ordinary');
             G.actors.nova.eyes = 'half';
             G.flag('breakfast');
@@ -469,27 +477,42 @@ export function createStory(G, io) {
         ui().toast?.(WORDS.lightToast(n, LIGHT_TOTAL));
         const page = Object.entries(LIGHTS_ON).find(([, ids]) => ids.includes(id))?.[0];
         if (page && page !== 'sudd' && !F.has('card_' + page)) G.flag('card_' + page);
-        if (id === 'l1') beat('firstLight', async () => {
-            await say(STORY.firstLight); clue('light');
-            await say(STORY.firstLight2);
-            if (G.player.y > 2 * HL) await say(STORY.beam);
-        });
+        // the first light found, wherever it is (a gallop-jump can land past the crater's): what a star-light is
+        if (!done('firstLight')) firstLight();
+        if (id === 'l1') beamTalk();
         else if (id === 'l2') beat('nightDone', () => say(STORY.nightDone));
         else if (id === 'l3') beat('ledgeDone', () => say(STORY.ledgeDone));
         else if (id === 'l4') beat('beltDone', () => say(STORY.beltDone));
         else if (id === 'l7' && n !== 9) think(STORY.iceLight, { gap: 0, force: true });
         else if (!['l5', 'l6', 'l8', 'l10'].includes(id) && n !== 9) think(STORY.lightLine[lightLine++ % STORY.lightLine.length], { gap: 0, force: true });
         // nine: Nova knows where the tenth is; at the table Mira sees Molnet flash again (whichever light is the ninth)
-        if (n === 9 && !F.has('rocket_gone')) beat('gapDone', async () => {
-            await say(STORY.gapDone);
-            await fx('tableVoices', {});
-            await say(STORY.nine);
-        });
+        if (n === 9 && !F.has('rocket_gone')) nine();
         // Klo and Nova, after stars 1, 2 and 3 (section 11.5)
         const moon = LIGHTS_ON.mane.filter(l => F.has(lightFlag(l))).length;
         if (G.sceneId === 'mane' && moon >= 1 && moon <= 3 && (moon > 1 || F.has('beam_used'))) beat('rival' + moon, async () => { await say(STORY['rival' + moon]); if (moon === 3) await say(STORY.rival3b); });
         G.emit('lightCount', { n });
         io.save?.();
+    }
+    function firstLight() {
+        beat('firstLight', async () => {
+            await say(STORY.firstLight); clue('light');
+            await say(STORY.firstLight2);
+        });
+    }
+    /** In Djupa kratern with its light: the walls are too high, and Nova's beam lifts a shell that lies still. */
+    function beamTalk() {
+        if (F.has('beam_used')) return;
+        beat('beamTalk', async () => { if (G.sceneId === 'mane' && G.areas.has('deep') && !F.has('beam_used')) await say(STORY.beam); });
+    }
+    function bridgeTalk() {
+        beat('bridge', async () => { stage(); await say(STORY.bridge); await say(STORY.bridge2); await say(STORY.bridge3); });
+    }
+    function nine() {
+        beat('gapDone', async () => {
+            await say(STORY.gapDone);
+            await fx('tableVoices', {});
+            await say(STORY.nine);
+        });
     }
     function view() {
         beat('view', async () => {
@@ -502,10 +525,11 @@ export function createStory(G, io) {
             clue('white');
             await say(STORY.view3);
             mood('ordinary');
-            G.flag('m5_view');
             await say(STORY.hypothesis2);
             G.flag('b:hypothesis2');
             await fx('vista', { on: false });
+            // (at the end: closing in the middle plays the view again, hypothesis 2 too)
+            G.flag('m5_view');
             G.setCheckpoint('view');
         });
     }
@@ -533,39 +557,38 @@ export function createStory(G, io) {
             G.setCheckpoint({ mane: 'start', stjarn: 'dock', ring: 'icedock', sudd: 'whiteEdge', vinter: 'tailTip' }[id]);
             setupActors();
             await fx('fadeIn', {});
-            await arrival(id);
         }, { once: false });
+        arrival(id);
     }
-    async function arrival(id) {
+    /** The first arrival on a page: its own beat after the travel's, so closing in the middle plays it again. */
+    function arrival(id) {
         if (F.has('ended')) return;
-        if (id === 'stjarn' && !done('stjarnArrive')) {
+        if (id === 'stjarn') beat('stjarnArrive', async () => {
             mood('morning'); stage();
             await say(STORY.stjarnArrive);
-            G.flag('b:stjarnArrive');
             mood('ordinary');
             await say(STORY.stjarnArrive2);
             eraserGone();
-        } else if (id === 'ring' && !done('ringArrive')) {
+        });
+        else if (id === 'ring') beat('ringArrive', async () => {
             mood('morning'); stage();
             await say(STORY.ringArrive);
-            G.flag('b:ringArrive');
             mood('ordinary');
             await say(STORY.ringo);
             G.flag('b:ringo');
             eraserGone();
-        } else if (id === 'sudd' && !done('suddArrive')) {
+        });
+        else if (id === 'sudd') beat('suddArrive', async () => {
             mood('morning'); stage();
             await say(STORY.suddArrive);
-            G.flag('b:suddArrive');
-            await fx('rocketGone', {});
-            G.flag('rocket_gone');
+            if (!F.has('rocket_gone')) { await fx('rocketGone', {}); G.flag('rocket_gone'); }
             await say(STORY.rocketGone);
             setupActors();
             mood('ordinary');
             await say(STORY.suddArrive2);
             await say(STORY.suddArrive3);
             G.setCheckpoint('whiteEdge');
-        }
+        });
     }
     /** At the table, once, on whichever of the two pages is entered second (section 11.9). */
     function eraserGone() {
@@ -770,7 +793,13 @@ export function createStory(G, io) {
             if (intro && id === 'pip' && !F.has('pip_met')) beat('pip', async () => { await about([76, 86, -4, 2.5], async () => { await say(STORY.pip); await say(STORY.pip2); }); });
         } else if (sc === 'ring') {
             if (intro && id === 'gravel' && !F.has('gravel_passed')) beat('gravel', () => say(STORY.gravel));
-            if (id === 'sling') { G.setCheckpoint('sling'); if (!F.has('gravel_passed')) G.flag('gravel_passed'); }
+            if (id === 'sling') {
+                G.setCheckpoint('sling');
+                if (!F.has('gravel_passed')) G.flag('gravel_passed');
+                // the shell's measurement, even for a player who ran from block to block in the lee: Klo's "åtta mot
+                // åtta" counts all sixteen
+                if (!F.has('gravel_held')) G.flag('gravel_held');
+            }
             if (intro && id === 'sling' && !F.has('slung')) beat('sling', async () => { stage(); await about([28, 42, -1.5, 3.5], async () => { await say(STORY.sling); await say(STORY.sling2); }); });
             if (id === 'shade') G.setCheckpoint('shade');
             if (intro && id === 'shade' && !F.has('ice_melted')) beat('ice', () => about([46, 57, -2.2, 0.4], () => say(STORY.ice)));
@@ -815,18 +844,11 @@ export function createStory(G, io) {
             if (id === 'beamBridge') { if (!F.has('bridge_crossed')) G.flag('bridge_crossed'); G.setCheckpoint('crumbs'); }
             if (kind === 'orbit') {
                 if (F.has('ended')) { if (!F.has('s:pipPhoto')) { G.flag('s:pipPhoto'); fx('pipFlash', {}); } return; }
-                if (!F.has('pip_met')) beat('pipDone', async () => {
-                    G.flag('pip_met');
-                    await fx('pipFlash', {});
-                    collectLight(G, 'l6');
-                    await say(STORY.pipDone);
-                    clue('photo');
-                    if (F.has('clue_rubber')) await hypothesis3();
-                });
+                if (!F.has('pip_met')) pipDone();
             }
             if (kind === 'sling' && back) think(STORY.slingBack, { gap: 3, force: true });
             if (kind === 'sling' && go && !F.has('slung')) { G.flag('slung'); G.setCheckpoint('shade'); beat('slingDone', () => say(STORY.slingDone)); }
-            if (kind === 'catch') landed();
+            if (kind === 'catch') { G.setCheckpoint('westRim'); landed(); }
         }),
         G.on('kicked', ({ id }) => {
             if (id === 'orbit-kick') think(STORY.orbitKick, { gap: 5 });
@@ -865,33 +887,8 @@ export function createStory(G, io) {
             else think(BALK[e.reason] || BALK.paper, { gap: 3 });
         }),
         G.on('streckDone', (e) => {
-            if (e.flag === 'wagon_drawn') beat('wagonDone', async () => {
-                await say(STORY.wagonDone);
-                await fx('wagonRide', {});
-                G.goto('stjarn', 'beltRock');
-                G.setCheckpoint('belt');
-                setupActors();
-                await fx('fadeIn', {});
-                stage();
-                await say(STORY.belt);
-                await fx('beltBlink', {});
-            });
-            if (e.flag === 'bear_nose') beat('bearWakes', async () => {
-                stage();
-                await fx('bearWakes', {});
-                await say(STORY.bearWakes);
-                await say(STORY.bearGives);
-                collectLight(G, 'l5');
-                clue('rubber');
-                if (F.has('clue_photo')) await hypothesis3();
-                await fx('bearStands', {});
-                await say(STORY.bearStands);
-                await fx('bearWalk', {});
-                G.goto('stjarn', 'pipArrive');
-                G.setCheckpoint('pip');
-                setupActors();
-                await fx('fadeIn', {});
-            });
+            if (e.flag === 'wagon_drawn') wagonDone();
+            if (e.flag === 'bear_nose') bearWakes();
             if (e.flag === 'dent1') thinkOnce('whiteDraw', STORY.whiteDraw);
             if (e.flag === 'moon_whole') rimHeals();
         }),
@@ -910,19 +907,7 @@ export function createStory(G, io) {
         G.on('cometRest', () => {
             if (F.has('comet_rest')) return;
             G.flag('comet_rest');
-            beat('cometRest', async () => {
-                G.player.vx = 0;
-                // Kometen stays at Rastplatsen while it talks (its breath lasts as long as the words)
-                G.cometHeld = true;
-                await say(STORY.cometRest);
-                collectLight(G, 'l8');
-                await say(STORY.cometSaw);
-                G.flag('b:cometSaw');
-                clue('crooked');
-                // "Hypotes nummer fyra" never before number three (the ring planet can come before the constellations)
-                if (done('hypothesis3')) await crooked();
-                G.cometHeld = false;
-            });
+            cometRest();
         }),
         G.on('streckBroken', () => think(STORY.gravelHit, { gap: 2, force: true })),
         G.on('fogLit', ({ n }) => {
@@ -931,7 +916,7 @@ export function createStory(G, io) {
         }),
         G.on('bridgeRubbed', ({ n }) => {
             io.audio?.sfx?.('rub');
-            if (n >= 2) beat('bridge', async () => { stage(); await say(STORY.bridge); await say(STORY.bridge2); await say(STORY.bridge3); });
+            if (n >= 2) bridgeTalk();
         }),
         G.on('selfStroke', ({ n }) => { if (n === 1 || n === 6) think(STORY.drawSelf2, { gap: 6 }); }),
         G.on('selfWait', () => think(STORY.drawSelfWait, { gap: 9 })),
@@ -952,6 +937,82 @@ export function createStory(G, io) {
         G.on('rescued', () => think(STORY.rescued, { gap: 2 })),
         G.on('talk', ({ who }) => talk(who))
     ];
+    // --- the beats a one-time event starts (start() queues them again when one did not end) ---------------------
+    function wagonDone() {
+        beat('wagonDone', async () => {
+            await say(STORY.wagonDone);
+            await fx('wagonRide', {});
+            G.goto('stjarn', 'beltRock');
+            G.setCheckpoint('belt');
+            setupActors();
+            await fx('fadeIn', {});
+            stage();
+            await say(STORY.belt);
+            await fx('beltBlink', {});
+        });
+    }
+    function bearWakes() {
+        beat('bearWakes', async () => {
+            stage();
+            await fx('bearWakes', {});
+            await say(STORY.bearWakes);
+            await say(STORY.bearGives);
+            collectLight(G, 'l5');
+            clue('rubber');
+            if (F.has('clue_photo')) await hypothesis3();
+            await fx('bearStands', {});
+            await say(STORY.bearStands);
+            await fx('bearWalk', {});
+            G.goto('stjarn', 'pipArrive');
+            G.setCheckpoint('pip');
+            setupActors();
+            await fx('fadeIn', {});
+        });
+    }
+    function pipDone() {
+        beat('pipDone', async () => {
+            G.flag('pip_met');
+            await fx('pipFlash', {});
+            collectLight(G, 'l6');
+            await say(STORY.pipDone);
+            clue('photo');
+            if (F.has('clue_rubber')) await hypothesis3();
+        });
+    }
+    function cometRest() {
+        beat('cometRest', async () => {
+            G.player.vx = 0;
+            // Kometen stays at Rastplatsen while it talks (its breath lasts as long as the words)
+            G.cometHeld = true;
+            await say(STORY.cometRest);
+            collectLight(G, 'l8');
+            await say(STORY.cometSaw);
+            G.flag('b:cometSaw');
+            clue('crooked');
+            // "Hypotes nummer fyra" never before number three (the ring planet can come before the constellations)
+            if (done('hypothesis3')) await crooked();
+            G.cometHeld = false;
+        });
+    }
+    /** After a restore: every beat a one-time event started and that did not end is queued again (its flags are
+     *  set again harmlessly). Not after the story, and only on the page where it happened. */
+    function replayUnfinished() {
+        if (F.has('ended')) return;
+        const sc = G.sceneId;
+        if (lightsFound(G) >= 1 && !done('firstLight')) firstLight();
+        if (sc === 'mane' && F.has(lightFlag('l1')) && !F.has('beam_used')) beamTalk();
+        if (sc === 'mane' && F.has('m5_view') && !done('view')) view();
+        if (F.has('fin_drawn') && !done('fin')) beat('fin', () => say(STORY.finDone));
+        if (sc === 'stjarn' || sc === 'ring' || sc === 'sudd') arrival(sc);
+        // (a save from before arrivals were beats: the arrival ended there, but the rocket must still be gone)
+        if (sc === 'sudd' && done('suddArrive') && !F.has('rocket_gone')) { G.flag('rocket_gone'); setupActors(); }
+        if (sc === 'stjarn' && F.has('wagon_drawn') && !done('wagonDone')) wagonDone();
+        if (sc === 'stjarn' && F.has('bear_nose') && !done('bearWakes')) bearWakes();
+        if (sc === 'stjarn' && F.has('pip_met') && !done('pipDone')) pipDone();
+        if (sc === 'ring' && F.has('comet_rest') && !done('cometRest')) cometRest();
+        if (sc === 'sudd' && F.has('bridge_refused') && !F.has('bridge_crossed') && !done('bridge')) bridgeTalk();
+        if (lightsFound(G) >= 9 && !F.has('rocket_gone') && !done('gapDone')) nine();
+    }
     async function hypothesis3() {
         if (done('hypothesis3')) return;
         await say(STORY.hypothesis3);
@@ -967,15 +1028,19 @@ export function createStory(G, io) {
     return {
         start() {
             G.flag('visited_' + G.sceneId);
-            // a light being handed over when the game closed is not lost (section 18.4)
+            // a light being handed over when the game closed is not lost (section 18.4); the bear's is given when
+            // his beat plays again (replayUnfinished)
             if (F.has('pip_met')) collectLight(G, 'l6');
-            if (F.has('b:bearGives') || F.has('bear_nose') && done('bearWakes')) collectLight(G, 'l5');
+            if (F.has('bear_nose') && done('bearWakes')) collectLight(G, 'l5');
             if (F.has('comet_rest')) collectLight(G, 'l8');
             if (F.has('tenth_drawn')) collectLight(G, 'l10');
             setupActors();
             if (!done('arrive')) arrive();
-            else if (F.has('box_landed') && !F.has('breakfast')) breakfast();
+            else if (F.has('box_landed') && !done('breakfast')) breakfast();
+            replayUnfinished();
             if (F.has('self_drawn') && !F.has('ride') && G.sceneId === 'sudd') drawnSelf();
+            // closed during the catch's flight (caught is written as it starts): the jump is made again
+            if (G.sceneId === 'vinter' && F.has('caught') && !F.has('ended')) G.unflag('caught');
             if (G.sceneId === 'vinter' && F.has('ride_done') && !F.has('caught')) lift();
             if (G.sceneId === 'mane' && F.has('caught') && !F.has('moon_whole')) landed();
             if (F.has('moon_whole') && !F.has('ended') && G.sceneId === 'mane') { if (!done('rimHeals')) rimHeals(); }
