@@ -54,6 +54,12 @@ export function serve(root = ROOT, { latency = 0 } = {}) {
 
 export async function launch() {
     const { chromium } = loadPlaywright();
+    // SKOLDHAST_GPU=1: the machine's own graphics (Windows, the full Chromium in headless mode) instead of software
+    // WebGL. Many times faster where there is a graphics card; the pictures are the same.
+    if (process.env.SKOLDHAST_GPU) {
+        return chromium.launch({ channel: 'chromium',
+            args: ['--use-angle=d3d11', '--enable-gpu', '--ignore-gpu-blocklist', '--autoplay-policy=no-user-gesture-required'] });
+    }
     return chromium.launch({
         args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist',
             '--autoplay-policy=no-user-gesture-required']

@@ -104,7 +104,7 @@ export function moonState(F) {
 
 export function createStory(G, io) {
     const queue = [];
-    let current = null, thoughtAt = -10;
+    let current = null, thoughtAt = -10, sceneEnd = -10;
     const hintLevel = new Map();
     const said = new Map();
     let lightLine = 0, chatter = { nova: 0, klo: 0, sudd: 0 }, gallopRemark = 0, beltMisses = 0;
@@ -138,7 +138,7 @@ export function createStory(G, io) {
         try { await b.fn(); }
         catch (err) { console.error('Sköldhästen: beat', b.id, err); }
         finally {
-            if (b.lock) G.busy = Math.max(0, G.busy - 1);
+            if (b.lock) { G.busy = Math.max(0, G.busy - 1); sceneEnd = G.time; }
             if (b.once) G.flag('b:' + b.id);
             current = null;
             io.save?.();
@@ -271,6 +271,9 @@ export function createStory(G, io) {
         try { return await fn(); } finally { if (G.camLook === look) G.camLook = null; }
     }
     function mood(m) { if (G.actors.nova) G.actors.nova.mood = m; }
+    /** A scene told just before an edge: the sköldhäst stands still for it (a gallop used to carry it on, off the
+     *  ring's end or out along the dashed line, while the talk about what to do there was still going on). */
+    function halt() { const p = G.player; if (p.mode === 'ground') p.vx = 0; }
 
     // --------------------------------------------------------------------------
     // help: which puzzle we are at, and its next hint
@@ -490,25 +493,17 @@ export function createStory(G, io) {
         io.audio?.sfx?.('sparkle');
         ui().toast?.(WORDS.lightToast(n, LIGHT_TOTAL));
         const page = Object.entries(LIGHTS_ON).find(([, ids]) => ids.includes(id))?.[0];
-        // (the Moon's card is written when Klo says he writes one: rival2, at its second light)
+        // (the Moon's card is written when Klo says he writes one: rival2, at Kanten)
         if (page && page !== 'sudd' && page !== 'mane' && !F.has('card_' + page)) G.flag('card_' + page);
         // the first light found, wherever it is (a gallop-jump can land past the crater's): what a star-light is
         if (!done('firstLight')) firstLight();
-        if (id === 'l1') beamTalk();
-        else if (id === 'l2') beat('nightDone', () => say(STORY.nightDone));
+        if (id === 'l2') beat('nightDone', () => say(STORY.nightDone));
         else if (id === 'l3') beat('ledgeDone', () => say(STORY.ledgeDone));
         else if (id === 'l4') beat('beltDone', () => say(STORY.beltDone));
         else if (id === 'l7' && n !== 9) think(STORY.iceLight, { gap: 0, force: true });
         else if (!['l5', 'l6', 'l8', 'l10'].includes(id) && n !== 9) think(STORY.lightLine[lightLine++ % STORY.lightLine.length], { gap: 0, force: true });
         // nine: Nova knows where the tenth is; at the table Mira sees Molnet flash again (whichever light is the ninth)
         if (n === 9 && !F.has('rocket_gone')) nine();
-        // Klo and Nova, after stars 1, 2 and 3 (section 11.5)
-        const moon = LIGHTS_ON.mane.filter(l => F.has(lightFlag(l))).length;
-        if (G.sceneId === 'mane' && moon >= 1 && moon <= 3 && (moon > 1 || F.has('beam_used'))) beat('rival' + moon, async () => {
-            await say(STORY['rival' + moon]);
-            if (moon === 2) G.flag('card_mane');
-            if (moon === 3) await say(STORY.rival3b);
-        });
         G.emit('lightCount', { n });
         io.save?.();
     }
@@ -518,10 +513,45 @@ export function createStory(G, io) {
             await say(STORY.firstLight2);
         });
     }
-    /** In Djupa kratern with its light: the walls are too high, and Nova's beam lifts a shell that lies still. */
+    /** In Djupa kratern with its light: the walls are too high, and Nova's beam lifts a shell that lies still. It is
+     *  said at the wall, on the way out (it used to follow the first light's five boxes at once: eight in a row). */
     function beamTalk() {
         if (F.has('beam_used')) return;
         beat('beamTalk', async () => { if (G.sceneId === 'mane' && G.areas.has('deep') && !F.has('beam_used')) await say(STORY.beam); });
+    }
+    /**
+     * Scenes that have a place of their own on the Moon, so that no two are told back to back (a real playthrough, 14
+     * November: each light's scene was followed at once by one of Klo and Nova's, six and seven boxes in a row):
+     * Klo and Nova's three (section 11.5) on the open ground between the puzzles, the last on the way back from
+     * Utsikten; the crater that looks like a face whenever it is passed in her red light; the ledge at the foot of the
+     * stairs, where it can be seen.
+     */
+    function moonScenes() {
+        const p = G.player;
+        if (G.sceneId !== 'mane' || F.has('ended') || !F.has('breakfast') || p.mode !== 'ground' || G.carry) return;
+        const x = p.x / HL, on = p.surface?.id, quiet = G.time - sceneEnd;
+        if (!done('rival1') && on === 'jumps' && x > 24 && x < 43.8 && quiet > 3) return beat('rival1', async () => { stage(); await say(STORY.rival1); });
+        if (!done('rival2') && on === 'edge' && x > 76.4 && x < 80.2 && quiet > 2) return beat('rival2', async () => { stage(); await say(STORY.rival2); G.flag('card_mane'); });
+        if (!done('rival3') && done('rival2') && F.has('m5_view') && (on === 'jumps' || on === 'crater') && x > 9 && x < 42 && quiet > 4)
+            return beat('rival3', async () => { stage(); await say(STORY.rival3); await say(STORY.rival3b); });
+        if (!done('ledge') && !F.has(lightFlag('l3')) && on === 'edge' && x > 80.6 && x < 84) return beat('ledge', () => about([86.4, 90.4, -4.6, 0.2], () => say(STORY.ledge)));
+        const face = G.scenes.mane.spots.face;
+        // (on the way out it is said to one who walks up and looks: a gallop goes on to the light on the ridge, two
+        // lengths further, which has its own scene; on the way back from Utsikten, in her red light, it is always said)
+        if (!done('nightFace') && F.has('novaLit') && Math.abs(p.x - face.x) < 2.0 * HL && quiet > 2 && (F.has('m5_view') || Math.abs(p.vx) < 320))
+            return beat('nightFace', async () => { halt(); await about([face.x / HL - 1.4, face.x / HL + 1.4, -0.4, 1.0], () => say(STORY.nightFace)); });
+    }
+    /** Karlavagnen's dashed line is talked about in front of it, on Hamnstenen (the talk used to start on the line itself,
+     *  and the hooves drew the whole wagon while the three were still saying how it is done). */
+    function atWagon() {
+        const p = G.player;
+        return G.sceneId === 'stjarn' && !F.has('ended') && !F.has('wagon_drawn') && !done('wagon') && p.mode === 'ground'
+            && p.surface?.id === 'dock' && p.x > h(6.4);
+    }
+    function atCraterWall() {
+        const p = G.player;
+        return G.sceneId === 'mane' && F.has(lightFlag('l1')) && !F.has('beam_used') && !done('beamTalk') && p.mode === 'ground'
+            && p.y > h(3) && (p.x < h(48.0) || p.x > h(52.2));
     }
     function bridgeTalk() {
         beat('bridge', async () => { stage(); await say(STORY.bridge); await say(STORY.bridge2); await say(STORY.bridge3); });
@@ -799,14 +829,14 @@ export function createStory(G, io) {
             if (id === 'deep') G.setCheckpoint('crater');
             if (intro && id === 'deep' && F.has('breakfast') && !F.has(lightFlag('l1'))) beat('crater', () => about([45, 55, 0, 4.4], () => say(STORY.crater)));
             if (id === 'night') G.setCheckpoint('night');
-            if (intro && id === 'night' && F.has('breakfast') && !F.has(lightFlag('l2'))) beat('night', async () => { stage(); await say(STORY.night); await say(STORY.night2); });
+            // (galloped into, her lamps were red already: "Det är kolsvart" and "Har du en lampa?" were said in full light.
+            // She calms down as they stop to talk, and it is dark for it.)
+            if (intro && id === 'night' && F.has('breakfast') && !F.has(lightFlag('l2'))) beat('night', async () => { halt(); G.puz.angryUntil = -1; stage(); await say(STORY.night); await say(STORY.night2); });
             if (id === 'edge') G.setCheckpoint('edge');
-            if (intro && id === 'edge' && F.has('breakfast') && !F.has(lightFlag('l3'))) beat('ledge', () => about([86.4, 90.4, -4.6, 0.2], () => say(STORY.ledge)));
             if (intro && id === 'view' && F.has('breakfast')) view();
             if (intro && id === 'landing' && F.has('m5_view') && !F.has('fin_drawn')) fin();
             if (id === 'crater' && F.has('moon_whole')) finale();
         } else if (sc === 'stjarn') {
-            if (intro && id === 'wagon' && !F.has('wagon_drawn')) beat('wagon', () => say(STORY.wagon));
             if (id === 'belt') G.setCheckpoint('belt');
             if (id === 'bear') G.setCheckpoint('bear');
             if (intro && id === 'bear' && !F.has('bear_nose')) beat('bear', async () => { stage(); await about([48.6, 58.5, -2.4, 1.6], async () => { await say(STORY.bear); await say(STORY.bear2); }); think(STORY.bearNose, { force: true }); });
@@ -821,13 +851,13 @@ export function createStory(G, io) {
                 // åtta" counts all sixteen
                 if (!F.has('gravel_held')) G.flag('gravel_held');
             }
-            if (intro && id === 'sling' && !F.has('slung')) beat('sling', async () => { stage(); await about([28, 42, -1.5, 3.5], async () => { await say(STORY.sling); await say(STORY.sling2); }); });
+            if (intro && id === 'sling' && !F.has('slung')) beat('sling', async () => { halt(); stage(); await about([28, 42, -1.5, 3.5], async () => { await say(STORY.sling); await say(STORY.sling2); }); });
             if (id === 'shade') G.setCheckpoint('shade');
             if (intro && id === 'shade' && !F.has('ice_melted')) beat('ice', () => about([46, 57, -2.2, 0.4], () => say(STORY.ice)));
             if (id === 'cometLane') G.setCheckpoint('cometLane');
-            if (intro && id === 'cometLane' && !F.has('comet_rest')) beat('comet', async () => { await fx('cometPass', {}); await say(STORY.comet); await say(STORY.comet2); });
+            if (intro && id === 'cometLane' && !F.has('comet_rest')) beat('comet', async () => { halt(); await fx('cometPass', {}); await say(STORY.comet); await say(STORY.comet2); });
             if (id === 'gap') G.setCheckpoint('gap');
-            if (intro && id === 'gap' && !F.has('gap_drawn')) beat('gap', () => about([75, 90, -2.4, 0.6], () => say(STORY.gap)));
+            if (intro && id === 'gap' && !F.has('gap_drawn')) beat('gap', () => { halt(); return about([75, 90, -2.4, 0.6], () => say(STORY.gap)); });
         } else if (sc === 'sudd') {
             if (id === 'fog') G.setCheckpoint('fog');
             if (id === 'fog' && !F.has('self_drawn')) io.audio?.silence?.(true);
@@ -860,7 +890,6 @@ export function createStory(G, io) {
             if (kind === 'beam' && G.sceneId === 'mane' && id !== 'beamDeepW' && id !== 'beamDeepE') { /* back up from the ledge */ }
             if (kind === 'beam' && (id === 'beamDeepW' || id === 'beamDeepE') && F.has(lightFlag('l1'))) {
                 beat('beamDone', () => say(STORY.beamDone));
-                beat('rival1', () => say(STORY.rival1));
             }
             if (id === 'beamBridge') { if (!F.has('bridge_crossed')) G.flag('bridge_crossed'); G.setCheckpoint('crumbs'); }
             if (kind === 'orbit') {
@@ -885,14 +914,14 @@ export function createStory(G, io) {
             }
         }),
         G.on('nightLit', () => {
+            // (nothing is said about her light before the night side's own talk has explained it)
+            if (!done('night') && !F.has(lightFlag('l2')) && !F.has('ended')) return;
             if (!F.has('night_lit')) { G.flag('night_lit'); remark(STORY.nightAngry[0]); }
             // the thought helps while the dark is the puzzle; on the way back from Utsikten she is lit by her own fury
             if (!F.has(lightFlag('l2'))) think(STORY.nightLit, { gap: 9 });
             else if (F.has('m5_view') && !F.has('fin_drawn')) thinkOnce('nightFurious', STORY.nightFurious);
-            const face = G.scenes.mane.spots.face;
-            if (Math.abs(G.player.x - face.x) < 4 * HL && !done('nightFace')) beat('nightFace', () => say(STORY.nightFace), { lock: true });
         }),
-        G.on('nightOut', () => { if (!F.has(lightFlag('l2'))) think(STORY.nightOut, { gap: 6 }); }),
+        G.on('nightOut', () => { if (done('night') && !F.has(lightFlag('l2'))) think(STORY.nightOut, { gap: 6 }); }),
         G.on('hide', ({ air }) => { if (air && G.sceneId === 'mane' && G.areas.has('edge')) thinkOnce('drop', STORY.drop); }),
         G.on('land', () => {
             const p = G.player;
@@ -905,6 +934,8 @@ export function createStory(G, io) {
             } else if (e.reason === 'dark') think(STORY.nightDark, { gap: 4 });
             else if (e.reason === 'float') think(STORY.ledgeFloat, { gap: 4 });
             else if (e.reason === 'step') return; // a stair's far end: the snort and the toss of the head say enough
+            // (the rim's last stride ends at the paper's edge: nothing is said about the edge as the Moon becomes whole)
+            else if (e.reason === 'paper' && G.sceneId === 'mane' && F.has('moon_whole') && !done('rimHeals')) return;
             else think(BALK[e.reason] || BALK.paper, { gap: 3 });
         }),
         G.on('streckDone', (e) => {
@@ -933,7 +964,14 @@ export function createStory(G, io) {
         G.on('streckBroken', () => think(STORY.gravelHit, { gap: 2, force: true })),
         G.on('fogLit', ({ n }) => {
             if (n === 1) beat('fogLit', () => say(STORY.fogLit));
-            if (n === 2) beat('fogGhosts', async () => { await fx('ghosts', {}); await say(STORY.fogGhosts); await say(STORY.fogGhosts2); });
+            // the camera turns to the three that stand in the fog, and they stay in the light while they are talked about
+            // (first the house and the dragon, then Alva's first sköldhäst alone: an upright phone cannot hold all three)
+            if (n === 2) beat('fogGhosts', async () => {
+                await about([35.8, 42.8, -3.6, 0.2], async () => { await fx('ghosts', { on: true }); await say(STORY.fogGhosts.slice(0, 2)); });
+                await about([42.4, 46.4, -3.4, 0.2], async () => { await say(STORY.fogGhosts.slice(2)); await say(STORY.fogGhosts2.slice(0, 1)); });
+                await say(STORY.fogGhosts2.slice(1));
+                fx('ghosts', { on: false });
+            });
         }),
         G.on('bridgeRubbed', ({ n }) => {
             io.audio?.sfx?.('rub');
@@ -1020,7 +1058,6 @@ export function createStory(G, io) {
         if (F.has('ended')) return;
         const sc = G.sceneId;
         if (lightsFound(G) >= 1 && !done('firstLight')) firstLight();
-        if (sc === 'mane' && F.has(lightFlag('l1')) && !F.has('beam_used')) beamTalk();
         if (sc === 'mane' && F.has('m5_view') && !done('view')) view();
         if (F.has('fin_drawn') && !done('fin')) beat('fin', () => say(STORY.finDone));
         if (sc === 'stjarn' || sc === 'ring' || sc === 'sudd') arrival(sc);
@@ -1076,6 +1113,9 @@ export function createStory(G, io) {
             }
             const p = G.player, n = G.actors.nova;
             if (G.sceneId === 'mane' && p.mode === 'ground' && p.surface?.id === 'shelf' && !F.has('shelf_reached')) G.flag('shelf_reached');
+            if (!current && !queue.length && atCraterWall()) beamTalk();
+            if (!current && !queue.length) moonScenes();
+            if (!current && !queue.length && atWagon()) beat('wagon', async () => { halt(); stage(); await say(STORY.wagon); });
             if (n) {
                 const pt = pointer();
                 n.glow = pt ? pt.glow : 0;

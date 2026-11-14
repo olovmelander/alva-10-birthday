@@ -203,6 +203,9 @@ export function stepPuzzles(G, events, dt) {
     // back to the rocket, so the night side is not a chore the second time
     if (sc.dark && nova?.visible && nova.scene === G.sceneId && nova.follow && F.has('m5_view') && !F.has('fin_drawn') && !F.has('ended'))
         P.angryUntil = Math.max(P.angryUntil, G.time + 0.5);
+    // while a scene is told the lamps do not burn down: nothing is timed, and what is talked about in her red light
+    // (the crater that looks like a face) stays lit until the talk is over
+    if (G.busy > 0 && G.time < P.angryUntil) P.angryUntil += dt;
     if (sc.dark) {
         const inDark = p.x >= sc.dark.x0 - 2 * HL && p.x <= sc.dark.x1;
         const lit = G.time < P.angryUntil;

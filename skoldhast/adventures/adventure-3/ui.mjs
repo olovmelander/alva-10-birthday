@@ -148,8 +148,10 @@ function kupaSvg(lit, { big = false, hud = false } = {}) {
 /** The constellation Sköldhästen: ten of Alva's stars, joined from one to ten, a horse in front and a shell behind. */
 // the constellation Sköldhästen as the sky and the tracing draw it (content/world.mjs), in this 120 × 70 box
 const CONSTELLATION = SKY_CONSTELLATION.map(([u, v]) => [Math.round(6 + u * 108), Math.round(6 + v * 58)]);
+/** One to ten, and from the chest (ten) up to the neck (two): the body closed, as the sky draws it. */
+function constellationPath() { return CONSTELLATION.map(([x, y], i) => `${i ? 'L' : 'M'}${x} ${y}`).join(' ') + ` L${CONSTELLATION[1][0]} ${CONSTELLATION[1][1]}`; }
 function constellationSvg({ numbers = false, w = 120, h = 70 } = {}) {
-    const line = CONSTELLATION.map(([x, y], i) => `${i ? 'L' : 'M'}${x} ${y}`).join(' ');
+    const line = constellationPath();
     return `<svg viewBox="0 0 ${w} ${h}" aria-hidden="true"><path d="${line}" fill="none" stroke="#f2d470" stroke-width="1.6" stroke-linejoin="round" opacity=".9"/>
         ${CONSTELLATION.map(([x, y], i) => alvaStar(x, y, 4.2, 30 + i) + (numbers ? `<text x="${x + 5}" y="${y - 5}" font-size="7" fill="#f4ecd6">${i + 1}</text>` : '')).join('')}</svg>`;
 }
@@ -328,7 +330,7 @@ export function createA3UI(host, { assetBase, handlers, voice = null }) {
         s += `<g ${vis(sudd)}><path d="M486 58 Q494 34 522 40 Q556 34 552 62 Q562 92 528 96 Q498 102 496 84 Q478 76 486 58 Z" fill="#fbf8f1" stroke="#9a9590" stroke-width="1.6"/><path d="M500 70 q12 -8 26 0 M506 82 q10 -5 20 0" stroke="#c8c2bc" stroke-width="3" fill="none" opacity=".7"/>${sudd?.named ? '' : txt(523, 80, '?', 32, '#6b635a')}</g>`;
         // the constellation Sköldhästen beside the Moon, after the finale
         if (constellation) {
-            s += `<g transform="translate(150 236) scale(.62)"><path d="${CONSTELLATION.map(([x, y], i) => `${i ? 'L' : 'M'}${x} ${y}`).join(' ')}" fill="none" stroke="#f2d470" stroke-width="2.4"/>${CONSTELLATION.map(([x, y], i) => alvaStar(x, y, 6, 30 + i)).join('')}</g>`;
+            s += `<g transform="translate(150 236) scale(.62)"><path d="${constellationPath()}" fill="none" stroke="#f2d470" stroke-width="2.4"/>${CONSTELLATION.map(([x, y], i) => alvaStar(x, y, 6, 30 + i)).join('')}</g>`;
             s += txt(214, 300, NB.constellationName || 'Sköldhästen', 19, '#f2d470', ' font-style="italic"');
         }
         // names and lights
@@ -656,6 +658,8 @@ export function createA3UI(host, { assetBase, handlers, voice = null }) {
     const destroyBook = ui.destroy;
     return Object.assign(ui, {
         guide, setLights, title, journal, travel, ending, names: NAMES,
+        /** While the Moon is rubbed out the counter steps aside: on a phone on its side it lay over the Moon's eye. */
+        setCinema(on) { if (kupa.classList.contains('aside') !== !!on) kupa.classList.toggle('aside', !!on); },
         /** Mira has drawn Suddet's eyes (after the finale): its face on the speaker tab has them from now on. */
         setSuddEyes(on) { suddEyes = !!on; },
         /** A word in a bubble with the speaker's face, read aloud, while play goes on: [who, text]. */

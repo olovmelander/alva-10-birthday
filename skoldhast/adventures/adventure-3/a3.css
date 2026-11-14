@@ -5,6 +5,8 @@
     pointer-events: none; display: flex; align-items: center; gap: 6px; padding: 4px 12px 4px 8px; border-radius: 14px;
     background: rgba(30, 26, 52, .55); box-shadow: inset 0 0 0 1.5px rgba(178, 140, 220, .35);
     font-size: calc(19px * var(--fz, 1)); color: #f4ecd6; text-shadow: 0 1px 2px rgba(20, 18, 34, .9), 0 0 6px rgba(20, 18, 34, .7); }
+.sk-hud .a3-kupa { transition: opacity .6s ease; }
+.sk-hud .a3-kupa.aside { opacity: 0; pointer-events: none; }
 .a3-kupa-icon { display: inline-block; width: 52px; height: 40px; filter: drop-shadow(0 0 4px rgba(214, 180, 255, .55)); }
 /* on a phone the dome is the count: big enough that each of the ten lights can be seen */
 @media (max-width: 720px), (max-height: 460px) { .a3-kupa-icon { width: 58px; height: 44px; } .sk-hud .a3-kupa { padding: 2px 10px 2px 6px; } }

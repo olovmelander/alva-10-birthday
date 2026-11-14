@@ -158,9 +158,14 @@ test('a hint in the companion\'s own words: Nova says "min krater", Klo "mina kl
 });
 
 test('the notebook writes what is said when it is said: the Moon\'s postcard, the Karlavagnen fact, Kometen\'s clue', { timeout: 120000 }, async () => {
-    const R = await at('mane', 'start', ['visited_mane', 'light_l1', 'b:firstLight', 'beam_used', 'b:beamTalk', 'b:rival1']);
+    const R = await at('mane', 'nightStart', ['visited_mane', 'light_l1', 'b:firstLight', 'beam_used', 'b:beamTalk', 'b:rival1', 'b:night', 'b:nightFace']);
     assert.ok(!R.story.notebook().postcards.includes('mane'), 'not at the first light');
     R.G.flag('light_l2'); R.G.emit('light', { id: 'l2', n: 2 });
+    await R.settle();
+    assert.ok(!R.has('b:rival2') && !R.story.notebook().postcards.includes('mane'), 'nor at the second: Klo has not said it yet');
+    // (Klo and Nova's scenes have places of their own since 14 November: this one at Kanten, before the stairs)
+    R.G.goto('mane', 'edgeStart');
+    await R.hold(3);
     await R.settle();
     assert.ok(R.has('b:rival2') && R.story.notebook().postcards.includes('mane'), 'when Klo says he writes one');
     const S = await at('stjarn', 'beltRock', [...STJARN, 'wagon_drawn', 'b:wagonDone']);
