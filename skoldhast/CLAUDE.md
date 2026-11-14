@@ -53,7 +53,7 @@ The runtime contract and release steps are in plan §8.6, "Adventure series".
 | Series entry, release/unlock catalogue | `src/launcher.mjs`, `src/adventures.mjs` |
 | Adventure 1 runtime, loop, host glue | `src/main.mjs` |
 | Äventyr 2: Den magiska skogen (world, story, puzzles, view, runtime) | `adventures/adventure-2/` (design: `docs/skoldhast/adventure-2.md`; preview: `dev/play.html?adventure=2`) |
-| Äventyr 3: De försvunna stjärnorna (world, story, puzzles, view, table, pictures, runtime) | `adventures/adventure-3/` (design: `docs/skoldhast/adventure-3.md`; preview: `dev/play.html?adventure=3`; robot: `tests/skoldhast-a3-*.mjs`) |
+| Äventyr 3: De försvunna stjärnorna (world, story, puzzles, view, table, pictures, runtime) | `adventures/adventure-3/` (design: `docs/skoldhast/adventure-3.md`; preview: `dev/play.html?adventure=3`; robot: `tests/skoldhast-a3-*.mjs`; the whole adventure played in a real browser, a picture per line: `tests/browser/skoldhast-a3-play.mjs`) |
 | Who speaks with which voice, the direction, how to record | `docs/skoldhast/voices.md` |
 | Synthesized audio | `src/audio.mjs` |
 | Recorded voices: the clips, the player, the recording script | `voice/`, `src/voice.mjs`, `scripts/skoldhast-voice.mjs` (what is voiced and why: `docs/skoldhast/voice-audit.md`) |

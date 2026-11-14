@@ -275,7 +275,7 @@ export function createSky(RAW, PIXI, app, pen) {
         }
     }
     /** Where Alva's ten sit on this screen: high in the open sky, clear of the speech boxes. */
-    function alvaRect(W, H, focus = 0) {
+    function alvaRect(W, H, focus = 0, look = 0) {
         const portrait = H > W * 1.15;
         const w = portrait ? W * 0.84 : Math.min(W * 0.5, H * 0.9);
         const h = w * BOX.h / BOX.w;
@@ -287,7 +287,11 @@ export function createSky(RAW, PIXI, app, pen) {
         // the finale. Its two lowest stars, the hooves, were behind the ground while "Hovar fram och skal bak!" was said)
         const low = !portrait && H <= 520;
         const w2 = portrait ? W * 0.92 : Math.min(W * 0.62, H * (low ? 0.95 : 1.1)), h2 = w2 * BOX.h / BOX.w;
-        return { x: lerp(x, (W - w2) / 2 - (low ? W * 0.03 : 0), k), y: lerp(y, portrait ? H * 0.24 : low ? H * 0.05 : (H - h2) * 0.32, k), w: lerp(w, w2, k), h: lerp(h, h2, k) };
+        const r = { x: lerp(x, (W - w2) / 2 - (low ? W * 0.03 : 0), k), y: lerp(y, portrait ? H * 0.24 : low ? H * 0.05 : (H - h2) * 0.32, k), w: lerp(w, w2, k), h: lerp(h, h2, k) };
+        // an upright phone looking out from Utsikten (look 0..1): Spiran stands at the right of the picture, and the ten
+        // are in the open sky to its left (they were behind the rock)
+        if (portrait && look > 0) { const w3 = W * 0.6, h3 = w3 * BOX.h / BOX.w; return { x: lerp(r.x, W * 0.03, look), y: lerp(r.y, H * 0.3, look), w: lerp(r.w, w3, look), h: lerp(r.h, h3, look) }; }
+        return r;
     }
 
     let kind = 'moon';
@@ -304,7 +308,7 @@ export function createSky(RAW, PIXI, app, pen) {
         setKind(k) { kind = k; },
         alvaRect,
         /** The ten places on the screen now (pixels). */
-        alvaScreen(W, H, focus, dx = 0) { const r = alvaRect(W, H, focus); return slots.map(s => ({ x: r.x + dx + s.u * r.w, y: r.y + s.v * r.h, r: r.w / BOX.w })); },
+        alvaScreen(W, H, focus, dx = 0, look = 0) { const r = alvaRect(W, H, focus, look); return slots.map(s => ({ x: r.x + dx + s.u * r.w, y: r.y + s.v * r.h, r: r.w / BOX.w })); },
         /**
          * s = { W, H, camX, camY, zoom, t, rm, F, dim (0..1: the dark of the bitten moon / the night side), alvaFocus,
          *       found (count found), home, gold, constellation, milky (0..1), extraStars }
@@ -331,7 +335,7 @@ export function createSky(RAW, PIXI, app, pen) {
                 milky.alpha = mk;
             }
             // Alva's ten
-            const r = alvaRect(W, H, s.alvaFocus || 0);
+            const r = alvaRect(W, H, s.alvaFocus || 0, s.alvaLook || 0);
             alva.visible = s.showAlva !== false;
             alva.position.set(r.x + (s.alvaDx || 0) - camX * zoom * 0.012 * (1 - (s.alvaFocus || 0)), r.y - camY * zoom * 0.008 * (1 - (s.alvaFocus || 0)));
             alva.scale.set(r.w / BOX.w);

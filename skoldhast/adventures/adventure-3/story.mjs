@@ -829,7 +829,9 @@ export function createStory(G, io) {
             if (id === 'deep') G.setCheckpoint('crater');
             if (intro && id === 'deep' && F.has('breakfast') && !F.has(lightFlag('l1'))) beat('crater', () => about([45, 55, 0, 4.4], () => say(STORY.crater)));
             if (id === 'night') G.setCheckpoint('night');
-            if (intro && id === 'night' && F.has('breakfast') && !F.has(lightFlag('l2'))) beat('night', async () => { stage(); await say(STORY.night); await say(STORY.night2); });
+            // (galloped into, her lamps were red already: "Det är kolsvart" and "Har du en lampa?" were said in full light.
+            // She calms down as they stop to talk, and it is dark for it.)
+            if (intro && id === 'night' && F.has('breakfast') && !F.has(lightFlag('l2'))) beat('night', async () => { halt(); G.puz.angryUntil = -1; stage(); await say(STORY.night); await say(STORY.night2); });
             if (id === 'edge') G.setCheckpoint('edge');
             if (intro && id === 'view' && F.has('breakfast')) view();
             if (intro && id === 'landing' && F.has('m5_view') && !F.has('fin_drawn')) fin();
@@ -912,12 +914,14 @@ export function createStory(G, io) {
             }
         }),
         G.on('nightLit', () => {
+            // (nothing is said about her light before the night side's own talk has explained it)
+            if (!done('night') && !F.has(lightFlag('l2')) && !F.has('ended')) return;
             if (!F.has('night_lit')) { G.flag('night_lit'); remark(STORY.nightAngry[0]); }
             // the thought helps while the dark is the puzzle; on the way back from Utsikten she is lit by her own fury
             if (!F.has(lightFlag('l2'))) think(STORY.nightLit, { gap: 9 });
             else if (F.has('m5_view') && !F.has('fin_drawn')) thinkOnce('nightFurious', STORY.nightFurious);
         }),
-        G.on('nightOut', () => { if (!F.has(lightFlag('l2'))) think(STORY.nightOut, { gap: 6 }); }),
+        G.on('nightOut', () => { if (done('night') && !F.has(lightFlag('l2'))) think(STORY.nightOut, { gap: 6 }); }),
         G.on('hide', ({ air }) => { if (air && G.sceneId === 'mane' && G.areas.has('edge')) thinkOnce('drop', STORY.drop); }),
         G.on('land', () => {
             const p = G.player;
@@ -961,8 +965,11 @@ export function createStory(G, io) {
         G.on('fogLit', ({ n }) => {
             if (n === 1) beat('fogLit', () => say(STORY.fogLit));
             // the camera turns to the three that stand in the fog, and they stay in the light while they are talked about
+            // (first the house and the dragon, then Alva's first sköldhäst alone: an upright phone cannot hold all three)
             if (n === 2) beat('fogGhosts', async () => {
-                await about([35.6, 47.4, -3.6, 0.2], async () => { await fx('ghosts', { on: true }); await say(STORY.fogGhosts); await say(STORY.fogGhosts2); });
+                await about([35.8, 42.8, -3.6, 0.2], async () => { await fx('ghosts', { on: true }); await say(STORY.fogGhosts.slice(0, 2)); });
+                await about([42.4, 46.4, -3.4, 0.2], async () => { await say(STORY.fogGhosts.slice(2)); await say(STORY.fogGhosts2.slice(0, 1)); });
+                await say(STORY.fogGhosts2.slice(1));
                 fx('ghosts', { on: false });
             });
         }),

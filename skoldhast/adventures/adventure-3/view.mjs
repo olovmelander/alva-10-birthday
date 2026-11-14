@@ -1099,7 +1099,7 @@ export function createView(PIXI, app, { assets, G, heroFactory, lightTarget = nu
         sky.update(dt, {
             W, H, camX: cam.x, camY: cam.y, zoom: cam.zoom, t, rm, F,
             dim: Math.max(moonDark * 0.8, V.dread * 0.9, S.id === 'sudd' ? 0 : 0),
-            alvaFocus: Math.max(V.alvaFocus, V.vista), alvaDx: vistaDx(W, H),
+            alvaFocus: Math.max(V.alvaFocus, V.vista), alvaDx: vistaDx(W, H), alvaLook: tallLook(W, H),
             home: F.has('lights_home') || (V.homeCount !== null),
             lit: V.homeCount !== null ? (i) => (i < V.homeCount ? 1 : 0) : null,
             gold: F.has('gold'), goldUpTo: V.goldUpTo ?? undefined,
@@ -1172,6 +1172,9 @@ export function createView(PIXI, app, { assets, G, heroFactory, lightTarget = nu
     const lowWide = (W, H) => W > H && H <= 520;
     /** The vista on a phone on its side: Alva's ten a little to the right, so that the forest's page has room beside them. */
     const vistaDx = (W, H) => (lowWide(W, H) ? V.vista * W * 0.07 : 0);
+    /** An upright phone looking out from Utsikten (the view, and Molnet's hello after the story): 0..1. Spiran filled the
+     *  picture there and hid the forest's page and most of the ten: the rock stands to the right, the sky to its left. */
+    const tallLook = (W, H) => (H > W * 1.15 ? Math.max(V.vista, V.earthrise || 0) : 0);
 
     function skyThings(dt, t, W, H, rm, F, found, groundSy) {
         const id = S.id;
@@ -1197,8 +1200,9 @@ export function createView(PIXI, app, { assets, G, heroFactory, lightTarget = nu
             // (on a phone on its side the speech box hid its lower half, and one of the ten holes lay over it: there it
             // stands higher and to the left, whole above the box)
             const low = lowWide(W, H);
-            const vistaY = low ? H * 0.56 : Math.min(H * 0.88, clamp(groundSy, H * 0.3, H) - 150 * sc);
-            fp.position.set(lerp(W * 0.76 - cam.x * cam.zoom * 0.004, low ? W * 0.17 : W * 0.36, v), lerp(baseY, vistaY, v) - V.earthrise * H * 0.12);
+            const tall = H > W * 1.15;
+            const vistaY = low ? H * 0.56 : tall ? H * 0.64 : Math.min(H * 0.88, clamp(groundSy, H * 0.3, H) - 150 * sc);
+            fp.position.set(lerp(W * 0.76 - cam.x * cam.zoom * 0.004, low ? W * 0.17 : tall ? W * 0.27 : W * 0.36, v), lerp(baseY, vistaY, v) - V.earthrise * H * (tall ? 0.04 : 0.12));
             fp.scale.set(sc); fp.rotation = lerp(-0.06, -0.02, v);
             const bitten = F.has('moon_bitten') && !F.has('moon_whole');
             const P = fp._parts;
@@ -1631,7 +1635,8 @@ export function createView(PIXI, app, { assets, G, heroFactory, lightTarget = nu
         // and back between the lines of one conversation)
         if (!who) S.talkWith = null;
         else if (who !== 'horse' && actorBox(who)) S.talkWith = who;
-        const box = who && who !== 'horse' ? actorBox(who) : who === 'horse' && S.talkWith ? actorBox(S.talkWith) : null;
+        // (not while the scene looks at something of its own: there the look decides, as before)
+        const box = who && who !== 'horse' ? actorBox(who) : who === 'horse' && S.talkWith && !look ? actorBox(S.talkWith) : null;
         if ((!box && !look) || G.hideHero) return { tx, ty, zoom };
         // lying down (a phone on its side) the speech box covers the bottom of the screen: the picture is made for the
         // screen above it (Nova in her hollow was behind the box all through breakfast, where she says her name)
@@ -1700,7 +1705,8 @@ export function createView(PIXI, app, { assets, G, heroFactory, lightTarget = nu
             const strip = portrait ? 0 : Math.min(150, H * 0.3), Hs = H - strip;
             const zf = Math.min(W / (all.x1 - all.x0), Hs / (all.y1 - all.y0));
             const zFace = Math.min(W / (face.x1 - face.x0 + h(1)), Hs / (all.y1 - all.y0));
-            zoom = portrait ? Math.max(zf, Math.min(zFace, W / h(8.5))) : zf;
+            // (upright: wide enough for the whole face with its bite in the rim, 9.3 lengths; it was 8.5, and the bite was off the edge)
+            zoom = portrait ? Math.max(zf, Math.min(zFace, W / h(9.3))) : zf;
             tx = portrait ? clamp((all.x0 + all.x1) / 2, face.x0 + W / zoom / 2 - h(0.5), face.x1 - W / zoom / 2 + h(0.5)) : (all.x0 + all.x1) / 2;
             if (portrait && W / zoom < all.x1 - all.x0) {
                 const vw = W / zoom;
@@ -1722,6 +1728,8 @@ export function createView(PIXI, app, { assets, G, heroFactory, lightTarget = nu
         if (V.skyRise) { const k = ease(V.skyRise.u); zoom = lerp(zoom, zoom * 0.5, k); ty = lerp(ty, ty - H / zoom * 0.3, k); }
         // pulled back, never past the page's height: an upright phone would see under the ground
         if (V.vista > 0.01 || V.earthrise > 0.01 || V.skyRise) zoom = Math.max(zoom, H / (b.y1 - b.y0));
+        // an upright phone: the sköldhäst and Spiran to the right, the open sky to the left of them
+        if (tallLook(W, H) > 0.01) tx = lerp(tx, snap.x - (W / zoom) * 0.3, tallLook(W, H));
         // the bear stands up: the camera pulls back until he fills the height of the screen, the heroes small on his back
         // (on a phone on its side the heroes on his head came up behind the counter and the pause button: the picture
         // looks a little higher there, and they stand under the buttons)
@@ -1752,7 +1760,7 @@ export function createView(PIXI, app, { assets, G, heroFactory, lightTarget = nu
             }
         }
         S.numbers.visible = true;
-        const pos = sky.alvaScreen(W, H, Math.max(V.alvaFocus, V.vista), vistaDx(W, H));
+        const pos = sky.alvaScreen(W, H, Math.max(V.alvaFocus, V.vista), vistaDx(W, H), tallLook(W, H));
         S.numbers.children.forEach((tx, i) => { tx.position.set(pos[i].x + 26, pos[i].y - 24); tx.style.fontSize = Math.max(18, Math.min(30, Math.min(W, H) * 0.04)); });
     }
 

@@ -566,7 +566,7 @@ seed). Nothing can fail, nothing is timed, and showers and laps come round again
    före frukost."
 3. **Breakfast (M1).** Then she talks: her name, the count, hypothesis 1, the question. Alva: her ten-year stars, one for every year.
 4. **The Moon, freely** (M2–M4). After the first star: what a star-light is, and "under kupan". Klo and Nova's
-   rivalry in three short scenes, after stars 1, 2 and 3 (section 11.5).
+   rivalry in three short scenes, each in a place of its own between the puzzles (section 11.5).
 5. **The view (M5).** White holes. Nova's hypothesis falls; her lamps go red, then dim.
 6. **The fin.** Crumbs. Mira draws it back. "Den SKA vara sned." Both new pages open.
 7. **Stjärnbildsfältet.** Karlavagnen rolls; Orion's order; the bear and his nose; Pip and the photograph.
@@ -746,7 +746,13 @@ Som en sten – fast på månen."
 - nova: Tyngden beror på vad man är. Det vet alla.
 - klo: Just det vet ingen! Det är min forskning!
 
-### 11.5 Klo and Nova (after stars 1, 2 and 3)
+### 11.5 Klo and Nova (three scenes, each in its own place)
+
+They were written to follow stars 1, 2 and 3. Played in a real browser (14 November, section 20.4) each then came
+straight after the star's own scene, six or seven boxes in a row, so each now has a place of its own on open ground:
+`rival1` on Hoppfälten on the way out, `rival2` at Kanten before the stairs (it writes the Moon's postcard), `rival3`
+(with Klo's last line) on the way back from Utsikten, on Hoppfälten or in Novas krater. None is told within a few
+seconds of another scene.
 
 `rival1`:
 - klo: Jag har mätt månen. Den är … stor.
@@ -1974,6 +1980,9 @@ As for Äventyr 2, and a PR is not done without them.
 - Words: short boxes, no key names in help, Alva and Mira only as voices, nobody says "sned" or "sudd" before its
   time (section 7), every hint ladder has three steps.
 - `tests/skoldhast-voice.test.mjs` already fails until every line is recorded and nothing is left over.
+- `tests/browser/skoldhast-a3-play.mjs` (14 November): the whole adventure played in a real browser from "Börja" to
+  the ending card by a robot inside the page, with a picture of every line (section 20.4). Run it after any change to
+  where or when a scene is told.
 - `tests/browser/skoldhast-a3.mjs`: the prologue and the launch, all five pages at 390×844, each of the seven big
   pictures at three sizes, the ending saved, no page errors. Speaker checks as #32 added (who speaks is in the
   picture). In the great gallop: the sköldhäst, Suddet on its shell and the trail are all on screen at every size
@@ -2104,6 +2113,57 @@ document and the Swedish), and what came of them. Every change has a test (`test
   "Det finns ett till på andra sidan" (the ice's light may still be behind).
 - **This document follows the build** where it had drifted: the white page's postcard is written on arrival (13.6), the
   pipPhoto secret shows no photograph on the page, and cometRace is any wrap at a gallop (15).
+
+### 20.4 What a real playthrough changed (14 November)
+
+Pappa: "spela igenom äventyr 3 och förbättra allt du hittar". For the first time the whole adventure was played in a
+real browser from "Börja" to the ending card, by a robot inside the page that follows the node robot's route while the
+real loop, view and UI run (`tests/browser/skoldhast-a3-play.mjs`): 329 lines of speech, about a thousand pictures, on
+a phone on its side (844×390) and upright (390×844). The node robot ends every dialogue at once and has no picture; what
+follows could only be seen this way.
+
+- **Scenes that began in the middle of what they are about.** Area borders lay at the very edge, so the talk started
+  after the jump: "Ringen tar slut" was said to a sköldhäst flying off the ring's end; Karlavagnen's "Streckade linjer!
+  Det kan vi" while the hooves already drew the whole wagon by themselves; Luckan's talk while the gap drew itself.
+  Now Slungan begins at 27.6, Karlavagnen's talk is on Hamnstenen in front of the line, and a scene at an edge stops
+  the sköldhäst first (`halt()` in `story.mjs`). A line drawn to its end with nothing beyond it stops the gallop there
+  (`lineEnd()` in `game.mjs`): the sköldhäst used to run on past the bear's nose into space, and stood behind the
+  buttons when the bear rose.
+- **The lamps do not burn down during a scene** (section 5's "nothing is timed"): on the night side they went out
+  while the lines were read, the crater "that looks like a face" was talked about in the dark, and the player was left
+  in the dark in front of the second pit. Galloped into, the night side's own talk was said in full red light: she
+  calms down as they stop for it.
+- **The Moon's scenes, one at a time** (section 11.5 and 10): Klo and Nova's three have places of their own; the beam
+  is talked about at the crater's wall, not with the first light's five boxes; the ledge at the foot of the stairs; the
+  face crater whenever it is passed in her red light on the way back, or walked up to on the way out. The longest run
+  of boxes on the Moon outside the arrival, breakfast and the view went from eight to six.
+- **The landing:** the sköldhäst and Klo stood on the Moon while the rocket was still coming down. Now nobody is there
+  until it has landed, and they hop out one after the other.
+- **Speakers behind the speech box** (a phone on its side): Nova, down in her hollow, was hidden all through breakfast,
+  where she says her name. A conversation is now framed above the box, and the one the sköldhäst talks with stays in
+  the picture while it answers.
+- **The night began on the crater's east rim**, where the beam sets the shell down: "Tung var du" and the next scene were
+  told in the dark. The dark begins a length further east.
+- **Alva's ten places in the sky** (section 16, "Holes"): at a phone's size the ragged white patches were crumpled
+  paper balls hanging in the middle of play. Each is now the star's own crooked shape in pale paper, flat, without
+  glow, its edge dashed as everything rubbed out is here, and it does not twinkle.
+- **The big pictures on a phone on its side:** the view (the forest's page stood half behind the speech box with a hole
+  over it: it stands whole to the left, the ten beside it); the bear standing (the heroes come up under the buttons, not
+  behind them); the climax (the first bite is out of the Moon's upper rim and was cut off by the top of the screen, and
+  the counter lay over it: the picture reaches the Moon's top, and the counter steps aside while the Moon is rubbed
+  out); the finale (the constellation's two lowest stars were behind the Moon's ground while "Hovar fram och skal
+  bak!" was said: the figure is a little smaller and higher there, and closed from the chest to the neck as on Alva's
+  page in the epilogue).
+- **What stands in the fog** (section 8.4): the house, the dragon and Alva's first sköldhäst were a few grey dashes in
+  grey fog, shown for two seconds before the first word, and the sköldhäst "med fel ben" was outside the picture when it
+  was spoken of. They are drawn in darker pencil, the fog thins over them, and they stay for as long as they are talked
+  about: the camera first on the house and the dragon, then on the first sköldhäst alone.
+- **An upright phone:** the view from Utsikten was Spiran's rock with the forest's page and most of the ten behind it:
+  the rock stands to the right, the sky to its left. The climax is wide enough for the bite in the Moon's rim.
+- **Small:** the thought "Hon lyfter inte en häst som sprattlar" waits a moment on the ring of light (it came the
+  instant a hoof touched it); "Här tar sidan slut" is not thought as the Moon becomes whole.
+
+No spoken line was changed, so nothing was recorded.
 
 ## 21. Risks and what to tune
 
