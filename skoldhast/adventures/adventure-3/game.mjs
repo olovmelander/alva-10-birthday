@@ -157,7 +157,7 @@ export function createGame() {
             ledgeFloat(events);
             rescue(events);
             groundGuard.net(G, events);
-            for (const e of events) if (e.type === 'streckDone' && e.flag) { G.flags.delete(e.flag); G.flag(e.flag); }
+            for (const e of events) if (e.type === 'streckDone' && e.flag) { G.flags.delete(e.flag); G.flag(e.flag); lineEnd(); }
             stepPuzzles(G, events, dt);
             startCarries(dt, events);
             finishStep(events, inp, locked, dt);
@@ -403,6 +403,23 @@ export function createGame() {
         if (Math.abs(j.vx) > cap) j.vx = dir * cap;
     }
 
+    /**
+     * A line drawn to its end, with nothing beyond it (the bear's nose, Karlavagnen's last star, a dent before the fog,
+     * the Moon's rim): the sköldhäst stops on its last length. The gallop used to carry it on, out into space, and what
+     * was said about the finished line was said to a sköldhäst drifting away from it.
+     */
+    function lineEnd() {
+        const p = G.player, T = G.terrain, dir = p.facing || 1;
+        if (p.mode !== 'ground') return;
+        const ahead = T.support(p.x + dir * 0.6 * HL, p.y, 0.6 * HL, 0.6 * HL);
+        if (ahead && !ahead.s.hidden) return;
+        // the next line starts where this one ends (the dents in the white): the gallop runs on into it
+        if (T.dashedStart(p.x - dir * 8, p.x + dir * 0.6 * HL, p.y, dir)) return;
+        const back = T.support(p.x - dir * 0.25 * HL, p.y, 0.4 * HL, 0.4 * HL);
+        if (back && !back.s.hidden) { p.x -= dir * 0.25 * HL; p.y = back.y; p.surface = back.s; }
+        p.vx = 0;
+    }
+
     /** In space: a hidden shell hangs still unless something pulls it; nothing is wet; floating down onto a rock stands. */
     function spaceAfter(before, simInput, events) {
         const p = G.player, T = G.terrain, b = G.sceneDef.bounds;
@@ -498,7 +515,12 @@ export function createGame() {
                 onRing = true;
                 const nova = G.actors.nova;
                 if (!nova?.follow || nova.scene !== G.sceneId) continue;
-                if (!p.hidden || p.hide < 0.9) { if (Math.abs(p.vx) < 30) G.emit('beamKick', { id: c.id }); continue; }
+                if (!p.hidden || p.hide < 0.9) {
+                    // (only once it has stood there a while: the thought used to come the moment a hoof touched the ring)
+                    if (!p.hidden && Math.abs(p.vx) < 30) { G.puz.ringIdle = (G.puz.ringIdle || 0) + dt; if (G.puz.ringIdle > 1.2) G.emit('beamKick', { id: c.id }); }
+                    continue;
+                }
+                G.puz.ringIdle = 0;
                 G.puz.beamStill += dt;
                 if (G.puz.beamStill < 0.35) continue;
                 G.puz.beamStill = 0;
@@ -536,7 +558,7 @@ export function createGame() {
                 return;
             }
         }
-        if (!onRing) G.puz.beamStill = 0;
+        if (!onRing) { G.puz.beamStill = 0; G.puz.ringIdle = 0; }
     }
     function begin(def, path, speed, events, visible = false) {
         const p = G.player;

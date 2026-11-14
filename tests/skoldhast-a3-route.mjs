@@ -83,6 +83,9 @@ export async function travel(R, id, rocketX) {
 /** S1–S4. */
 export async function constellations(R) {
     const { G, p } = R;
+    // up to the dashed line first (the three talk about it there), then back for a run-up
+    await R.goTo(6.9);
+    await R.settle();
     await R.goTo(-1.2);
     await R.gallopPast(8.2);
     await R.flag('wagon_drawn', { x: 1 }, 10);
@@ -151,6 +154,9 @@ export async function ring(R) {
     // (the clue "Bara de sneda …" is written with Nova's "De raka stjärnorna är kvar", after hypothesis 3)
     assert.ok(R.has('light_l8') && R.has('b:cometSaw'), 'R4: Kometen\'s light, and what it saw');
     assert.equal(R.has('clue_crooked'), R.has('b:crooked'));
+    // up to the gap first (the three talk about it there), then back for a run-up between two showers
+    await R.until(() => R.has('b:gap') || R.has('gap_drawn'), () => ({ x: 0.6 }), 20, 'at the gap');
+    await R.settle();
     await R.goTo(71.6);
     await R.until(() => G.puz.shower?.state === 'shower' && G.puz.shower.id === 'gravelGap', {}, 8, 'a shower');
     await R.until(() => G.puz.shower === null || G.puz.shower.id !== 'gravelGap', {}, 4, 'shower over');

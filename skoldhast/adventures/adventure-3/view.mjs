@@ -292,6 +292,8 @@ export function createView(PIXI, app, { assets, G, heroFactory, lightTarget = nu
         V.heroHidden = false;
         // a page's own big moments never follow to the next page (the bear standing, the wagon's ride)
         V.bearStand = 0; V.bearWalk = 0; V.wagonRoll = 0; V.rideOffset = null;
+        // before the landing nobody is on the Moon yet: neither the rocket nor the two aboard it
+        V.stepOut = id === 'mane' && !G.flags.has('b:arrive') && !G.story?.running?.() ? { hero: 0, klo: 0, pre: true } : null;
         if (id === 'sudd') buildWhitePage(def);
         if (id === 'vinter') buildRide(def);
         for (const s of def.surfaces) if (!s.hidden) buildSurface(s, def);
@@ -933,7 +935,8 @@ export function createView(PIXI, app, { assets, G, heroFactory, lightTarget = nu
         }
         // what stands in the fog: the dents of things rubbed out
         for (const [kind, x, y, sc] of [['house', 37.0, -0.35, 1.7], ['dragon', 41.0, -0.45, 1.5], ['firstHorse', 44.2, -0.05, 1.7]]) {
-            const d = createDent(PIXI, pen, kind); d.view.position.set(h(x), h(y)); d.view.scale.set(sc); d.view.alpha = 0; L.mid.addChild(d.view);
+            // (in darker pencil than a dent on white paper: grey dashes in grey fog could not be seen)
+            const d = createDent(PIXI, pen, kind); d.view.position.set(h(x), h(y)); d.view.scale.set(sc); d.view.alpha = 0; d.view.tint = 0x6a6478; L.mid.addChild(d.view);
             S.ghosts.push({ d, x: h(x) });
         }
         // the pink heap where the rocket was rubbed out
@@ -1096,7 +1099,7 @@ export function createView(PIXI, app, { assets, G, heroFactory, lightTarget = nu
         sky.update(dt, {
             W, H, camX: cam.x, camY: cam.y, zoom: cam.zoom, t, rm, F,
             dim: Math.max(moonDark * 0.8, V.dread * 0.9, S.id === 'sudd' ? 0 : 0),
-            alvaFocus: Math.max(V.alvaFocus, V.vista),
+            alvaFocus: Math.max(V.alvaFocus, V.vista), alvaDx: vistaDx(W, H),
             home: F.has('lights_home') || (V.homeCount !== null),
             lit: V.homeCount !== null ? (i) => (i < V.homeCount ? 1 : 0) : null,
             gold: F.has('gold'), goldUpTo: V.goldUpTo ?? undefined,
@@ -1128,7 +1131,7 @@ export function createView(PIXI, app, { assets, G, heroFactory, lightTarget = nu
             let rx = S.def.rocketAt.x, ry = S.def.rocketAt.y, tilt = F.has('ended') ? 0.16 : 0.08, flame = 0;
             if (V.landing) { const u = V.landing.u; ry -= h(9) * (1 - ease(u)) ** 1.4; tilt = lerp(-0.5, 0.08, ease(u)); flame = u < 0.96 ? 1 : 0; rx += h(2) * (1 - ease(u)); }
             if (V.travel) { const u = V.travel.u; ry -= h(12) * u * u; tilt = 0.08 - 0.4 * u; flame = 1; rx += h(1.5) * u * u; }
-            S.rocket.update(dt, { visible: here || !!V.landing, x: rx, y: ry, flame, fin: finGone ? 'gone' : 'whole', rubbed: rub, tilt }, t, { reducedMotion: rm });
+            S.rocket.update(dt, { visible: (here && !V.stepOut?.pre) || !!V.landing, x: rx, y: ry, flame, fin: finGone ? 'gone' : 'whole', rubbed: rub, tilt }, t, { reducedMotion: rm });
             if (V.landing && !V.landing.dusted && V.landing.u > 0.95) { V.landing.dusted = true; emit('dust', rx, ry, 26, { speed: 220, gravity: 60, spread: h(1.6), life: 2.4, cone: 2.4 }); cam.shake = 6; }
             if (V.travel || V.landing) emit('dust', rx + (Math.random() - 0.5) * 30, ry + h(0.2), 1, { speed: 120, gravity: 40, life: 1.4, tint: 0xffd9a0 });
         }
@@ -1165,6 +1168,10 @@ export function createView(PIXI, app, { assets, G, heroFactory, lightTarget = nu
         lastT = t;
     }
     function inWhite(x) { return x > h(9) && x < h(69); }
+    /** A phone on its side: is the bottom of the picture behind the speech box? */
+    const lowWide = (W, H) => W > H && H <= 520;
+    /** The vista on a phone on its side: Alva's ten a little to the right, so that the forest's page has room beside them. */
+    const vistaDx = (W, H) => (lowWide(W, H) ? V.vista * W * 0.07 : 0);
 
     function skyThings(dt, t, W, H, rm, F, found, groundSy) {
         const id = S.id;
@@ -1174,7 +1181,7 @@ export function createView(PIXI, app, { assets, G, heroFactory, lightTarget = nu
         if (showForest) {
             const v = Math.max(V.vista, V.earthrise);
             // far off and low: only its top over the horizon, faint (at play size it read as a box on the ground)
-            const sc = lerp(clamp(W / 3400, 0.11, 0.28), clamp(Math.min(W, H) / 1500, 0.22, 0.55), v);
+            const sc = lerp(clamp(W / 3400, 0.11, 0.28), clamp(Math.min(W, H) / 1500, 0.3, 0.55), v);
             // behind the ground where it stands: the Moon's own ground under the page, so it never floats over a dip,
             // and is not seen at all from down in a crater or up on the rocks (there is no horizon there)
             const px = W * 0.76 - cam.x * cam.zoom * 0.004, wx = cam.x + (px - W / 2) / cam.zoom;
@@ -1187,8 +1194,11 @@ export function createView(PIXI, app, { assets, G, heroFactory, lightTarget = nu
             fp.alpha = lerp(0.55 * S.forestK, 1, v);
             fp.visible = fp.alpha > 0.02;
             // in the vista: low over the Moon's horizon, far down, never hidden behind the ground
-            const vistaY = Math.min(H * 0.88, clamp(groundSy, H * 0.3, H) - 150 * sc);
-            fp.position.set(lerp(W * 0.76 - cam.x * cam.zoom * 0.004, W * 0.36, v), lerp(baseY, vistaY, v) - V.earthrise * H * 0.12);
+            // (on a phone on its side the speech box hid its lower half, and one of the ten holes lay over it: there it
+            // stands higher and to the left, whole above the box)
+            const low = lowWide(W, H);
+            const vistaY = low ? H * 0.56 : Math.min(H * 0.88, clamp(groundSy, H * 0.3, H) - 150 * sc);
+            fp.position.set(lerp(W * 0.76 - cam.x * cam.zoom * 0.004, low ? W * 0.17 : W * 0.36, v), lerp(baseY, vistaY, v) - V.earthrise * H * 0.12);
             fp.scale.set(sc); fp.rotation = lerp(-0.06, -0.02, v);
             const bitten = F.has('moon_bitten') && !F.has('moon_whole');
             const P = fp._parts;
@@ -1360,6 +1370,8 @@ export function createView(PIXI, app, { assets, G, heroFactory, lightTarget = nu
             const near = klo ? Math.hypot(f.s.x - klo.x, f.s.y - klo.y) : 1e9;
             const lightK = (F.has('fog1_lit') ? 0.15 : 0) + still * 0.5;
             f.s.alpha = 0.5 * (1 - clamp(lightK * (1 - near / h(9)), 0, 0.8));
+            // the fog thins over what stands in it while it is looked at
+            if (S.ghostK > 0.01 && f.x0 > h(34.5)) f.s.alpha *= 1 - 0.7 * S.ghostK;
         }
         // the seed lights when Klo's claws are still: a warm glow round him while the shell waits
         if (!S.seed) { S.seed = softSprite(TX.glow, 0, 0, h(3), h(3), 0xfff0b0, 0, L.fx, 'add'); }
@@ -1367,8 +1379,9 @@ export function createView(PIXI, app, { assets, G, heroFactory, lightTarget = nu
         S.seed.visible = inFog && !!klo;
         if (S.seed.visible) { S.seed.position.set(klo.x, klo.y - h(0.35)); S.seed.alpha = 0.15 + still * 0.75; S.seed.scale.set((0.6 + still * 1.4) * h(3) / 128); }
         // what stands in the fog shows at the edge of the light
+        S.ghostK = lerp(S.ghostK || 0, V.ghosts ? 1 : 0, 1 - Math.exp(-2 * dt));
         for (const g of S.ghosts) {
-            const want = V.ghosts ? clamp(1.2 - Math.abs(g.x - p.x) / h(10), 0.45, 1) : (F.has('fog2_lit') ? clamp(0.75 - Math.abs(g.x - p.x) / h(12), 0, 0.6) : 0);
+            const want = V.ghosts ? 1 : (F.has('fog2_lit') ? clamp(0.95 - Math.abs(g.x - p.x) / h(12), 0, 0.8) : 0);
             g.d.view.alpha = lerp(g.d.view.alpha, want, 1 - Math.exp(-2 * dt));
         }
         // the rocket's pink heap after it was rubbed out
@@ -1467,8 +1480,14 @@ export function createView(PIXI, app, { assets, G, heroFactory, lightTarget = nu
             const kloActor = { ...k, x: kx, y: ky, vx: k.carried ? 0 : k.vx, pose: k.pose === 'love' ? 'happy' : k.pose, talking: G.speaker === 'klo' };
             A.klo.update(kloActor, { scene: S.id, time: t, dt, hero: p, talking: G.speaker === 'klo', reducedMotion: rm });
             A.klo.container.rotation = k.carried && !rm ? Math.sin(t * 2.2) * 0.12 : 0;
-            if (V.heroHidden) A.klo.container.visible = false; // aboard the rocket
-            const sh = A.shadows.klo; sh.visible = !!k.visible && k.scene === S.id && !k.carried && S.id !== 'stjarn'; if (sh.visible) sh.position.set(k.x, k.y + 2);
+            if (V.heroHidden || (V.stepOut && V.stepOut.klo <= 0)) A.klo.container.visible = false; // aboard the rocket
+            const sh = A.shadows.klo; sh.visible = !!k.visible && k.scene === S.id && !k.carried && S.id !== 'stjarn' && A.klo.container.visible; if (sh.visible) sh.position.set(k.x, k.y + 2);
+            // Klo steps out of the rocket after the sköldhäst (the landing)
+            if (V.stepOut && V.stepOut.klo > 0 && V.stepOut.klo < 1 && S.def.rocketAt) {
+                const u = V.stepOut.klo, e = ease(u);
+                A.klo.container.position.set(lerp(S.def.rocketAt.x + h(0.5), k.x, e), k.y - Math.sin(u * Math.PI) * h(0.45));
+                sh.visible = false;
+            }
         }
         // Nova
         const n = act.nova;
@@ -1526,7 +1545,12 @@ export function createView(PIXI, app, { assets, G, heroFactory, lightTarget = nu
         if (G.speaker === 'horse' && !snap.action && !rm && !snap.hide) { snap.action = 'talk'; snap.actionT = (t * 1.5) % 1; }
         hero.update(dt, snap);
         hero.view.position.set(snap.x, snap.y);
-        hero.view.visible = !G.hideHero && !V.heroHidden;
+        hero.view.visible = !G.hideHero && !V.heroHidden && !(V.stepOut && V.stepOut.hero <= 0);
+        // stepping out of the rocket after the landing: from its door to where it stands, in one slow hop
+        if (V.stepOut && V.stepOut.hero < 1 && S.def.rocketAt) {
+            const u = V.stepOut.hero, e = ease(u);
+            hero.view.position.set(lerp(S.def.rocketAt.x + h(0.5), snap.x, e), snap.y - Math.sin(u * Math.PI) * h(0.7));
+        }
         // riding the wagon or the bear: carried with them
         if (V.rideOffset) hero.view.position.set(snap.x + V.rideOffset.x, snap.y + V.rideOffset.y);
         const gone = F.has('outline_gone') && !F.has('self_drawn');
@@ -1603,21 +1627,28 @@ export function createView(PIXI, app, { assets, G, heroFactory, lightTarget = nu
     function frameSpeaker(tx, ty, zoom, W, H) {
         const who = G.speaker, p = G.player;
         const look = G.camLook && (!G.camLook.scene || G.camLook.scene === S.id) ? G.camLook : null;
-        const box = who && who !== 'horse' ? actorBox(who) : null;
+        // while the sköldhäst answers, the one it is talking with stays in the picture (the camera used to swing away
+        // and back between the lines of one conversation)
+        if (!who) S.talkWith = null;
+        else if (who !== 'horse' && actorBox(who)) S.talkWith = who;
+        const box = who && who !== 'horse' ? actorBox(who) : who === 'horse' && S.talkWith ? actorBox(S.talkWith) : null;
         if ((!box && !look) || G.hideHero) return { tx, ty, zoom };
+        // lying down (a phone on its side) the speech box covers the bottom of the screen: the picture is made for the
+        // screen above it (Nova in her hollow was behind the box all through breakfast, where she says her name)
+        const strip = who && W > H && H <= 520 ? Math.min(120, H * 0.25) : 0;
         const boxes = look ? [{ x0: look.x0 - h(0.5), x1: look.x1 + h(0.5), y0: look.y0 - h(0.3), y1: look.y1 + h(0.2) }] : [];
         if (box) boxes.push(box);
         const union = bs => ({ x0: Math.min(...bs.map(b => b.x0)), x1: Math.max(...bs.map(b => b.x1)), y0: Math.min(...bs.map(b => b.y0)), y1: Math.max(...bs.map(b => b.y1)) });
         const them = union(boxes), all = union([{ x0: p.x - h(0.7), x1: p.x + h(0.7), y0: p.y - h(1.6), y1: p.y + h(0.2) }, ...boxes]);
-        zoom = Math.max(zoom * (look ? 0.7 : 0.75), Math.min(zoom, W / (all.x1 - all.x0), H / (all.y1 - all.y0)));
-        const vw = W / zoom, vh = H / zoom;
+        zoom = Math.max(zoom * (look ? 0.7 : 0.75), Math.min(zoom, W / (all.x1 - all.x0), (H - strip) / (all.y1 - all.y0)));
+        const vw = W / zoom, vh = H / zoom, sv = strip / zoom;
         if (all.x1 - all.x0 <= vw) tx = clamp(tx, all.x1 - vw / 2, all.x0 + vw / 2);
         else if (look) tx = them.x1 - them.x0 <= vw ? clamp(p.x, them.x1 - vw / 2, them.x0 + vw / 2) : (them.x0 + them.x1) / 2;
         else tx = p.x + Math.sign((box.x0 + box.x1) / 2 - p.x) * (vw / 2 - h(0.9));
         // the sköldhäst at the edge of the picture is kept whole (at Kanten the ledge pushed it half out); a look far
         // away, with the sköldhäst out of the picture altogether, is left as it is
         if (Math.abs(p.x - tx) < vw / 2 + h(1.5) && vw > h(3)) tx = clamp(tx, p.x + h(1.0) - vw / 2, p.x - h(1.0) + vw / 2);
-        if (all.y1 - all.y0 <= vh) ty = clamp(ty, all.y1 - vh / 2, all.y0 + vh / 2);
+        if (all.y1 - all.y0 <= vh - sv) ty = clamp(ty, all.y1 + sv - vh / 2, all.y0 + vh / 2);
         else if (look) ty = them.y1 - them.y0 <= vh ? clamp(p.y, them.y1 - vh / 2, them.y0 + vh / 2) : (them.y0 + them.y1) / 2;
         return { tx, ty, zoom };
     }
@@ -1657,7 +1688,8 @@ export function createView(PIXI, app, { assets, G, heroFactory, lightTarget = nu
         // the climax: the Moon's face, Suddet and the friends in one picture (the face whole at every size)
         if (S.id === 'sudd' && F.has('climax') && !F.has('outline_gone') && !hint?.override) {
             const m = S.bigMoon.view, R = S.bigMoon.radius;
-            const face = { x0: m.x - R * 0.7, x1: m.x + R * 0.9, y0: m.y - R * 0.75, y1: m.y + R * 0.72 };
+            // (up to the Moon's top: the first bite is out of its upper rim, and was cut off by the top of the screen)
+            const face = { x0: m.x - R * 0.7, x1: m.x + R * 1.0, y0: m.y - R * 1.0, y1: m.y + R * 0.72 };
             // the heroes: the sköldhäst and the friends beside it (Nova walks behind, and must not fall out of the picture)
             const heroes = [{ x0: p.x - h(1), x1: p.x + h(1) }];
             for (const id of ['nova', 'klo']) { const bx = actorBox(id); if (bx && Math.abs((bx.x0 + bx.x1) / 2 - p.x) < h(3.5)) heroes.push(bx); }
@@ -1691,7 +1723,9 @@ export function createView(PIXI, app, { assets, G, heroFactory, lightTarget = nu
         // pulled back, never past the page's height: an upright phone would see under the ground
         if (V.vista > 0.01 || V.earthrise > 0.01 || V.skyRise) zoom = Math.max(zoom, H / (b.y1 - b.y0));
         // the bear stands up: the camera pulls back until he fills the height of the screen, the heroes small on his back
-        if (V.bearStand > 0.01) { const k = ease(V.bearStand); zoom = lerp(zoom, Math.min(W / h(24), H / h(10.5)), k); ty = lerp(ty, h(-2.8), k); tx = lerp(tx, h(60.5), k); }
+        // (on a phone on its side the heroes on his head came up behind the counter and the pause button: the picture
+        // looks a little higher there, and they stand under the buttons)
+        if (V.bearStand > 0.01) { const k = ease(V.bearStand); zoom = lerp(zoom, Math.min(W / h(24), H / h(10.5)), k); ty = lerp(ty, h(lowWide(W, H) ? -3.9 : -2.8), k); tx = lerp(tx, h(60.5), k); }
         if (!hint && !(S.id === 'sudd' && F.has('climax') && !F.has('outline_gone')) && V.vista < 0.01 && V.bearStand < 0.01) ({ tx, ty, zoom } = frameSpeaker(tx, ty, zoom, W, H));
         else if (hint && Math.abs(hint.x - snap.x) < W / zoom * 0.45 && !(S.id === 'sudd' && F.has('climax') && !F.has('outline_gone'))) ({ tx, ty, zoom } = frameSpeaker(tx, ty, zoom, W, H));
         // a look that leaves the sköldhäst half over the edge (the end of the ring, "Ringen tar slut") keeps it whole;
@@ -1718,7 +1752,7 @@ export function createView(PIXI, app, { assets, G, heroFactory, lightTarget = nu
             }
         }
         S.numbers.visible = true;
-        const pos = sky.alvaScreen(W, H, Math.max(V.alvaFocus, V.vista));
+        const pos = sky.alvaScreen(W, H, Math.max(V.alvaFocus, V.vista), vistaDx(W, H));
         S.numbers.children.forEach((tx, i) => { tx.position.set(pos[i].x + 26, pos[i].y - 24); tx.style.fontSize = Math.max(18, Math.min(30, Math.min(W, H) * 0.04)); });
     }
 
@@ -1773,10 +1807,18 @@ export function createView(PIXI, app, { assets, G, heroFactory, lightTarget = nu
                 // the rocket comes down crooked in a cloud of slow dust
                 if (S.id !== 'mane' || !S.rocket) return;
                 V.landing = { u: 0 };
+                // the sköldhäst and Klo are aboard until it stands (they stood on the Moon while it was still coming down)
+                V.stepOut = { hero: 0, klo: 0 };
                 G.camHint = { x: S.def.rocketAt.x + h(1.5), y: h(-2.6), zoom: 0.8 };
                 await animate(2.6, (u) => { V.landing.u = u; });
                 V.landing = null;
                 await waitGame(0.5);
+                // out through the door, one after the other, in the Moon's slow hops
+                await animate(rm ? 0.2 : 0.9, (u) => { V.stepOut.hero = u; });
+                emit('dust', p.x, p.y, 6, { speed: 90, gravity: 40, spread: h(0.4), life: 1.6 });
+                await animate(rm ? 0.2 : 0.7, (u) => { V.stepOut.klo = u; });
+                V.stepOut = null;
+                await waitGame(0.3);
                 G.camHint = null;
                 return;
             }
@@ -1859,7 +1901,9 @@ export function createView(PIXI, app, { assets, G, heroFactory, lightTarget = nu
             case 'pipFlash': { V.pipFlash = 1; flash = 0.5; await waitGame(0.6); return; }
             case 'slingshot': return slingshot();
             case 'cometPass': { V.cometSweep = { u: 0 }; await animate(1.4, (u) => { V.cometSweep.u = u; }); V.cometSweep = null; return; }
-            case 'ghosts': { V.ghosts = true; await waitGame(rm ? 1 : 2.4); V.ghosts = false; return; }
+            // what stands in the fog comes out of it, and stays out for as long as it is talked about (it used to fade
+            // before the first word: the house was a few faint dashes behind Nova, the first sköldhäst not in the picture)
+            case 'ghosts': { if (data.on === false) { V.ghosts = false; return; } V.ghosts = true; await waitGame(rm ? 1 : 2.0); if (data.on !== true) V.ghosts = false; return; }
             case 'bite': {
                 // a held moment: the squeak, one tearing squeal, then the change
                 const n = data.n || 1, m = S.bigMoon;

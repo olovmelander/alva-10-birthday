@@ -492,6 +492,7 @@ export function createGame({ host = document.body, assetBase = './skoldhast/', s
             ui.guide.update();
             // a light still flying to Nova's dome is counted when it lands there (view.mjs)
             ui.setLights(G.lights() - (view?.lightsArriving || 0), LIGHT_TOTAL);
+            ui.setCinema?.(G.flags.has('climax') && !G.flags.has('outline_gone'));
             if (view && view.lightsLanded > lightsLanded) { lightsLanded = view.lightsLanded; audio?.note?.(2 + (G.lights() % 6), { inst: 'shell', vel: 0.5 }); }
             if (audio) {
                 const p = G.player;

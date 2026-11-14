@@ -232,14 +232,24 @@ export function createSky(RAW, PIXI, app, pen) {
     const lines = new PIXI.Graphics(); alva.addChild(lines);
     const slots = CONSTELLATION.map(([u, v], i) => {
         const c = new PIXI.Container(); c.position.set(u * BOX.w, v * BOX.h);
-        // the hole: a ragged white patch, grey smears round it, and the star's dent
+        // the hole: the white paper where the star was rubbed out, in the star's own crooked shape (a round ragged patch
+        // was a crumpled paper ball at a phone's size, hanging in the middle of play), the eraser's grey smears round it,
+        // the star's dent inside, and a few pink crumbs under it
         const hole = new PIXI.Graphics();
-        const rag = []; for (let k = 0; k < 18; k++) { const a = k / 18 * TAU, r = 34 * (0.75 + hash(k, i * 7 + 1) * 0.5); rag.push(Math.cos(a) * r, Math.sin(a) * r * 0.9); }
-        for (let k = 0; k < 3; k++) hole.ellipse((hash(k, i) - 0.5) * 30, (hash(k, i + 4) - 0.5) * 22, 50 + k * 8, 34 + k * 5).fill({ color: 0x9a96a8, alpha: 0.14 });
-        hole.poly(rag).fill(pen.material('mat-paper', 1, 0xfbf8f1));
-        hole.poly(rag).fill({ color: 0xffffff, alpha: 0.35 });
-        dashedPath(hole, starPoints(24, 0.43, { seed: 20 + i, crooked: 1 }), pen.line(PAL.dent, 2.6, 0.9), { closed: true, dash: 7, gap: 6 });
-        for (let k = 0; k < 4; k++) hole.circle((hash(k, i + 9) - 0.5) * 60, 26 + hash(k, i + 11) * 14, 2.2).fill({ color: PAL.crumb, alpha: 0.75 });
+        const shape = (r, inner, j = 0) => starPoints(r, inner, { seed: 20 + i, crooked: 1 }).flatMap(([x, y], k) => [x + (hash(k, i * 7 + 1) - 0.5) * j, y + (hash(k, i * 7 + 2) - 0.5) * j]);
+        hole.poly(shape(62, 0.62, 8)).fill({ color: 0x9a96a8, alpha: 0.12 });
+        hole.poly(shape(54, 0.6, 6)).fill({ color: 0xb4b0c2, alpha: 0.16 });
+        // the strokes of the rubbing: three short smears across it
+        for (let k = 0; k < 3; k++) {
+            const y = (k - 1) * 20 + (hash(k, i + 4) - 0.5) * 8, x = (hash(k, i) - 0.5) * 16;
+            hole.moveTo(x - 46, y + 9).lineTo(x + 46, y - 9).stroke({ color: 0xc8c4d4, width: 9, alpha: 0.1, cap: 'round' });
+        }
+        // not a star: flat paper showing through, without glow, and its edge dashed as everything rubbed out is here
+        hole.poly(shape(46, 0.52, 5)).fill(pen.material('mat-paper', 0.78, 0xfbf8f1));
+        const rim = []; { const q = shape(46, 0.52, 5); for (let k = 0; k < q.length; k += 2) rim.push([q[k], q[k + 1]]); }
+        dashedPath(hole, rim, pen.line(0xfbf8f1, 4.5, 0.95), { closed: true, dash: 13, gap: 9 });
+        dashedPath(hole, starPoints(24, 0.45, { seed: 20 + i, crooked: 1 }), pen.line(PAL.dent, 2.4, 0.5), { closed: true, dash: 6, gap: 6 });
+        for (let k = 0; k < 4; k++) hole.circle((hash(k, i + 9) - 0.5) * 60, 44 + hash(k, i + 11) * 12, 2.4).fill({ color: PAL.crumb, alpha: 0.75 });
         const star = createAlvaStar(PIXI, pen, { seed: 20 + i, size: 30, crooked: 1 });
         const gold = createAlvaStar(PIXI, pen, { seed: 20 + i, size: 30, gold: true, crooked: 1 });
         const num = new PIXI.Container();
@@ -255,8 +265,11 @@ export function createSky(RAW, PIXI, app, pen) {
         linesDrawn = k;
         lines.clear();
         if (k <= 0) return;
-        for (let i = 1; i < slots.length; i++) {
-            const a = slots[i - 1], b = slots[i];
+        // one to ten as it is traced, and then from the chest up to the neck: the body is closed, as on Alva's page in
+        // the epilogue (open, it was a zigzag more than a sköldhäst)
+        const pairs = slots.slice(1).map((sl, i) => [slots[i], sl]);
+        pairs.push([slots.at(-1), slots[1]]);
+        for (const [a, b] of pairs) {
             lines.moveTo(a.u * BOX.w, a.v * BOX.h).lineTo(b.u * BOX.w, b.v * BOX.h).stroke({ color: 0xffe9a0, width: 10, alpha: 0.12 * k, cap: 'round' });
             lines.moveTo(a.u * BOX.w, a.v * BOX.h).lineTo(b.u * BOX.w, b.v * BOX.h).stroke(pen.line(0xf3d27a, 3.4, 0.85 * k));
         }
@@ -270,8 +283,11 @@ export function createSky(RAW, PIXI, app, pen) {
         const y = portrait ? H * 0.2 : H * 0.07;
         // in the finished sky and the vista they come to the middle, a little larger
         const k = focus;
-        const w2 = portrait ? W * 0.92 : Math.min(W * 0.62, H * 1.1), h2 = w2 * BOX.h / BOX.w;
-        return { x: lerp(x, (W - w2) / 2, k), y: lerp(y, portrait ? H * 0.24 : (H - h2) * 0.32, k), w: lerp(w, w2, k), h: lerp(h, h2, k) };
+        // (a phone on its side: a little smaller and higher, so that the whole figure stands over the Moon's horizon in
+        // the finale. Its two lowest stars, the hooves, were behind the ground while "Hovar fram och skal bak!" was said)
+        const low = !portrait && H <= 520;
+        const w2 = portrait ? W * 0.92 : Math.min(W * 0.62, H * (low ? 0.95 : 1.1)), h2 = w2 * BOX.h / BOX.w;
+        return { x: lerp(x, (W - w2) / 2 - (low ? W * 0.03 : 0), k), y: lerp(y, portrait ? H * 0.24 : low ? H * 0.05 : (H - h2) * 0.32, k), w: lerp(w, w2, k), h: lerp(h, h2, k) };
     }
 
     let kind = 'moon';
@@ -288,7 +304,7 @@ export function createSky(RAW, PIXI, app, pen) {
         setKind(k) { kind = k; },
         alvaRect,
         /** The ten places on the screen now (pixels). */
-        alvaScreen(W, H, focus) { const r = alvaRect(W, H, focus); return slots.map(s => ({ x: r.x + s.u * r.w, y: r.y + s.v * r.h, r: r.w / BOX.w })); },
+        alvaScreen(W, H, focus, dx = 0) { const r = alvaRect(W, H, focus); return slots.map(s => ({ x: r.x + dx + s.u * r.w, y: r.y + s.v * r.h, r: r.w / BOX.w })); },
         /**
          * s = { W, H, camX, camY, zoom, t, rm, F, dim (0..1: the dark of the bitten moon / the night side), alvaFocus,
          *       found (count found), home, gold, constellation, milky (0..1), extraStars }
@@ -317,7 +333,7 @@ export function createSky(RAW, PIXI, app, pen) {
             // Alva's ten
             const r = alvaRect(W, H, s.alvaFocus || 0);
             alva.visible = s.showAlva !== false;
-            alva.position.set(r.x - camX * zoom * 0.012 * (1 - (s.alvaFocus || 0)), r.y - camY * zoom * 0.008 * (1 - (s.alvaFocus || 0)));
+            alva.position.set(r.x + (s.alvaDx || 0) - camX * zoom * 0.012 * (1 - (s.alvaFocus || 0)), r.y - camY * zoom * 0.008 * (1 - (s.alvaFocus || 0)));
             alva.scale.set(r.w / BOX.w);
             const home = !!s.home, goldOn = !!s.gold;
             slots.forEach((sl, i) => {
@@ -329,7 +345,8 @@ export function createSky(RAW, PIXI, app, pen) {
                 sl.star.update(dt, t, { k: 1, reducedMotion: rm });
                 sl.gold.update(dt, t, { k: 1, reducedMotion: rm });
                 if (s.goldUpTo !== undefined) { sl.gold.view.visible = home && i < s.goldUpTo; sl.star.view.visible = home && i >= s.goldUpTo; }
-                const tw = rm ? 1 : 0.92 + 0.08 * Math.sin(t * 1.4 + sl.o);
+                // a star twinkles; a hole in the paper lies still
+                const tw = rm || lit < 1 ? 1 : 0.92 + 0.08 * Math.sin(t * 1.4 + sl.o);
                 sl.c.scale.set(tw * (home ? 0.9 : 0.72));
             });
             const k = s.constellation ? 1 : (s.linesK || 0);

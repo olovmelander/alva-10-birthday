@@ -119,7 +119,7 @@ SCENES.mane = {
         shelf: { x: h(17.2), y: h(-1.2) },
         deepWest: { x: h(44.2), y: h(0) },
         deepFloor: { x: h(50), y: h(4) },
-        nightStart: { x: h(56.4), y: h(0) },
+        nightStart: { x: h(57.0), y: h(0) },
         face: { x: h(64.6), y: h(-0.28) },
         edgeStart: { x: h(77), y: h(-0.04) },
         view: { x: h(97.2), y: h(-7.83) },
@@ -132,8 +132,9 @@ SCENES.mane = {
         { id: 'landing', x0: h(-0.2), x1: h(8) },
         { id: 'crater', x0: h(8), x1: h(20) },
         { id: 'jumps', x0: h(20), x1: h(44) },
-        { id: 'deep', x0: h(44), x1: h(56) },
-        { id: 'night', x0: h(56), x1: h(76) },
+        // (the night begins a little past the crater's east rim: the beam sets the shell down in the light)
+        { id: 'deep', x0: h(44), x1: h(56.8) },
+        { id: 'night', x0: h(56.8), x1: h(76) },
         { id: 'edge', x0: h(76), x1: h(95.0) },
         { id: 'view', x0: h(95.0), x1: h(101), y1: h(-7.2) }
     ],
@@ -142,7 +143,7 @@ SCENES.mane = {
     // the cereal box on Hyllan (M1): pushed west off the shelf it sinks slowly down to Nova's bed
     box: { x0: h(16.3), y: h(-1.2), push: { min: h(0.3), max: h(1.05) }, step: h(0.45), edge: h(15.95), fallTo: { x: h(12.9), y: h(0.46) }, fallSeconds: 2.6 },
     // Nattsidan: the dark, lit while Nova's lamps are red
-    dark: { x0: h(56.6), x1: h(76), flag: 'novaLit', seconds: 4, reach: h(3), minSpeed: 900 },
+    dark: { x0: h(57.6), x1: h(76), flag: 'novaLit', seconds: 4, reach: h(3), minSpeed: 900 },
     lights: [
         { id: 'l1', x: h(50.2), y: h(3.95), how: 'touch' },
         { id: 'l2', x: h(67.0), y: h(-0.95), how: 'touch' },
@@ -151,7 +152,7 @@ SCENES.mane = {
     carries: [
         // Nova's beam (M2, M4): a still, hidden shell on a ring of light is lifted along a short path
         { id: 'beamDeepW', kind: 'beam', spot: { x: h(46.8), y: h(4.0) }, needs: 'breakfast', path: L([46.7, 4.0], [46.2, 1.5], [45.3, -0.6], [44.4, -0.25], [44.2, 0]) },
-        { id: 'beamDeepE', kind: 'beam', spot: { x: h(53.3), y: h(4.0) }, needs: 'breakfast', path: L([53.3, 4.0], [53.8, 1.5], [54.7, -0.6], [55.6, -0.25], [55.8, 0]) },
+        { id: 'beamDeepE', kind: 'beam', spot: { x: h(53.3), y: h(4.0) }, needs: 'breakfast', path: L([53.3, 4.0], [53.8, 1.5], [54.6, -0.6], [55.2, -0.25], [55.3, 0.02]) },
         { id: 'beamLedge', kind: 'beam', spot: { x: h(89.1), y: h(-2.2) }, needs: 'breakfast', path: L([89.1, -2.2], [89.0, -3.5], [88.3, -4.5], [87.6, -4.15], [87.4, -3.9]) },
         { id: 'beamBelow', kind: 'beam', spot: { x: h(91.4), y: h(0) }, needs: 'breakfast', path: L([91.4, 0], [91.2, -2.5], [89.6, -4.6], [88.0, -4.2], [87.6, -3.9]) }
     ],
@@ -285,8 +286,9 @@ SCENES.ring = {
     },
     areas: [
         { id: 'icedock', x0: h(-4), x1: h(8) },
-        { id: 'gravel', x0: h(8), x1: h(30) },
-        { id: 'sling', x0: h(30), x1: h(44) },
+        // (Slungan begins before the ring's end: what is said there is said standing on the ice, not in the jump off it)
+        { id: 'gravel', x0: h(8), x1: h(27.6) },
+        { id: 'sling', x0: h(27.6), x1: h(44) },
         { id: 'shade', x0: h(44), x1: h(62.5) },
         { id: 'cometLane', x0: h(62.5), x1: h(76) },
         { id: 'gap', x0: h(76), x1: h(95) }
