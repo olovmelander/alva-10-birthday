@@ -155,18 +155,19 @@ export function createA2UI(host, { assetBase, handlers, voice = null }) {
         s += `<g ${fade(kristall)}><path d="M440 186 Q440 144 470 140 Q500 144 500 186 Z" fill="#3e3a4c" stroke="#2a2633" stroke-width="2"/><path d="M456 182 l7 -18 l7 18 z M474 182 l6 -14 l6 14 z" fill="#bfe6ff" stroke="#5f8fb0" stroke-width="1.2"/></g>`;
         // names and eggs: under the forest, the beach and the mountain's foot; the top's above it
         const txt = (x, y, t, size, fill, extra = '') => t ? `<text x="${x}" y="${y}" text-anchor="middle" font-size="${size}" fill="${fill}"${extra}>${t}</text>` : '';
-        s += txt(92, 214, label(skog), 26, '#3b3530') + txt(92, 240, eggs(skog), 21, '#6b5f4d');
-        s += txt(268, 214, label(strand), 26, '#3b3530') + txt(268, 240, eggs(strand), 21, '#6b5f4d');
-        s += txt(476, 214, label(kristall), 26, '#3b3530') + txt(476, 240, eggs(kristall), 21, '#6b5f4d');
-        s += txt(480, 24, [label(topp), eggs(topp)].filter(Boolean).join(' · '), 22, '#3b3530');
-        // where we are: a red pencil ring
-        const ring = { skog: [92, 150, 52], strand: [268, 172, 54], kristall: [470, 166, 34], topp: [480, 64, 30] };
+        // (a little larger than they were: on a phone held upright the drawing is shown at half its size)
+        s += txt(92, 214, label(skog), 29, '#3b3530') + txt(92, 241, eggs(skog), 23, '#6b5f4d');
+        s += txt(268, 214, label(strand), 29, '#3b3530') + txt(268, 241, eggs(strand), 23, '#6b5f4d');
+        s += txt(476, 214, label(kristall), 29, '#3b3530') + txt(476, 241, eggs(kristall), 23, '#6b5f4d');
+        s += txt(480, 24, [label(topp), eggs(topp)].filter(Boolean).join(' · '), 24, '#3b3530');
+        // where we are: a red pencil ring round the place, clear of the names under it (a circle cut through them)
+        const ring = { skog: [90, 146, 60, 44], strand: [268, 170, 72, 20], kristall: [470, 162, 38, 28], topp: [480, 62, 36, 26] };
         const here = places.find(p => p.here);
         if (here && ring[here.id]) {
-            const [x, y, r] = ring[here.id];
-            s += `<circle cx="${x}" cy="${y}" r="${r}" fill="none" stroke="#c0392b" stroke-width="3.4"/>`;
+            const [x, y, rx, ry] = ring[here.id];
+            s += `<ellipse cx="${x}" cy="${y}" rx="${rx}" ry="${ry}" fill="none" stroke="#c0392b" stroke-width="3.4" transform="rotate(-4 ${x} ${y})"/>`;
             // the words under the place's name (the top's beside its peak), never on the drawings
-            s += here.id === 'topp' ? txt(560, 66, NB.mapHere, 21, '#c0392b') : txt(here.id === 'skog' ? 92 : here.id === 'strand' ? 268 : 476, 266, NB.mapHere, 21, '#c0392b');
+            s += here.id === 'topp' ? txt(560, 66, NB.mapHere, 23, '#c0392b') : txt(here.id === 'skog' ? 92 : here.id === 'strand' ? 268 : 476, 267, NB.mapHere, 23, '#c0392b');
         }
         const aria = places.map(p => `${label(p)}${eggs(p) ? ' ' + eggs(p) : ''}${p.here ? ', ' + NB.mapHere.toLowerCase() : ''}`).join('. ');
         return `<svg class="a2-map" viewBox="0 0 600 274" role="img" aria-label="${NB.mapAria(aria)}">${s}</svg>`;
@@ -370,6 +371,8 @@ export function createA2UI(host, { assetBase, handlers, voice = null }) {
                 const row = el('div', 'a2-egg-row hatched');
                 for (let i = 0; i < 10; i++) { const e = el('span', 'a2-egg found'); e.innerHTML = EGG_ICON; row.append(e); }
                 c.append(row, el('h2', '', WORDS.endingTitle), el('p', '', WORDS.endingBody));
+                // (as Äventyr 1's card: "Nästa äventyr" was not explained)
+                if (nextAdventure?.playable) c.append(el('p', 'sk-ending-next', ADVENTURE_UI.nextReady(nextAdventure.number)));
                 if (nextAdventure?.playable) c.append(ui.button(ADVENTURE_UI.next, () => { action = { type: 'next', adventureId: nextAdventure.id }; ui.closePanel(); }, 'primary'));
                 c.append(ui.button(WORDS.endingExplore, () => ui.closePanel(), nextAdventure?.playable ? '' : 'primary'));
                 c.append(ui.button(ADVENTURE_UI.choose, () => { action = { type: 'adventures' }; ui.closePanel(); }, 'sk-choose-adventure'));

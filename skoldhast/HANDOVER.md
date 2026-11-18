@@ -1,3 +1,68 @@
+## A UX and UI audit of the menus, the HUD and the loader, in all three adventures (18 November)
+
+Pappa: "I want you to do an audit of the UX, UI, Huds, menues and make sure everything is user friendly, looks visually
+stunning and that this app is a really good experience and implemented in a good way."
+
+- **How it was looked at:** every menu (`dev/menus.html`) and the real game in headless Chromium at 390×844, 844×390,
+  667×375 and 1440×900, with touch at phone sizes: Äventyr 1's title, opening, free play, Klo's card, pause, notebook,
+  settings, report, ending and Välj äventyr; Större text; the ticket's loader. Two read-only audits did the same for
+  Äventyr 2 and 3 (about 230 pictures). Below is what was wrong and is fixed; the rest held up well (the title pages,
+  pause, the reports, Klo's card, the table's opening, tap targets of 44 px or more everywhere).
+- **The loader** (`index.html`, `#skoldhast-loader`): its "Laddar Sköldhästen …" inherited the ticket page's paragraph
+  style (white, bold, a black glow, floating) and could hardly be read on the cream page, under a Georgia title and blue
+  web buttons. It is now the game's notebook: an index card taped to Alva's desk, "Sköld**hästen**" in the notebook's
+  hand (Patrick Hand, asked for only once the overlay shows), a blue pencil line with the pencil at its tip for the
+  progress, and paper buttons. The failed state has the same card with its words in red. Nothing loads before the
+  button is pressed (the launch check passes).
+- **A phone on its side** (`skoldhast.css`, `(orientation: landscape) and (max-height: 560px)`):
+  - the notebook's bar under the pages (‹ 3/7 › Stäng) is a column beside them: the page has about 30 % more height
+    (it had about 210 px of 390). All three notebooks share it. The map is larger (`.sk-mapbook-stage svg`), and its
+    pieces are one per row (three in a row broke "Karthörnet" inside the word at 667×375 and with Större text);
+  - settings: Stäng sits under the right column, beside the sliders, not against the card's ✕ (they overlapped by
+    15 px); the key list ("Tangenter och handkontroll") is hidden while playing by touch, so the card no longer scrolls;
+  - Välj äventyr fits whole: "Tillbaka" was cut in half, and the ✓ for a finished adventure scribbled over its icon (it
+    stands beside it now). At 667×375 the three covers stand side by side; one under the other, only one was in sight.
+- **Touch buttons under a card:** Prata, Hoppa and Göm dig peeked out beside the pause menu, the notebook, the travel
+  card and the endings. They hide while a card is open, as the HUD already did. A speaker's badge at the screen's edge
+  keeps off them (Suddet's sat on Prata; `updateSpeaker`'s obstacles, `src/ui.mjs`).
+- **Names on the speaker's tab** (`speakerName` in `src/ui.mjs` and `src/guide.mjs`): Äventyr 3's own characters
+  (Stora björnen, Suddet, Kometen, Pip, and Nova after breakfast) spoke under a face alone, because the shared tab only
+  knew Äventyr 1 and 2's names. Äventyr 3 now names them (`speakerNames()` in `adventures/adventure-3/ui.mjs`). Nova's
+  tab stays empty until the line "Jag heter Nova." (or a save after breakfast), so her name is still not given away.
+  New test: `tests/skoldhast-speaker-names.test.mjs` (fails on the old code).
+- **The endings** (all three): the index card's red line ran through the picture above the heading (the hoofprint, the
+  eggs, the stars) and the blue lines through the heading. An ending card is plain paper with the red line under its
+  heading. Äventyr 2's card now says "Äventyr 3 är upplåst!" over "Nästa äventyr", as Äventyr 1's does; Äventyr 3's
+  stars are centred on a phone on its side.
+- **Äventyr 2:**
+  - Klo's and Tukankrabban's remarks stop short of the egg count on a phone on its side (only "10" showed);
+  - "Fortsätt" in Djupa skogen put the sköldhäst at the page's east edge, where the camera stops, under Prata
+    (`CHECKPOINTS.skog` is 2.4 lengths further in, on the same flat ground; the walk-in spawn is unchanged);
+  - Kartan: the place names are a little larger, the "Här är vi" ring hugs the place instead of crossing its name, and
+    on a phone on its side the list stands beside the map.
+- **Äventyr 3:**
+  - the star chart's ring hugs each place (it cut through "Månen", "1 av 3 ljus" and the ring planet's name), and on a
+    phone on its side the list stands beside the chart (it was below the fold);
+  - the notebook's spine ("Forskningsdagbok · De försvunna stjärnorna") ran off the cover on a phone on its side: a
+    short spine shows the notebook's name only (Äventyr 2's too);
+  - the light counter is darker behind its words (it turned grey on the white page), and on a phone held upright the
+    goal note's tape no longer touches it.
+- **Everywhere:** a thought bubble's dots aimed inside the bubble at 1440×900 (the bubble keeps clear of their aim at
+  every zoom, `placeThink`); text no longer leaves a lone word on a last line (`text-wrap: pretty`, headings balanced);
+  Större text reaches the goal note's label.
+- **Tests:** `npm test`: 519 pass. Browser checks that pass after the changes: `skoldhast-launch`, `skoldhast-notebook`,
+  `skoldhast-mapbook` (its 44 px rule caught a 40 px piece row, now 44), `skoldhast-a3 --sizes phone,side`,
+  `skoldhast-adventures`. Contact sheets: `docs/skoldhast/shots/ux/`.
+- **Left as it was:**
+  - the tips about the controls stay dark slips (they read on every background, and tell the controls from the story);
+  - the counters (eggs, lights) are not buttons; a tap on them does nothing in either adventure;
+  - Äventyr 2 and 3 have no "Ropa på Klo" button: "Prata" and the notebook's "Visa en ledtråd" give the help there;
+  - Äventyr 2's title has more empty paper at 1440×900 than Äventyr 1's, and "och den magiska / skogen" breaks in two
+    upright.
+- **Frågor till Pappa:**
+  - Does the new loader feel like the game to you and Alva? It shows for a moment only on a fast connection.
+  - Play once on a phone on its side and open the notebook: the arrows and Stäng are now beside the page, not under it.
+
 ## Äventyr 3: played through in a real browser, and what that found (14 November)
 
 Pappa: "Kan du spela igenom äventyr 3 och förbättra allt du hittar: buggar, konversationer, dialoger, det visuella,
