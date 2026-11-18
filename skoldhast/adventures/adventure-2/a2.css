@@ -75,6 +75,19 @@
 .a2-map-list li.here { color: #b8322a; }
 /* a phone held sideways: the page is low, so the whole map with its names fits without scrolling */
 @media (max-height: 520px) { .a2-map-box { max-width: min(380px, 100%); } }
+/* a phone on its side: the places listed beside the map, not under it, out of sight (as Äventyr 3's chart) */
+@media (orientation: landscape) and (max-height: 520px) {
+    .sk-j-page:has(> .a2-map-box) { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
+        grid-template-rows: auto auto auto auto minmax(0, 1fr); column-gap: 18px; }
+    .sk-j-page:has(> .a2-map-box) > h3 { grid-column: 1 / -1; justify-self: start; }
+    .sk-j-page:has(> .a2-map-box) > .a2-map-box { grid-column: 1; grid-row: 2 / span 4; max-width: none; margin-top: 2px; }
+    .sk-j-page:has(> .a2-map-box) > :not(h3):not(.a2-map-box) { grid-column: 2; }
+    .sk-j-page:has(> .a2-map-box) > .a2-map-list { margin-top: 0; }
+    .sk-j-page:has(> .a2-map-box) > .sk-j-num { grid-row: 5; align-self: end; justify-self: end; }
+    /* Klo's and Tukankrabban's remarks stop short of the egg count (centred and 640 px wide, only "10" showed) */
+    .sk-ui.a2:not(.sk-has-klo-ui) .sk-hintbubble:not([style*="align-self"]) { align-self: flex-start; margin-left: 56px;
+        width: min(640px, calc(100% - 56px - 190px)); }
+}
 /* the question, its answer, and the hypotheses stamped when the story proves them */
 .a2-question { font-style: italic; }
 .a2-answer { color: var(--sk-ink); }

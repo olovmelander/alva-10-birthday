@@ -26,7 +26,7 @@ const el = (tag, cls, text) => {
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 const HL_PX = 200; // world units per horse length
 
-export function createGuide(root, { img, portrait, heroScreen, onGoalTap, onDismissHelp, voice = null } = {}) {
+export function createGuide(root, { img, portrait, speakerName = (who) => NAMES[who] || '', heroScreen, onGoalTap, onDismissHelp, voice = null } = {}) {
     // a recorded line keeps its bubble up until it has been said
     const heardFor = (who, text, ms) => Math.max(ms, (voice?.seconds(who, text) || 0) * 1000 + 800);
     const layer = el('div', 'sk-guide');
@@ -257,7 +257,10 @@ export function createGuide(root, { img, portrait, heroScreen, onGoalTap, onDism
         const headX = s.x - r.left + f * 0.32 * sc, headY = s.y - r.top - 0.42 * sc;
         const bw = thinkEl.offsetWidth, bh = thinkEl.offsetHeight;
         const minTop = stackBottom() + 8;
-        let x = headX - f * 0.2 * sc - bw / 2, y = headY - 34 - bh;
+        // the dots aim just above the head (0.34 lengths): the bubble keeps clear of that point at every zoom (at
+        // 1440×900 a fixed 34 px put the aim inside the bubble, and the dots sat on its words)
+        const aimUp = 0.34 * sc;
+        let x = headX - f * 0.2 * sc - bw / 2, y = headY - Math.max(34, aimUp + 26) - bh;
         if (y < minTop) {
             // no room above: behind the head (so the thing it refused stays in view), or in front if the edge is near
             y = Math.max(minTop, headY - bh * 0.7);
@@ -275,7 +278,10 @@ export function createGuide(root, { img, portrait, heroScreen, onGoalTap, onDism
         thinkEl.style.transform = `translate(${Math.round(x)}px, ${Math.round(y)}px)`;
         // two little dots from the bubble towards the head, the last one just above it (aimed at the head itself, the
         // small dot sat on the sköldhäst's forehead, 6 November)
-        const aimX = headX, aimY = headY - 0.34 * sc;
+        const aimX = headX, aimY = headY - aimUp;
+        // (squeezed against the top bar, the bubble can still cover the aim: then no dots rather than dots on the words)
+        const covered = aimX > x - 4 && aimX < x + bw + 4 && aimY > y - 4 && aimY < y + bh + 4;
+        dotA.style.visibility = dotB.style.visibility = covered ? 'hidden' : '';
         const cx = x + bw / 2, cy = y + bh / 2, dx = aimX - cx, dy = aimY - cy;
         const k = Math.min(dx ? Math.abs(bw / 2 / dx) : Infinity, dy ? Math.abs(bh / 2 / dy) : Infinity, 1);
         const ex = cx + dx * k, ey = cy + dy * k;
@@ -300,7 +306,7 @@ export function createGuide(root, { img, portrait, heroScreen, onGoalTap, onDism
             if (!text) return;
             if (hintSpeaker !== who && portrait) hintFace.replaceChildren(...[portrait(who)].filter(Boolean));
             hintSpeaker = who;
-            hintWho.textContent = NAMES[who] || '';
+            hintWho.textContent = speakerName(who, text);
             hintText.textContent = text;
             hintEl.className = 'sk-hintbubble who-' + who;
             top.classList.add('hinting');

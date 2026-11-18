@@ -188,6 +188,23 @@ const ALVA_PENCIL = '<svg viewBox="0 0 64 48" aria-hidden="true"><path d="M8 40 
 const CRUMB = (r) => `<svg viewBox="0 0 20 14" aria-hidden="true" style="transform:rotate(${Math.round(r)}deg)"><path d="M3 9 Q2 3 8 3 Q15 2 16 7 Q17 12 11 11 Q6 13 5 9 Q9 9 10 7" fill="#f4a7bb" stroke="#9a4a62" stroke-width="1"/></svg>`;
 
 // ---------------------------------------------------------------------------------------------
+/**
+ * The name on a speaker's tab and hint bubble (src/ui.mjs, src/guide.mjs): every character of this adventure says
+ * who it is, as in Äventyr 1 and 2 (Stora björnen, Suddet, Kometen and Pip spoke under a face alone). Nova's says
+ * nothing until she has said her name ("Jag heter Nova." at breakfast; design section 7), so the line before it is
+ * hers, unnamed. novaNamed(): true once breakfast is over (a reload in the middle of it plays it again).
+ * Returns (who, text) => the name, or undefined for a speaker this adventure does not know.
+ */
+export function speakerNames({ novaNamed = () => false } = {}) {
+    let introduced = false;
+    return (who, text) => {
+        if (!Object.hasOwn(NAMES, who)) return undefined;
+        if (who !== 'nova') return NAMES[who];
+        if (/Jag heter Nova/.test(text || '')) introduced = true;
+        return introduced || novaNamed() ? NAMES.nova : '';
+    };
+}
+
 export function createA3UI(host, { assetBase, handlers, voice = null }) {
     let suddEyes = false;
     const FACES = {
@@ -197,11 +214,13 @@ export function createA3UI(host, { assetBase, handlers, voice = null }) {
         sudd: () => suddSvg({ eyes: suddEyes, star: suddEyes }),
         bjorn: () => BJORN_SVG, komet: () => KOMET_SVG, pip: () => PIP_SVG, tukan: () => TUKAN_SVG, moln: () => MOLN_SVG
     };
+    const speakerName = speakerNames({ novaNamed: () => handlers.novaNamed?.() });
     const ui = createNotebookUI(host, {
         voice,
         assetBase,
         handlers: {
             ...handlers,
+            speakerName,
             portrait: (who) => {
                 if (!FACES[who]) return undefined;
                 const face = el('span', 'sk-speaker-face a3-face face-' + who);
@@ -214,7 +233,7 @@ export function createA3UI(host, { assetBase, handlers, voice = null }) {
     const root = ui.root;
     root.classList.add('a3');
     const img = (name) => new URL(`${assetBase}assets/${name}.webp`, document.baseURI).href;
-    const guide = createGuide(root, { img, portrait: ui.portrait, heroScreen: () => handlers.heroScreen?.(), onGoalTap: () => handlers.openJournal(), voice });
+    const guide = createGuide(root, { img, portrait: ui.portrait, speakerName: ui.speakerName, heroScreen: () => handlers.heroScreen?.(), onGoalTap: () => handlers.openJournal(), voice });
     guide.show(false);
 
     // --- the counter: Novas kupa, in the HUD where Äventyr 2 counted its eggs ---------------------------
@@ -339,12 +358,14 @@ export function createA3UI(host, { assetBase, handlers, voice = null }) {
         s += txt(470, 276, label(ring), 26, '#f4ecd6') + txt(470, 300, lights(ring), 19, '#cbc4e2');
         if (ringo && ring?.named) s += txt(548, 252, NB.ringo || 'Ringo', 23, '#d7bff7', ' font-style="italic" transform="rotate(-8 548 252)"');
         s += txt(522, 124, sudd?.named ? label(sudd) : '', 23, '#f4ecd6') + txt(522, 146, sudd?.named ? lights(sudd) : '', 18, '#cbc4e2');
-        // where we are: a red pencil ring
-        const ringAt = { mane: [108, 228, 50], stjarn: [298, 138, 74], ring: [470, 212, 70], sudd: [520, 68, 44] };
+        // where we are: a red pencil ring round the place, clear of its name and its count (a circle cut through
+        // "Månen", "1 av 3 ljus" and the ring planet's name)
+        const ringAt = { mane: [108, 226, 54, 44], stjarn: [297, 142, 78, 46], ring: [470, 208, 76, 40], sudd: [520, 66, 46, 38] };
         const here = places.find(p => p.here);
         if (here && ringAt[here.id]) {
-            const [x, y, r] = ringAt[here.id];
-            s += `<circle cx="${x}" cy="${y}" r="${r}" fill="none" stroke="#e05a48" stroke-width="3.6"/>`;
+            const [x, y, rx, ry] = ringAt[here.id];
+            s += `<ellipse cx="${x}" cy="${y}" rx="${rx}" ry="${ry}" fill="none" stroke="#e05a48" stroke-width="3.6" transform="rotate(-5 ${x} ${y})"/>`
+                + `<path d="M${x + rx * 0.62} ${y - ry * 0.86} q${(rx * 0.16).toFixed(1)} -5 ${(rx * 0.3).toFixed(1)} 2" fill="none" stroke="#e05a48" stroke-width="2.6" stroke-linecap="round" transform="rotate(-5 ${x} ${y})"/>`;
         }
         const aria = places.map(p => `${label(p)}${lights(p) ? ' ' + lights(p) : ''}${p.here ? ', ' + String(nbText('chartHere')).toLowerCase() : ''}`).join('. ');
         return `<svg class="a3-chart" viewBox="0 0 600 330" role="img" aria-label="${esc(nbText('chartAria', aria) || aria)}">${s}</svg>`;

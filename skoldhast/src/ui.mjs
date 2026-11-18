@@ -117,6 +117,12 @@ export function createUI(host, { assetBase, handlers, voice = null }) {
         return face;
     }
     atlas('hero'); atlas('npcs');
+    // The name on a speaker's tab. Another adventure names its own characters (handlers.speakerName; undefined:
+    // the shared names). Äventyr 3's were missing, so Stora björnen, Suddet, Kometen and Pip spoke under a face alone.
+    function speakerName(who, text) {
+        const own = handlers.speakerName?.(who, text);
+        return own !== undefined ? own : (NAMES[who] || '');
+    }
 
     // ---------------------------------------------------------------------------
     // HUD: journal and pause buttons, pencil counter, caption line
@@ -218,7 +224,7 @@ export function createUI(host, { assetBase, handlers, voice = null }) {
             if (!text) continue;
             speaker = who;
             dlg.className = 'sk-dialogue on who-' + who;
-            dlgName.textContent = who === 'note' || who === 'caption' ? '' : (NAMES[who] || '');
+            dlgName.textContent = who === 'note' || who === 'caption' ? '' : speakerName(who, text);
             const face = portrait(who);
             if (face) dlgName.prepend(face);
             dlgText.textContent = text;
@@ -281,11 +287,12 @@ export function createUI(host, { assetBase, handlers, voice = null }) {
         const now = performance.now();
         if (now >= measureAt || markWho !== who) {
             const origin = root.getBoundingClientRect();
-            obstacles = [...root.querySelectorAll('.sk-dialogue.on, .sk-hintbubble.on, .sk-think.on, .sk-goal:not(.empty), .sk-hud:not(.off) .sk-round, .sk-hud:not(.off) .a2-eggs, .sk-hud:not(.off) .sk-pencils, .sk-klo-call:not([hidden])')]
+            // (and the touch buttons: Suddet's badge sat on "Prata" on a phone on its side)
+            obstacles = [...root.querySelectorAll('.sk-dialogue.on, .sk-hintbubble.on, .sk-think.on, .sk-goal:not(.empty), .sk-hud:not(.off) .sk-round, .sk-hud:not(.off) .a2-eggs, .sk-hud:not(.off) .sk-pencils, .sk-klo-call:not([hidden]), .sk-controls:not(.off) .sk-btn')]
                 .filter(n => !n.closest('.sk-guide.off')).map(n => {
                     const r = n.getBoundingClientRect();
                     return { left: r.left - origin.left, right: r.right - origin.left, top: r.top - origin.top - (n === dlg ? 38 : 0), bottom: r.bottom - origin.top };
-                });
+                }).filter(r => r.right > r.left);
             measureAt = now + 150;
         }
         markWho = who;
@@ -595,7 +602,12 @@ export function createUI(host, { assetBase, handlers, voice = null }) {
             const closeB = btn(UI.close, closePanel, 'sk-close');
             const dots = el('span', 'sk-j-dots');
             nav.append(prev, dots, next, closeB);
-            card.append(el('div', 'sk-j-head', head), tabs, leaves, nav);
+            // the name on the spine; "– Den magiska skogen" / "· De försvunna stjärnorna" only where the spine is long enough
+            const spine = el('div', 'sk-j-head');
+            const [, bookName, storyName] = head.match(/^(.*?)(\s+[–·]\s+.*)?$/);
+            spine.append(el('span', '', bookName));
+            if (storyName) spine.append(el('span', 'sk-j-head-story', storyName));
+            card.append(spine, tabs, leaves, nav);
 
             let spread = false;
             const spreadOf = (p) => Math.floor((p + 1) / 2);
@@ -1003,7 +1015,7 @@ export function createUI(host, { assetBase, handlers, voice = null }) {
 
     // ---------------------------------------------------------------------------
     return {
-        root, hud, controls, stickZone, stickBase, stickKnob, hopBtn, actBtn, hideBtn, portrait, updateSpeaker,
+        root, hud, controls, stickZone, stickBase, stickKnob, hopBtn, actBtn, hideBtn, portrait, speakerName, updateSpeaker,
         say, choice, toast, caption: captionShow, pulse, report, ending, journal, book, pauseMenu, settings, title, adventurePicker, slotPicker, draw,
         closePanel, voice,
         // the notebook's own pieces, for another adventure's panels

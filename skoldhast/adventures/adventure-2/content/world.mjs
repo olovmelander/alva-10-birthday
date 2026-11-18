@@ -441,7 +441,9 @@ SCENES.topp = {
 export const CHECKPOINTS = {
     start: { scene: 'strand', spot: 'start' },
     east: { scene: 'strand', at: { x: h(66.5), y: h(-0.6), facing: -1 } },
-    skog: { scene: 'skog', spot: 'fromStrand' },
+    // (a few lengths in from the page's east edge: at the entry spot the camera stops at the edge, and on a phone on
+    // its side "Fortsätt" showed the sköldhäst under the touch buttons, 18 November)
+    skog: { scene: 'skog', at: { x: h(98.2), y: h(-0.6), facing: -1 } },
     ledge: { scene: 'skog', at: { x: h(30.5), y: h(-0.6), facing: 1 } },
     crown: { scene: 'skog', at: { x: h(11.4), y: h(-12.22), facing: -1 } },
     kristall: { scene: 'kristall', spot: 'fromStrand' },

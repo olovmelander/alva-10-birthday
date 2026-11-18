@@ -643,6 +643,8 @@ export function createGame({ host = document.body, assetBase = './skoldhast/', s
             openPause: () => openPause(),
             resume: () => resume(),
             heroScreen: () => heroScreen(),
+            // Nova's name tab: once breakfast, where she says her name, is over (a reload mid-breakfast replays it)
+            novaNamed: () => !!G?.flags.has('b:breakfast'),
             stuck: () => {
                 const spot = G.safeSpot?.();
                 if (spot) { G.goto(G.sceneId, spot); view.cam.snap = true; }
