@@ -33,7 +33,8 @@ stunning and that this app is a really good experience and implemented in a good
 - **The endings** (all three): the index card's red line ran through the picture above the heading (the hoofprint, the
   eggs, the stars) and the blue lines through the heading. An ending card is plain paper with the red line under its
   heading. Äventyr 2's card now says "Äventyr 3 är upplåst!" over "Nästa äventyr", as Äventyr 1's does; Äventyr 3's
-  stars are centred on a phone on its side.
+  stars are centred on a phone on its side. On a phone on its side the two quieter choices stand side by side under
+  the main one, so every choice of all three cards shows without scrolling at 844×390 and 667×375.
 - **Äventyr 2:**
   - Klo's and Tukankrabban's remarks stop short of the egg count on a phone on its side (only "10" showed);
   - "Fortsätt" in Djupa skogen put the sköldhäst at the page's east edge, where the camera stops, under Prata
@@ -52,7 +53,11 @@ stunning and that this app is a really good experience and implemented in a good
   Större text reaches the goal note's label.
 - **Tests:** `npm test`: 519 pass. Browser checks that pass after the changes: `skoldhast-launch`, `skoldhast-notebook`,
   `skoldhast-mapbook` (its 44 px rule caught a 40 px piece row, now 44), `skoldhast-a3 --sizes phone,side`,
-  `skoldhast-adventures`. Contact sheets: `docs/skoldhast/shots/ux/`.
+  `skoldhast-adventures`, and `skoldhast-a2` except two checks that run out of time in this cloud machine's software
+  WebGL: "the prologue at Alva's table leads to the nest" (its arrival) and "the finale". They time out on the code
+  before this audit too (99b26e9: the prologue check failed 2 of 4 runs, the finale 1 of 1; the arrival's lines took
+  35 and 142 clicks there before they moved on), and the prologue check passed 2 of 5 runs after it. Run them on Pappa's PC with `SKOLDHAST_GPU=1`.
+  Contact sheets: `docs/skoldhast/shots/ux/` (390×844, 844×390, 667×375, 1440×900).
 - **Left as it was:**
   - the tips about the controls stay dark slips (they read on every background, and tell the controls from the story);
   - the counters (eggs, lights) are not buttons; a tap on them does nothing in either adventure;

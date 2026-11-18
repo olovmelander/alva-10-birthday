@@ -904,6 +904,15 @@ html.skoldhast-lock, html.skoldhast-lock body { overflow: hidden !important; ove
     .sk-ending p { max-width: none; line-height: 1.3; }
     .sk-ending .sk-ending-next { padding: 7px 12px; }
     .sk-ending .primary { margin-top: 0; }
+    /* two quieter choices under the main one stand side by side, so every choice fits without scrolling (Äventyr 2's
+       card says "Äventyr 3 är upplåst!" now, and Välj äventyr fell below the fold) */
+    .sk-card.sk-ending:has(> .sk-pbtn:not(.primary) + .sk-pbtn:not(.primary)) { display: grid; grid-template-columns: 1fr 1fr; column-gap: 12px; }
+    .sk-card.sk-ending:has(> .sk-pbtn:not(.primary) + .sk-pbtn:not(.primary)) > * { grid-column: 1 / -1; }
+    .sk-card.sk-ending > .sk-pbtn:not(.primary):has(+ .sk-pbtn:not(.primary)),
+    .sk-card.sk-ending > .sk-pbtn:not(.primary) + .sk-pbtn:not(.primary) { grid-column: auto; }
+    /* a picture row over the heading (Äventyr 2's eggs, Äventyr 3's stars): the heading needs no room beside it */
+    .sk-card.sk-ending:not(:has(> .sk-ending-print)) { row-gap: 6px; }
+    .sk-ending:not(:has(> .sk-ending-print)) > h2 { min-height: 0; padding-left: 40px; padding-right: 40px; }
 }
 
 /* Complete adventures are separate paper covers on the same drawing table. */
