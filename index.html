@@ -1842,20 +1842,41 @@
             50% { box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5), 0 0 30px rgba(120, 220, 200, 0.85); }
         }
 
-        /* its loading overlay (the launch guard: it hides the ticket page at once) */
+        /* its loading overlay (the launch guard: it hides the ticket page at once). It is drawn as the game's own
+           notebook: an index card taped to Alva's desk, the title in the notebook's hand, and a pencil line that
+           draws itself as the files arrive. Nothing here loads before the button is pressed (the overlay is hidden,
+           and a hidden element never asks for its font). */
+        @font-face {
+            font-family: 'Patrick Hand';
+            src: url('skoldhast/fonts/patrick-hand-latin.woff2') format('woff2');
+            font-weight: 400;
+            font-style: normal;
+            font-display: swap;
+        }
+
         #skoldhast-loader {
+            --skl-ink: #3b3530;
+            --skl-soft: #6b635a;
+            --skl-hand: 'Patrick Hand', 'Segoe Print', 'Bradley Hand', 'Chalkboard SE', 'Comic Sans MS', cursive;
             position: fixed;
             inset: 0;
             z-index: 10050;
             display: flex;
-            flex-direction: column;
             align-items: center;
             justify-content: center;
-            gap: 18px;
-            padding: 24px 16px;
-            background: #fbf8f1;
-            color: #3b3530;
-            font-family: Georgia, 'Times New Roman', serif;
+            padding:
+                max(16px, env(safe-area-inset-top))
+                max(16px, env(safe-area-inset-right))
+                max(16px, env(safe-area-inset-bottom))
+                max(16px, env(safe-area-inset-left));
+            box-sizing: border-box;
+            /* the desk: warm wood with a soft grain */
+            background:
+                radial-gradient(120% 90% at 50% 40%, rgba(255, 236, 200, 0.35), rgba(60, 35, 15, 0.28)),
+                repeating-linear-gradient(177deg, rgba(110, 70, 30, 0.07) 0 2px, transparent 2px 7px, rgba(110, 70, 30, 0.05) 7px 8px, transparent 8px 19px),
+                #c99c66;
+            color: var(--skl-ink);
+            font-family: var(--skl-hand);
             text-align: center;
             touch-action: none;
             user-select: none;
@@ -1866,33 +1887,106 @@
             display: none;
         }
 
+        /* an index card: a red line under the title, blue lines below, a strip of tape on top */
+        #skoldhast-loader .skl-card {
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 14px;
+            width: min(400px, 100%);
+            box-sizing: border-box;
+            padding: 30px 26px 26px;
+            background:
+                linear-gradient(rgba(194, 65, 47, 0.45), rgba(194, 65, 47, 0.45)) 0 92px / 100% 2px no-repeat,
+                repeating-linear-gradient(transparent 0 33px, rgba(63, 134, 198, 0.22) 33px 34px) 0 94px / 100% calc(100% - 94px) no-repeat,
+                #fbf8f1;
+            border-radius: 3px 5px 6px 4px;
+            box-shadow: 0 1px 1px rgba(40, 30, 20, 0.25), 0 18px 34px -10px rgba(30, 20, 10, 0.6);
+            transform: rotate(-0.8deg);
+        }
+
+        #skoldhast-loader .skl-card::before {
+            content: '';
+            position: absolute;
+            top: -12px;
+            left: 50%;
+            width: 104px;
+            height: 26px;
+            transform: translateX(-50%) rotate(-2.5deg);
+            background: rgba(236, 222, 170, 0.78);
+            box-shadow: 0 1px 2px rgba(40, 30, 20, 0.18);
+        }
+
         #skoldhast-loader .skl-title {
             margin: 0;
-            font-size: clamp(1.6rem, 6vw, 2.4rem);
-            font-weight: normal;
-            letter-spacing: 0.04em;
+            min-height: 52px;
+            font-family: var(--skl-hand);
+            font-size: clamp(2.2rem, 9vw, 2.9rem);
+            font-weight: 400;
+            line-height: 1;
+            letter-spacing: 0.01em;
+            color: #2f5e25;
+        }
+
+        #skoldhast-loader .skl-title span {
+            color: #c8601f;
+        }
+
+        /* the ticket page floats and glows its paragraphs: here the words are written on paper */
+        #skoldhast-loader p {
+            max-width: none;
+            margin: 0;
+            padding: 0;
+            color: var(--skl-ink);
+            font-family: var(--skl-hand);
+            font-weight: 400;
+            text-shadow: none;
+            animation: none;
+            transform: none;
         }
 
         #skoldhast-loader .skl-status {
-            margin: 0;
-            font-size: 1.1rem;
-            min-height: 1.5em;
+            min-height: 1.4em;
+            font-size: 1.35rem;
+            line-height: 1.3;
         }
 
+        #skoldhast-loader[data-mode="failed"] .skl-status {
+            color: #a4351f;
+        }
+
+        /* a pencil line that draws itself: a faint guide line, the blue stroke, and the pencil at its tip */
         #skoldhast-loader .skl-bar {
-            width: min(320px, 80vw);
-            height: 12px;
-            border: 2px solid #3b3530;
-            border-radius: 7px;
-            overflow: hidden;
+            position: relative;
+            width: min(300px, 100%);
+            height: 22px;
+            margin: 2px 0 4px;
+            background: linear-gradient(transparent 10px, rgba(59, 53, 48, 0.22) 10px 12px, transparent 12px);
         }
 
         #skoldhast-loader .skl-bar > i {
+            position: absolute;
+            left: 0;
+            top: 8px;
             display: block;
-            height: 100%;
+            height: 6px;
             width: 0;
-            background: repeating-linear-gradient(115deg, #2f7fbf 0 6px, #5aa0d6 6px 10px);
+            border-radius: 3px 2px 4px 3px;
+            background: repeating-linear-gradient(100deg, #2b6aa8 0 2px, #3f86c6 2px 5px, #5f9dd2 5px 6px);
             transition: width 0.25s;
+        }
+
+        #skoldhast-loader .skl-bar > i::after {
+            content: '';
+            position: absolute;
+            right: -6px;
+            bottom: 1px;
+            width: 46px;
+            height: 15px;
+            transform: rotate(-24deg);
+            transform-origin: 4px 100%;
+            background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 46 15'%3E%3Cpath d='M1 7.5 L10 2 H42 Q45 2 45 5 V10 Q45 13 42 13 H10 Z' fill='%23f2b04a' stroke='%233b3530' stroke-width='1.3'/%3E%3Cpath d='M1 7.5 L10 2 V13 Z' fill='%23f3e3c4' stroke='%233b3530' stroke-width='1.3'/%3E%3Cpath d='M1 7.5 L4.5 5.4 V9.6 Z' fill='%232b6aa8'/%3E%3Cpath d='M36 2 V13' stroke='%233b3530' stroke-width='1.1'/%3E%3C/svg%3E") center / contain no-repeat;
         }
 
         #skoldhast-loader[data-mode="failed"] .skl-bar {
@@ -1904,28 +1998,50 @@
             flex-wrap: wrap;
             justify-content: center;
             gap: 12px;
+            margin-top: 4px;
         }
 
+        /* the notebook's buttons: a paper label in a pencil box, the main one colored in yellow */
         #skoldhast-loader button {
-            min-height: 48px;
-            padding: 10px 20px;
-            border: 2px solid #3b3530;
-            border-radius: 10px;
-            background: #fff;
-            color: #3b3530;
-            font: inherit;
-            font-size: 1.05rem;
+            min-height: 50px;
+            min-width: 120px;
+            padding: 6px 20px 8px;
+            border: 2px solid var(--skl-ink);
+            border-radius: 3px 8px 4px 7px / 7px 4px 8px 3px;
+            background: #fffcf3;
+            color: var(--skl-ink);
+            box-shadow: 0 5px 7px -6px rgba(40, 30, 20, 0.5);
+            font: 400 1.3rem/1.1 var(--skl-hand);
             cursor: pointer;
+            touch-action: manipulation;
+            -webkit-tap-highlight-color: transparent;
+            transition: transform 0.12s ease-out;
+        }
+
+        #skoldhast-loader button:active {
+            transform: translateY(2px) scale(0.975);
+        }
+
+        #skoldhast-loader button:focus-visible {
+            outline: 2.5px dashed #e0782a;
+            outline-offset: 4px;
         }
 
         #skoldhast-loader button.skl-primary {
-            background: #2f7fbf;
-            border-color: #245f8f;
-            color: #fff;
+            background: #f6dc5a;
         }
 
         #skoldhast-loader button[hidden] {
             display: none;
+        }
+
+        @media (orientation: landscape) and (max-height: 480px) {
+            #skoldhast-loader .skl-card {
+                gap: 10px;
+                padding: 24px 24px 20px;
+                background-position: 0 78px, 0 80px, 0 0;
+                background-size: 100% 2px, 100% calc(100% - 80px), auto;
+            }
         }
 
         @media (max-width: 480px) {
@@ -3002,13 +3118,15 @@
     </div>
 
     <div id="skoldhast-loader" role="dialog" aria-modal="true" aria-labelledby="skoldhast-loader-title" hidden>
-        <h2 class="skl-title" id="skoldhast-loader-title">Sköldhästen</h2>
-        <p class="skl-status" role="status" aria-live="polite">Laddar Sköldhästen …</p>
-        <div class="skl-bar" aria-hidden="true"><i></i></div>
-        <div class="skl-buttons">
-            <button type="button" class="skl-primary" data-skl="retry" hidden>Försök igen</button>
-            <button type="button" data-skl="cancel">Avbryt</button>
-            <button type="button" data-skl="back" hidden>Tillbaka till biljetten</button>
+        <div class="skl-card">
+            <h2 class="skl-title" id="skoldhast-loader-title">Sköld<span>hästen</span></h2>
+            <p class="skl-status" role="status" aria-live="polite">Laddar Sköldhästen …</p>
+            <div class="skl-bar" aria-hidden="true"><i></i></div>
+            <div class="skl-buttons">
+                <button type="button" class="skl-primary" data-skl="retry" hidden>Försök igen</button>
+                <button type="button" data-skl="cancel">Avbryt</button>
+                <button type="button" data-skl="back" hidden>Tillbaka till biljetten</button>
+            </div>
         </div>
     </div>
 

@@ -3,7 +3,7 @@
 /* --- the HUD: Novas kupa, where Äventyr 2 counted its eggs (by the pause button, clear of the goal note) -------- */
 .sk-hud .a3-kupa { position: absolute; top: max(14px, env(safe-area-inset-top)); right: calc(max(12px, env(safe-area-inset-right)) + 62px);
     pointer-events: none; display: flex; align-items: center; gap: 6px; padding: 4px 12px 4px 8px; border-radius: 14px;
-    background: rgba(30, 26, 52, .55); box-shadow: inset 0 0 0 1.5px rgba(178, 140, 220, .35);
+    background: rgba(30, 26, 52, .8); box-shadow: inset 0 0 0 1.5px rgba(178, 140, 220, .45), 0 2px 6px rgba(20, 18, 34, .25);
     font-size: calc(19px * var(--fz, 1)); color: #f4ecd6; text-shadow: 0 1px 2px rgba(20, 18, 34, .9), 0 0 6px rgba(20, 18, 34, .7); }
 .sk-hud .a3-kupa { transition: opacity .6s ease; }
 .sk-hud .a3-kupa.aside { opacity: 0; pointer-events: none; }
@@ -26,7 +26,8 @@
 }
 /* phone portrait: the note goes under the row of buttons and gets the width (as Äventyr 2) */
 @media (orientation: portrait) and (max-width: 720px) {
-    .a3 .sk-guide-top { top: max(66px, calc(env(safe-area-inset-top) + 56px)); }
+    /* (8 px lower than Äventyr 2: the note's tape touched the counter's foot) */
+    .a3 .sk-guide-top { top: max(74px, calc(env(safe-area-inset-top) + 64px)); }
     .a3 .sk-goal { margin-left: 3px; max-width: calc(100% - 6px); }
     .sk-ui.a3:not(.table-mode) .sk-caption { bottom: auto; top: 25%; }
 }
@@ -102,6 +103,16 @@
 .a3-milky { color: var(--sk-navy); }
 .a3-gold { color: #9a6c08; }
 @media (max-height: 520px) { .a3-chart-box { max-width: min(400px, 100%); } }
+/* a phone on its side: the places listed beside the chart, not under it, out of sight */
+@media (orientation: landscape) and (max-height: 520px) {
+    .sk-j-page:has(> .a3-chart-box) { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr);
+        grid-template-rows: auto auto auto auto minmax(0, 1fr); column-gap: 18px; }
+    .sk-j-page:has(> .a3-chart-box) > h3 { grid-column: 1 / -1; justify-self: start; }
+    .sk-j-page:has(> .a3-chart-box) > .a3-chart-box { grid-column: 1; grid-row: 2 / span 4; max-width: none; margin-top: 2px; }
+    .sk-j-page:has(> .a3-chart-box) > :not(h3):not(.a3-chart-box) { grid-column: 2; }
+    .sk-j-page:has(> .a3-chart-box) > .a3-chart-list { margin-top: 0; }
+    .sk-j-page:has(> .a3-chart-box) > .sk-j-num { grid-row: 5; align-self: end; justify-self: end; }
+}
 /* the question, its answer, and the hypotheses: "Stämmer!" in red, and, new in the series, "Stämmer inte" in grey */
 .a3-question { font-style: italic; }
 .a3-answer { color: var(--sk-ink); }
@@ -183,7 +194,7 @@
 @media (max-height: 500px) { .a3-place { min-height: 92px; padding: 6px; } .a3-place-art { width: 46px; height: 46px; } }
 
 /* --- the ending card: ten gold stars, and Nova in a brilliant mood ------------------------------------- */
-.a3-ending-stars { display: block; width: min(320px, 92%); }
+.a3-ending-stars { display: block; width: min(320px, 92%); align-self: center; }
 .a3-ending-stars svg { display: block; width: 100%; height: auto; overflow: visible; }
 .a3-ending-nova { display: block; width: 70px; align-self: flex-end; margin-top: -6px; }
 .a3-ending-nova svg { display: block; width: 100%; height: auto; }

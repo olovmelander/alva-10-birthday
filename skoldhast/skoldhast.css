@@ -44,6 +44,9 @@ html.skoldhast-lock, html.skoldhast-lock body { overflow: hidden !important; ove
 .sk-ui input[type="text"], .sk-ui textarea { user-select: text; -webkit-user-select: text; }
 
 /* --- shared notebook pieces -------------------------------------------------------- */
+/* no lone word on a line of its own, and headings broken into even lines (where the browser can) */
+.sk-ui :is(p, li, .sk-dlg-text, .sk-goal-text, .sk-hint-text, .sk-toast, .sk-think, .sk-tip) { text-wrap: pretty; }
+.sk-ui :is(h2, h3) { text-wrap: balance; }
 /* drawn icons and doodles (ui-icons.webp: 7 × 4 cells) */
 .sk-ic { display: inline-block; flex: none; width: 1.5em; height: 1.5em; vertical-align: -0.38em;
     background: var(--sk-icons) 0 0 / 700% 400% no-repeat; }
@@ -343,6 +346,7 @@ html.skoldhast-lock, html.skoldhast-lock body { overflow: hidden !important; ove
 .sk-set-cols { display: flex; flex-direction: column; gap: 4px; }
 .sk-set-col { display: flex; flex-direction: column; min-width: 0; }
 .sk-key-reference { margin: 12px 0; padding-top: 10px; border-top: 1px dashed var(--sk-soft); text-align: left; }
+.sk-ui.sk-touch .sk-key-reference { display: none; }
 .sk-key-reference summary { min-height: 44px; align-content: center; cursor: pointer; font-size: calc(22px * var(--fz)); }
 .sk-key-reference summary:focus-visible { outline: 2px dashed var(--sk-orange); outline-offset: 3px; }
 .sk-key-reference .sk-key-list, .sk-key-reference .sk-pad-list { white-space: pre-line; font-size: calc(19px * var(--fz)); line-height: 1.55; }
@@ -413,7 +417,10 @@ html.skoldhast-lock, html.skoldhast-lock body { overflow: hidden !important; ove
     background: var(--sk-green-dark); -webkit-mask: var(--sk-hatch) 0 0 / 90px; mask: var(--sk-hatch) 0 0 / 90px; }
 /* the name on the spine */
 .sk-j-head { position: absolute; left: 0; top: 0; bottom: 0; width: 22px; display: flex; align-items: center; justify-content: center; pointer-events: none;
-    writing-mode: vertical-rl; transform: rotate(180deg); font-size: 13px; letter-spacing: 0.3em; text-transform: uppercase; color: rgba(244, 234, 210, 0.85); }
+    writing-mode: vertical-rl; transform: rotate(180deg); font-size: 13px; letter-spacing: 0.3em; text-transform: uppercase; color: rgba(244, 234, 210, 0.85);
+    white-space: nowrap; overflow: hidden; }
+/* a short spine (a phone on its side) has room for the notebook's name only: the whole ran off the cover */
+@media (max-height: 620px) { .sk-j-head-story { display: none; } }
 .sk-j-tabs { position: relative; z-index: 2; display: flex; align-items: flex-end; gap: 3px; height: 50px; padding: 0 30px 0 6px; margin-bottom: -3px; }
 .sk-j-tab { --tab: var(--sk-sand); position: relative; isolation: isolate; flex: 1 1 0; min-width: 44px; height: 44px; margin: 0; padding: 2px 6px 5px; border: 0; cursor: pointer;
     display: flex; align-items: center; justify-content: center; gap: 4px; border-radius: 8px 10px 0 0; background: #f1e8d2;
@@ -754,6 +761,8 @@ html.skoldhast-lock, html.skoldhast-lock body { overflow: hidden !important; ove
 .sk-card > h2 { flex-shrink: 0; }
 /* an open card has its own ✕: the HUD's look-alike round pause button beside it (or under it) is hidden */
 .sk-ui:has(.sk-panel.on) .sk-hud { visibility: hidden; }
+/* and the touch buttons: the game is paused, and Prata and Hoppa peeked out beside the card */
+.sk-ui:has(.sk-panel.on) .sk-controls { visibility: hidden; }
 /* the game pauses under a card, so its loop never clears the goal note or a key prompt: the card says the goal itself */
 .sk-ui:has(.sk-panel.on) .sk-guide, .sk-ui:has(.sk-panel.on) .sk-keynote { visibility: hidden; }
 .sk-message { z-index: 10; }
@@ -782,12 +791,14 @@ html.skoldhast-lock, html.skoldhast-lock body { overflow: hidden !important; ove
     .sk-card h2 { font-size: calc(28px * var(--fz)); margin-bottom: 6px; }
     .sk-card > .sk-pbtn, .sk-btn-row > .sk-pbtn { min-height: 48px; }
     .sk-sheet-settings { width: min(840px, 100%); }
-    .sk-settings { display: grid; grid-template: "h b" auto "c c" 1fr "k k" auto / 1fr auto; column-gap: 20px; }
-    .sk-settings > h2 { grid-area: h; }
+    /* Stäng sits under the right column, beside the sliders: up by the heading it crowded the card's ✕ */
+    .sk-settings { display: grid; grid-template: "h h" auto "a t" auto "a b" 1fr "k k" auto / minmax(0, 1fr) minmax(0, 1fr); column-gap: 30px; }
+    .sk-settings > h2 { grid-area: h; min-height: 40px; margin-bottom: 4px; padding-right: 40px; }
     .sk-settings > .sk-key-reference { grid-area: k; }
-    .sk-settings > .sk-pbtn { grid-area: b; align-self: start; min-width: 130px; margin-right: 30px; }
-    .sk-settings .sk-set-cols { grid-area: c; flex-direction: row; gap: 30px; }
-    .sk-settings .sk-set-col { flex: 1; }
+    .sk-settings > .sk-pbtn { grid-area: b; align-self: end; justify-self: end; min-width: 150px; }
+    .sk-settings .sk-set-cols { display: contents; }
+    .sk-settings .sk-set-col:first-child { grid-area: a; }
+    .sk-settings .sk-set-col:last-child { grid-area: t; }
     .sk-row { min-height: 44px; }
     /* the report: findings on the left, the code and Fortsätt on the right */
     .sk-sheet-report { width: min(780px, 100%); margin-top: 26px; }
@@ -808,7 +819,17 @@ html.skoldhast-lock, html.skoldhast-lock body { overflow: hidden !important; ove
     .sk-journal { padding-top: 4px; padding-bottom: 8px; }
     .sk-j-nav { padding-top: 6px; }
     .sk-j-arrow, .sk-journal .sk-close { min-height: 44px; }
-    .sk-sheet-journal { width: min(700px, 100%); }
+    .sk-sheet-journal { width: min(780px, 100%); }
+    /* a phone on its side: the bar under the pages becomes a column beside them, so the page gets the height
+       (about 210 px of 390 were left for the words). The tabs stay on top, the ✕ in the corner above the column. */
+    .sk-journal:not(.spread) { display: grid; grid-template: "tabs tabs" auto "book nav" minmax(0, 1fr) / minmax(0, 1fr) auto; column-gap: 8px; }
+    .sk-journal:not(.spread) > .sk-j-tabs { grid-area: tabs; }
+    .sk-journal:not(.spread) > .sk-j-book { grid-area: book; }
+    .sk-journal:not(.spread) > .sk-j-nav { grid-area: nav; width: 70px; flex-direction: column; gap: 6px; padding: 4px 0 0; }
+    .sk-journal:not(.spread) .sk-j-arrow { width: 64px; min-height: 52px; }
+    .sk-journal:not(.spread) .sk-j-arrow:first-child { margin-top: auto; }
+    .sk-journal:not(.spread) .sk-j-dots { flex: none; }
+    .sk-journal:not(.spread) .sk-close { width: 70px; min-width: 0; padding-left: 2px; padding-right: 2px; margin-top: auto; }
 }
 @media (min-width: 900px) and (min-height: 600px) {
     .sk-sheet-report { width: min(640px, 100%); }
@@ -909,7 +930,8 @@ html.skoldhast-lock, html.skoldhast-lock body { overflow: hidden !important; ove
 .sk-adventure-card .sk-adventure-note { font-size: calc(18px * var(--fz)); line-height: 1.25; }
 .sk-adventure-play { width: 100%; margin-top: auto; font-size: calc(21px * var(--fz)); }
 .sk-adventures > .sk-adventures-close { width: auto; align-self: center; min-width: 150px; }
-@media (max-width: 679px) {
+/* (a small phone on its side keeps the three covers side by side: one under the other, only one was in sight) */
+@media (max-width: 679px) and (min-height: 561px), (max-width: 559px) {
     .sk-card.sk-adventures { padding: 20px 16px 16px; }
     .sk-adventure-list { grid-template-columns: minmax(0, 1fr); gap: 14px; margin-top: 4px; }
     .sk-adventure-card { padding: 12px 14px; gap: 6px; }
@@ -920,7 +942,7 @@ html.skoldhast-lock, html.skoldhast-lock body { overflow: hidden !important; ove
     .sk-adventure-card .sk-adventure-name { min-height: 1.1em; font-size: calc(25px * var(--fz)); }
     .sk-adventure-play { margin-top: 4px; }
 }
-@media (min-width: 680px) and (max-height: 560px) {
+@media (min-width: 560px) and (max-height: 560px) {
     .sk-card.sk-adventures { padding: 16px 20px; }
     .sk-adventure-list { gap: 12px; margin-top: 0; }
     .sk-adventure-card { padding: 12px; gap: 5px; }
@@ -933,9 +955,23 @@ html.skoldhast-lock, html.skoldhast-lock body { overflow: hidden !important; ove
     .sk-adventure-cover { position: absolute; top: 8px; right: 8px; width: 44px; min-height: 44px; border: 0; background: none; }
     .sk-adventure-card .sk-adventure-number, .sk-adventure-card .sk-adventure-name { padding-right: 48px; }
     .sk-adventure-card .sk-adventure-name { min-height: 0; }
+    /* the tick beside the small icon, not on it (on the wave it read as a scribble) */
+    .sk-adventure-cover > .sk-adventure-check { right: auto; bottom: auto; left: -24px; top: 10px; width: 24px; height: 24px; }
+    /* Tillbaka was cut in half by the card's foot: a little less air everywhere, and the whole card fits */
+    .sk-card.sk-adventures { padding-top: 12px; padding-bottom: 8px; gap: 6px; }
+    .sk-adventure-card { padding: 10px 12px; }
+    .sk-adventure-play { min-height: 48px; }
+    .sk-adventures > .sk-adventures-close { min-height: 44px; }
+}
+/* the smallest phones on their side: names and buttons on as few lines as they can */
+@media (min-width: 560px) and (max-width: 739px) and (max-height: 560px) {
+    .sk-adventure-card .sk-adventure-name { font-size: calc(21px * var(--fz)); }
+    .sk-adventure-card .sk-adventure-number, .sk-adventure-card .sk-adventure-name { padding-right: 40px; }
+    .sk-adventure-play { padding-left: 6px; padding-right: 6px; font-size: calc(19px * var(--fz)); }
 }
 .sk-goal-label { flex: none; font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: #9c4318; }
 .sk-goal-label { font-size: 13px; letter-spacing: 0.03em; text-transform: none; }
+.big-text .sk-goal-label { font-size: 15px; }
 .sk-goal.new { animation: sk-goal-in 0.7s cubic-bezier(0.2, 1.3, 0.4, 1); }
 @keyframes sk-goal-in { 0% { transform: translateY(-30px) rotate(-6deg); opacity: 0; } 60% { opacity: 1; } 100% { transform: rotate(-0.8deg); } }
 
@@ -1145,9 +1181,12 @@ html.skoldhast-lock, html.skoldhast-lock body { overflow: hidden !important; ove
     .sk-mapbook-workspace { display: grid; grid-template-columns: minmax(0, 1fr) minmax(200px, .7fr); gap: 6px 14px; align-items: start; }
     .sk-mapbook-heading { margin-bottom: 6px; }
     .sk-mapbook-stage { grid-column: 1; grid-row: 1 / span 3; position: sticky; top: 0; margin: 0; }
-    .sk-mapbook-stage svg { height: min(176px, calc(100vh - 214px)); max-height: none; aspect-ratio: auto; }
+    /* (the page is taller now that the journal's bar is a column beside it) */
+    .sk-mapbook-stage svg { height: min(228px, calc(100vh - 162px)); max-height: none; aspect-ratio: auto; }
     .sk-mapbook-pieces, .sk-mapbook-tools, .sk-mapbook-pan { grid-column: 2; margin: 0; }
-    .sk-mapbook-piece { flex-direction: row; }
+    /* one piece per row beside the map: three in a row broke "Karthörnet" inside the word on a small phone */
+    .sk-mapbook-pieces { grid-template-columns: 1fr; gap: 4px; }
+    .sk-mapbook-piece { flex-direction: row; padding-block: 4px; }
     .sk-mapbook-piece-icon { display: none; }
     .sk-mapbook-tool.overview { flex-basis: 100%; }
     .sk-mapbook-detail { margin-top: 4px; }

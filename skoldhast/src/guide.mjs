@@ -26,7 +26,7 @@ const el = (tag, cls, text) => {
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 const HL_PX = 200; // world units per horse length
 
-export function createGuide(root, { img, portrait, heroScreen, onGoalTap, onDismissHelp, voice = null } = {}) {
+export function createGuide(root, { img, portrait, speakerName = (who) => NAMES[who] || '', heroScreen, onGoalTap, onDismissHelp, voice = null } = {}) {
     // a recorded line keeps its bubble up until it has been said
     const heardFor = (who, text, ms) => Math.max(ms, (voice?.seconds(who, text) || 0) * 1000 + 800);
     const layer = el('div', 'sk-guide');
@@ -300,7 +300,7 @@ export function createGuide(root, { img, portrait, heroScreen, onGoalTap, onDism
             if (!text) return;
             if (hintSpeaker !== who && portrait) hintFace.replaceChildren(...[portrait(who)].filter(Boolean));
             hintSpeaker = who;
-            hintWho.textContent = NAMES[who] || '';
+            hintWho.textContent = speakerName(who, text);
             hintText.textContent = text;
             hintEl.className = 'sk-hintbubble who-' + who;
             top.classList.add('hinting');
